@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>عمليات - النظام المحاسبي</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <style>
+        :root { --primary: #1a56db; --primary-hover: #1e40af; --bg: #f1f5f9; --card: #ffffff; --text: #0f172a; --muted: #64748b; --border: #e2e8f0; --success: #16a34a; --danger: #dc2626; --warning: #f59e0b; --info: #0ea5e9; --shadow: 0 4px 6px -1px rgba(0,0,0,0.1); --sidebar-width: 220px; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Cairo', sans-serif; background: var(--bg); color: var(--text); display: flex; flex-direction: column; min-height: 100vh; }
+        .input-field, select { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 1rem; outline: none; background: white; transition: 0.2s; }
+        .input-field:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(26,86,219,0.1); }
+        .btn { padding: 10px 18px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; gap: 6px; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: var(--primary-hover); }
+        .btn-success { background: var(--success); color: white; }
+        .btn-success:hover { background: #15803d; }
+        .btn-warning { background: var(--warning); color: white; }
+        .btn-warning:hover { background: #d97706; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-danger:hover { background: #b91c1c; }
+        .btn-outline { background: transparent; border: 1px solid var(--border); }
+        .btn-sm { padding: 4px 10px; font-size: 0.8rem; }
+        .text-center { text-align: center; }
+        .text-muted { color: var(--muted); }
+        .text-danger { color: var(--danger); }
+        .mt-10 { margin-top: 10px; }
+        .mb-10 { margin-bottom: 10px; }
+        .flex-row { display: flex; flex-wrap: wrap; gap: 15px; }
+        .flex-1 { flex: 1; min-width: 200px; }
+        .flex-2 { flex: 2; min-width: 200px; }
+        .hidden { display: none; }
+        .card-section { background: var(--card); border-radius: 16px; padding: 20px; box-shadow: var(--shadow); border: 1px solid var(--border); margin-bottom: 20px; }
+        .app-wrapper { display: flex; min-height: 100vh; }
+        .sidebar { width: var(--sidebar-width); background: var(--card); border-left: 1px solid var(--border); box-shadow: 2px 0 8px rgba(0,0,0,0.05); display: flex; flex-direction: column; padding: 20px 0; position: sticky; top: 0; height: 100vh; overflow-y: auto; flex-shrink: 0; }
+        .sidebar .brand { text-align: center; padding: 0 15px 20px; border-bottom: 1px solid var(--border); margin-bottom: 15px; font-size: 1.1rem; font-weight: 700; color: var(--primary); }
+        .sidebar .brand i { font-size: 1.8rem; display: block; margin-bottom: 5px; }
+        .sidebar .nav-link { display: flex; align-items: center; gap: 10px; padding: 10px 20px; color: var(--text); text-decoration: none; border-radius: 0 20px 20px 0; transition: 0.15s; font-weight: 600; font-size: 0.9rem; border-right: 3px solid transparent; cursor: pointer; }
+        .sidebar .nav-link:hover { background: var(--bg); border-right-color: var(--primary); }
+        .sidebar .nav-link.active { background: var(--bg); border-right-color: var(--primary); color: var(--primary); }
+        .sidebar .nav-link i { width: 20px; text-align: center; }
+        .sidebar .logout-btn { margin-top: auto; border-top: 1px solid var(--border); padding-top: 15px; margin-bottom: 10px; }
+        .main-content { flex: 1; padding: 20px; background: var(--bg); overflow-y: auto; }
+        .toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
+        .toast { background: var(--text); color: white; padding: 14px 24px; border-radius: 12px; box-shadow: 0 10px 20px rgba(0,0,0,0.2); animation: slideIn 0.3s ease; display: flex; align-items: center; gap: 10px; min-width: 200px; max-width: 400px; }
+        .toast.success { background: var(--success); }
+        .toast.error { background: var(--danger); }
+        .toast.warning { background: var(--warning); }
+        .toast.info { background: var(--info); }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @media (max-width: 768px) { .sidebar { width: 60px; padding: 10px 0; } .sidebar .brand span { display: none; } .sidebar .nav-link span { display: none; } .sidebar .nav-link { justify-content: center; padding: 12px 0; } }
+    </style>
+</head>
+<body>
+    <div class="app-wrapper">
+        <nav class="sidebar">
+            <div class="brand"><i class="fas fa-store-alt"></i><span>ابن المختار</span></div>
+            <a class="nav-link" href="index.html"><i class="fas fa-th-large"></i> <span>لوحة التحكم</span></a>
+            <a class="nav-link" href="sale.html"><i class="fas fa-cash-register"></i> <span>البيع</span></a>
+            <a class="nav-link" href="products.html"><i class="fas fa-boxes"></i> <span>المنتجات</span></a>
+            <a class="nav-link" href="customers.html"><i class="fas fa-users"></i> <span>العملاء</span></a>
+            <a class="nav-link" href="suppliers.html"><i class="fas fa-truck"></i> <span>الموردين</span></a>
+            <a class="nav-link" href="purchases.html"><i class="fas fa-shopping-cart"></i> <span>المشتريات</span></a>
+            <a class="nav-link" href="expenses.html"><i class="fas fa-receipt"></i> <span>المصروفات</span></a>
+            <a class="nav-link" href="payments.html"><i class="fas fa-hand-holding-usd"></i> <span>سندات</span></a>
+            <a class="nav-link" href="cash-wallets.html"><i class="fas fa-wallet"></i> <span>المحافظ</span></a>
+            <a class="nav-link" href="cash-wallets.html"><i class="fas fa-coins"></i> <span>الصندوق</span></a>
+            <a class="nav-link" href="invoices.html"><i class="fas fa-file-invoice"></i> <span>الفواتير</span></a>
+            <a class="nav-link" href="journal.html"><i class="fas fa-book"></i> <span>القيود</span></a>
+            <a class="nav-link" href="reports.html"><i class="fas fa-chart-pie"></i> <span>التقارير</span></a>
+            <a class="nav-link active" href="operations.html"><i class="fas fa-tools"></i> <span>عمليات</span></a>
+            <a class="nav-link" href="settings.html"><i class="fas fa-cog"></i> <span>إعدادات</span></a>
+            <div class="logout-btn"><div class="nav-link" onclick="logout()" style="color:var(--danger);"><i class="fas fa-sign-out-alt"></i> <span>خروج</span></div></div>
+        </nav>
+
+        <main class="main-content">
+            <div class="card-section">
+                <h4><i class="fas fa-tools"></i> عمليات أخرى</h4>
+                <div class="flex-row">
+                    <div class="flex-1">
+                        <h5>إرجاع منتج مبيعات</h5>
+                        <label>رقم الفاتورة</label><input type="number" id="return-sale-id" class="input-field" placeholder="معرف الفاتورة" />
+                        <label>معرف المنتج</label><input type="number" id="return-sale-product" class="input-field" />
+                        <label>الكمية</label><input type="number" id="return-sale-qty" class="input-field" />
+                        <label>السبب</label><input type="text" id="return-sale-reason" class="input-field" />
+                        <button class="btn btn-warning mt-10" onclick="returnSaleItem()"><i class="fas fa-undo"></i> إرجاع</button>
+                    </div>
+                    <div class="flex-1">
+                        <h5>إلغاء فاتورة مبيعات</h5>
+                        <label>رقم الفاتورة</label><input type="number" id="cancel-sale-id" class="input-field" placeholder="معرف الفاتورة" />
+                        <button class="btn btn-danger mt-10" onclick="cancelSaleInvoice()"><i class="fas fa-times"></i> إلغاء</button>
+                        <hr />
+                        <h5>إلغاء فاتورة مشتريات</h5>
+                        <label>رقم الفاتورة</label><input type="number" id="cancel-purchase-id" class="input-field" placeholder="معرف الفاتورة" />
+                        <button class="btn btn-danger mt-10" onclick="cancelPurchaseInvoice()"><i class="fas fa-times"></i> إلغاء</button>
+                    </div>
+                    <div class="flex-1">
+                        <h5>إرجاع منتج مشتريات</h5>
+                        <label>رقم فاتورة الشراء</label><input type="number" id="return-purchase-id" class="input-field" />
+                        <label>معرف المنتج</label><input type="number" id="return-purchase-product" class="input-field" />
+                        <label>الكمية</label><input type="number" id="return-purchase-qty" class="input-field" />
+                        <label>السبب</label><input type="text" id="return-purchase-reason" class="input-field" />
+                        <button class="btn btn-warning mt-10" onclick="returnPurchaseItem()"><i class="fas fa-undo"></i> إرجاع</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    <div class="toast-container" id="toast-container"></div>
+
+    <script>
+        const API = 'https://api.ibnalmukhtar.com';
+        let token = localStorage.getItem('pos_token') || '';
+        if (!token) window.location.href = 'index.html';
+
+        function showToast(msg, type='info') {
+            const c = document.getElementById('toast-container');
+            const t = document.createElement('div');
+            t.className = `toast ${type}`;
+            const icons = { success:'fa-check-circle', error:'fa-exclamation-circle', warning:'fa-exclamation-triangle', info:'fa-info-circle' };
+            t.innerHTML = `<i class="fas ${icons[type] || icons.info}"></i> ${msg}`;
+            c.appendChild(t);
+            setTimeout(() => t.remove(), 4000);
+        }
+        function logout() { if(confirm('تأكيد الخروج?')) { localStorage.removeItem('pos_token'); window.location.href='index.html'; } }
+
+        async function returnSaleItem() {
+            const sale_id = parseInt(document.getElementById('return-sale-id').value);
+            const product_id = parseInt(document.getElementById('return-sale-product').value);
+            const quantity = parseInt(document.getElementById('return-sale-qty').value);
+            const reason = document.getElementById('return-sale-reason').value;
+            if (!sale_id || !product_id || !quantity) return showToast('جميع الحقول مطلوبة', 'warning');
+            try {
+                const res = await fetch(`${API}/operations/return-sale`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ sale_id, product_id, quantity, reason })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    showToast(`تم الإرجاع بقيمة ${data.refund_amount} ريال`, 'success');
+                } else showToast(data.error, 'error');
+            } catch { showToast('خطأ', 'error'); }
+        }
+        async function cancelSaleInvoice() {
+            const sale_id = parseInt(document.getElementById('cancel-sale-id').value);
+            if (!sale_id) return showToast('أدخل رقم الفاتورة', 'warning');
+            if (!confirm('هل أنت متأكد من إلغاء هذه الفاتورة؟')) return;
+            try {
+                const res = await fetch(`${API}/operations/cancel-sale`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ sale_id })
+                });
+                if (res.ok) showToast('تم الإلغاء', 'success');
+                else { const err = await res.json(); showToast(err.error, 'error'); }
+            } catch { showToast('خطأ', 'error'); }
+        }
+        async function cancelPurchaseInvoice() {
+            const purchase_invoice_id = parseInt(document.getElementById('cancel-purchase-id').value);
+            if (!purchase_invoice_id) return showToast('أدخل رقم الفاتورة', 'warning');
+            if (!confirm('هل أنت متأكد من إلغاء هذه الفاتورة؟')) return;
+            try {
+                const res = await fetch(`${API}/operations/cancel-purchase`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ purchase_invoice_id })
+                });
+                if (res.ok) showToast('تم الإلغاء', 'success');
+                else { const err = await res.json(); showToast(err.error, 'error'); }
+            } catch { showToast('خطأ', 'error'); }
+        }
+        async function returnPurchaseItem() {
+            const purchase_invoice_id = parseInt(document.getElementById('return-purchase-id').value);
+            const product_id = parseInt(document.getElementById('return-purchase-product').value);
+            const quantity = parseInt(document.getElementById('return-purchase-qty').value);
+            const reason = document.getElementById('return-purchase-reason').value;
+            if (!purchase_invoice_id || !product_id || !quantity) return showToast('جميع الحقول مطلوبة', 'warning');
+            try {
+                const res = await fetch(`${API}/operations/return-purchase`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ purchase_invoice_id, product_id, quantity, reason })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    showToast(`تم الإرجاع بقيمة ${data.refund_amount} ريال`, 'success');
+                } else showToast(data.error, 'error');
+            } catch { showToast('خطأ', 'error'); }
+        }
+    </script>
+</body>
+</html>

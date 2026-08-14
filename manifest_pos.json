@@ -1,0 +1,39 @@
+{
+  "id": "com.pos.ibnalmukhtar.accounting",
+  "name": "دفتر المحاسبة",
+  "short_name": "النظام المحاسبي",
+  "description": "النظام المحاسبي المتكامل لابن المختار: إدارة الميزانيات، تقارير المبيعات، المشتريات، وأرصدة المخزون بدقة واحترافية.",
+  "start_url": "/add_order.html",
+  "display": "standalone",
+  "background_color": "#e8eaf6",
+  "theme_color": "#1A237E",
+  "orientation": "landscape",
+  "dir": "rtl",
+  "lang": "ar",
+  "scope": "/pos/",
+  "icons": [
+    {
+      "src": "/icon-192x192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512x512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "maskable"
+    }
+  ],
+  "categories": ["business", "finance"],
+  "screenshots": [
+    {
+      "src": "/screenshots/pos-reports.png",
+      "sizes": "1920x1080",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "لوحة التقارير المالية"
+    }
+  ],
+  "related_applications": []
+}

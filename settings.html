@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>إعدادات - النظام المحاسبي</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <style>
+        :root { --primary: #1a56db; --primary-hover: #1e40af; --bg: #f1f5f9; --card: #ffffff; --text: #0f172a; --muted: #64748b; --border: #e2e8f0; --success: #16a34a; --danger: #dc2626; --warning: #f59e0b; --info: #0ea5e9; --shadow: 0 4px 6px -1px rgba(0,0,0,0.1); --sidebar-width: 220px; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Cairo', sans-serif; background: var(--bg); color: var(--text); display: flex; flex-direction: column; min-height: 100vh; }
+        .input-field, select { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 1rem; outline: none; background: white; transition: 0.2s; }
+        .input-field:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(26,86,219,0.1); }
+        .btn { padding: 10px 18px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; gap: 6px; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: var(--primary-hover); }
+        .btn-success { background: var(--success); color: white; }
+        .btn-success:hover { background: #15803d; }
+        .btn-warning { background: var(--warning); color: white; }
+        .btn-warning:hover { background: #d97706; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-danger:hover { background: #b91c1c; }
+        .btn-outline { background: transparent; border: 1px solid var(--border); }
+        .btn-sm { padding: 4px 10px; font-size: 0.8rem; }
+        .text-center { text-align: center; }
+        .text-muted { color: var(--muted); }
+        .text-danger { color: var(--danger); }
+        .text-success { color: var(--success); }
+        .mt-10 { margin-top: 10px; }
+        .mb-10 { margin-bottom: 10px; }
+        .flex-row { display: flex; flex-wrap: wrap; gap: 15px; }
+        .flex-1 { flex: 1; min-width: 200px; }
+        .flex-2 { flex: 2; min-width: 200px; }
+        .hidden { display: none; }
+        .card-section { background: var(--card); border-radius: 16px; padding: 20px; box-shadow: var(--shadow); border: 1px solid var(--border); margin-bottom: 20px; }
+        .app-wrapper { display: flex; min-height: 100vh; }
+        .sidebar { width: var(--sidebar-width); background: var(--card); border-left: 1px solid var(--border); box-shadow: 2px 0 8px rgba(0,0,0,0.05); display: flex; flex-direction: column; padding: 20px 0; position: sticky; top: 0; height: 100vh; overflow-y: auto; flex-shrink: 0; }
+        .sidebar .brand { text-align: center; padding: 0 15px 20px; border-bottom: 1px solid var(--border); margin-bottom: 15px; font-size: 1.1rem; font-weight: 700; color: var(--primary); }
+        .sidebar .brand i { font-size: 1.8rem; display: block; margin-bottom: 5px; }
+        .sidebar .nav-link { display: flex; align-items: center; gap: 10px; padding: 10px 20px; color: var(--text); text-decoration: none; border-radius: 0 20px 20px 0; transition: 0.15s; font-weight: 600; font-size: 0.9rem; border-right: 3px solid transparent; cursor: pointer; }
+        .sidebar .nav-link:hover { background: var(--bg); border-right-color: var(--primary); }
+        .sidebar .nav-link.active { background: var(--bg); border-right-color: var(--primary); color: var(--primary); }
+        .sidebar .nav-link i { width: 20px; text-align: center; }
+        .sidebar .logout-btn { margin-top: auto; border-top: 1px solid var(--border); padding-top: 15px; margin-bottom: 10px; }
+        .main-content { flex: 1; padding: 20px; background: var(--bg); overflow-y: auto; }
+        .toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
+        .toast { background: var(--text); color: white; padding: 14px 24px; border-radius: 12px; box-shadow: 0 10px 20px rgba(0,0,0,0.2); animation: slideIn 0.3s ease; display: flex; align-items: center; gap: 10px; min-width: 200px; max-width: 400px; }
+        .toast.success { background: var(--success); }
+        .toast.error { background: var(--danger); }
+        .toast.warning { background: var(--warning); }
+        .toast.info { background: var(--info); }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        .table-wrap { overflow-x: auto; }
+        .user-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        .user-table th, .user-table td { border: 1px solid var(--border); padding: 10px; text-align: center; }
+        .user-table th { background: var(--bg); font-weight: 600; }
+        .inline-form { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; }
+        .inline-form .form-group { flex: 1; min-width: 140px; }
+        .toggle-group { display: flex; align-items: center; gap: 10px; }
+        .toggle-label { font-weight: 600; }
+        .toggle-switch { position: relative; display: inline-block; width: 50px; height: 28px; }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .toggle-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background: #ccc; transition: .4s; border-radius: 34px; }
+        .toggle-slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 4px; bottom: 4px; background: white; transition: .4s; border-radius: 50%; }
+        input:checked + .toggle-slider { background: var(--primary); }
+        input:checked + .toggle-slider:before { transform: translateX(22px); }
+        @media (max-width: 768px) { .sidebar { width: 60px; padding: 10px 0; } .sidebar .brand span { display: none; } .sidebar .nav-link span { display: none; } .sidebar .nav-link { justify-content: center; padding: 12px 0; } }
+    </style>
+</head>
+<body>
+    <div class="app-wrapper">
+        <nav class="sidebar">
+            <div class="brand"><i class="fas fa-store-alt"></i><span>ابن المختار</span></div>
+            <a class="nav-link" href="index.html"><i class="fas fa-th-large"></i> <span>لوحة التحكم</span></a>
+            <a class="nav-link" href="sale.html"><i class="fas fa-cash-register"></i> <span>البيع</span></a>
+            <a class="nav-link" href="products.html"><i class="fas fa-boxes"></i> <span>المنتجات</span></a>
+            <a class="nav-link" href="customers.html"><i class="fas fa-users"></i> <span>العملاء</span></a>
+            <a class="nav-link" href="suppliers.html"><i class="fas fa-truck"></i> <span>الموردين</span></a>
+            <a class="nav-link" href="purchases.html"><i class="fas fa-shopping-cart"></i> <span>المشتريات</span></a>
+            <a class="nav-link" href="expenses.html"><i class="fas fa-receipt"></i> <span>المصروفات</span></a>
+            <a class="nav-link" href="payments.html"><i class="fas fa-hand-holding-usd"></i> <span>سندات</span></a>
+            <a class="nav-link" href="cash-wallets.html"><i class="fas fa-wallet"></i> <span>المحافظ</span></a>
+            <a class="nav-link" href="cash-wallets.html"><i class="fas fa-coins"></i> <span>الصندوق</span></a>
+            <a class="nav-link" href="invoices.html"><i class="fas fa-file-invoice"></i> <span>الفواتير</span></a>
+            <a class="nav-link" href="journal.html"><i class="fas fa-book"></i> <span>القيود</span></a>
+            <a class="nav-link" href="reports.html"><i class="fas fa-chart-pie"></i> <span>التقارير</span></a>
+            <a class="nav-link" href="operations.html"><i class="fas fa-tools"></i> <span>عمليات</span></a>
+            <a class="nav-link active" href="settings.html"><i class="fas fa-cog"></i> <span>إعدادات</span></a>
+            <div class="logout-btn"><div class="nav-link" onclick="logout()" style="color:var(--danger);"><i class="fas fa-sign-out-alt"></i> <span>خروج</span></div></div>
+        </nav>
+
+        <main class="main-content">
+            <!-- إعدادات النظام الأساسية -->
+            <div class="card-section">
+                <h4><i class="fas fa-cog"></i> إعدادات النظام</h4>
+                <form id="settings-form" onsubmit="saveSettings(event)">
+                    <div class="flex-row">
+                        <div class="flex-1">
+                            <label>اسم المحل</label>
+                            <input type="text" id="setting-shop-name" class="input-field" />
+                        </div>
+                        <div class="flex-1">
+                            <label>رقم الهاتف</label>
+                            <input type="text" id="setting-shop-phone" class="input-field" />
+                        </div>
+                        <div class="flex-1">
+                            <label>نسبة الخصم الافتراضية (%)</label>
+                            <input type="number" id="setting-default-discount" class="input-field" step="0.01" />
+                        </div>
+                    </div>
+                    <div class="flex-row mt-10">
+                        <div class="flex-1 toggle-group">
+                            <span class="toggle-label">السماح بالبيع أقل من التكلفة</span>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="setting-allow-below-cost" />
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="flex-1 toggle-group">
+                            <span class="toggle-label">السماح بالمخزون السالب</span>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="setting-allow-negative-stock" />
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="flex-1">
+                            <label>رقم المنتج التالي (SKU)</label>
+                            <input type="number" id="setting-next-product-code" class="input-field" min="1" step="1" />
+                        </div>
+                    </div>
+                    <div class="flex-row mt-10">
+                        <div class="flex-1">
+                            <button type="button" class="btn btn-warning" onclick="generateMissingSKU()">
+                                <i class="fas fa-sync-alt"></i> توليد أرقام للمنتجات القديمة
+                            </button>
+                            <span id="generate-sku-message" class="text-muted" style="margin-right:10px;"></span>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary mt-10"><i class="fas fa-save"></i> حفظ الإعدادات</button>
+                </form>
+            </div>
+
+            <!-- النسخ الاحتياطي والاستعادة -->
+            <div class="card-section">
+                <h4><i class="fas fa-database"></i> النسخ الاحتياطي للبيانات</h4>
+                <p class="text-muted">حفظ نسخة من النظام أو استعادتها. (يتم تحميل نسخة تلقائياً الساعة 10:00 مساءً إذا كان النظام مفتوحاً).</p>
+                <div class="flex-row mt-10">
+                    <div class="flex-1" style="border-left: 1px solid var(--border); padding-left: 15px;">
+                        <h5><i class="fas fa-download"></i> تصدير البيانات</h5>
+                        <p class="text-muted" style="font-size: 0.85rem; margin-bottom: 10px;">تحميل ملف JSON يحتوي على كافة الجداول والأرصدة.</p>
+                        <button class="btn btn-primary" onclick="exportData()"><i class="fas fa-file-export"></i> تحميل نسخة احتياطية</button>
+                    </div>
+                    <div class="flex-1">
+                        <h5><i class="fas fa-upload"></i> استيراد البيانات</h5>
+                        <input type="file" id="import-file" accept=".json" class="input-field mt-10" style="margin-bottom: 10px;" />
+                        <button class="btn btn-warning" onclick="importData()"><i class="fas fa-file-import"></i> استعادة البيانات</button>
+                        <small class="text-danger" style="display:block; margin-top:5px; font-weight:bold;">تحذير: الاستعادة ستمسح كافة البيانات الحالية وتستبدلها بالنسخة المرفوعة.</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- إدارة ترقيم الفواتير -->
+            <div class="card-section">
+                <h4><i class="fas fa-sort-numeric-up"></i> إدارة ترقيم الفواتير</h4>
+                <p class="text-muted">تحديد رقم البداية للفواتير الجديدة لكل نوع. الأرقام المعروضة هي العدد القادم الذي سيُستخدم للفاتورة التالية.</p>
+                <div id="invoice-numbers-display" class="flex-row mt-10">
+                    <!-- سيتم تعبئتها بواسطة JS -->
+                </div>
+                <form id="invoice-numbers-form" onsubmit="saveInvoiceNumbers(event)" class="inline-form mt-10">
+                    <div class="form-group">
+                        <label>نوع الفاتورة</label>
+                        <select id="invoice-type" class="input-field">
+                            <option value="sales">مبيعات</option>
+                            <option value="purchases">مشتريات</option>
+                            <option value="online">طلبات إنترنت</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>رقم البداية الجديد</label>
+                        <input type="number" id="invoice-start-number" class="input-field" min="1" step="1" required />
+                    </div>
+                    <div class="form-group" style="min-width:80px;">
+                        <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> تعيين</button>
+                    </div>
+                </form>
+                <div id="invoice-numbers-message" class="mt-10"></div>
+            </div>
+
+            <!-- إدارة المستخدمين -->
+            <div class="card-section">
+                <h4><i class="fas fa-users-cog"></i> إدارة المستخدمين</h4>
+                <p class="text-muted">يمكن للمدير فقط إدارة المستخدمين. الأدوار: <strong>admin</strong> (مدير) و <strong>cashier</strong> (كاشير).</p>
+                
+                <!-- نموذج إضافة مستخدم -->
+                <form id="user-form" onsubmit="addUser(event)" class="inline-form">
+                    <div class="form-group">
+                        <label>اسم المستخدم</label>
+                        <input type="text" id="user-username" class="input-field" required />
+                    </div>
+                    <div class="form-group">
+                        <label>كلمة المرور</label>
+                        <input type="text" id="user-password" class="input-field" required />
+                    </div>
+                    <div class="form-group">
+                        <label>الدور</label>
+                        <select id="user-role" class="input-field">
+                            <option value="cashier">كاشير</option>
+                            <option value="admin">مدير</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="min-width:80px;">
+                        <button type="submit" class="btn btn-success"><i class="fas fa-user-plus"></i> إضافة</button>
+                    </div>
+                </form>
+
+                <!-- جدول المستخدمين -->
+                <div class="table-wrap">
+                    <table class="user-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>اسم المستخدم</th>
+                                <th>الدور</th>
+                                <th>تاريخ الإنشاء</th>
+                                <th>الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="users-list">
+                            <tr><td colspan="5" class="text-muted">جاري التحميل...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+    <div class="toast-container" id="toast-container"></div>
+
+    <script>
+        const API = 'https://api.ibnalmukhtar.com';
+        let token = localStorage.getItem('pos_token') || '';
+        if (!token) window.location.href = 'index.html';
+
+        function showToast(msg, type='info') {
+            const c = document.getElementById('toast-container');
+            const t = document.createElement('div');
+            t.className = `toast ${type}`;
+            const icons = { success:'fa-check-circle', error:'fa-exclamation-circle', warning:'fa-exclamation-triangle', info:'fa-info-circle' };
+            t.innerHTML = `<i class="fas ${icons[type] || icons.info}"></i> ${msg}`;
+            c.appendChild(t);
+            setTimeout(() => t.remove(), 4000);
+        }
+        function logout() { if(confirm('تأكيد الخروج?')) { localStorage.removeItem('pos_token'); window.location.href='index.html'; } }
+
+        // ========== الإعدادات ==========
+        async function loadSettings() {
+            try {
+                const res = await fetch(`${API}/settings`, { headers: { 'Authorization': `Bearer ${token}` } });
+                const data = await res.json();
+                const s = data.settings;
+                document.getElementById('setting-shop-name').value = s.shop_name || '';
+                document.getElementById('setting-shop-phone').value = s.shop_phone || '';
+                document.getElementById('setting-default-discount').value = s.default_discount_percentage || 0;
+                document.getElementById('setting-allow-below-cost').checked = s.allow_below_cost === '1';
+                document.getElementById('setting-allow-negative-stock').checked = s.allow_negative_stock === '1';
+                document.getElementById('setting-next-product-code').value = s.next_product_code || 1;
+            } catch {
+                showToast('فشل تحميل الإعدادات', 'error');
+            }
+        }
+
+        async function saveSettings(e) {
+            e.preventDefault();
+            const body = {
+                shop_name: document.getElementById('setting-shop-name').value,
+                shop_phone: document.getElementById('setting-shop-phone').value,
+                default_discount_percentage: parseFloat(document.getElementById('setting-default-discount').value) || 0,
+                allow_below_cost: document.getElementById('setting-allow-below-cost').checked ? '1' : '0',
+                allow_negative_stock: document.getElementById('setting-allow-negative-stock').checked ? '1' : '0',
+                next_product_code: parseInt(document.getElementById('setting-next-product-code').value) || 1
+            };
+            try {
+                const res = await fetch(`${API}/settings`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                if (res.ok) {
+                    showToast('تم حفظ الإعدادات', 'success');
+                    loadSettings();
+                } else { const err = await res.json(); showToast(err.error, 'error'); }
+            } catch { showToast('خطأ', 'error'); }
+        }
+
+        // ========== توليد أرقام SKU للمنتجات القديمة ==========
+        async function generateMissingSKU() {
+            const msgEl = document.getElementById('generate-sku-message');
+            msgEl.innerHTML = '<span class="text-muted">جاري التوليد...</span>';
+            try {
+                const res = await fetch(`${API}/products/generate-sku`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    msgEl.innerHTML = `<span class="text-success">✅ ${data.message}</span>`;
+                    showToast(data.message, 'success');
+                    // تحديث العداد بعد التوليد
+                    loadSettings();
+                } else {
+                    msgEl.innerHTML = `<span class="text-danger">❌ ${data.error || 'فشل التوليد'}</span>`;
+                    showToast(data.error || 'فشل التوليد', 'error');
+                }
+            } catch (e) {
+                msgEl.innerHTML = `<span class="text-danger">❌ حدث خطأ</span>`;
+                showToast('حدث خطأ أثناء التوليد', 'error');
+            }
+        }
+
+        // ========== النسخ الاحتياطي ==========
+        async function exportData(isAuto = false) {
+            try {
+                if(!isAuto) showToast('جاري تجهيز النسخة الاحتياطية...', 'info');
+                const res = await fetch(`${API}/export-data`, {
+                    method: 'GET',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.error || 'فشل التصدير');
+                }
+                const blob = await res.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                const dateStr = new Date().toISOString().split('T')[0];
+                a.download = `backup_ibnalmukhtar_${dateStr}${isAuto ? '_auto' : ''}.json`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                window.URL.revokeObjectURL(url);
+                if(!isAuto) showToast('تم تصدير البيانات بنجاح', 'success');
+            } catch (e) {
+                showToast('حدث خطأ أثناء التصدير: ' + e.message, 'error');
+            }
+        }
+
+        async function importData() {
+            const fileInput = document.getElementById('import-file');
+            if (!fileInput.files.length) return showToast('الرجاء اختيار ملف النسخة الاحتياطية (JSON) أولاً', 'warning');
+
+            if (!confirm('🚨 تحذير خطير 🚨\nاستعادة البيانات ستحذف كافة الفواتير، المبيعات، والأرصدة الحالية وتستبدلها بالملف المرفوع.\n\nهل أنت متأكد من هذه العملية؟')) return;
+
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+
+            reader.onload = async function(e) {
+                try {
+                    const jsonData = JSON.parse(e.target.result);
+                    showToast('جاري استعادة البيانات، الرجاء الانتظار...', 'info');
+
+                    const res = await fetch(`${API}/import-data`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(jsonData)
+                    });
+
+                    if (res.ok) {
+                        showToast('تم استعادة البيانات بنجاح! سيتم إعادة تحميل الصفحة...', 'success');
+                        setTimeout(() => location.reload(), 2500);
+                    } else {
+                        const err = await res.json();
+                        showToast(err.error || 'فشل الاستيراد', 'error');
+                    }
+                } catch (err) {
+                    showToast('ملف غير صالح. تأكد من رفع ملف بصيغة JSON صحيح', 'error');
+                }
+            };
+            
+            reader.readAsText(file);
+        }
+
+        function setupAutoBackup() {
+            setInterval(() => {
+                const now = new Date();
+                if (now.getHours() === 22 && now.getMinutes() === 0) {
+                    const todayDate = now.toISOString().split('T')[0];
+                    const lastBackupDate = localStorage.getItem('last_auto_backup');
+                    if (lastBackupDate !== todayDate) {
+                        localStorage.setItem('last_auto_backup', todayDate);
+                        showToast('جاري إجراء النسخ الاحتياطي التلقائي (10:00 مساءً)...', 'info');
+                        exportData(true);
+                    }
+                }
+            }, 60000);
+        }
+
+        // ========== إدارة ترقيم الفواتير ==========
+        async function loadInvoiceNumbers() {
+            try {
+                const res = await fetch(`${API}/settings/invoice-numbers`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!res.ok) throw new Error('فشل تحميل الأعداد');
+                const data = await res.json();
+                const display = document.getElementById('invoice-numbers-display');
+                const numbers = data.invoice_numbers;
+                display.innerHTML = `
+                    <div class="flex-1"><strong>المبيعات:</strong> ${numbers.sales || 1}</div>
+                    <div class="flex-1"><strong>المشتريات:</strong> ${numbers.purchases || 1}</div>
+                    <div class="flex-1"><strong>طلبات الإنترنت:</strong> ${numbers.online || 1}</div>
+                `;
+            } catch (e) {
+                showToast('خطأ في تحميل أعداد الفواتير', 'error');
+            }
+        }
+
+        async function saveInvoiceNumbers(e) {
+            e.preventDefault();
+            const type = document.getElementById('invoice-type').value;
+            const startNumber = parseInt(document.getElementById('invoice-start-number').value);
+            if (!startNumber || startNumber < 1) {
+                showToast('الرجاء إدخال رقم صحيح أكبر من صفر', 'warning');
+                return;
+            }
+            try {
+                const res = await fetch(`${API}/settings/invoice-numbers`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ type, start_number: startNumber })
+                });
+                if (res.ok) {
+                    const typeNames = { sales: 'المبيعات', purchases: 'المشتريات', online: 'طلبات الإنترنت' };
+                    showToast(`تم تعيين رقم البداية لـ ${typeNames[type]} إلى ${startNumber}`, 'success');
+                    document.getElementById('invoice-start-number').value = '';
+                    loadInvoiceNumbers();
+                } else {
+                    const err = await res.json();
+                    showToast(err.error || 'فشل التحديث', 'error');
+                }
+            } catch (e) {
+                showToast('حدث خطأ أثناء حفظ الرقم', 'error');
+            }
+        }
+
+        // ========== إدارة المستخدمين ==========
+        async function loadUsers() {
+            try {
+                const res = await fetch(`${API}/users`, { headers: { 'Authorization': `Bearer ${token}` } });
+                if (!res.ok) {
+                    const err = await res.json();
+                    showToast(err.error || 'غير مصرح', 'error');
+                    return;
+                }
+                const data = await res.json();
+                const tbody = document.getElementById('users-list');
+                if (!data.users || data.users.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="text-muted">لا يوجد مستخدمون</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = data.users.map((u, idx) => `
+                    <tr>
+                        <td>${idx + 1}</td>
+                        <td>${u.username}</td>
+                        <td>${u.role === 'admin' ? 'مدير' : 'كاشير'}</td>
+                        <td>${new Date(u.created_at).toLocaleString()}</td>
+                        <td>
+                            <button class="btn btn-sm btn-primary" onclick="editUser(${u.id}, '${u.username}', '${u.role}')"><i class="fas fa-edit"></i></button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteUser(${u.id})"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (e) { showToast('خطأ في تحميل المستخدمين', 'error'); }
+        }
+
+        async function addUser(e) {
+            e.preventDefault();
+            const username = document.getElementById('user-username').value.trim();
+            const password = document.getElementById('user-password').value.trim();
+            const role = document.getElementById('user-role').value;
+            if (!username || !password) return showToast('اسم المستخدم وكلمة المرور مطلوبة', 'warning');
+            try {
+                const res = await fetch(`${API}/users`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password, role })
+                });
+                if (res.ok) {
+                    showToast('تم إضافة المستخدم', 'success');
+                    document.getElementById('user-form').reset();
+                    loadUsers();
+                } else { const err = await res.json(); showToast(err.error, 'error'); }
+            } catch { showToast('خطأ', 'error'); }
+        }
+
+        function editUser(id, username, role) {
+            const newRole = prompt(`تغيير دور المستخدم "${username}" (admin/cashier):`, role);
+            if (newRole === null) return;
+            if (!['admin','cashier'].includes(newRole)) return showToast('دور غير صحيح', 'warning');
+            const newPassword = prompt('أدخل كلمة مرور جديدة (اترك فارغاً للإبقاء على القديمة):');
+            const body = { role: newRole };
+            if (newPassword && newPassword.trim() !== '') body.password = newPassword.trim();
+            updateUser(id, body);
+        }
+
+        async function updateUser(id, body) {
+            try {
+                const res = await fetch(`${API}/users/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                if (res.ok) {
+                    showToast('تم التحديث', 'success');
+                    loadUsers();
+                } else { const err = await res.json(); showToast(err.error, 'error'); }
+            } catch { showToast('خطأ', 'error'); }
+        }
+
+        async function deleteUser(id) {
+            if (!confirm('هل أنت متأكد من حذف هذا المستخدم؟')) return;
+            try {
+                const res = await fetch(`${API}/users/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    showToast('تم الحذف', 'success');
+                    loadUsers();
+                } else { const err = await res.json(); showToast(err.error, 'error'); }
+            } catch { showToast('خطأ', 'error'); }
+        }
+
+        // ========== التحميل عند فتح الصفحة ==========
+        window.onload = function() {
+            loadSettings();
+            loadUsers();
+            loadInvoiceNumbers();
+            setupAutoBackup();
+        };
+    </script>
+</body>
+</html>

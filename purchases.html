@@ -1,0 +1,1906 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>المشتريات - النظام المحاسبي</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #1a56db;
+            --primary-hover: #1e40af;
+            --primary-light: #dbeafe;
+            --bg: #f1f5f9;
+            --card: #ffffff;
+            --text: #0f172a;
+            --muted: #64748b;
+            --border: #e2e8f0;
+            --success: #16a34a;
+            --danger: #dc2626;
+            --warning: #f59e0b;
+            --info: #3b82f6;
+            --shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+            --radius: 8px;
+            --radius-lg: 16px;
+            --sidebar-width: 220px;
+        }
+        body.dark { --bg: #0f172a; --card: #1e293b; --border: #334155; --text: #f1f5f9; --muted: #94a3b8; --shadow: 0 4px 6px -1px rgba(0,0,0,0.4); }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Cairo', sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; min-height: 100vh; }
+        .app-wrapper { display: flex; min-height: 100vh; }
+        .sidebar { width: var(--sidebar-width); background: var(--card); border-left: 1px solid var(--border); box-shadow: var(--shadow); display: flex; flex-direction: column; padding: 20px 0; position: sticky; top: 0; height: 100vh; overflow-y: auto; flex-shrink: 0; z-index: 100; transition: 0.3s; }
+        .sidebar .brand { text-align: center; padding: 0 15px 20px; border-bottom: 1px solid var(--border); margin-bottom: 15px; font-weight: 800; color: var(--primary); }
+        .sidebar .brand i { font-size: 2rem; display: block; margin-bottom: 6px; }
+        .sidebar .brand span { font-size: 1.2rem; }
+        .sidebar .brand small { display: block; font-size: 0.65rem; font-weight: 400; color: var(--muted); }
+        .sidebar .nav-link { display: flex; align-items: center; gap: 10px; padding: 12px 18px; color: var(--text); text-decoration: none; border-radius: 0 24px 24px 0; transition: 0.2s; font-weight: 600; font-size: 0.85rem; border-right: 3px solid transparent; cursor: pointer; margin: 2px 0; }
+        .sidebar .nav-link:hover { background: var(--bg); border-right-color: var(--primary); }
+        .sidebar .nav-link.active { background: var(--primary-light); border-right-color: var(--primary); color: var(--primary); font-weight: 700; }
+        body.dark .sidebar .nav-link.active { background: rgba(26,86,219,0.2); }
+        .sidebar .nav-link i { width: 20px; text-align: center; }
+        .sidebar .logout-btn { margin-top: auto; border-top: 1px solid var(--border); padding-top: 15px; }
+        .main-content { flex: 1; padding: 20px; background: var(--bg); overflow-y: auto; }
+        .card { background: var(--card); border-radius: var(--radius-lg); padding: 20px; box-shadow: var(--shadow); border: 1px solid var(--border); margin-bottom: 20px; }
+        .card h4 { margin-bottom: 16px; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 8px; }
+        .pos-layout { display: flex; gap: 20px; flex-wrap: wrap; }
+        .pos-scanner { flex: 1; min-width: 300px; }
+        .pos-cart { flex: 2; min-width: 600px; }
+        .input-field, select, textarea { width: 100%; padding: 10px 14px; border: 2px solid var(--border); border-radius: var(--radius); font-size: 0.95rem; outline: none; background: var(--card); color: var(--text); font-family: 'Cairo', sans-serif; transition: 0.2s; }
+        .input-field:focus, select:focus, textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 4px rgba(26,86,219,0.08); }
+        .input-field:disabled { opacity: 0.6; cursor: not-allowed; }
+        .btn { padding: 10px 20px; border: none; border-radius: var(--radius); font-weight: 700; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; gap: 8px; font-family: 'Cairo', sans-serif; font-size: 0.9rem; white-space: nowrap; }
+        .btn:active { transform: scale(0.97); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-primary { background: var(--primary); color: #fff; }
+        .btn-primary:hover { background: var(--primary-hover); }
+        .btn-success { background: var(--success); color: #fff; }
+        .btn-success:hover { background: #15803d; }
+        .btn-warning { background: var(--warning); color: #1a1a1a; }
+        .btn-warning:hover { background: #d97706; color: #fff; }
+        .btn-danger { background: var(--danger); color: #fff; }
+        .btn-danger:hover { background: #b91c1c; }
+        .btn-info { background: var(--info); color: #fff; }
+        .btn-info:hover { background: #2563eb; }
+        .btn-outline { background: transparent; border: 2px solid var(--border); color: var(--text); }
+        .btn-outline:hover { border-color: var(--primary); color: var(--primary); }
+        .btn-sm { padding: 6px 14px; font-size: 0.78rem; border-radius: 6px; }
+        .btn-xs { padding: 4px 10px; font-size: 0.7rem; border-radius: 4px; }
+        .items-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.85rem; }
+        .items-table th { background: var(--bg); padding: 8px 4px; font-weight: 700; border-bottom: 2px solid var(--border); white-space: nowrap; }
+        .items-table td { padding: 6px 4px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+        .items-table .editable-input { width: 100%; min-width: 60px; padding: 5px; font-size: 0.8rem; }
+        .items-table select.editable-input { min-width: 90px; }
+        .totals-panel { background: var(--bg); padding: 16px; margin-top: 15px; border-radius: var(--radius); display: flex; flex-wrap: wrap; gap: 15px; align-items: center; font-weight: 700; border: 2px dashed var(--border); }
+        .grand-total { font-size: 1.4rem; color: var(--success); font-weight: 900; }
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 9998; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(3px); }
+        .modal { background: var(--card); border-radius: var(--radius-lg); padding: 28px; max-width: 700px; width: 94%; box-shadow: 0 20px 40px rgba(0,0,0,0.3); max-height: 90vh; overflow-y: auto; position: relative; }
+        .modal h3 { margin-bottom: 20px; font-weight: 800; }
+        .modal .close-btn { position: absolute; top: 12px; left: 16px; background: var(--danger); color: #fff; border: none; border-radius: 50%; width: 32px; height: 32px; font-size: 1.2rem; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
+        .toast { padding: 14px 24px; border-radius: 12px; box-shadow: 0 15px 25px rgba(0,0,0,0.3); display: flex; align-items: center; gap: 12px; font-weight: 600; font-size: 0.9rem; pointer-events: auto; animation: slideIn 0.3s ease; color: #fff; }
+        .toast.success { background: #16a34a; }
+        .toast.error { background: #dc2626; }
+        .toast.warning { background: #d97706; }
+        .toast.info { background: #2563eb; }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        .flex-row { display: flex; flex-wrap: wrap; gap: 15px; align-items: center; }
+        .flex-1 { flex: 1; min-width: 120px; }
+        .flex-2 { flex: 2; min-width: 200px; }
+        .flex-3 { flex: 3; min-width: 300px; }
+        .text-muted { color: var(--muted); }
+        .text-center { text-align: center; }
+        .mt-10 { margin-top: 10px; }
+        .mt-20 { margin-top: 20px; }
+        .mb-10 { margin-bottom: 10px; }
+        .w-100 { width: 100%; }
+        .hidden { display: none !important; }
+        .required::after { content: " *"; color: var(--danger); }
+        .barcode-input { font-family: 'Courier New', monospace; font-weight: 700; font-size: 1.2rem; text-align: center; background: #fefce8 !important; border-color: #f59e0b !important; }
+        body.dark .barcode-input { background: #2d2410 !important; border-color: #d97706 !important; color: #fde68a !important; }
+        .purchase-log-item { padding: 12px; border-bottom: 1px solid var(--border); cursor: pointer; transition: 0.2s; border-radius: 6px; }
+        .purchase-log-item:hover { background: var(--bg); padding-right: 16px; }
+        .purchase-log-item.cancelled { opacity: 0.6; background: #fee2e2; }
+        .print-area { padding: 20px; background: #fff; color: #000; font-family: 'Cairo', sans-serif; }
+        @media print { body * { visibility: hidden; } .print-area, .print-area * { visibility: visible; } .print-area { position: absolute; left: 0; top: 0; width: 100%; } .no-print { display: none !important; } }
+        @media (max-width: 768px) { .sidebar { width: 56px; padding: 10px 0; } .sidebar .brand span, .sidebar .nav-link span, .sidebar .brand .subtitle { display: none; } .sidebar .nav-link { justify-content: center; padding: 12px 0; } .pos-layout { flex-direction: column; } .pos-scanner, .pos-cart { min-width: 100%; } .items-table { font-size: 0.7rem; } }
+        .wallet-badge { background: #dbeafe; color: #1e40af; padding: 2px 8px; border-radius: 12px; font-size: 0.65rem; font-weight: 600; margin-right: 4px; }
+        .log-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+        .log-actions .btn-xs { font-size: 0.7rem; padding: 2px 8px; }
+        .status-badge { padding: 2px 10px; border-radius: 12px; font-size: 0.7rem; font-weight: 600; }
+        .status-badge.active { background: #dcfce7; color: #15803d; }
+        .status-badge.cancelled { background: #fee2e2; color: #b91c1c; }
+        .mixed-fields { background: var(--bg); padding: 15px; border-radius: var(--radius); border: 2px solid var(--primary-light); margin-top: 10px; }
+        .modal-actions { display: flex; gap: 15px; justify-content: center; margin-top: 20px; flex-wrap: wrap; }
+        .success-icon { font-size: 4rem; color: var(--success); margin-bottom: 10px; }
+        .barcode-print-preview { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin: 15px 0; }
+        .barcode-item { background: #fff; color: #000; padding: 8px; border-radius: 6px; border: 1px solid #ddd; text-align: center; min-width: 150px; }
+        .barcode-item svg { max-width: 120px; height: auto; }
+        /* أنماط جديدة لعرض أرصدة الصندوق والمبلغ المحول */
+        .currency-select-group { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; background: var(--bg); padding: 8px 12px; border-radius: var(--radius); margin-top: 4px; }
+        .currency-select-group label { font-weight: 600; font-size: 0.85rem; }
+        .currency-select-group select { width: auto; min-width: 120px; padding: 6px 10px; font-size: 0.85rem; }
+        .currency-select-group .rate-display { font-size: 0.8rem; color: var(--muted); }
+        .wallet-balance-display { font-weight: 700; color: var(--primary); font-size: 0.85rem; margin-right: 8px; }
+        .mixed-due-row { display: flex; gap: 15px; margin-top: 6px; flex-wrap: wrap; background: white; padding: 6px 10px; border-radius: var(--radius-sm); border: 1px solid var(--border); }
+        .mixed-due-row .due-item { flex: 1; min-width: 120px; display: flex; flex-direction: column; align-items: center; }
+        .mixed-due-row .due-item .label { font-size: 0.65rem; color: var(--muted); }
+        .mixed-due-row .due-item .value { font-weight: 700; font-size: 0.95rem; color: var(--primary); }
+        /* رصيد الصندوق والمبلغ المحول */
+        .cash-balance-display { font-weight: 700; color: var(--success); font-size: 0.85rem; margin-top: 4px; }
+        .converted-amount-display { background: var(--primary-light); padding: 6px 12px; border-radius: var(--radius); font-weight: 700; color: var(--primary); margin-top: 4px; text-align: center; }
+        .converted-amount-display .amount { font-size: 1.1rem; }
+        .converted-amount-display .currency { font-size: 0.9rem; }
+        .converted-amount-display .rate { font-size: 0.75rem; color: var(--muted); }
+    </style>
+</head>
+<body>
+    <div class="app-wrapper">
+        <nav class="sidebar">
+            <div class="brand"><i class="fas fa-store-alt"></i><span>ابن المختار</span><small class="subtitle">نظام نقاط البيع</small></div>
+            <a class="nav-link" href="index.html"><i class="fas fa-th-large"></i> <span>لوحة التحكم</span></a>
+            <a class="nav-link" href="sale.html"><i class="fas fa-cash-register"></i> <span>البيع</span></a>
+            <a class="nav-link" href="products.html"><i class="fas fa-boxes"></i> <span>المنتجات</span></a>
+            <a class="nav-link" href="customers.html"><i class="fas fa-users"></i> <span>العملاء</span></a>
+            <a class="nav-link" href="suppliers.html"><i class="fas fa-truck"></i> <span>الموردين</span></a>
+            <a class="nav-link active" href="purchases.html"><i class="fas fa-shopping-cart"></i> <span>المشتريات</span></a>
+            <a class="nav-link" href="expenses.html"><i class="fas fa-receipt"></i> <span>المصروفات</span></a>
+            <a class="nav-link" href="payments.html"><i class="fas fa-hand-holding-usd"></i> <span>سندات</span></a>
+            <a class="nav-link" href="cash-wallets.html"><i class="fas fa-wallet"></i> <span>المحافظ</span></a>
+            <a class="nav-link" href="cash-wallets.html"><i class="fas fa-coins"></i> <span>الصندوق</span></a>
+            <a class="nav-link" href="invoices.html"><i class="fas fa-file-invoice"></i> <span>الفواتير</span></a>
+            <a class="nav-link" href="journal.html"><i class="fas fa-book"></i> <span>القيود</span></a>
+            <a class="nav-link" href="reports.html"><i class="fas fa-chart-pie"></i> <span>التقارير</span></a>
+            <a class="nav-link" href="operations.html"><i class="fas fa-tools"></i> <span>عمليات</span></a>
+            <a class="nav-link" href="settings.html"><i class="fas fa-cog"></i> <span>إعدادات</span></a>
+            <div class="logout-btn"><div class="nav-link" onclick="logout()" style="color:var(--danger);"><i class="fas fa-sign-out-alt"></i> <span>خروج</span></div></div>
+        </nav>
+
+        <main class="main-content">
+            <h2 style="font-weight:900; margin-bottom:20px;">
+                <i class="fas fa-shopping-cart" style="color:var(--primary);"></i>
+                <span id="page-title">فاتورة شراء جديدة</span>
+                <span id="edit-badge" class="status-badge active" style="display:none;margin-right:12px;">تعديل</span>
+            </h2>
+
+            <div class="pos-layout">
+                <div class="pos-scanner">
+                    <div class="card">
+                        <h4><i class="fas fa-search"></i> بحث عن منتج</h4>
+                        <div class="flex-row mb-10">
+                            <div class="flex-1">
+                                <label>القسم الرئيسي</label>
+                                <select id="main-category-filter" class="input-field" onchange="onMainCatChange()">
+                                    <option value="">الكل</option>
+                                </select>
+                            </div>
+                            <div class="flex-1">
+                                <label>التصنيف الفرعي</label>
+                                <select id="sub-category-filter" class="input-field" onchange="onSubCatChange()">
+                                    <option value="">الكل</option>
+                                </select>
+                            </div>
+                            <div style="align-self: flex-end;">
+                                <button class="btn btn-outline btn-sm" onclick="addSubCategoryPrompt()" title="إضافة تصنيف فرعي"><i class="fas fa-plus"></i></button>
+                            </div>
+                        </div>
+
+                        <label>🔍 البحث بالاسم</label>
+                        <input type="text" id="name-search" class="input-field" placeholder="اكتب اسم المنتج..." oninput="handleNameSearch(this.value)">
+                        <div id="search-results" class="mt-10" style="max-height:250px; overflow-y:auto;"></div>
+
+                        <button class="btn btn-warning btn-sm w-100 mt-10" onclick="openAddProductModal()">
+                            <i class="fas fa-box-open"></i> إضافة منتج جديد
+                        </button>
+
+                        <label class="mt-10">📷 الباركود</label>
+                        <input type="text" id="barcode-search" class="input-field barcode-input" placeholder="امسح أو اكتب الباركود ثم Enter" onkeydown="handleBarcodeEnter(event)">
+
+                        <h4 class="mt-20"><i class="fas fa-truck"></i> معلومات الفاتورة</h4>
+                        <div class="flex-row">
+                            <div class="flex-2">
+                                <label class="required">المورد</label>
+                                <select id="purchase-supplier" class="input-field"><option value="">-- اختر المورد --</option></select>
+                            </div>
+                            <div style="align-self:flex-end;">
+                                <button class="btn btn-outline btn-sm" onclick="openAddSupplierModal()"><i class="fas fa-plus"></i> إضافة</button>
+                            </div>
+                        </div>
+                        <div class="flex-row mt-10">
+                            <div class="flex-1">
+                                <label>طريقة الدفع</label>
+                                <select id="purchase-payment-method" class="input-field" onchange="togglePaymentFields()">
+                                    <option value="cash">نقداً</option>
+                                    <option value="wallet">محفظة</option>
+                                    <option value="credit">آجل</option>
+                                    <option value="mixed">مختلط (نقد + محفظة)</option>
+                                </select>
+                            </div>
+                            <div class="flex-1" id="wallet-group" style="display:none;">
+                                <label>المحفظة</label>
+                                <select id="purchase-wallet" class="input-field" onchange="onWalletSelectChange()"></select>
+                                <div id="wallet-balance-display" class="wallet-balance-display" style="margin-top:4px;">أرصدة المحفظة: جاري التحميل...</div>
+                            </div>
+                        </div>
+
+                        <!-- الدفع المختلط -->
+                        <div id="mixed-payment-fields" class="mixed-fields hidden">
+                            <div class="flex-row">
+                                <div class="flex-1">
+                                    <label>المبلغ النقدي</label>
+                                    <input type="number" id="mixed-cash" class="input-field" step="0.01" value="0" oninput="validateMixedPayment()">
+                                </div>
+                                <div class="flex-1">
+                                    <label>المبلغ عبر المحفظة</label>
+                                    <input type="number" id="mixed-wallet" class="input-field" step="0.01" value="0" oninput="validateMixedPayment()">
+                                </div>
+                                <div class="flex-1">
+                                    <label>المحفظة</label>
+                                    <select id="mixed-wallet-select" class="input-field" onchange="onMixedWalletChange()"></select>
+                                    <div id="mixed-wallet-balance" style="font-size:0.75rem;color:var(--muted);margin-top:2px;">رصيد المحفظة: -</div>
+                                </div>
+                            </div>
+                            <div class="mixed-due-row" id="mixed-due-row">
+                                <div class="due-item">
+                                    <span class="label">💵 المبلغ المستحق نقداً</span>
+                                    <span class="value" id="mixed-cash-due">0.00</span>
+                                    <span style="font-size:0.6rem;color:var(--muted);" id="mixed-cash-due-currency">ريال</span>
+                                </div>
+                                <div class="due-item">
+                                    <span class="label">💳 المبلغ المستحق بالمحفظة</span>
+                                    <span class="value" id="mixed-wallet-due">0.00</span>
+                                    <span style="font-size:0.6rem;color:var(--muted);" id="mixed-wallet-due-currency">ريال</span>
+                                </div>
+                            </div>
+                            <small class="text-muted">يجب أن يساوي مجموع المبلغين الإجمالي النهائي</small>
+                            <div id="mixed-validation-msg" style="color:var(--danger);font-weight:700;margin-top:5px;"></div>
+                        </div>
+
+                        <!-- ===== حقول العملات ===== -->
+                        <!-- النقد -->
+                        <div id="cash-currency-group" style="margin-top:6px; display:none;">
+                            <div class="currency-select-group">
+                                <label>عملة النقد:</label>
+                                <select id="cash-currency-select" class="input-field input-field-sm" onchange="updateTotals(); updateRateDisplays();">
+                                    <!-- سيتم تعبئتها بواسطة JavaScript -->
+                                </select>
+                                <span class="rate-display" id="cash-rate-display">سعر الصرف: 1 = 1 ريال</span>
+                            </div>
+                            <!-- عرض رصيد الصندوق -->
+                            <div id="cash-balance-display" class="cash-balance-display" style="margin-top:4px;">💰 رصيد الصندوق: جاري التحميل...</div>
+                            <!-- عرض المبلغ المستحق بالعملة المحددة -->
+                            <div id="cash-converted-amount" class="converted-amount-display" style="margin-top:4px;">
+                                💵 المبلغ المستحق: <span class="amount" id="cash-due-amount">0.00</span> <span class="currency" id="cash-due-currency">ريال</span>
+                                <span class="rate" id="cash-due-rate"></span>
+                            </div>
+                        </div>
+
+                        <!-- المحفظة -->
+                        <div id="wallet-currency-group" style="margin-top:6px; display:none;">
+                            <div class="currency-select-group">
+                                <label>عملة المحفظة:</label>
+                                <select id="wallet-currency-select" class="input-field input-field-sm" onchange="updateTotals(); updateRateDisplays();">
+                                    <!-- سيتم تعبئتها بواسطة JavaScript -->
+                                </select>
+                                <span class="rate-display" id="wallet-rate-display">سعر الصرف: 1 = 1 ريال</span>
+                            </div>
+                            <!-- عرض المبلغ المستحق بالعملة المحددة للمحفظة -->
+                            <div id="wallet-converted-amount" class="converted-amount-display" style="margin-top:4px;">
+                                💳 المبلغ المستحق: <span class="amount" id="wallet-due-amount">0.00</span> <span class="currency" id="wallet-due-currency">ريال</span>
+                                <span class="rate" id="wallet-due-rate"></span>
+                            </div>
+                        </div>
+
+                        <!-- مختلط (نقد + محفظة) -->
+                        <div id="mixed-currency-group" style="margin-top:6px; display:none;">
+                            <div class="flex-row">
+                                <div class="flex-1">
+                                    <label>عملة النقد:</label>
+                                    <select id="mixed-cash-currency" class="input-field input-field-sm" onchange="updateTotals(); updateRateDisplays();">
+                                        <!-- سيتم تعبئتها بواسطة JavaScript -->
+                                    </select>
+                                    <!-- عرض رصيد الصندوق في المختلط -->
+                                    <div id="mixed-cash-balance-display" class="cash-balance-display" style="font-size:0.75rem;margin-top:2px;">💰 رصيد الصندوق: جاري التحميل...</div>
+                                    <!-- عرض المبلغ المستحق نقداً بالعملة -->
+                                    <div id="mixed-cash-converted-amount" class="converted-amount-display" style="font-size:0.75rem;padding:4px 8px;margin-top:2px;">
+                                        💵 المبلغ المستحق نقداً: <span class="amount" id="mixed-cash-due-amount2">0.00</span> <span class="currency" id="mixed-cash-due-currency2">ريال</span>
+                                    </div>
+                                </div>
+                                <div class="flex-1">
+                                    <label>عملة المحفظة:</label>
+                                    <select id="mixed-wallet-currency" class="input-field input-field-sm" onchange="updateTotals(); updateRateDisplays();">
+                                        <!-- سيتم تعبئتها بواسطة JavaScript -->
+                                    </select>
+                                    <!-- عرض المبلغ المستحق بالمحفظة بالعملة -->
+                                    <div id="mixed-wallet-converted-amount" class="converted-amount-display" style="font-size:0.75rem;padding:4px 8px;margin-top:2px;">
+                                        💳 المبلغ المستحق بالمحفظة: <span class="amount" id="mixed-wallet-due-amount2">0.00</span> <span class="currency" id="mixed-wallet-due-currency2">ريال</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- ===== نهاية حقول العملات ===== -->
+
+                        <input type="hidden" id="edit-invoice-id" value="">
+                    </div>
+                </div>
+
+                <div class="pos-cart">
+                    <div class="card">
+                        <h4><i class="fas fa-list-ul"></i> قائمة المشتريات</h4>
+                        <div style="overflow-x:auto;">
+                            <table class="items-table" id="purchase-items-table">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>المنتج</th>
+                                        <th>باركود</th>
+                                        <th>الكمية</th>
+                                        <th>سعر التكلفة</th>
+                                        <th>سعر البيع</th>
+                                        <th>القسم الرئيسي</th>
+                                        <th>التصنيف الفرعي</th>
+                                        <th>الإجمالي</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="purchase-items-body"></tbody>
+                            </table>
+                            <div id="empty-cart-message" class="text-muted text-center mt-10">لم تُضف أي منتجات بعد.</div>
+                        </div>
+
+                        <div class="flex-row mt-20">
+                            <div style="width:120px;"><label>الخصم</label><input type="number" id="purchase-discount" value="0" class="input-field" step="0.01" oninput="updateTotals()"></div>
+                            <div style="width:120px;"><label>نوع الخصم</label><select id="discount-type" class="input-field" onchange="updateTotals()"><option value="fixed">مبلغ</option><option value="percent">نسبة %</option></select></div>
+                            <div style="width:100px;"><label>الضريبة %</label><input type="number" id="purchase-tax-rate" value="0" class="input-field" step="0.01" oninput="updateTotals()"></div>
+                            <div style="width:130px;"><label>مصروفات</label><input type="number" id="purchase-additional" value="0" class="input-field" step="0.01" oninput="updateTotals()"></div>
+                        </div>
+
+                        <div class="totals-panel" id="totals-panel">
+                            <div>📊 الإجمالي: <span id="display-subtotal">0.00</span> ريال</div>
+                            <div>🏷️ الخصم: <span id="display-discount">0.00</span> ريال</div>
+                            <div>🧾 الضريبة: <span id="display-tax">0.00</span> ريال</div>
+                            <div>📦 مصروفات: <span id="display-additional">0.00</span> ريال</div>
+                            <div>💰 التكلفة الإجمالية: <span id="display-total-cost">0.00</span> ريال</div>
+                            <div style="font-size:1.2rem;">💵 <strong>الصافي:</strong> <span class="grand-total" id="display-grand-total">0.00</span> ريال</div>
+                        </div>
+
+                        <button class="btn btn-success w-100 mt-10" onclick="submitPurchase()" id="btn-submit">
+                            <i class="fas fa-check-circle"></i> حفظ فاتورة الشراء
+                        </button>
+                        <button class="btn btn-outline w-100 mt-10 hidden" onclick="cancelEdit()" id="btn-cancel-edit">
+                            <i class="fas fa-times"></i> إلغاء التعديل
+                        </button>
+                        <small class="text-muted">اختصار: Ctrl + Enter للحفظ | Escape للإغلاق</small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mt-20">
+                <h4><i class="fas fa-history"></i> آخر فواتير الشراء</h4>
+                <div class="flex-row mb-10">
+                    <div class="flex-1"><input type="text" id="log-search" class="input-field" placeholder="بحث..." oninput="filterPurchaseLog()"></div>
+                    <div class="flex-1">
+                        <select id="log-filter-method" class="input-field" onchange="filterPurchaseLog()">
+                            <option value="">كل الطرق</option>
+                            <option value="cash">نقداً</option>
+                            <option value="wallet">محفظة</option>
+                            <option value="credit">آجل</option>
+                            <option value="mixed">مختلط</option>
+                        </select>
+                    </div>
+                    <div style="align-self:flex-end;">
+                        <button class="btn btn-outline btn-sm" onclick="refreshLog()"><i class="fas fa-sync-alt"></i> تحديث</button>
+                    </div>
+                </div>
+                <div id="purchases-log" style="max-height:400px; overflow-y:auto;"></div>
+            </div>
+        </main>
+    </div>
+
+    <!-- مودال إضافة منتج -->
+    <div class="modal-overlay hidden" id="add-product-modal">
+        <div class="modal">
+            <button class="close-btn" onclick="closeModal('add-product-modal')">&times;</button>
+            <h3><i class="fas fa-box-open" style="color:var(--warning);"></i> إضافة منتج جديد</h3>
+            <div class="flex-row">
+                <div class="flex-2"><label class="required">اسم المنتج</label><input type="text" id="new-product-name" class="input-field"></div>
+                <div class="flex-1"><label class="required">الباركود</label><input type="text" id="new-product-barcode" class="input-field barcode-input" readonly></div>
+            </div>
+            <div class="flex-row mt-10">
+                <div class="flex-1"><label class="required">سعر التكلفة</label><input type="number" id="new-product-cost" class="input-field" step="0.01"></div>
+                <div class="flex-1"><label class="required">سعر البيع</label><input type="number" id="new-product-price" class="input-field" step="0.01"></div>
+                <div class="flex-1"><label>الكمية الأولية</label><input type="number" id="new-product-stock" class="input-field" value="0"></div>
+            </div>
+            <div class="flex-row mt-10">
+                <div class="flex-1">
+                    <label>القسم الرئيسي</label>
+                    <select id="new-product-main-cat" class="input-field" onchange="onNewProductMainCatChange()">
+                        <option value="">-- اختر --</option>
+                    </select>
+                </div>
+                <div class="flex-1">
+                    <label>التصنيف الفرعي</label>
+                    <select id="new-product-sub-cat" class="input-field">
+                        <option value="">-- اختر القسم أولاً --</option>
+                    </select>
+                </div>
+            </div>
+            <div class="flex-row mt-10">
+                <div class="flex-1"><label>وحدة القياس</label><select id="new-product-unit" class="input-field"><option value="قطعة">قطعة</option><option value="طقم">طقم</option><option value="صندوق">صندوق</option></select></div>
+                <div class="flex-1"><label>وصف</label><input type="text" id="new-product-desc" class="input-field" placeholder="وصف مختصر"></div>
+            </div>
+            <button class="btn btn-success w-100 mt-20" onclick="saveQuickProduct()"><i class="fas fa-save"></i> حفظ وإضافة للفاتورة</button>
+            <button class="btn btn-outline w-100 mt-10" onclick="closeModal('add-product-modal')">إلغاء</button>
+        </div>
+    </div>
+
+    <!-- مودال إضافة مورد -->
+    <div class="modal-overlay hidden" id="add-supplier-modal">
+        <div class="modal" style="max-width:500px;">
+            <button class="close-btn" onclick="closeModal('add-supplier-modal')">&times;</button>
+            <h3><i class="fas fa-truck"></i> إضافة مورد جديد</h3>
+            <div><label class="required">اسم المورد</label><input type="text" id="new-supplier-name" class="input-field"></div>
+            <div class="mt-10"><label>رقم الهاتف</label><input type="text" id="new-supplier-phone" class="input-field"></div>
+            <div class="mt-10"><label>العنوان</label><input type="text" id="new-supplier-address" class="input-field"></div>
+            <button class="btn btn-success w-100 mt-20" onclick="saveNewSupplier()"><i class="fas fa-save"></i> حفظ المورد</button>
+            <button class="btn btn-outline w-100 mt-10" onclick="closeModal('add-supplier-modal')">إلغاء</button>
+        </div>
+    </div>
+
+    <!-- مودال إرجاع -->
+    <div class="modal-overlay hidden" id="return-modal">
+        <div class="modal" style="max-width:600px;">
+            <button class="close-btn" onclick="closeModal('return-modal')">&times;</button>
+            <h3><i class="fas fa-undo-alt" style="color:var(--danger);"></i> إرجاع منتج من الفاتورة</h3>
+            <form id="return-form" onsubmit="executeReturn(event)">
+                <input type="hidden" id="return-invoice-id">
+                <label>المنتج</label>
+                <select id="return-product-id" class="input-field" required></select>
+                <label>الكمية المرتجعة</label>
+                <input type="number" id="return-quantity" class="input-field" step="1" min="1" required>
+                <label>سبب الإرجاع</label>
+                <textarea id="return-reason" class="input-field" rows="2"></textarea>
+                <div class="flex-row mt-10">
+                    <button type="submit" class="btn btn-danger"><i class="fas fa-undo-alt"></i> تأكيد الإرجاع</button>
+                    <button type="button" class="btn btn-outline" onclick="closeModal('return-modal')">إلغاء</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- مودال النجاح -->
+    <div class="modal-overlay hidden" id="success-modal">
+        <div class="modal" style="text-align:center;">
+            <button class="close-btn" onclick="closeSuccessModal()">&times;</button>
+            <div class="success-icon"><i class="fas fa-check-circle"></i></div>
+            <h3 style="color:var(--success);">تم حفظ الفاتورة بنجاح</h3>
+            <p style="font-size:1.1rem; margin:15px 0;">هل ترغب في طباعة باركود المنتجات الجديدة؟</p>
+            <div class="modal-actions">
+                <button class="btn btn-success" id="btn-print-barcode" onclick="goToBarcodePrint()">
+                    <i class="fas fa-print"></i> طباعة باركود
+                </button>
+                <button class="btn btn-outline" onclick="closeSuccessModal()">
+                    <i class="fas fa-times"></i> تخطي
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- مودال تفاصيل الفاتورة -->
+    <div class="modal-overlay hidden" id="details-modal">
+        <div class="modal" style="max-width:750px;">
+            <button class="close-btn" onclick="closeModal('details-modal')">&times;</button>
+            <div id="details-content"></div>
+        </div>
+    </div>
+
+    <div class="toast-container" id="toast-container"></div>
+
+    <script>
+        // ================================================================
+        //  CONFIG & HELPERS
+        // ================================================================
+        const API = 'https://api.ibnalmukhtar.com';
+        const TOKEN_KEY = 'pos_token';
+        let token = localStorage.getItem(TOKEN_KEY) || '';
+        if (!token) {
+            alert('الرجاء تسجيل الدخول أولاً');
+            window.location.href = 'index.html';
+        }
+
+        let allProducts = [];
+        let allCategories = [];
+        let purchaseItems = [];
+        let allPurchasesLog = [];
+        let editingInvoiceId = null;
+        let lastSavedInvoiceId = null;
+        let isEditing = false;
+
+        // ===== متغيرات العملات والمحافظ والصندوق =====
+        let currenciesCache = [];
+        let walletsCache = [];
+        let cashBalances = {}; // { currency_id: { code, amount } }
+
+        // متغيرات لمنع التكرار في تحديث المبالغ
+        let updatingDiscountFromPaid = false;
+        let updatingPaidFromDiscount = false;
+        let updatingMixedFromCash = false;
+        let updatingMixedFromWallet = false;
+
+        // ===== دوال مساعدة للعملات =====
+        function getCurrencyRate(currencyId) {
+            if (!currencyId) return 1;
+            const c = currenciesCache.find(cur => cur.id === currencyId);
+            if (c && typeof c.rate_to_base === 'number' && isFinite(c.rate_to_base)) {
+                return c.rate_to_base;
+            }
+            return 1;
+        }
+
+        function getCurrencyCode(currencyId) {
+            const c = currenciesCache.find(cur => cur.id === currencyId);
+            return c ? c.code : 'YER';
+        }
+
+        function convertFromBase(amount, currencyId) {
+            if (!currencyId) return amount;
+            const rate = getCurrencyRate(currencyId);
+            if (!isFinite(rate) || rate <= 0) return amount;
+            return amount / rate;
+        }
+
+        function convertToBase(amount, currencyId) {
+            if (!currencyId) return amount;
+            const rate = getCurrencyRate(currencyId);
+            if (!isFinite(rate) || rate <= 0) return amount;
+            return amount * rate;
+        }
+
+        // ===== دوال المحافظ والصندوق =====
+        function updateWalletBalance() {
+            const walletId = document.getElementById('purchase-wallet').value;
+            const display = document.getElementById('wallet-balance-display');
+            if (!walletId) {
+                display.textContent = 'أرصدة المحفظة: -';
+                return;
+            }
+            const wallet = walletsCache.find(w => w.id == walletId);
+            if (!wallet) {
+                display.textContent = 'المحفظة غير موجودة';
+                return;
+            }
+            const balances = wallet.balances || [];
+            if (balances.length === 0) {
+                display.textContent = 'لا توجد أرصدة لهذه المحفظة';
+                return;
+            }
+            const displayText = balances.map(b =>
+                `${b.code}: ${b.balance.toFixed(2)}`
+            ).join(' | ');
+            display.textContent = `أرصدة المحفظة: ${displayText}`;
+        }
+
+        function onWalletSelectChange() {
+            updateWalletBalance();
+            updateTotals();
+        }
+
+        function onMixedWalletChange() {
+            const walletId = document.getElementById('mixed-wallet-select').value;
+            const display = document.getElementById('mixed-wallet-balance');
+            if (!walletId) {
+                display.textContent = 'رصيد المحفظة: -';
+                return;
+            }
+            const wallet = walletsCache.find(w => w.id == walletId);
+            if (!wallet) {
+                display.textContent = 'المحفظة غير موجودة';
+                return;
+            }
+            const balances = wallet.balances || [];
+            if (balances.length === 0) {
+                display.textContent = 'لا توجد أرصدة';
+                return;
+            }
+            const displayText = balances.map(b =>
+                `${b.code}: ${b.balance.toFixed(2)}`
+            ).join(' | ');
+            display.textContent = `رصيد المحفظة: ${displayText}`;
+            updateTotals();
+        }
+
+        // ===== جلب رصيد الصندوق (مثل cash-wallets.html) =====
+        async function loadCashBalance() {
+            if (navigator.onLine) {
+                try {
+                    const res = await fetch(`${API}/cash`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    const data = await res.json();
+                    if (data.cash_balances) {
+                        cashBalances = data.cash_balances; // { currency_id: { code, amount } }
+                    } else {
+                        cashBalances = {};
+                    }
+                    // حفظ في localStorage للاستخدام في وضع عدم الاتصال
+                    localStorage.setItem('cash_balances', JSON.stringify(cashBalances));
+                } catch (err) {
+                    console.warn('فشل تحميل رصيد الصندوق', err);
+                    const saved = localStorage.getItem('cash_balances');
+                    if (saved) {
+                        try { cashBalances = JSON.parse(saved); } catch (e) { cashBalances = {}; }
+                    } else {
+                        cashBalances = {};
+                    }
+                }
+            } else {
+                const saved = localStorage.getItem('cash_balances');
+                if (saved) {
+                    try { cashBalances = JSON.parse(saved); } catch (e) { cashBalances = {}; }
+                } else {
+                    cashBalances = {};
+                }
+            }
+            // تحديث العرض
+            updateCashBalanceDisplay();
+        }
+
+        function updateCashBalanceDisplay() {
+            // نعرض رصيد الصندوق للعملة المحددة إن وجد
+            const cashCurrencyId = parseInt(document.getElementById('cash-currency-select')?.value);
+            const mixedCashCurrencyId = parseInt(document.getElementById('mixed-cash-currency')?.value);
+
+            // عنصر عرض رصيد الصندوق في النقد
+            const cashDisplay = document.getElementById('cash-balance-display');
+            if (cashDisplay && cashCurrencyId) {
+                const balance = cashBalances[cashCurrencyId];
+                if (balance) {
+                    cashDisplay.textContent = `💰 رصيد الصندوق: ${balance.amount.toFixed(2)} ${balance.code}`;
+                } else {
+                    cashDisplay.textContent = '💰 رصيد الصندوق: 0.00';
+                }
+            }
+
+            // عنصر عرض رصيد الصندوق في المختلط
+            const mixedCashDisplay = document.getElementById('mixed-cash-balance-display');
+            if (mixedCashDisplay && mixedCashCurrencyId) {
+                const balance = cashBalances[mixedCashCurrencyId];
+                if (balance) {
+                    mixedCashDisplay.textContent = `💰 رصيد الصندوق: ${balance.amount.toFixed(2)} ${balance.code}`;
+                } else {
+                    mixedCashDisplay.textContent = '💰 رصيد الصندوق: 0.00';
+                }
+            }
+        }
+
+        // ===== تحميل العملات والمحافظ =====
+        async function loadCurrencies() {
+            if (navigator.onLine) {
+                try {
+                    const res = await fetch(`${API}/currencies`, { headers: { 'Authorization': `Bearer ${token}` } });
+                    const data = await res.json();
+                    currenciesCache = data.currencies || [];
+                    return;
+                } catch (err) { console.warn('فشل تحميل العملات من الخادم', err); }
+            }
+        }
+
+        async function loadWallets() {
+            if (navigator.onLine) {
+                try {
+                    const res = await fetch(`${API}/wallets`, { headers: { 'Authorization': `Bearer ${token}` } });
+                    const data = await res.json();
+                    walletsCache = data.wallets || [];
+                } catch (err) { console.warn('فشل تحميل المحافظ من الخادم', err); }
+            }
+        }
+
+        function populateCurrencySelects() {
+            const selects = [
+                'cash-currency-select',
+                'wallet-currency-select',
+                'mixed-cash-currency',
+                'mixed-wallet-currency'
+            ];
+            selects.forEach(id => {
+                const sel = document.getElementById(id);
+                if (sel) {
+                    sel.innerHTML = currenciesCache.map(c =>
+                        `<option value="${c.id}">${c.code} - ${c.name}</option>`
+                    ).join('');
+                }
+            });
+            const base = currenciesCache.find(c => c.is_base);
+            if (base) {
+                selects.forEach(id => {
+                    const sel = document.getElementById(id);
+                    if (sel) sel.value = base.id;
+                });
+            }
+            updateRateDisplays();
+            updateCashBalanceDisplay(); // تحديث رصيد الصندوق بعد ملء القوائم
+        }
+
+        function populateWalletSelects() {
+            const selects = ['purchase-wallet', 'mixed-wallet-select'];
+            selects.forEach(id => {
+                const sel = document.getElementById(id);
+                if (sel) {
+                    sel.innerHTML = '<option value="">-- اختر محفظة --</option>' +
+                        walletsCache.map(w => `<option value="${w.id}">${w.name}</option>`).join('');
+                }
+            });
+            if (document.getElementById('purchase-wallet').value) {
+                updateWalletBalance();
+            }
+            if (document.getElementById('mixed-wallet-select').value) {
+                onMixedWalletChange();
+            }
+        }
+
+        function updateRateDisplays() {
+            const cashId = document.getElementById('cash-currency-select')?.value;
+            const walletId = document.getElementById('wallet-currency-select')?.value;
+            if (cashId) {
+                const rate = getCurrencyRate(parseInt(cashId));
+                document.getElementById('cash-rate-display').textContent = `سعر الصرف: 1 ${getCurrencyCode(parseInt(cashId))} = ${rate} ريال`;
+            }
+            if (walletId) {
+                const rate = getCurrencyRate(parseInt(walletId));
+                document.getElementById('wallet-rate-display').textContent = `سعر الصرف: 1 ${getCurrencyCode(parseInt(walletId))} = ${rate} ريال`;
+            }
+        }
+
+        // ===== دالة تبديل طرق الدفع مع إظهار/إخفاء حقول العملات =====
+        function togglePaymentFields() {
+            const method = document.getElementById('purchase-payment-method').value;
+            document.getElementById('wallet-group').style.display = (method === 'wallet' || method === 'mixed') ? 'block' : 'none';
+            document.getElementById('mixed-payment-fields').classList.toggle('hidden', method !== 'mixed');
+            document.getElementById('cash-currency-group').style.display = (method === 'cash' || method === 'mixed') ? 'block' : 'none';
+            document.getElementById('wallet-currency-group').style.display = (method === 'wallet') ? 'block' : 'none';
+            document.getElementById('mixed-currency-group').style.display = (method === 'mixed') ? 'block' : 'none';
+
+            if (method === 'wallet' || method === 'mixed') {
+                populateWalletSelects();
+                if (method === 'wallet') updateWalletBalance();
+                if (method === 'mixed') onMixedWalletChange();
+            }
+            if (method === 'cash' || method === 'mixed') {
+                // تحديث رصيد الصندوق في حال ظهوره
+                updateCashBalanceDisplay();
+            }
+            if (method === 'mixed') {
+                document.getElementById('mixed-cash').value = 0;
+                document.getElementById('mixed-wallet').value = 0;
+                validateMixedPayment();
+            }
+            updateTotals();
+        }
+
+        // ===== دالة تحقق الدفع المختلط =====
+        function validateMixedPayment() {
+            const method = document.getElementById('purchase-payment-method').value;
+            if (method !== 'mixed') return true;
+            const cash = parseFloat(document.getElementById('mixed-cash').value) || 0;
+            const wallet = parseFloat(document.getElementById('mixed-wallet').value) || 0;
+            const total = parseFloat(document.getElementById('display-grand-total').textContent) || 0;
+            const msg = document.getElementById('mixed-validation-msg');
+
+            const cashCurrencyId = parseInt(document.getElementById('mixed-cash-currency').value);
+            const walletCurrencyId = parseInt(document.getElementById('mixed-wallet-currency').value);
+            const cashBase = convertToBase(cash, cashCurrencyId);
+            const walletBase = convertToBase(wallet, walletCurrencyId);
+            if (Math.abs(cashBase + walletBase - total) > 0.01) {
+                msg.textContent = `⚠️ يجب أن يساوي مجموع المبلغين ${total.toFixed(2)} ريال (بالقيمة الأساسية)`;
+                msg.style.color = 'var(--danger)';
+                document.getElementById('btn-submit').disabled = true;
+                return false;
+            } else {
+                msg.textContent = '✅ المبلغ متوازن';
+                msg.style.color = 'var(--success)';
+                document.getElementById('btn-submit').disabled = false;
+                return true;
+            }
+        }
+
+        // ===== دوال مساعدة عامة =====
+        function showToast(msg, type = 'info') {
+            const c = document.getElementById('toast-container');
+            const t = document.createElement('div');
+            t.className = `toast ${type}`;
+            t.textContent = msg;
+            c.appendChild(t);
+            setTimeout(() => { t.style.opacity = '0'; t.style.transition = '0.3s'; setTimeout(() => t.remove(), 300); }, 3000);
+        }
+
+        function logout() {
+            if (confirm('تأكيد تسجيل الخروج؟')) {
+                localStorage.removeItem(TOKEN_KEY);
+                window.location.href = 'index.html';
+            }
+        }
+
+        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+        function generateBarcode() {
+            let barcode;
+            do { barcode = '2' + Math.floor(Math.random() * 900000000000 + 100000000000).toString(); }
+            while (allProducts.some(p => p.barcode === barcode));
+            return barcode;
+        }
+
+        // ===== تحميل البيانات الأساسية =====
+        async function loadSuppliers() {
+            try {
+                const res = await fetch(`${API}/suppliers`, { headers: { 'Authorization': `Bearer ${token}` } });
+                const data = await res.json();
+                const sel = document.getElementById('purchase-supplier');
+                sel.innerHTML = '<option value="">-- اختر المورد --</option>' +
+                    (data.suppliers || []).map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+            } catch (e) { console.error(e); }
+        }
+
+        async function loadProducts() {
+            try {
+                const res = await fetch(`${API}/products?limit=10000`, { headers: { 'Authorization': `Bearer ${token}` } });
+                const data = await res.json();
+                allProducts = data.products || [];
+                filterProductsByCategory();
+            } catch (e) { console.error(e); }
+        }
+
+        async function loadPurchasesHistory() {
+            try {
+                const res = await fetch(`${API}/purchases?limit=100`, { headers: { 'Authorization': `Bearer ${token}` } });
+                const data = await res.json();
+                allPurchasesLog = data.purchases || [];
+                renderPurchaseLog(allPurchasesLog);
+            } catch (e) { console.error(e); }
+        }
+
+        async function refreshLog() {
+            await loadPurchasesHistory();
+            showToast('تم تحديث السجل', 'info');
+        }
+
+        // ===== التصنيفات =====
+        async function loadAllCategories() {
+            try {
+                const res = await fetch(`${API}/categories?flat=1`, { headers: { 'Authorization': `Bearer ${token}` } });
+                const data = await res.json();
+                allCategories = data.categories || data || [];
+                populateMainCategories();
+                populateNewProductMainCategories();
+                if (purchaseItems.length > 0) renderPurchaseItems();
+            } catch (e) { console.error(e); }
+        }
+
+        function populateMainCategories() {
+            const mainSel = document.getElementById('main-category-filter');
+            const mainCats = allCategories.filter(c => c.parent_id === null || c.parent_id === undefined);
+            mainSel.innerHTML = '<option value="">الكل</option>' +
+                mainCats.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+            const subSel = document.getElementById('sub-category-filter');
+            subSel.innerHTML = '<option value="">الكل</option>';
+        }
+
+        function populateNewProductMainCategories() {
+            const mainSel = document.getElementById('new-product-main-cat');
+            const mainCats = allCategories.filter(c => c.parent_id === null || c.parent_id === undefined);
+            mainSel.innerHTML = '<option value="">-- اختر --</option>' +
+                mainCats.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+            document.getElementById('new-product-sub-cat').innerHTML = '<option value="">-- اختر القسم أولاً --</option>';
+        }
+
+        function onNewProductMainCatChange() {
+            const mainId = document.getElementById('new-product-main-cat').value;
+            const subSel = document.getElementById('new-product-sub-cat');
+            if (mainId) {
+                const subCats = allCategories.filter(c => c.parent_id == mainId);
+                subSel.innerHTML = '<option value="">-- اختر --</option>' +
+                    subCats.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+            } else {
+                subSel.innerHTML = '<option value="">-- اختر القسم أولاً --</option>';
+            }
+        }
+
+        function onMainCatChange() {
+            const mainId = document.getElementById('main-category-filter').value;
+            const subSel = document.getElementById('sub-category-filter');
+            if (mainId) {
+                const subCats = allCategories.filter(c => c.parent_id == mainId);
+                subSel.innerHTML = '<option value="">الكل</option>' +
+                    subCats.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+            } else {
+                subSel.innerHTML = '<option value="">الكل</option>';
+            }
+            filterProductsByCategory();
+        }
+
+        function onSubCatChange() { filterProductsByCategory(); }
+
+        function getFilteredProducts() {
+            const mainId = document.getElementById('main-category-filter').value;
+            const subId = document.getElementById('sub-category-filter').value;
+            if (!mainId && !subId) return allProducts;
+            let filtered = allProducts;
+            if (subId) filtered = filtered.filter(p => p.category_id == subId);
+            else if (mainId) filtered = filtered.filter(p => p.category_id == mainId);
+            return filtered;
+        }
+
+        function filterProductsByCategory() {
+            const query = document.getElementById('name-search').value.trim();
+            if (query) handleNameSearch(query);
+            else document.getElementById('search-results').innerHTML = '';
+        }
+
+        async function addSubCategoryPrompt() {
+            const mainSel = document.getElementById('main-category-filter');
+            const mainId = mainSel.value;
+            if (!mainId) { showToast('الرجاء اختيار قسم رئيسي أولاً', 'warning'); return; }
+            const name = prompt('أدخل اسم التصنيف الفرعي الجديد:');
+            if (!name || !name.trim()) return;
+            try {
+                const res = await fetch(`${API}/categories`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: name.trim(), parent_id: parseInt(mainId) })
+                });
+                if (res.ok) {
+                    showToast('✅ تمت الإضافة', 'success');
+                    await loadAllCategories();
+                } else {
+                    showToast('❌ فشل الإضافة', 'error');
+                }
+            } catch (e) { showToast('❌ فشل الاتصال', 'error'); }
+        }
+
+        // ===== البحث =====
+        function handleNameSearch(query) {
+            const container = document.getElementById('search-results');
+            if (!query || query.trim().length < 1) { container.innerHTML = ''; return; }
+            const filtered = getFilteredProducts();
+            const q = query.toLowerCase();
+            const results = filtered.filter(p => p.name && p.name.toLowerCase().includes(q)).slice(0, 100);
+            if (results.length === 0) {
+                container.innerHTML = `<button class="btn btn-warning btn-sm w-100" onclick="openAddProductModal()"><i class="fas fa-plus"></i> إضافة "${query}"</button>`;
+            } else {
+                container.innerHTML = results.map(p => `
+                <div style="padding:10px;border-bottom:1px solid var(--border);cursor:pointer;border-radius:6px;transition:0.2s;"
+                     onmouseover="this.style.background='var(--primary-light)'" onmouseout="this.style.background='transparent'"
+                     onclick="addProductToCart(${p.id})">
+                  <strong>${p.name}</strong> <code>${p.barcode || ''}</code> | تكلفة: ${p.cost || 0} | بيع: ${p.price || 0}
+                  <span style="font-size:0.7rem;color:var(--muted);">المخزون: ${p.stock_quantity || 0}</span>
+                </div>`).join('');
+            }
+        }
+
+        function handleBarcodeEnter(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const barcode = e.target.value.trim();
+                if (!barcode) return;
+                const product = allProducts.find(p => p.barcode === barcode);
+                if (product) {
+                    addProductToCart(product.id);
+                    e.target.value = '';
+                } else {
+                    if (confirm(`الباركود "${barcode}" غير موجود. هل تريد إضافته؟`)) {
+                        openAddProductModal(barcode);
+                    }
+                    e.target.value = '';
+                }
+            }
+        }
+
+        // ===== السلة =====
+        function addProductToCart(productId, externalProductData = null) {
+            if (externalProductData) {
+                const existing = purchaseItems.find(item => item._new_product && item._new_product.barcode === externalProductData.barcode);
+                if (existing) { existing.quantity += 1; }
+                else {
+                    purchaseItems.push({
+                        product_id: null,
+                        name: externalProductData.name,
+                        barcode: externalProductData.barcode,
+                        quantity: 1,
+                        cost: externalProductData.cost,
+                        selling_price: externalProductData.price,
+                        main_category_id: externalProductData.main_category_id || null,
+                        sub_category_id: externalProductData.sub_category_id || null,
+                        _new_product: {
+                            name: externalProductData.name,
+                            barcode: externalProductData.barcode,
+                            cost: externalProductData.cost,
+                            price: externalProductData.price,
+                            stock_quantity: externalProductData.stock_quantity || 0,
+                            unit: externalProductData.unit || 'قطعة',
+                            description: externalProductData.description || '',
+                            category_id: externalProductData.sub_category_id || externalProductData.main_category_id || null
+                        }
+                    });
+                }
+            } else {
+                const product = allProducts.find(p => p.id == productId);
+                if (!product) return showToast('المنتج غير موجود', 'error');
+                const existing = purchaseItems.find(item => item.product_id == productId);
+                if (existing) { existing.quantity += 1; }
+                else {
+                    let mainCatId = null, subCatId = null;
+                    if (product.category_id) {
+                        const cat = allCategories.find(c => c.id == product.category_id);
+                        if (cat) {
+                            if (cat.parent_id) {
+                                subCatId = cat.id;
+                                mainCatId = cat.parent_id;
+                            } else {
+                                mainCatId = cat.id;
+                            }
+                        }
+                    }
+                    purchaseItems.push({
+                        product_id: product.id,
+                        name: product.name || 'بدون اسم',
+                        barcode: product.barcode || '',
+                        quantity: 1,
+                        cost: parseFloat(product.cost) || 0,
+                        selling_price: parseFloat(product.price) || 0,
+                        main_category_id: mainCatId,
+                        sub_category_id: subCatId,
+                        _new_product: null
+                    });
+                }
+            }
+            renderPurchaseItems();
+            updateTotals();
+            document.getElementById('search-results').innerHTML = '';
+            document.getElementById('name-search').value = '';
+            showToast(`✅ تمت الإضافة: ${purchaseItems[purchaseItems.length-1].name}`, 'success');
+        }
+
+        function removePurchaseItem(index) {
+            purchaseItems.splice(index, 1);
+            renderPurchaseItems();
+            updateTotals();
+        }
+
+        function updateItemField(index, field, value) {
+            const item = purchaseItems[index];
+            if (field === 'quantity') item.quantity = parseInt(value) || 1;
+            else if (field === 'cost') item.cost = parseFloat(value) || 0;
+            else if (field === 'selling_price') item.selling_price = parseFloat(value) || 0;
+            else if (field === 'main_category_id') {
+                item.main_category_id = value ? parseInt(value) : null;
+                item.sub_category_id = null;
+                renderPurchaseItems();
+            }
+            else if (field === 'sub_category_id') item.sub_category_id = value ? parseInt(value) : null;
+            updateTotals();
+            if (field !== 'main_category_id' && field !== 'sub_category_id') renderPurchaseItems();
+        }
+
+        function getMainCategoriesOptions(selectedId = null) {
+            const mainCats = allCategories.filter(c => c.parent_id === null || c.parent_id === undefined);
+            return mainCats.map(c => `<option value="${c.id}" ${selectedId == c.id ? 'selected' : ''}>${c.name}</option>`).join('');
+        }
+
+        function getSubCategoriesOptions(parentId, selectedId = null) {
+            if (!parentId) return '<option value="">-- اختر القسم أولاً --</option>';
+            const subCats = allCategories.filter(c => c.parent_id == parentId);
+            return subCats.map(c => `<option value="${c.id}" ${selectedId == c.id ? 'selected' : ''}>${c.name}</option>`).join('');
+        }
+
+        function renderPurchaseItems() {
+            const tbody = document.getElementById('purchase-items-body');
+            const emptyMsg = document.getElementById('empty-cart-message');
+            if (purchaseItems.length === 0) {
+                tbody.innerHTML = '';
+                emptyMsg.classList.remove('hidden');
+                return;
+            }
+            emptyMsg.classList.add('hidden');
+            tbody.innerHTML = purchaseItems.map((item, idx) => {
+                const mainOptions = getMainCategoriesOptions(item.main_category_id);
+                const subOptions = item.main_category_id ? getSubCategoriesOptions(item.main_category_id, item.sub_category_id) : '<option value="">-- اختر القسم أولاً --</option>';
+                const isNew = item._new_product ? true : false;
+                return `
+                <tr>
+                  <td>${idx + 1}</td>
+                  <td><strong>${item.name}</strong> ${isNew ? '<span style="background:var(--warning);color:#000;font-size:0.6rem;padding:2px 5px;border-radius:4px;">جديد</span>' : ''}</td>
+                  <td><code>${item.barcode}</code></td>
+                  <td><input type="number" class="input-field editable-input" value="${item.quantity}" min="1" onchange="updateItemField(${idx},'quantity',this.value)"></td>
+                  <td><input type="number" class="input-field editable-input" value="${item.cost}" step="0.01" onchange="updateItemField(${idx},'cost',this.value)"></td>
+                  <td><input type="number" class="input-field editable-input" value="${item.selling_price}" step="0.01" onchange="updateItemField(${idx},'selling_price',this.value)"></td>
+                  <td>
+                    <select class="input-field editable-input" onchange="updateItemField(${idx},'main_category_id',this.value)">
+                      <option value="">-- اختر --</option>
+                      ${mainOptions}
+                    </select>
+                  </td>
+                  <td>
+                    <select class="input-field editable-input" onchange="updateItemField(${idx},'sub_category_id',this.value)">
+                      <option value="">-- اختر --</option>
+                      ${subOptions}
+                    </select>
+                  </td>
+                  <td><strong>${(item.quantity * item.cost).toFixed(2)}</strong></td>
+                  <td><button class="btn btn-danger btn-xs" onclick="removePurchaseItem(${idx})"><i class="fas fa-trash"></i></button></td>
+                </tr>`;
+            }).join('');
+        }
+
+        // ===== تحديث الإجماليات مع دعم العملات وعرض المبالغ المحولة ورصيد الصندوق =====
+        function updateTotals() {
+            const subtotal = purchaseItems.reduce((sum, item) => sum + (item.quantity * item.cost), 0);
+            const totalCost = purchaseItems.reduce((sum, item) => sum + (item.quantity * item.cost), 0);
+            const discountType = document.getElementById('discount-type').value;
+            const discountVal = parseFloat(document.getElementById('purchase-discount').value) || 0;
+            let discount = discountType === 'percent' ? subtotal * (discountVal / 100) : discountVal;
+            discount = Math.min(discount, subtotal);
+            const taxRate = parseFloat(document.getElementById('purchase-tax-rate').value) || 0;
+            const additional = parseFloat(document.getElementById('purchase-additional').value) || 0;
+            const afterDiscount = subtotal - discount;
+            const tax = afterDiscount * (taxRate / 100);
+            const grand = afterDiscount + tax + additional;
+
+            document.getElementById('display-subtotal').textContent = subtotal.toFixed(2);
+            document.getElementById('display-discount').textContent = discount.toFixed(2);
+            document.getElementById('display-tax').textContent = tax.toFixed(2);
+            document.getElementById('display-additional').textContent = additional.toFixed(2);
+            document.getElementById('display-total-cost').textContent = totalCost.toFixed(2);
+            document.getElementById('display-grand-total').textContent = grand.toFixed(2);
+
+            // ===== حساب وعرض المبالغ المحولة =====
+            const paymentMethod = document.getElementById('purchase-payment-method').value;
+
+            // 1. الدفع النقدي (cash) أو المختلط (نقد)
+            if (paymentMethod === 'cash' || paymentMethod === 'mixed') {
+                const cashCurrencyId = parseInt(document.getElementById(
+                    paymentMethod === 'mixed' ? 'mixed-cash-currency' : 'cash-currency-select'
+                ).value);
+                if (cashCurrencyId && grand > 0) {
+                    const rate = getCurrencyRate(cashCurrencyId);
+                    const converted = grand / rate;
+                    const code = getCurrencyCode(cashCurrencyId);
+                    if (paymentMethod === 'cash') {
+                        document.getElementById('cash-due-amount').textContent = converted.toFixed(2);
+                        document.getElementById('cash-due-currency').textContent = code;
+                        document.getElementById('cash-due-rate').textContent = `(سعر الصرف: 1 ${code} = ${rate} ريال)`;
+                    } else {
+                        document.getElementById('mixed-cash-due-amount2').textContent = converted.toFixed(2);
+                        document.getElementById('mixed-cash-due-currency2').textContent = code;
+                    }
+                } else {
+                    if (paymentMethod === 'cash') {
+                        document.getElementById('cash-due-amount').textContent = grand.toFixed(2);
+                        document.getElementById('cash-due-currency').textContent = 'ريال';
+                        document.getElementById('cash-due-rate').textContent = '';
+                    } else {
+                        document.getElementById('mixed-cash-due-amount2').textContent = grand.toFixed(2);
+                        document.getElementById('mixed-cash-due-currency2').textContent = 'ريال';
+                    }
+                }
+                // تحديث رصيد الصندوق للعملة المحددة
+                updateCashBalanceDisplay();
+            }
+
+            // 2. الدفع بالمحفظة (wallet) أو المختلط (محفظة)
+            if (paymentMethod === 'wallet' || paymentMethod === 'mixed') {
+                const walletCurrencyId = parseInt(document.getElementById(
+                    paymentMethod === 'mixed' ? 'mixed-wallet-currency' : 'wallet-currency-select'
+                ).value);
+                if (walletCurrencyId && grand > 0) {
+                    const rate = getCurrencyRate(walletCurrencyId);
+                    const converted = grand / rate;
+                    const code = getCurrencyCode(walletCurrencyId);
+                    if (paymentMethod === 'wallet') {
+                        document.getElementById('wallet-due-amount').textContent = converted.toFixed(2);
+                        document.getElementById('wallet-due-currency').textContent = code;
+                        document.getElementById('wallet-due-rate').textContent = `(سعر الصرف: 1 ${code} = ${rate} ريال)`;
+                    } else {
+                        document.getElementById('mixed-wallet-due-amount2').textContent = converted.toFixed(2);
+                        document.getElementById('mixed-wallet-due-currency2').textContent = code;
+                    }
+                } else {
+                    if (paymentMethod === 'wallet') {
+                        document.getElementById('wallet-due-amount').textContent = grand.toFixed(2);
+                        document.getElementById('wallet-due-currency').textContent = 'ريال';
+                        document.getElementById('wallet-due-rate').textContent = '';
+                    } else {
+                        document.getElementById('mixed-wallet-due-amount2').textContent = grand.toFixed(2);
+                        document.getElementById('mixed-wallet-due-currency2').textContent = 'ريال';
+                    }
+                }
+            }
+
+            // تحديث حقول الدفع المختلط
+            const cashPaidInput = document.getElementById('mixed-cash');
+            const walletPaidInput = document.getElementById('mixed-wallet');
+            if (cashPaidInput && (paymentMethod === 'cash' || paymentMethod === 'mixed')) {
+                if (!updatingMixedFromCash) {
+                    const cashCurrencyId = parseInt(document.getElementById(
+                        paymentMethod === 'mixed' ? 'mixed-cash-currency' : 'cash-currency-select'
+                    ).value);
+                    if (cashCurrencyId) {
+                        cashPaidInput.value = (grand / getCurrencyRate(cashCurrencyId)).toFixed(2);
+                    } else {
+                        cashPaidInput.value = grand.toFixed(2);
+                    }
+                }
+            }
+            if (walletPaidInput && (paymentMethod === 'wallet' || paymentMethod === 'mixed')) {
+                if (!updatingMixedFromWallet) {
+                    const walletCurrencyId = parseInt(document.getElementById(
+                        paymentMethod === 'mixed' ? 'mixed-wallet-currency' : 'wallet-currency-select'
+                    ).value);
+                    if (walletCurrencyId) {
+                        walletPaidInput.value = (grand / getCurrencyRate(walletCurrencyId)).toFixed(2);
+                    } else {
+                        walletPaidInput.value = grand.toFixed(2);
+                    }
+                }
+            }
+
+            // تحديث سعر الصرف
+            updateRateDisplays();
+
+            // إذا كانت طريقة الدفع مختلط، تحقق من توازن المبالغ وقم بتحديث حقول المبالغ المستحقة
+            if (paymentMethod === 'mixed') {
+                validateMixedPayment();
+                updateMixedDueAmounts();
+            }
+        }
+
+        // دالة عرض المبالغ المستحقة في الدفع المختلط (تستخدم في validateMixedPayment)
+        function updateMixedDueAmounts() {
+            // تم دمجها في updateTotals أعلاه، لكن نتركها للتوافق
+            // لا حاجة لتكرار الكود
+        }
+
+        // ===== إضافة منتج جديد مؤقت =====
+        function openAddProductModal(prefillBarcode = null) {
+            document.getElementById('new-product-barcode').value = prefillBarcode || generateBarcode();
+            document.getElementById('new-product-name').value = '';
+            document.getElementById('new-product-cost').value = '';
+            document.getElementById('new-product-price').value = '';
+            document.getElementById('new-product-stock').value = '0';
+            document.getElementById('new-product-unit').value = 'قطعة';
+            document.getElementById('new-product-desc').value = '';
+            document.getElementById('add-product-modal').classList.remove('hidden');
+            populateNewProductMainCategories();
+            document.getElementById('new-product-name').focus();
+        }
+
+        function saveQuickProduct() {
+            const name = document.getElementById('new-product-name').value.trim();
+            const barcode = document.getElementById('new-product-barcode').value.trim();
+            const cost = parseFloat(document.getElementById('new-product-cost').value);
+            const price = parseFloat(document.getElementById('new-product-price').value);
+            if (!name || !barcode || isNaN(cost) || isNaN(price)) {
+                return showToast('الرجاء ملء جميع الحقول الإجبارية', 'warning');
+            }
+            const productData = {
+                name, barcode, cost, price,
+                stock_quantity: parseInt(document.getElementById('new-product-stock').value) || 0,
+                unit: document.getElementById('new-product-unit').value || 'قطعة',
+                description: document.getElementById('new-product-desc').value || '',
+                main_category_id: document.getElementById('new-product-main-cat').value || null,
+                sub_category_id: document.getElementById('new-product-sub-cat').value || document.getElementById('new-product-main-cat').value || null
+            };
+            addProductToCart(null, productData);
+            closeModal('add-product-modal');
+            showToast('✅ تمت الإضافة للسلة (سيُحفظ مع الفاتورة)', 'success');
+        }
+
+        // ===== إضافة مورد جديد =====
+        function openAddSupplierModal() {
+            document.getElementById('new-supplier-name').value = '';
+            document.getElementById('new-supplier-phone').value = '';
+            document.getElementById('new-supplier-address').value = '';
+            document.getElementById('add-supplier-modal').classList.remove('hidden');
+        }
+
+        async function saveNewSupplier() {
+            const name = document.getElementById('new-supplier-name').value.trim();
+            if (!name) return showToast('اسم المورد مطلوب', 'warning');
+            const body = {
+                name,
+                phone: document.getElementById('new-supplier-phone').value.trim() || '',
+                address: document.getElementById('new-supplier-address').value.trim() || ''
+            };
+            try {
+                const res = await fetch(`${API}/suppliers`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    await loadSuppliers();
+                    const newId = data.supplier?.id || data.id;
+                    if (newId) document.getElementById('purchase-supplier').value = newId;
+                    closeModal('add-supplier-modal');
+                    showToast('✅ تم إضافة المورد', 'success');
+                } else {
+                    showToast('❌ ' + (data.error || 'فشل الحفظ'), 'error');
+                }
+            } catch (e) { showToast('❌ فشل الاتصال', 'error'); }
+        }
+
+        // ===== جلب معرف الفاتورة بعد الحفظ =====
+        async function fetchInvoiceIdAfterSave(supplierId, invoiceNumber) {
+            try {
+                if (invoiceNumber) {
+                    const res = await fetch(`${API}/purchases?limit=10`, { headers: { 'Authorization': `Bearer ${token}` } });
+                    const data = await res.json();
+                    const invoices = data.purchases || [];
+                    const found = invoices.find(inv => inv.invoice_number === invoiceNumber && inv.supplier_id == supplierId);
+                    if (found) return found.id;
+                }
+                const res = await fetch(`${API}/purchases?supplier_id=${supplierId}&limit=1`, { headers: { 'Authorization': `Bearer ${token}` } });
+                const data = await res.json();
+                const invoices = data.purchases || [];
+                if (invoices.length > 0) {
+                    return invoices[0].id;
+                }
+                return null;
+            } catch (e) {
+                console.error('فشل جلب معرف الفاتورة:', e);
+                return null;
+            }
+        }
+
+        // ===== حفظ / تحديث الفاتورة =====
+        async function submitPurchase() {
+            const supplierId = document.getElementById('purchase-supplier').value;
+            if (!supplierId) return showToast('الرجاء اختيار المورد', 'warning');
+            if (purchaseItems.length === 0) return showToast('أضف منتجاً واحداً على الأقل', 'warning');
+
+            const paymentMethod = document.getElementById('purchase-payment-method').value;
+            let walletId = paymentMethod === 'wallet' ? (document.getElementById('purchase-wallet').value || null) : null;
+            let cashPaid = 0, walletPaid = 0;
+            const discount = parseFloat(document.getElementById('purchase-discount').value) || 0;
+            const invoiceId = document.getElementById('edit-invoice-id').value;
+
+            let cashCurrencyId = undefined;
+            let walletCurrencyId = undefined;
+            if (paymentMethod === 'cash' || paymentMethod === 'mixed') {
+                const el = document.getElementById(paymentMethod === 'mixed' ? 'mixed-cash-currency' : 'cash-currency-select');
+                if (el) cashCurrencyId = parseInt(el.value) || undefined;
+            }
+            if (paymentMethod === 'wallet' || paymentMethod === 'mixed') {
+                const el = document.getElementById(paymentMethod === 'mixed' ? 'mixed-wallet-currency' : 'wallet-currency-select');
+                if (el) walletCurrencyId = parseInt(el.value) || undefined;
+            }
+
+            if (paymentMethod === 'mixed') {
+                cashPaid = parseFloat(document.getElementById('mixed-cash').value) || 0;
+                walletPaid = parseFloat(document.getElementById('mixed-wallet').value) || 0;
+                const total = parseFloat(document.getElementById('display-grand-total').textContent) || 0;
+                const cashBase = convertToBase(cashPaid, cashCurrencyId);
+                const walletBase = convertToBase(walletPaid, walletCurrencyId);
+                if (Math.abs(cashBase + walletBase - total) > 0.01) {
+                    showToast('مجموع المبلغين يجب أن يساوي الإجمالي (بالقيمة الأساسية)', 'warning');
+                    return;
+                }
+                walletId = document.getElementById('mixed-wallet-select').value || null;
+                if (walletPaid > 0 && !walletId) {
+                    showToast('يجب اختيار محفظة للدفع عبر المحفظة', 'warning');
+                    return;
+                }
+            }
+
+            const btn = document.getElementById('btn-submit');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...';
+
+            try {
+                // حفظ المنتجات الجديدة
+                for (let item of purchaseItems) {
+                    if (item._new_product) {
+                        const body = {
+                            name: item._new_product.name,
+                            barcode: item._new_product.barcode,
+                            cost: item._new_product.cost,
+                            price: item._new_product.price,
+                            stock_quantity: item._new_product.stock_quantity,
+                            unit: item._new_product.unit,
+                            description: item._new_product.description,
+                            category_id: item._new_product.category_id
+                        };
+                        const res = await fetch(`${API}/products`, {
+                            method: 'POST',
+                            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                            body: JSON.stringify(body)
+                        });
+                        const data = await res.json();
+                        if (res.ok) {
+                            const newProd = data.product || data;
+                            allProducts.push(newProd);
+                            item.product_id = newProd.id;
+                            item._new_product = null;
+                        } else {
+                            throw new Error(data.error || 'فشل حفظ منتج جديد');
+                        }
+                    }
+                }
+
+                const items = purchaseItems.map(item => ({
+                    product_id: item.product_id,
+                    name: item.name,
+                    barcode: item.barcode,
+                    quantity: item.quantity,
+                    unit_price: item.cost,
+                    selling_price: item.selling_price,
+                    category_id: item.sub_category_id
+                }));
+
+                const payload = {
+                    supplier_id: parseInt(supplierId),
+                    items: items,
+                    payment_method: paymentMethod || 'cash',
+                    wallet_id: walletId ? parseInt(walletId) : null,
+                    discount: discount || 0,
+                    note: '',
+                    cash_amount: cashPaid || 0,
+                    wallet_amount: walletPaid || 0,
+                    cash_currency_id: cashCurrencyId,
+                    wallet_currency_id: walletCurrencyId
+                };
+
+                let url = `${API}/purchases`;
+                let method = 'POST';
+                let invoiceNumber = null;
+                if (invoiceId) {
+                    url = `${API}/purchases/${invoiceId}`;
+                    method = 'PUT';
+                }
+
+                const res = await fetch(url, {
+                    method: method,
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+
+                if (res.ok) {
+                    let msg = invoiceId ? '✅ تم تحديث الفاتورة' : '✅ تم حفظ الفاتورة';
+                    if (data.wallet_name) msg += ` (المحفظة: ${data.wallet_name})`;
+                    showToast(msg, 'success');
+
+                    if (!invoiceId) {
+                        const invNumber = data.invoice_number;
+                        const fetchedId = await fetchInvoiceIdAfterSave(supplierId, invNumber);
+                        if (fetchedId) {
+                            lastSavedInvoiceId = fetchedId;
+                        } else {
+                            await loadPurchasesHistory();
+                            const latest = allPurchasesLog.find(inv => inv.supplier_id == supplierId);
+                            if (latest) {
+                                lastSavedInvoiceId = latest.id;
+                            } else {
+                                showToast('⚠️ لم يتم العثور على معرف الفاتورة، ولكن تم الحفظ بنجاح', 'warning');
+                            }
+                        }
+                    } else {
+                        lastSavedInvoiceId = parseInt(invoiceId);
+                    }
+
+                    purchaseItems = [];
+                    renderPurchaseItems();
+                    updateTotals();
+                    document.getElementById('edit-invoice-id').value = '';
+                    document.getElementById('page-title').textContent = 'فاتورة شراء جديدة';
+                    document.getElementById('edit-badge').style.display = 'none';
+                    document.getElementById('btn-cancel-edit').classList.add('hidden');
+                    document.getElementById('btn-submit').innerHTML = '<i class="fas fa-check-circle"></i> حفظ فاتورة الشراء';
+                    document.getElementById('barcode-search').focus();
+                    isEditing = false;
+                    await loadPurchasesHistory();
+
+                    if (!invoiceId && lastSavedInvoiceId) {
+                        showSuccessModal();
+                    }
+                } else {
+                    showToast('❌ ' + (data.error || 'خطأ في الحفظ'), 'error');
+                }
+            } catch (e) {
+                showToast('❌ ' + (e.message || 'فشل الاتصال'), 'error');
+            } finally {
+                btn.disabled = false;
+                if (!document.getElementById('edit-invoice-id').value) {
+                    btn.innerHTML = '<i class="fas fa-check-circle"></i> حفظ فاتورة الشراء';
+                } else {
+                    btn.innerHTML = '<i class="fas fa-sync-alt"></i> تحديث الفاتورة';
+                }
+            }
+        }
+
+        // ===== إلغاء التعديل =====
+        function cancelEdit() {
+            if (!confirm('هل تريد إلغاء التعديل وفقدان التغييرات؟')) return;
+            purchaseItems = [];
+            renderPurchaseItems();
+            updateTotals();
+            document.getElementById('edit-invoice-id').value = '';
+            document.getElementById('page-title').textContent = 'فاتورة شراء جديدة';
+            document.getElementById('edit-badge').style.display = 'none';
+            document.getElementById('btn-cancel-edit').classList.add('hidden');
+            document.getElementById('btn-submit').innerHTML = '<i class="fas fa-check-circle"></i> حفظ فاتورة الشراء';
+            isEditing = false;
+            showToast('تم إلغاء التعديل', 'info');
+        }
+
+        // ===== نافذة النجاح =====
+        function showSuccessModal() {
+            document.getElementById('success-modal').classList.remove('hidden');
+        }
+
+        function closeSuccessModal() {
+            document.getElementById('success-modal').classList.add('hidden');
+        }
+
+        function goToBarcodePrint() {
+            if (lastSavedInvoiceId) {
+                const url = `barcode-print.html?invoice_id=${lastSavedInvoiceId}`;
+                window.open(url, '_blank');
+                closeSuccessModal();
+            } else {
+                showToast('لم يتم العثور على معرف الفاتورة', 'warning');
+            }
+        }
+
+        // ===== سجل الفواتير =====
+        function renderPurchaseLog(list) {
+            const log = document.getElementById('purchases-log');
+            if (!list || list.length === 0) {
+                log.innerHTML = '<p class="text-muted text-center">لا توجد فواتير بعد</p>';
+                return;
+            }
+            log.innerHTML = list.map(p => {
+                const invNum = p.invoice_number || 'فاتورة #' + p.id;
+                const supplier = p.supplier_name || 'مورد غير معروف';
+                const total = parseFloat(p.total_amount || 0).toFixed(2);
+                const totalCost = parseFloat(p.total_cost || 0).toFixed(2);
+                let method = p.payment_method === 'cash' ? 'نقداً' : p.payment_method === 'wallet' ? 'محفظة' : p.payment_method === 'mixed' ? 'مختلط' : 'آجل';
+                if (p.wallet_name && (p.payment_method === 'wallet' || p.payment_method === 'mixed')) {
+                    method += ` <span class="wallet-badge">${p.wallet_name}</span>`;
+                }
+                if (p.payment_method === 'mixed') {
+                    method += ` (نقد: ${p.cash_paid || 0} | محفظة: ${p.wallet_paid || 0})`;
+                }
+                const date = p.created_at ? new Date(p.created_at).toLocaleString('ar-SA') : '';
+                const isCancelled = p.status === 'cancelled';
+                return `
+                <div class="purchase-log-item ${isCancelled ? 'cancelled' : ''}">
+                  <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;">
+                    <span>
+                      <strong>${invNum}</strong> - ${supplier} - ${total} ريال
+                      <span class="text-muted" style="font-size:0.75rem;">(${method})</span>
+                      <small class="text-muted">${date}</small>
+                      ${isCancelled ? '<span class="status-badge cancelled">ملغاة</span>' : '<span class="status-badge active">نشطة</span>'}
+                      <br><small class="text-muted">التكلفة: ${totalCost} ريال</small>
+                    </span>
+                    <span class="log-actions">
+                      ${!isCancelled ? `
+                        <button class="btn btn-xs btn-warning" onclick="editPurchaseInvoice(${p.id})" title="تعديل"><i class="fas fa-edit"></i></button>
+                        <button class="btn btn-xs btn-danger" onclick="cancelPurchaseInvoice(${p.id})" title="إلغاء"><i class="fas fa-times"></i></button>
+                        <button class="btn btn-xs btn-primary" onclick="openReturnModal(${p.id})" title="إرجاع"><i class="fas fa-undo-alt"></i></button>
+                      ` : ''}
+                      <button class="btn btn-xs btn-outline" onclick="showInvoiceDetails(${p.id})" title="تفاصيل"><i class="fas fa-eye"></i></button>
+                    </span>
+                  </div>
+                </div>`;
+            }).join('');
+        }
+
+        function filterPurchaseLog() {
+            const search = document.getElementById('log-search').value.toLowerCase();
+            const method = document.getElementById('log-filter-method').value;
+            let filtered = allPurchasesLog;
+            if (search) {
+                filtered = filtered.filter(p =>
+                    (p.invoice_number || '').toLowerCase().includes(search) ||
+                    (p.supplier_name || '').toLowerCase().includes(search)
+                );
+            }
+            if (method) filtered = filtered.filter(p => p.payment_method === method);
+            renderPurchaseLog(filtered);
+        }
+
+        // ===== تعديل الفاتورة =====
+        async function editPurchaseInvoice(invoiceId) {
+            try {
+                const res = await fetch(`${API}/purchases/${invoiceId}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!res.ok) throw new Error('فشل تحميل الفاتورة');
+                const data = await res.json();
+                const invoice = data.purchase || data;
+                if (!invoice) throw new Error('بيانات غير صالحة');
+
+                isEditing = true;
+                editingInvoiceId = invoice.id;
+
+                document.getElementById('edit-invoice-id').value = invoice.id;
+                document.getElementById('page-title').textContent = `تعديل فاتورة ${invoice.invoice_number || '#' + invoice.id}`;
+                document.getElementById('edit-badge').style.display = 'inline';
+                document.getElementById('btn-cancel-edit').classList.remove('hidden');
+                document.getElementById('btn-submit').innerHTML = '<i class="fas fa-sync-alt"></i> تحديث الفاتورة';
+
+                document.getElementById('purchase-supplier').value = invoice.supplier_id || '';
+                const paymentMethod = invoice.payment_method || 'cash';
+                document.getElementById('purchase-payment-method').value = paymentMethod;
+                togglePaymentFields();
+                if ((paymentMethod === 'wallet' || paymentMethod === 'mixed') && invoice.wallet_id) {
+                    document.getElementById('purchase-wallet').value = invoice.wallet_id;
+                    updateWalletBalance();
+                }
+                if (paymentMethod === 'mixed') {
+                    document.getElementById('mixed-cash').value = invoice.cash_paid || 0;
+                    document.getElementById('mixed-wallet').value = invoice.wallet_paid || 0;
+                    if (invoice.wallet_id) {
+                        document.getElementById('mixed-wallet-select').value = invoice.wallet_id;
+                        onMixedWalletChange();
+                    }
+                    validateMixedPayment();
+                }
+                document.getElementById('purchase-discount').value = invoice.discount || 0;
+                document.getElementById('purchase-tax-rate').value = 0;
+                document.getElementById('purchase-additional').value = 0;
+
+                // استعادة العملات
+                if (invoice.cash_currency_id) {
+                    document.getElementById('cash-currency-select').value = invoice.cash_currency_id;
+                    document.getElementById('mixed-cash-currency').value = invoice.cash_currency_id;
+                }
+                if (invoice.wallet_currency_id) {
+                    document.getElementById('wallet-currency-select').value = invoice.wallet_currency_id;
+                    document.getElementById('mixed-wallet-currency').value = invoice.wallet_currency_id;
+                }
+
+                const items = invoice.items || [];
+                purchaseItems = items.map(item => {
+                    let mainCatId = null, subCatId = null;
+                    if (item.category_id) {
+                        const cat = allCategories.find(c => c.id == item.category_id);
+                        if (cat) {
+                            if (cat.parent_id) {
+                                subCatId = cat.id;
+                                mainCatId = cat.parent_id;
+                            } else {
+                                mainCatId = cat.id;
+                            }
+                        }
+                    }
+                    return {
+                        product_id: item.product_id,
+                        name: item.name || item.product_name || 'منتج',
+                        barcode: item.barcode || '',
+                        quantity: item.quantity || 1,
+                        cost: parseFloat(item.unit_price || 0),
+                        selling_price: parseFloat(item.selling_price || 0),
+                        main_category_id: mainCatId,
+                        sub_category_id: subCatId,
+                        _new_product: null
+                    };
+                });
+                renderPurchaseItems();
+                updateTotals();
+                showToast('✅ تم تحميل الفاتورة للتعديل', 'success');
+
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            } catch (e) {
+                showToast('❌ ' + (e.message || 'فشل تحميل الفاتورة'), 'error');
+            }
+        }
+
+        // ===== إلغاء فاتورة =====
+        async function cancelPurchaseInvoice(invoiceId) {
+            if (!confirm('⚠️ هل أنت متأكد من إلغاء هذه الفاتورة؟\nسيتم تخفيض المخزون وإلغاء الحركات المالية.')) return;
+            try {
+                const res = await fetch(`${API}/purchases/cancel`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ purchase_invoice_id: invoiceId })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    showToast('✅ تم إلغاء الفاتورة', 'success');
+                    await loadPurchasesHistory();
+                } else {
+                    showToast('❌ ' + (data.error || 'فشل الإلغاء'), 'error');
+                }
+            } catch (e) {
+                showToast('❌ فشل الاتصال', 'error');
+            }
+        }
+
+        // ===== إرجاع منتج =====
+        function openReturnModal(invoiceId) {
+            document.getElementById('return-invoice-id').value = invoiceId;
+            loadInvoiceProducts(invoiceId);
+            document.getElementById('return-modal').classList.remove('hidden');
+        }
+
+        async function loadInvoiceProducts(invoiceId) {
+            try {
+                const res = await fetch(`${API}/purchases/${invoiceId}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                const invoice = data.purchase || data;
+                if (invoice && invoice.items) {
+                    const select = document.getElementById('return-product-id');
+                    select.innerHTML = invoice.items.map(item =>
+                        `<option value="${item.product_id}" data-max="${item.quantity}">${item.name || item.product_name} (الكمية: ${item.quantity})</option>`
+                    ).join('');
+                } else {
+                    showToast('فشل تحميل المنتجات', 'error');
+                }
+            } catch (e) {
+                showToast('خطأ', 'error');
+            }
+        }
+
+        async function executeReturn(e) {
+            e.preventDefault();
+            const invoiceId = document.getElementById('return-invoice-id').value;
+            const productId = document.getElementById('return-product-id').value;
+            const quantity = parseInt(document.getElementById('return-quantity').value);
+            const reason = document.getElementById('return-reason').value.trim();
+
+            if (!productId || !quantity || quantity <= 0) {
+                showToast('أدخل كمية صحيحة', 'warning');
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API}/purchases/return`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        purchase_invoice_id: invoiceId,
+                        product_id: productId,
+                        quantity: quantity,
+                        reason: reason
+                    })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    showToast(`✅ تم الإرجاع: ${data.refund_amount} ريال`, 'success');
+                    closeModal('return-modal');
+                    await loadPurchasesHistory();
+                } else {
+                    showToast('❌ ' + (data.error || 'فشل الإرجاع'), 'error');
+                }
+            } catch (e) {
+                showToast('❌ فشل الاتصال', 'error');
+            }
+        }
+
+        // ===== عرض تفاصيل الفاتورة =====
+        async function showInvoiceDetails(invoiceId) {
+            try {
+                const res = await fetch(`${API}/purchases/${invoiceId}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    const invoice = data.purchase || data;
+                    if (invoice) {
+                        displayInvoiceDetails(invoice);
+                        return;
+                    }
+                }
+            } catch (e) { /* تجاهل */ }
+            const invoice = allPurchasesLog.find(p => p.id == invoiceId);
+            if (invoice) displayInvoiceDetails(invoice);
+            else showToast('تفاصيل الفاتورة غير متاحة', 'warning');
+        }
+
+        function displayInvoiceDetails(invoice) {
+            const invNumber = invoice.invoice_number || '#' + invoice.id;
+            const date = invoice.created_at ? new Date(invoice.created_at).toLocaleString('ar-SA') : 'غير معروف';
+            const supplier = invoice.supplier_name || 'غير معروف';
+            let method = invoice.payment_method === 'cash' ? 'نقداً' : invoice.payment_method === 'wallet' ? 'محفظة' : invoice.payment_method === 'mixed' ? 'مختلط' : 'آجل';
+            if (invoice.wallet_name && (invoice.payment_method === 'wallet' || invoice.payment_method === 'mixed')) {
+                method += ` (المحفظة: ${invoice.wallet_name})`;
+            }
+            if (invoice.payment_method === 'mixed') {
+                method += ` | نقد: ${invoice.cash_paid || 0} | محفظة: ${invoice.wallet_paid || 0}`;
+            }
+            const total = parseFloat(invoice.total_amount || 0).toFixed(2);
+            const totalCost = parseFloat(invoice.total_cost || 0).toFixed(2);
+            const items = invoice.items || [];
+            const status = invoice.status === 'cancelled' ? 'ملغاة' : 'نشطة';
+
+            const content = document.getElementById('details-content');
+            content.innerHTML = `
+                <div class="print-area">
+                    <h3 style="text-align:center;">فاتورة شراء</h3>
+                    <p><strong>رقم الفاتورة:</strong> ${invNumber}</p>
+                    <p><strong>التاريخ:</strong> ${date}</p>
+                    <p><strong>المورد:</strong> ${supplier}</p>
+                    <p><strong>طريقة الدفع:</strong> ${method}</p>
+                    <p><strong>الحالة:</strong> <span class="status-badge ${invoice.status === 'cancelled' ? 'cancelled' : 'active'}">${status}</span></p>
+                    ${items.length > 0 ? `
+                    <table style="width:100%;border-collapse:collapse;margin-top:15px;" border="1" cellpadding="8">
+                      <thead><tr><th>المنتج</th><th>الكمية</th><th>سعر التكلفة</th><th>سعر البيع</th><th>الإجمالي</th></tr></thead>
+                      <tbody>${items.map(it => `
+                        <tr>
+                          <td>${it.name || it.product_name || 'منتج'}</td>
+                          <td>${it.quantity || 1}</td>
+                          <td>${parseFloat(it.unit_price || 0).toFixed(2)}</td>
+                          <td>${parseFloat(it.selling_price || 0).toFixed(2)}</td>
+                          <td>${(it.quantity * it.unit_price).toFixed(2)}</td>
+                        </tr>`).join('')}</tbody>
+                    </table>` : '<p class="text-muted mt-10">تفاصيل المواد غير متاحة</p>'}
+                    <p style="text-align:left;font-weight:bold;margin-top:15px;">
+                        الإجمالي: ${total} ريال | التكلفة الإجمالية: ${totalCost} ريال
+                    </p>
+                </div>
+                <div class="flex-row mt-20 no-print">
+                    <button class="btn btn-primary" onclick="window.print()"><i class="fas fa-print"></i> طباعة</button>
+                    <button class="btn btn-outline" onclick="closeModal('details-modal')">إغلاق</button>
+                </div>
+            `;
+            document.getElementById('details-modal').classList.remove('hidden');
+        }
+
+        // ===== اختصارات =====
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 'Enter') { e.preventDefault(); submitPurchase(); }
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.modal-overlay').forEach(m => {
+                    if (!m.classList.contains('hidden')) {
+                        m.classList.add('hidden');
+                    }
+                });
+            }
+        });
+
+        document.querySelectorAll('.modal-overlay').forEach(overlay => {
+            overlay.addEventListener('click', function(e) { if (e.target === this) this.classList.add('hidden'); });
+        });
+
+        // ===== التهيئة =====
+        window.onload = async function() {
+            // تحميل العملات والمحافظ والصندوق
+            await loadCurrencies();
+            await loadWallets();
+            await loadCashBalance(); // جلب رصيد الصندوق
+            populateCurrencySelects();
+            populateWalletSelects();
+            updateCashBalanceDisplay();
+
+            await Promise.all([
+                loadSuppliers(),
+                loadProducts(),
+                loadPurchasesHistory(),
+                loadAllCategories()
+            ]);
+            renderPurchaseItems();
+            updateTotals();
+            togglePaymentFields();
+            document.getElementById('barcode-search').focus();
+
+            // ربط الأحداث لتحديث المبالغ عند تغيير العملة
+            document.querySelectorAll('#cash-currency-select, #wallet-currency-select, #mixed-cash-currency, #mixed-wallet-currency').forEach(sel => {
+                sel.addEventListener('change', function() {
+                    updateTotals();
+                    updateRateDisplays();
+                    updateCashBalanceDisplay(); // تحديث رصيد الصندوق عند تغيير العملة
+                });
+            });
+
+            const params = new URLSearchParams(window.location.search);
+            const id = params.get('id');
+            if (id) {
+                await editPurchaseInvoice(parseInt(id));
+            }
+        };
+    </script>
+</body>
+</html>

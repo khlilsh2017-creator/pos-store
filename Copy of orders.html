@@ -1,0 +1,2582 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>نظام ابن المختار – لوحة متطورة</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&display=swap" rel="stylesheet" />
+    <!-- Font Awesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+    <style>
+        /* ============================================================
+           RESET & GLOBAL
+           ============================================================ */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        :root {
+            --primary: #4f46e5;
+            --primary-light: #818cf8;
+            --primary-dark: #3730a3;
+            --secondary: #0ea5e9;
+            --success: #22c55e;
+            --warning: #eab308;
+            --danger: #ef4444;
+            --gray-50: #f8fafc;
+            --gray-100: #f1f5f9;
+            --gray-200: #e2e8f0;
+            --gray-300: #cbd5e1;
+            --gray-400: #94a3b8;
+            --gray-500: #64748b;
+            --gray-600: #475569;
+            --gray-700: #334155;
+            --gray-800: #1e293b;
+            --gray-900: #0f172a;
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+            --shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+            --shadow-xl: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
+            --radius: 12px;
+            --radius-sm: 8px;
+            --transition: all 0.25s ease;
+        }
+        body {
+            font-family: 'Cairo', sans-serif;
+            background: var(--gray-50);
+            color: var(--gray-800);
+            padding: 16px;
+            min-height: 100vh;
+            direction: rtl;
+        }
+        a { text-decoration: none; color: inherit; }
+        button { cursor: pointer; font-family: inherit; }
+        input,
+        select,
+        textarea { font-family: inherit; }
+        .container { max-width: 1400px; margin: 0 auto; }
+
+        /* ============================================================
+           SCROLLBAR
+           ============================================================ */
+        ::-webkit-scrollbar { width: 6px;
+            height: 6px; }
+        ::-webkit-scrollbar-track { background: var(--gray-100);
+            border-radius: 8px; }
+        ::-webkit-scrollbar-thumb { background: var(--gray-300);
+            border-radius: 8px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--gray-400); }
+
+        /* ============================================================
+           TYPOGRAPHY
+           ============================================================ */
+        .text-muted { color: var(--gray-500); }
+        .text-center { text-align: center; }
+        .text-sm { font-size: 0.875rem; }
+        .text-xs { font-size: 0.75rem; }
+        .font-bold { font-weight: 700; }
+        .flex { display: flex; }
+        .flex-center { display: flex;
+            align-items: center;
+            justify-content: center; }
+        .gap-2 { gap: 8px; }
+        .gap-3 { gap: 12px; }
+        .gap-4 { gap: 16px; }
+        .hidden { display: none !important; }
+        .w-full { width: 100%; }
+
+        /* ============================================================
+           BUTTONS
+           ============================================================ */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 8px 18px;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            font-size: 0.875rem;
+            transition: var(--transition);
+            white-space: nowrap;
+            cursor: pointer;
+        }
+        .btn-sm { padding: 4px 12px;
+            font-size: 0.75rem; }
+        .btn-lg { padding: 12px 28px;
+            font-size: 1rem; }
+        .btn-primary { background: var(--primary);
+            color: #fff; }
+        .btn-primary:hover { background: var(--primary-dark);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow); }
+        .btn-secondary { background: var(--gray-200);
+            color: var(--gray-700); }
+        .btn-secondary:hover { background: var(--gray-300); }
+        .btn-success { background: var(--success);
+            color: #fff; }
+        .btn-success:hover { background: #16a34a;
+            transform: translateY(-1px); }
+        .btn-danger { background: var(--danger);
+            color: #fff; }
+        .btn-danger:hover { background: #dc2626; }
+        .btn-warning { background: var(--warning);
+            color: #fff; }
+        .btn-warning:hover { background: #ca8a04; }
+        .btn-info { background: var(--secondary);
+            color: #fff; }
+        .btn-info:hover { background: #0284c7; }
+        .btn-purple { background: #8b5cf6;
+            color: #fff; }
+        .btn-purple:hover { background: #7c3aed; }
+        .btn-outline { background: transparent;
+            border: 1.5px solid var(--gray-300);
+            color: var(--gray-700); }
+        .btn-outline:hover { background: var(--gray-100); }
+
+        /* ============================================================
+           CARDS & BOXES
+           ============================================================ */
+        .card {
+            background: #fff;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 20px 24px;
+            transition: var(--transition);
+        }
+        .card:hover { box-shadow: var(--shadow-lg); }
+        .glass {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        /* ============================================================
+           LOGIN
+           ============================================================ */
+        .login-box {
+            max-width: 420px;
+            margin: 80px auto;
+            padding: 40px 32px;
+            background: #fff;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-xl);
+            text-align: center;
+        }
+        .login-box h2 {
+            font-size: 28px;
+            margin-bottom: 8px;
+            color: var(--gray-900);
+        }
+        .login-box .subtitle {
+            color: var(--gray-500);
+            font-size: 0.95rem;
+            margin-bottom: 28px;
+        }
+        .login-box .form-group {
+            margin-bottom: 18px;
+            text-align: right;
+        }
+        .login-box label {
+            display: block;
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 4px;
+            color: var(--gray-700);
+        }
+        .login-box input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1.5px solid var(--gray-200);
+            border-radius: var(--radius-sm);
+            font-size: 1rem;
+            transition: var(--transition);
+            background: var(--gray-50);
+        }
+        .login-box input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.15);
+            background: #fff;
+        }
+        .login-box .btn {
+            width: 100%;
+            padding: 14px;
+            font-size: 1.05rem;
+            margin-top: 8px;
+        }
+        .login-box .demo-note {
+            margin-top: 20px;
+            font-size: 0.85rem;
+            color: var(--gray-400);
+        }
+
+        /* ============================================================
+           HEADER
+           ============================================================ */
+        .header {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 28px;
+            padding: 16px 24px;
+            background: #fff;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+        }
+        .header h1 {
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--gray-900);
+        }
+        .header h1 i { color: var(--primary); }
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        /* ============================================================
+           TABS
+           ============================================================ */
+        .tabs {
+            display: flex;
+            gap: 4px;
+            background: #fff;
+            padding: 6px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            flex-wrap: wrap;
+            margin-bottom: 24px;
+        }
+        .tab-btn {
+            padding: 10px 22px;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            font-size: 0.9rem;
+            background: transparent;
+            color: var(--gray-500);
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+        }
+        .tab-btn:hover { background: var(--gray-100);
+            color: var(--gray-800); }
+        .tab-btn.active {
+            background: var(--primary);
+            color: #fff;
+            box-shadow: var(--shadow-sm);
+        }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* ============================================================
+           STATS GRID
+           ============================================================ */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .stat-card {
+            background: #fff;
+            padding: 16px 20px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            border-right: 4px solid var(--primary);
+            transition: var(--transition);
+        }
+        .stat-card:hover { transform: translateY(-2px);
+            box-shadow: var(--shadow-lg); }
+        .stat-card .number {
+            font-size: 26px;
+            font-weight: 800;
+            color: var(--gray-900);
+        }
+        .stat-card .label {
+            font-size: 0.85rem;
+            color: var(--gray-500);
+            margin-top: 2px;
+        }
+        .stat-card.positive { border-right-color: var(--success); }
+        .stat-card.positive .number { color: var(--success); }
+        .stat-card.negative { border-right-color: var(--danger); }
+        .stat-card.negative .number { color: var(--danger); }
+        .stat-card.warning { border-right-color: var(--warning); }
+        .stat-card.warning .number { color: var(--warning); }
+        .stat-card.info { border-right-color: var(--secondary); }
+        .stat-card.info .number { color: var(--secondary); }
+        .stat-card.purple { border-right-color: #8b5cf6; }
+        .stat-card.purple .number { color: #8b5cf6; }
+
+        /* ============================================================
+           FILTERS
+           ============================================================ */
+        .filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            align-items: flex-end;
+            background: #fff;
+            padding: 16px 20px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            margin-bottom: 20px;
+        }
+        .filters .group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            min-width: 130px;
+            flex: 1 0 auto;
+        }
+        .filters label {
+            font-weight: 600;
+            font-size: 0.8rem;
+            color: var(--gray-600);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .filters input,
+        .filters select {
+            padding: 8px 12px;
+            border: 1.5px solid var(--gray-200);
+            border-radius: var(--radius-sm);
+            font-size: 0.9rem;
+            background: var(--gray-50);
+            transition: var(--transition);
+            width: 100%;
+        }
+        .filters input:focus,
+        .filters select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+            background: #fff;
+        }
+        .filter-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        /* ============================================================
+           TABLE
+           ============================================================ */
+        .table-wrap {
+            overflow-x: auto;
+            background: #fff;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 4px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+        th {
+            background: var(--gray-50);
+            padding: 12px 14px;
+            text-align: right;
+            font-weight: 700;
+            color: var(--gray-700);
+            border-bottom: 2px solid var(--gray-200);
+            white-space: nowrap;
+        }
+        td {
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--gray-100);
+            vertical-align: middle;
+        }
+        tr.clickable {
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        tr.clickable:hover { background: var(--gray-50); }
+        .status-badge {
+            display: inline-block;
+            padding: 2px 14px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+        .status-new { background: #dbeafe;
+            color: #1e40af; }
+        .status-assigned { background: #fef3c7;
+            color: #92400e; }
+        .status-delivering { background: #fde68a;
+            color: #78350f; }
+        .status-delivered { background: #d1fae5;
+            color: #065f46; }
+        .status-failed { background: #fee2e2;
+            color: #991b1b; }
+        .status-partial { background: #fce7f3;
+            color: #9d174d; }
+        .status-full { background: #e5e7eb;
+            color: #374151; }
+        .status-cancelled { background: #f1f5f9;
+            color: #475569; }
+
+        .pagination {
+            display: flex;
+            gap: 6px;
+            margin-top: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .pagination button {
+            padding: 6px 14px;
+            border: 1px solid var(--gray-200);
+            background: #fff;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        .pagination button:hover { background: var(--gray-100); }
+        .pagination button.active {
+            background: var(--primary);
+            color: #fff;
+            border-color: var(--primary);
+        }
+
+        /* ============================================================
+           DRIVER ROW (Settlement Tab)
+           ============================================================ */
+        .driver-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 16px;
+            padding: 14px 18px;
+            background: #fff;
+            border-radius: var(--radius-sm);
+            margin-bottom: 6px;
+            box-shadow: var(--shadow-sm);
+            transition: var(--transition);
+            border-right: 4px solid var(--gray-300);
+        }
+        .driver-row:hover { box-shadow: var(--shadow);
+            transform: translateX(-3px); }
+        .driver-row .info { flex: 2 1 180px; }
+        .driver-row .info .name { font-weight: 700;
+            font-size: 1rem; }
+        .driver-row .info .phone { color: var(--gray-500);
+            font-size: 0.85rem; }
+        .driver-row .info .badge { font-size: 0.7rem;
+            padding: 2px 10px;
+            border-radius: 12px;
+            background: var(--gray-200);
+            display: inline-block;
+            margin-top: 3px; }
+        .driver-row .amounts {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            flex: 3 1 260px;
+            align-items: center;
+        }
+        .driver-row .amounts .item {
+            font-weight: 600;
+            font-size: 0.9rem;
+            white-space: nowrap;
+        }
+        .driver-row .amounts .item span { font-weight: 400;
+            color: var(--gray-600); }
+        .driver-row .actions {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+        .badge-positive { color: var(--success); }
+        .badge-negative { color: var(--danger); }
+        .badge-warning { color: var(--warning); }
+        .badge-neutral { color: var(--gray-500); }
+
+        /* ============================================================
+           MODALS
+           ============================================================ */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.5);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal {
+            background: #fff;
+            border-radius: var(--radius);
+            max-width: 780px;
+            width: 100%;
+            max-height: 92vh;
+            overflow-y: auto;
+            padding: 28px 32px;
+            box-shadow: var(--shadow-xl);
+            animation: slideUp 0.3s ease;
+        }
+        @keyframes slideUp {
+            from { transform: translateY(40px);
+                opacity: 0; }
+            to { transform: translateY(0);
+                opacity: 1; }
+        }
+        .modal h2 {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 1.3rem;
+            margin-bottom: 20px;
+            color: var(--gray-900);
+        }
+        .modal .close-btn {
+            background: none;
+            border: none;
+            font-size: 28px;
+            color: var(--gray-400);
+            cursor: pointer;
+            transition: var(--transition);
+            line-height: 1;
+        }
+        .modal .close-btn:hover { color: var(--gray-900);
+            transform: rotate(90deg); }
+        .modal .detail-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 6px;
+            align-items: baseline;
+        }
+        .modal .detail-row label {
+            font-weight: 700;
+            min-width: 100px;
+            color: var(--gray-600);
+            font-size: 0.9rem;
+        }
+        .modal .detail-row .value { flex: 1; }
+        .modal .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            margin: 12px 0;
+        }
+        .modal .items-table th {
+            background: var(--gray-50);
+            padding: 6px 8px;
+            text-align: center;
+        }
+        .modal .items-table td {
+            padding: 6px 8px;
+            border-bottom: 1px solid var(--gray-100);
+            text-align: center;
+        }
+        .modal .flex-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 18px;
+            justify-content: center;
+        }
+        .modal .form-group {
+            margin-bottom: 14px;
+        }
+        .modal .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 4px;
+            font-size: 0.9rem;
+            color: var(--gray-700);
+        }
+        .modal .form-group input,
+        .modal .form-group select,
+        .modal .form-group textarea {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1.5px solid var(--gray-200);
+            border-radius: var(--radius-sm);
+            font-size: 0.95rem;
+            background: var(--gray-50);
+            transition: var(--transition);
+        }
+        .modal .form-group input:focus,
+        .modal .form-group select:focus,
+        .modal .form-group textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+            background: #fff;
+        }
+        .modal .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+        .modal .settlement-summary {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: var(--radius-sm);
+            padding: 14px 18px;
+            margin: 12px 0;
+        }
+        .modal .settlement-summary .row {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+            font-size: 0.95rem;
+        }
+        .modal .settlement-summary .total {
+            font-weight: 700;
+            font-size: 1.1rem;
+            border-top: 2px solid #bbf7d0;
+            padding-top: 8px;
+            margin-top: 4px;
+        }
+
+        /* ============================================================
+           RETURN MODAL SPECIFIC
+           ============================================================ */
+        .return-item-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--gray-100);
+        }
+        .return-item-row .pname { flex: 2 1 120px;
+            font-weight: 600; }
+        .return-item-row .qty-available { flex: 1 1 80px;
+            color: var(--gray-500);
+            font-size: 0.85rem; }
+        .return-item-row input[type="number"] {
+            width: 80px;
+            padding: 6px 8px;
+            border: 1.5px solid var(--gray-200);
+            border-radius: var(--radius-sm);
+            font-size: 0.95rem;
+            background: var(--gray-50);
+            text-align: center;
+        }
+        .return-item-row input[type="number"]:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+        }
+        .return-item-row .item-total { flex: 1 1 80px;
+            text-align: left;
+            font-weight: 700;
+            color: var(--primary); }
+
+        .return-fee-group {
+            margin: 12px 0;
+        }
+        .return-fee-group label {
+            font-weight: 700;
+            display: block;
+            margin-bottom: 4px;
+        }
+        .return-fee-group select,
+        .return-fee-group input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1.5px solid var(--gray-200);
+            border-radius: var(--radius-sm);
+            background: var(--gray-50);
+        }
+        .return-driver-group {
+            margin: 12px 0;
+        }
+        .return-driver-group label {
+            font-weight: 700;
+            display: block;
+            margin-bottom: 4px;
+        }
+        .return-driver-group select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1.5px solid var(--gray-200);
+            border-radius: var(--radius-sm);
+            background: var(--gray-50);
+        }
+
+        .refund-method-group {
+            margin: 16px 0;
+        }
+        .refund-method-group label {
+            font-weight: 700;
+            display: block;
+            margin-bottom: 4px;
+        }
+        .refund-method-group select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1.5px solid var(--gray-200);
+            border-radius: var(--radius-sm);
+            background: var(--gray-50);
+        }
+
+        .refund-details {
+            background: var(--gray-50);
+            padding: 14px;
+            border-radius: var(--radius-sm);
+            margin-top: 8px;
+        }
+        .refund-details .row {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        .refund-details .row .field {
+            flex: 1 1 140px;
+        }
+        .refund-details .row .field label {
+            font-weight: 600;
+            display: block;
+            margin-bottom: 4px;
+            font-size: 0.85rem;
+        }
+        .refund-details .row .field input,
+        .refund-details .row .field select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1.5px solid var(--gray-200);
+            border-radius: var(--radius-sm);
+            background: #fff;
+        }
+
+        .return-summary {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            padding: 14px;
+            border-radius: var(--radius-sm);
+            margin: 12px 0;
+        }
+        .return-summary .total {
+            font-size: 1.3rem;
+            font-weight: 800;
+            color: var(--success);
+        }
+
+        /* ============================================================
+           ALERT / TOAST
+           ============================================================ */
+        .alert {
+            padding: 12px 18px;
+            border-radius: var(--radius-sm);
+            margin-bottom: 12px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .alert-success { background: #dcfce7;
+            color: #166534;
+            border: 1px solid #bbf7d0; }
+        .alert-error { background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fecaca; }
+        .alert-info { background: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #bfdbfe; }
+        .alert-warning { background: #fef3c7;
+            color: #92400e;
+            border: 1px solid #fde68a; }
+
+        /* ============================================================
+           RESPONSIVE
+           ============================================================ */
+        @media (max-width: 768px) {
+            .header { flex-direction: column;
+                align-items: stretch;
+                gap: 12px; }
+            .header-actions { justify-content: space-between;
+                flex-wrap: wrap; }
+            .filters .group { flex: 1 1 100%; }
+            .modal { padding: 20px 16px;
+                margin: 10px;
+                max-height: 95vh; }
+            .modal .form-grid { grid-template-columns: 1fr; }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .driver-row { flex-direction: column;
+                align-items: stretch; }
+            .driver-row .amounts { justify-content: space-between; }
+            .return-item-row { flex-wrap: wrap; }
+        }
+        @media (max-width: 480px) {
+            .stats-grid { grid-template-columns: 1fr; }
+            .tab-btn { padding: 8px 14px;
+                font-size: 0.8rem; }
+            .btn { padding: 6px 12px;
+                font-size: 0.8rem; }
+            .modal .detail-row label { min-width: 70px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container" id="app">
+
+        <!-- ==========================================================
+        LOGIN SECTION
+        ========================================================== -->
+        <div id="loginSection">
+            <div class="login-box">
+                <h2><i class="fas fa-store-alt" style="color:var(--primary);"></i> نظام ابن المختار</h2>
+                <p class="subtitle">تسجيل الدخول إلى لوحة الإدارة</p>
+                <div id="loginAlert"></div>
+                <form id="loginForm" onsubmit="handleLogin(event)">
+                    <div class="form-group">
+                        <label><i class="fas fa-user"></i> اسم المستخدم</label>
+                        <input type="text" id="loginUsername" placeholder="أدخل اسم المستخدم" required autocomplete="username" />
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-lock"></i> كلمة المرور</label>
+                        <input type="password" id="loginPassword" placeholder="أدخل كلمة المرور" required autocomplete="current-password" />
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-lg"><i class="fas fa-sign-in-alt"></i> دخول</button>
+                </form>
+                <p class="demo-note"><i class="fas fa-info-circle"></i> تجريبي: admin / admin123</p>
+            </div>
+        </div>
+
+        <!-- ==========================================================
+        MAIN CONTENT
+        ========================================================== -->
+        <div id="mainContent" class="hidden">
+
+            <!-- HEADER -->
+            <div class="header">
+                <h1><i class="fas fa-store-alt"></i> لوحة الإدارة المتطورة</h1>
+                <div class="header-actions">
+                    <a href="add_order.html" class="btn btn-success btn-sm"><i class="fas fa-plus"></i> طلب جديد</a>
+                    <button class="btn btn-info btn-sm" onclick="openDriverManager()"><i class="fas fa-users"></i> إدارة المندوبين</button>
+                    <button class="btn btn-danger btn-sm" onclick="logout()"><i class="fas fa-sign-out-alt"></i> خروج</button>
+                </div>
+            </div>
+
+            <!-- ALERT BOX -->
+            <div id="alertBox"></div>
+
+            <!-- TABS -->
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="orders"><i class="fas fa-list-ul"></i> الطلبات</button>
+                <button class="tab-btn" data-tab="drivers"><i class="fas fa-handshake"></i> تسوية المندوبين</button>
+                <button class="tab-btn" data-tab="returns"><i class="fas fa-undo-alt"></i> طلبات الإرجاع</button>
+            </div>
+
+            <!-- ===== TAB: ORDERS ===== -->
+            <div class="tab-content active" id="tab-orders">
+
+                <!-- FILTERS -->
+                <div class="filters">
+                    <div class="group">
+                        <label>الحالة</label>
+                        <select id="filterStatus">
+                            <option value="">الجميع</option>
+                            <option value="جديد">جديد</option>
+                            <option value="مُسند لمندوب">مُسند لمندوب</option>
+                            <option value="قيد التوصيل">قيد التوصيل</option>
+                            <option value="تم التسليم">تم التسليم</option>
+                            <option value="فشل التسليم">فشل التسليم</option>
+                            <option value="مرتجع جزئي">مرتجع جزئي</option>
+                            <option value="مرتجع كلي">مرتجع كلي</option>
+                        </select>
+                    </div>
+                    <div class="group">
+                        <label>المندوب</label>
+                        <select id="filterDriver"><option value="">الجميع</option></select>
+                    </div>
+                    <div class="group">
+                        <label>من تاريخ</label>
+                        <input type="date" id="filterDateFrom" />
+                    </div>
+                    <div class="group">
+                        <label>إلى تاريخ</label>
+                        <input type="date" id="filterDateTo" />
+                    </div>
+                    <div class="group">
+                        <label>بحث</label>
+                        <input type="text" id="filterSearch" placeholder="اسم أو هاتف" />
+                    </div>
+                    <div class="filter-actions">
+                        <button class="btn btn-primary btn-sm" onclick="fetchOrders(1)"><i class="fas fa-filter"></i> تطبيق</button>
+                        <button class="btn btn-secondary btn-sm" onclick="clearFilters()"><i class="fas fa-undo"></i> مسح</button>
+                    </div>
+                </div>
+
+                <!-- ORDERS TABLE -->
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>التاريخ</th>
+                                <th>العميل</th>
+                                <th>الهاتف</th>
+                                <th>الإجمالي</th>
+                                <th>المحصل</th>
+                                <th>الحالة</th>
+                                <th>المندوب</th>
+                                <th>طريقة الدفع</th>
+                                <th>رسوم التوصيل</th>
+                                <th>إجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ordersBody">
+                            <tr><td colspan="11" class="text-center text-muted">جاري التحميل...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="pagination" id="pagination"></div>
+            </div>
+
+            <!-- ===== TAB: DRIVERS SETTLEMENT ===== -->
+            <div class="tab-content" id="tab-drivers">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; margin-bottom:16px;">
+                    <div style="display:flex; gap:8px; align-items:center;">
+                        <h3 style="font-size:1.2rem;"><i class="fas fa-handshake"></i> تسوية المندوبين</h3>
+                        <button class="btn btn-secondary btn-sm" onclick="loadDriversSummary()" title="تحديث"><i class="fas fa-sync-alt"></i></button>
+                    </div>
+                    <button class="btn btn-purple btn-sm" onclick="openDriverManager()"><i class="fas fa-user-plus"></i> إدارة المندوبين</button>
+                </div>
+
+                <div class="stats-grid" id="driverStats">
+                    <div class="stat-card info"><div class="number" id="totalDrivers">0</div><div class="label">👤 إجمالي المندوبين</div></div>
+                    <div class="stat-card negative"><div class="number" id="totalDueToShop">0.00</div><div class="label">🏢 المستحق على المندوبين</div></div>
+                    <div class="stat-card positive"><div class="number" id="totalDueToDrivers">0.00</div><div class="label">💰 المستحق للمندوبين</div></div>
+                    <div class="stat-card warning"><div class="number" id="totalCollections">0.00</div><div class="label">💵 إجمالي التحصيلات</div></div>
+                    <div class="stat-card purple"><div class="number" id="totalFees">0.00</div><div class="label">🚚 إجمالي رسوم التوصيل</div></div>
+                </div>
+
+                <div id="driversList">
+                    <div class="text-center text-muted" style="padding:40px;"><i class="fas fa-spinner fa-spin"></i> جاري تحميل بيانات المندوبين...</div>
+                </div>
+            </div>
+
+            <!-- ===== TAB: RETURNS ===== -->
+            <div class="tab-content" id="tab-returns">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; margin-bottom:16px;">
+                    <h3 style="font-size:1.2rem;"><i class="fas fa-undo-alt"></i> طلبات الإرجاع</h3>
+                    <button class="btn btn-secondary btn-sm" onclick="fetchReturns()" title="تحديث"><i class="fas fa-sync-alt"></i></button>
+                </div>
+
+                <!-- الفلاتر -->
+                <div class="filters" style="margin-bottom:16px;">
+                    <div class="group">
+                        <label>الحالة</label>
+                        <select id="filterReturnStatus">
+                            <option value="">الجميع</option>
+                            <option value="pending">قيد الانتظار</option>
+                            <option value="completed">تم التنفيذ</option>
+                            <option value="cancelled">ملغي</option>
+                        </select>
+                    </div>
+                    <div class="group">
+                        <label>المندوب</label>
+                        <select id="filterReturnDriver"><option value="">الجميع</option></select>
+                    </div>
+                    <div class="filter-actions">
+                        <button class="btn btn-primary btn-sm" onclick="fetchReturns()"><i class="fas fa-filter"></i> تطبيق</button>
+                        <button class="btn btn-secondary btn-sm" onclick="document.getElementById('filterReturnStatus').value='';document.getElementById('filterReturnDriver').value='';fetchReturns();"><i class="fas fa-undo"></i> مسح</button>
+                    </div>
+                </div>
+
+                <!-- جدول طلبات الإرجاع -->
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>الطلب الأصلي</th>
+                                <th>العميل</th>
+                                <th>المندوب المسند</th>
+                                <th>المبلغ المسترد</th>
+                                <th>الحالة</th>
+                                <th>تاريخ الإنشاء</th>
+                                <th>إجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="returnsBody">
+                            <tr><td colspan="8" class="text-center text-muted">جاري التحميل...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ==========================================================
+    MODALS
+    ========================================================== -->
+
+    <!-- مودال تفاصيل الطلب -->
+    <div class="modal-overlay" id="detailModal">
+        <div class="modal">
+            <h2><span>تفاصيل الطلب #<span id="detailOrderId"></span></span><button class="close-btn" onclick="closeDetailModal()">&times;</button></h2>
+            <div id="detailContent"></div>
+            <div class="flex-row" id="detailActions"></div>
+        </div>
+    </div>
+
+    <!-- مودال إدارة المندوبين -->
+    <div class="modal-overlay" id="driverManagerModal">
+        <div class="modal" style="max-width:800px;">
+            <h2><span><i class="fas fa-users"></i> إدارة المندوبين</span><button class="close-btn" onclick="closeDriverManager()">&times;</button></h2>
+            <div id="driverManagerContent">
+                <div style="margin-bottom:16px; display:flex; gap:10px; flex-wrap:wrap;">
+                    <button class="btn btn-success" onclick="showAddDriverForm()"><i class="fas fa-plus"></i> إضافة مندوب</button>
+                    <button class="btn btn-secondary" onclick="loadDriversList()"><i class="fas fa-sync-alt"></i> تحديث</button>
+                </div>
+                <div id="driverList"></div>
+                <div id="addDriverForm" class="hidden" style="margin-top:20px; border-top:1px solid var(--gray-200); padding-top:16px;">
+                    <h4>إضافة مندوب جديد</h4>
+                    <div class="form-grid">
+                        <div class="form-group"><label>الاسم *</label><input type="text" id="newDriverName" placeholder="الاسم الكامل" /></div>
+                        <div class="form-group"><label>رقم الهاتف</label><input type="text" id="newDriverPhone" placeholder="رقم الهاتف" /></div>
+                        <div class="form-group"><label>معلومات المركبة</label><input type="text" id="newDriverVehicle" placeholder="نوع المركبة، لوحة" /></div>
+                        <div class="form-group"><label>اسم المستخدم *</label><input type="text" id="newDriverUsername" placeholder="اسم المستخدم" /></div>
+                        <div class="form-group"><label>كلمة المرور *</label><input type="text" id="newDriverPassword" placeholder="كلمة المرور" /></div>
+                        <div class="form-group"><label>رقم الواتساب</label><input type="text" id="newDriverWhatsappPhone" placeholder="رقم الواتساب" /></div>
+                        <div class="form-group"><label>مفتاح API</label><input type="text" id="newDriverWhatsappApikey" placeholder="مفتاح CallMeBot" /></div>
+                        <div class="form-group" style="display:flex; gap:8px; align-items:flex-end; justify-content:flex-end;">
+                            <button class="btn btn-success" onclick="saveNewDriver()"><i class="fas fa-save"></i> حفظ</button>
+                            <button class="btn btn-secondary" onclick="hideAddDriverForm()">إلغاء</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- مودال تعديل المندوب -->
+    <div class="modal-overlay" id="editDriverModal">
+        <div class="modal" style="max-width:600px;">
+            <h2><span><i class="fas fa-user-edit"></i> تعديل المندوب</span><button class="close-btn" onclick="closeEditDriverModal()">&times;</button></h2>
+            <form id="editDriverForm" onsubmit="submitEditDriver(event)">
+                <input type="hidden" id="editDriverId" />
+                <div class="form-grid">
+                    <div class="form-group"><label>الاسم *</label><input type="text" id="editDriverName" required /></div>
+                    <div class="form-group"><label>رقم الهاتف</label><input type="text" id="editDriverPhone" /></div>
+                    <div class="form-group"><label>معلومات المركبة</label><input type="text" id="editDriverVehicle" /></div>
+                    <div class="form-group"><label>كلمة المرور (جديدة)</label><input type="text" id="editDriverPassword" placeholder="اترك فارغاً لعدم التغيير" /></div>
+                    <div class="form-group"><label>رقم الواتساب</label><input type="text" id="editDriverWhatsappPhone" /></div>
+                    <div class="form-group"><label>مفتاح API</label><input type="text" id="editDriverWhatsappApikey" /></div>
+                </div>
+                <div class="flex-row">
+                    <button type="submit" class="btn btn-success"><i class="fas fa-save"></i> حفظ التغييرات</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeEditDriverModal()">إلغاء</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ===== مودال تسوية المندوب (معدل لدعم المحفظة والمختلط) ===== -->
+    <div class="modal-overlay" id="settlementModal">
+        <div class="modal" style="max-width:550px;">
+            <h2><span><i class="fas fa-money-bill-wave"></i> تسوية المندوب</span><button class="close-btn" onclick="closeSettlementModal()">&times;</button></h2>
+            <div id="settlementContent">
+                <div style="margin-bottom:12px; padding:12px; background:var(--gray-50); border-radius:var(--radius-sm);">
+                    <p><strong>المندوب:</strong> <span id="settlementDriverName"></span></p>
+                    <p><strong>الرصيد الحالي:</strong> <span id="settlementCurrentBalance" style="font-weight:700;"></span></p>
+                </div>
+                <form id="settlementForm" onsubmit="submitSettlement(event)">
+                    <input type="hidden" id="settlementDriverId" />
+                    <div class="form-group">
+                        <label>نوع التسوية</label>
+                        <select id="settlementType">
+                            <option value="driver_pays_shop">المندوب يدفع للمحل</option>
+                            <option value="shop_pays_driver">المحل يدفع للمندوب</option>
+                            <option value="adjustment">تعديل يدوي</option>
+                        </select>
+                    </div>
+
+                    <!-- حقل المبلغ الأساسي -->
+                    <div class="form-group" id="settlementBaseAmountField">
+                        <label>المبلغ</label>
+                        <input type="number" id="settlementAmount" step="0.01" min="0.01" required placeholder="أدخل المبلغ" />
+                    </div>
+
+                    <!-- طريقة الدفع (جديد) -->
+                    <div class="form-group">
+                        <label>طريقة الدفع</label>
+                        <select id="settlementPaymentMethod" onchange="toggleSettlementPaymentFields()">
+                            <option value="cash">نقداً</option>
+                            <option value="wallet">محفظة إلكترونية</option>
+                            <option value="mixed">مختلط (نقد + محفظة)</option>
+                        </select>
+                    </div>
+
+                    <!-- حقل المحفظة -->
+                    <div id="settlementWalletField" style="display:none;">
+                        <div class="form-group">
+                            <label>اختر المحفظة</label>
+                            <select id="settlementWalletId"><option value="">-- اختر --</option></select>
+                        </div>
+                    </div>
+
+                    <!-- الحقول المختلطة -->
+                    <div id="settlementMixedFields" style="display:none;">
+                        <div class="form-group">
+                            <label>المبلغ النقدي</label>
+                            <input type="number" id="settlementCashAmount" step="0.01" min="0" placeholder="0.00" oninput="updateSettlementSummary()" />
+                        </div>
+                        <div class="form-group">
+                            <label>المبلغ عبر المحفظة</label>
+                            <input type="number" id="settlementWalletAmount" step="0.01" min="0" placeholder="0.00" oninput="updateSettlementSummary()" />
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>ملاحظات</label>
+                        <input type="text" id="settlementNotes" placeholder="سبب التسوية (اختياري)" />
+                    </div>
+
+                    <div class="settlement-summary">
+                        <div class="row"><span>نوع التسوية:</span><span id="summaryType">المندوب يدفع للمحل</span></div>
+                        <div class="row"><span>المبلغ الإجمالي:</span><span id="summaryAmount">0.00</span></div>
+                        <div class="row total"><span>الرصيد بعد التسوية:</span><span id="summaryNewBalance">0.00</span></div>
+                    </div>
+
+                    <div class="flex-row">
+                        <button type="submit" class="btn btn-success"><i class="fas fa-check"></i> تأكيد التسوية</button>
+                        <button type="button" class="btn btn-secondary" onclick="closeSettlementModal()">إلغاء</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- مودال حركات المندوب -->
+    <div class="modal-overlay" id="transactionsModal">
+        <div class="modal" style="max-width:700px;">
+            <h2><span>حركات المندوب <span id="transDriverName"></span></span><button class="close-btn" onclick="closeTransactionsModal()">&times;</button></h2>
+            <div class="table-wrap">
+                <table>
+                    <thead><tr><th>التاريخ</th><th>النوع</th><th>المبلغ</th><th>العملة</th><th>الوصف</th><th>المحفظة</th></tr></thead>
+                    <tbody id="transactionsBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- مودال إسناد مندوب -->
+    <div class="modal-overlay" id="assignDriverModal">
+        <div class="modal" style="max-width:400px;">
+            <h2><span>إسناد مندوب للطلب #<span id="assignOrderId"></span></span><button class="close-btn" onclick="closeAssignDriverModal()">&times;</button></h2>
+            <div class="form-group">
+                <label>اختر المندوب</label>
+                <select id="assignDriverSelect"><option value="">-- اختر مندوب --</option></select>
+            </div>
+            <div class="flex-row">
+                <button class="btn btn-success" onclick="confirmAssignDriver()"><i class="fas fa-check"></i> تأكيد</button>
+                <button class="btn btn-secondary" onclick="closeAssignDriverModal()">إلغاء</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== مودال الإرجاع (معدل بالكامل مع رسوم التوصيل وتغيير المندوب) ===== -->
+    <div class="modal-overlay" id="returnModal">
+        <div class="modal" style="max-width:750px;">
+            <h2>
+                <span><i class="fas fa-undo-alt" style="color:var(--warning);"></i> إرجاع من الطلب #<span id="returnOrderId"></span></span>
+                <button class="close-btn" onclick="closeReturnModal()">&times;</button>
+            </h2>
+            <div id="returnContent">
+                <!-- معلومات العميل والطلب -->
+                <div id="returnOrderInfo" style="margin-bottom:16px; padding:12px; background:var(--gray-50); border-radius:var(--radius-sm);"></div>
+
+                <!-- قائمة المنتجات -->
+                <div style="max-height:250px; overflow-y:auto; margin-bottom:12px;" id="returnItemsContainer"></div>
+
+                <!-- طريقة الاسترداد -->
+                <div class="refund-method-group">
+                    <label><i class="fas fa-credit-card"></i> طريقة الاسترداد</label>
+                    <select id="refundMethod" onchange="toggleRefundFields()">
+                        <option value="cash">نقداً</option>
+                        <option value="wallet">محفظة إلكترونية</option>
+                        <option value="mixed">مختلط (نقد + محفظة)</option>
+                    </select>
+                </div>
+
+                <div class="refund-details" id="refundDetails">
+                    <div class="row">
+                        <div class="field" id="refundWalletField" style="display:none;">
+                            <label>المحفظة</label>
+                            <select id="returnWalletId"><option value="">-- اختر --</option></select>
+                        </div>
+                        <div class="field" id="refundCashField" style="display:none;">
+                            <label>المبلغ النقدي</label>
+                            <input type="number" id="returnCashAmount" step="0.01" min="0" placeholder="0.00" oninput="updateReturnTotal()" />
+                        </div>
+                        <div class="field" id="refundWalletAmountField" style="display:none;">
+                            <label>المبلغ عبر المحفظة</label>
+                            <input type="number" id="returnWalletAmount" step="0.01" min="0" placeholder="0.00" oninput="updateReturnTotal()" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ===== حقول رسوم التوصيل للإرجاع (جديدة) ===== -->
+                <div class="return-fee-group">
+                    <label><i class="fas fa-truck"></i> رسوم التوصيل للإرجاع</label>
+                    <select id="returnDeliveryFeeType" onchange="toggleReturnFeeFields()">
+                        <option value="shop">تخصم من المحل</option>
+                        <option value="customer">تخصم من الزبون</option>
+                        <option value="free">بدون رسوم (مجاني)</option>
+                    </select>
+                </div>
+                <div class="return-fee-group" id="returnDeliveryFeeAmountGroup" style="display:none;">
+                    <label>المبلغ (رسوم التوصيل)</label>
+                    <input type="number" id="returnDeliveryFeeAmount" step="0.01" min="0" value="0" oninput="updateReturnTotal()" />
+                </div>
+
+                <!-- ===== حقل تغيير المندوب المسؤول عن الإرجاع (جديد) ===== -->
+                <div class="return-driver-group">
+                    <label><i class="fas fa-user-edit"></i> المندوب المسؤول عن الإرجاع</label>
+                    <select id="returnDriverId">
+                        <option value="">-- نفس المندوب الأصلي --</option>
+                    </select>
+                </div>
+
+                <!-- الملخص -->
+                <div class="return-summary">
+                    <div style="display:flex; justify-content:space-between; flex-wrap:wrap;">
+                        <span><strong>إجمالي المبلغ المسترد (شامل الرسوم):</strong></span>
+                        <span class="total" id="returnTotalDisplay">0.00</span>
+                    </div>
+                    <div style="font-size:0.85rem; color:var(--gray-500); margin-top:4px;">
+                        <i class="fas fa-info-circle"></i> سيتم تحديث حالة الطلب تلقائياً بعد التأكيد.
+                    </div>
+                </div>
+
+                <div class="flex-row">
+                    <button class="btn btn-success" onclick="submitReturn()"><i class="fas fa-check"></i> تأكيد الإرجاع</button>
+                    <button class="btn btn-secondary" onclick="closeReturnModal()">إلغاء</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== مودال تفاصيل طلب الإرجاع (جديد) ===== -->
+    <div class="modal-overlay" id="returnDetailsModal">
+        <div class="modal" style="max-width:700px;">
+            <h2><span><i class="fas fa-undo-alt" style="color:var(--warning);"></i> تفاصيل طلب الإرجاع #<span id="returnDetailId"></span></span><button class="close-btn" onclick="closeReturnDetailsModal()">&times;</button></h2>
+            <div id="returnDetailContent"></div>
+            <div class="flex-row" id="returnDetailActions"></div>
+        </div>
+    </div>
+
+    <!-- ==========================================================
+    JAVASCRIPT (متكامل مع جميع التعديلات)
+    ========================================================== -->
+    <script>
+        // ================================================================
+        //  CONSTANTS & STATE
+        // ================================================================
+        const API_BASE = 'https://api.ibnalmukhtar.com';
+        let token = localStorage.getItem('pos_token') || '';
+        let currentPage = 1;
+        let totalPages = 1;
+        let ordersData = [];
+        let assignOrderId = null;
+        let settlementDriverData = null;
+        let currenciesCache = [];
+        let walletsCache = [];
+        let returnOrderItems = [];
+        let currentOrderForReturn = null;
+        let returnsData = [];
+
+        // ================================================================
+        //  UTILITY FUNCTIONS
+        // ================================================================
+        function getHeaders() {
+            return {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            };
+        }
+
+        async function apiFetch(endpoint, options = {}) {
+            try {
+                const res = await fetch(`${API_BASE}${endpoint}`, {
+                    ...options,
+                    headers: { ...getHeaders(), ...(options.headers || {}) }
+                });
+                const text = await res.text();
+                let data;
+                try { data = JSON.parse(text); } catch (e) { throw new Error('استجابة غير صالحة من الخادم'); }
+                if (!res.ok) throw new Error(data.error || 'خطأ في الطلب');
+                return data;
+            } catch (err) {
+                showAlert(err.message, 'error');
+                return null;
+            }
+        }
+
+        function showAlert(msg, type = 'success') {
+            const box = document.getElementById('alertBox');
+            const icons = { success: 'fa-check-circle', error: 'fa-exclamation-circle', warning: 'fa-exclamation-triangle',
+                info: 'fa-info-circle' };
+            box.innerHTML =
+                `<div class="alert alert-${type}"><i class="fas ${icons[type] || 'fa-info-circle'}"></i> ${msg}</div>`;
+            setTimeout(() => box.innerHTML = '', 5000);
+        }
+
+        function showLoginAlert(msg, type = 'error') {
+            const box = document.getElementById('loginAlert');
+            const icons = { success: 'fa-check-circle', error: 'fa-exclamation-circle', warning: 'fa-exclamation-triangle',
+                info: 'fa-info-circle' };
+            box.innerHTML =
+                `<div class="alert alert-${type}"><i class="fas ${icons[type] || 'fa-info-circle'}"></i> ${msg}</div>`;
+            setTimeout(() => box.innerHTML = '', 5000);
+        }
+
+        function formatNumber(n) { return Number(n).toFixed(2); }
+
+        function formatDate(d) {
+            if (!d) return '';
+            const dt = new Date(d);
+            const y = dt.getFullYear();
+            const m = String(dt.getMonth() + 1).padStart(2, '0');
+            const day = String(dt.getDate()).padStart(2, '0');
+            const h = String(dt.getHours()).padStart(2, '0');
+            const min = String(dt.getMinutes()).padStart(2, '0');
+            return `${y}-${m}-${day} ${h}:${min}`;
+        }
+
+        function statusClass(status) {
+            const map = {
+                'جديد': 'status-new',
+                'مُسند لمندوب': 'status-assigned',
+                'قيد التوصيل': 'status-delivering',
+                'تم التسليم': 'status-delivered',
+                'فشل التسليم': 'status-failed',
+                'مرتجع جزئي': 'status-partial',
+                'مرتجع كلي': 'status-full',
+                'ملغي': 'status-cancelled'
+            };
+            return map[status] || 'status-new';
+        }
+
+        function getCurrencyCode(id) {
+            const c = currenciesCache.find(cur => cur.id == id);
+            return c ? c.code : 'ريال';
+        }
+
+        // ================================================================
+        //  LOGIN / LOGOUT
+        // ================================================================
+        async function handleLogin(e) {
+            e.preventDefault();
+            const username = document.getElementById('loginUsername').value.trim();
+            const password = document.getElementById('loginPassword').value.trim();
+            if (!username || !password) {
+                showLoginAlert('يرجى ملء جميع الحقول', 'error');
+                return;
+            }
+            try {
+                const res = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const data = await res.json();
+                if (!res.ok) {
+                    showLoginAlert(data.error || 'فشل تسجيل الدخول', 'error');
+                    return;
+                }
+                localStorage.setItem('pos_token', data.token);
+                localStorage.setItem('user', JSON.stringify(data.user));
+                token = data.token;
+                document.getElementById('loginSection').classList.add('hidden');
+                document.getElementById('mainContent').classList.remove('hidden');
+                await initApp();
+            } catch (err) {
+                showLoginAlert('حدث خطأ: ' + err.message, 'error');
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('pos_token');
+            localStorage.removeItem('user');
+            token = '';
+            document.getElementById('mainContent').classList.add('hidden');
+            document.getElementById('loginSection').classList.remove('hidden');
+            document.getElementById('ordersBody').innerHTML = '<tr><td colspan="11" class="text-center text-muted">الرجاء تسجيل الدخول</td></tr>';
+            document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
+        }
+
+        // ================================================================
+        //  INIT
+        // ================================================================
+        async function initApp() {
+            await loadCurrenciesAndWallets();
+            await loadDriversForFilter();
+            await loadDriversForReturnFilter();
+            await fetchOrders(1);
+            await loadDriversSummary();
+            await fetchReturns();
+            setupTabs();
+            setInterval(() => {
+                const activeTab = document.querySelector('.tab-content.active');
+                if (activeTab) {
+                    if (activeTab.id === 'tab-orders') {
+                        fetchOrders(currentPage);
+                    } else if (activeTab.id === 'tab-drivers') {
+                        loadDriversSummary();
+                    } else if (activeTab.id === 'tab-returns') {
+                        fetchReturns();
+                    }
+                }
+            }, 30000);
+        }
+
+        async function loadCurrenciesAndWallets() {
+            const curData = await apiFetch('/currencies');
+            if (curData && curData.currencies) currenciesCache = curData.currencies;
+            const walData = await apiFetch('/wallets');
+            if (walData && walData.wallets) walletsCache = walData.wallets;
+        }
+
+        function setupTabs() {
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                    const tabId = 'tab-' + this.dataset.tab;
+                    document.getElementById(tabId).classList.add('active');
+
+                    if (this.dataset.tab === 'drivers') {
+                        loadDriversSummary();
+                    } else if (this.dataset.tab === 'returns') {
+                        fetchReturns();
+                    } else {
+                        fetchOrders(currentPage);
+                    }
+                });
+            });
+        }
+
+        // ================================================================
+        //  DRIVERS FOR FILTERS
+        // ================================================================
+        async function loadDriversForFilter() {
+            const data = await apiFetch('/drivers');
+            if (data && data.drivers) {
+                const sel = document.getElementById('filterDriver');
+                sel.innerHTML = '<option value="">الجميع</option>';
+                data.drivers.forEach(d => {
+                    sel.innerHTML += `<option value="${d.id}">${d.name}</option>`;
+                });
+            }
+        }
+
+        async function loadDriversForReturnFilter() {
+            const data = await apiFetch('/drivers');
+            if (data && data.drivers) {
+                const sel = document.getElementById('filterReturnDriver');
+                sel.innerHTML = '<option value="">الجميع</option>';
+                data.drivers.forEach(d => {
+                    sel.innerHTML += `<option value="${d.id}">${d.name}</option>`;
+                });
+            }
+        }
+
+        async function loadDriversForSelect(selectId) {
+            const data = await apiFetch('/drivers');
+            if (data && data.drivers) {
+                const sel = document.getElementById(selectId);
+                sel.innerHTML = '<option value="">-- اختر --</option>';
+                data.drivers.forEach(d => {
+                    sel.innerHTML += `<option value="${d.id}">${d.name}</option>`;
+                });
+            }
+        }
+
+        // ================================================================
+        //  ORDERS
+        // ================================================================
+        async function fetchOrders(page = 1) {
+            const status = document.getElementById('filterStatus').value;
+            const driver = document.getElementById('filterDriver').value;
+            const from = document.getElementById('filterDateFrom').value;
+            const to = document.getElementById('filterDateTo').value;
+            const search = document.getElementById('filterSearch').value.trim();
+
+            let url = `/online-orders?page=${page}&limit=20`;
+            if (status) url += `&status=${encodeURIComponent(status)}`;
+            if (driver) url += `&driver_id=${driver}`;
+            if (from) url += `&from=${from}`;
+            if (to) url += `&to=${to}`;
+            if (search) url += `&search=${encodeURIComponent(search)}`;
+
+            const data = await apiFetch(url);
+            if (!data) return;
+            ordersData = data.orders || [];
+            totalPages = data.total_pages || 1;
+            currentPage = page;
+            renderOrders();
+            renderPagination();
+        }
+
+        function renderOrders() {
+            const tbody = document.getElementById('ordersBody');
+            if (ordersData.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="11" class="text-center text-muted">لا توجد طلبات</td></tr>';
+                return;
+            }
+            let html = '';
+            ordersData.forEach(o => {
+                const collected = parseFloat(o.actual_collected || 0);
+                const canCancel = (o.status !== 'ملغي' && o.status !== 'تم التسليم' && o.status !== 'مرتجع كلي');
+                const editLink = `add_order.html?order_id=${o.id}`;
+                html += `
+                        <tr class="clickable" onclick="openDetailModal(${o.id})">
+                            <td>${o.id}</td>
+                            <td>${formatDate(o.order_date)}</td>
+                            <td>${o.customer_name}</td>
+                            <td>${o.customer_phone}</td>
+                            <td>${formatNumber(o.total_amount)}</td>
+                            <td>${collected > 0 ? formatNumber(collected) : '-'}</td>
+                            <td><span class="status-badge ${statusClass(o.status)}">${o.status}</span></td>
+                            <td>${o.driver_name || '-'}</td>
+                            <td>${o.payment_method || '-'}</td>
+                            <td>${formatNumber(o.delivery_fee || 0)}</td>
+                            <td>
+                                <button class="btn btn-info btn-sm" onclick="event.stopPropagation(); openDetailModal(${o.id})"><i class="fas fa-eye"></i></button>
+                                <a href="${editLink}" target="_blank" class="btn btn-warning btn-sm" onclick="event.stopPropagation();"><i class="fas fa-edit"></i></a>
+                                ${(o.status === 'جديد' || o.status === 'مُسند لمندوب') ? `<button class="btn btn-primary btn-sm" onclick="event.stopPropagation(); openAssignDriverModal(${o.id})"><i class="fas fa-user-plus"></i></button>` : ''}
+                                ${canCancel ? `<button class="btn btn-danger btn-sm" onclick="event.stopPropagation(); cancelOrder(${o.id})"><i class="fas fa-times"></i></button>` : ''}
+                            </td>
+                        </tr>
+                    `;
+            });
+            tbody.innerHTML = html;
+        }
+
+        function renderPagination() {
+            const container = document.getElementById('pagination');
+            if (totalPages <= 1) { container.innerHTML = ''; return; }
+            let html = '';
+            for (let i = 1; i <= totalPages; i++) {
+                html += `<button class="${i === currentPage ? 'active' : ''}" onclick="fetchOrders(${i})">${i}</button>`;
+            }
+            container.innerHTML = html;
+        }
+
+        function clearFilters() {
+            document.getElementById('filterStatus').value = '';
+            document.getElementById('filterDriver').value = '';
+            document.getElementById('filterDateFrom').value = '';
+            document.getElementById('filterDateTo').value = '';
+            document.getElementById('filterSearch').value = '';
+            fetchOrders(1);
+        }
+
+        // ================================================================
+        //  CANCEL ORDER
+        // ================================================================
+        async function cancelOrder(orderId) {
+            if (!confirm(`⚠️ هل أنت متأكد من إلغاء الطلب #${orderId}؟`)) return;
+            const result = await apiFetch('/online-orders/cancel', {
+                method: 'POST',
+                body: JSON.stringify({ order_id: orderId })
+            });
+            if (result && result.success) {
+                showAlert(`✅ ${result.message || 'تم إلغاء الطلب بنجاح'}`, 'success');
+                fetchOrders(currentPage);
+                closeDetailModal();
+            } else {
+                showAlert('❌ فشل الإلغاء: ' + (result?.error || ''), 'error');
+            }
+        }
+
+        // ================================================================
+        //  DETAIL MODAL
+        // ================================================================
+        async function openDetailModal(orderId) {
+            document.getElementById('detailOrderId').textContent = orderId;
+            const data = await apiFetch(`/online-orders/${orderId}`);
+            if (!data) return;
+            const order = data.order;
+            const content = document.getElementById('detailContent');
+
+            let html = `
+                    <div class="detail-row"><label>العميل:</label><div class="value">${order.customer_name}</div></div>
+                    <div class="detail-row"><label>الهاتف:</label><div class="value">${order.customer_phone}</div></div>
+                    <div class="detail-row"><label>العنوان:</label><div class="value">${order.customer_address || '-'}</div></div>
+                    <div class="detail-row"><label>المحافظة:</label><div class="value">${order.governorate || '-'}</div></div>
+                    <div class="detail-row"><label>نوع التوصيل:</label><div class="value">${order.delivery_type || '-'}</div></div>
+                    <div class="detail-row"><label>طريقة الدفع:</label><div class="value">${order.payment_method || '-'}</div></div>
+                    <div class="detail-row"><label>الحالة:</label><div class="value"><span class="status-badge ${statusClass(order.status)}">${order.status}</span></div></div>
+                    <div class="detail-row"><label>المندوب:</label><div class="value">${order.driver_name || 'غير مسند'}</div></div>
+                    <div class="detail-row"><label>الإجمالي:</label><div class="value">${formatNumber(order.total_amount)}</div></div>
+                    <div class="detail-row"><label>المحصل:</label><div class="value">${formatNumber(order.actual_collected || 0)}</div></div>
+                    <div class="detail-row"><label>رسوم التوصيل:</label><div class="value">${formatNumber(order.delivery_fee || 0)} (${order.delivery_fee_payment || '-'})</div></div>
+                    <div class="detail-row"><label>ملاحظات:</label><div class="value">${order.notes || '-'}</div></div>
+                    <div class="detail-row"><label>تاريخ الطلب:</label><div class="value">${formatDate(order.order_date)}</div></div>
+                    <hr />
+                    <h4>المنتجات</h4>
+                    <table class="items-table">
+                        <thead><tr><th>المنتج</th><th>الكمية</th><th>سعر الوحدة</th><th>الإجمالي</th></tr></thead>
+                        <tbody>
+                    `;
+            if (order.items && order.items.length) {
+                order.items.forEach(item => {
+                    html +=
+                        `<tr><td>${item.product_name}</td><td>${item.quantity}</td><td>${formatNumber(item.unit_price)}</td><td>${formatNumber(item.line_total)}</td></tr>`;
+                });
+            } else {
+                html += `<tr><td colspan="4" class="text-muted">لا توجد منتجات</td></tr>`;
+            }
+            html += `</tbody></table>`;
+
+            if (order.status_log && order.status_log.length) {
+                html += `<hr /><h4>سجل الحالات</h4><ul style="font-size:0.85rem; list-style:none; padding:0;">`;
+                order.status_log.forEach(log => {
+                    html +=
+                        `<li style="padding:4px 0; border-bottom:1px solid var(--gray-100);">${formatDate(log.change_date)}: ${log.old_status || ''} → ${log.new_status} ${log.notes ? '('+log.notes+')' : ''}</li>`;
+                });
+                html += `</ul>`;
+            }
+            content.innerHTML = html;
+
+            const actions = document.getElementById('detailActions');
+            const editLink = `add_order.html?order_id=${order.id}`;
+            let actionsHtml = `
+                    <a href="${editLink}" target="_blank" class="btn btn-warning"><i class="fas fa-edit"></i> تعديل</a>
+                    <button class="btn btn-info" onclick="closeDetailModal(); openAssignDriverModal(${order.id})"><i class="fas fa-user-edit"></i> تغيير المندوب</button>
+                    <button class="btn btn-secondary" onclick="window.print()"><i class="fas fa-print"></i> طباعة</button>
+                `;
+            const canCancel = (order.status !== 'ملغي' && order.status !== 'تم التسليم' && order.status !== 'مرتجع كلي');
+            if (canCancel) {
+                actionsHtml += `<button class="btn btn-danger" onclick="cancelOrder(${order.id})"><i class="fas fa-times"></i> إلغاء</button>`;
+            }
+            const allowedReturnStatuses = ['تم التسليم', 'مرتجع جزئي'];
+            if (allowedReturnStatuses.includes(order.status)) {
+                actionsHtml += `<button class="btn btn-warning" onclick="openReturnModal(${order.id})"><i class="fas fa-undo-alt"></i> إرجاع</button>`;
+            }
+            actions.innerHTML = actionsHtml;
+            document.getElementById('detailModal').classList.add('active');
+        }
+
+        function closeDetailModal() {
+            document.getElementById('detailModal').classList.remove('active');
+        }
+
+        // ================================================================
+        //  ASSIGN DRIVER MODAL
+        // ================================================================
+        function openAssignDriverModal(orderId) {
+            assignOrderId = orderId;
+            document.getElementById('assignOrderId').textContent = orderId;
+            loadDriversForSelect('assignDriverSelect');
+            document.getElementById('assignDriverModal').classList.add('active');
+        }
+
+        function closeAssignDriverModal() {
+            document.getElementById('assignDriverModal').classList.remove('active');
+        }
+
+        async function confirmAssignDriver() {
+            const driverId = document.getElementById('assignDriverSelect').value;
+            if (!driverId) { showAlert('اختر مندوب', 'error'); return; }
+            const result = await apiFetch('/online-orders/assign-driver', {
+                method: 'POST',
+                body: JSON.stringify({ order_id: assignOrderId, driver_id: parseInt(driverId) })
+            });
+            if (result && result.success) {
+                showAlert('تم الإسناد', 'success');
+                fetchOrders(currentPage);
+                closeAssignDriverModal();
+                closeDetailModal();
+            } else {
+                showAlert('فشل الإسناد', 'error');
+            }
+        }
+
+        // ================================================================
+        //  DRIVERS SUMMARY
+        // ================================================================
+        async function loadDriversSummary() {
+            const list = document.getElementById('driversList');
+            list.innerHTML = '<div class="text-center text-muted" style="padding:40px;"><i class="fas fa-spinner fa-spin"></i> جاري تحميل البيانات...</div>';
+
+            const data = await apiFetch('/drivers/summary');
+            if (!data) {
+                list.innerHTML =
+                    '<div class="text-center text-muted" style="padding:40px;"><i class="fas fa-exclamation-triangle"></i> فشل تحميل البيانات</div>';
+                return;
+            }
+
+            const drivers = data.drivers || [];
+            let totalDueToShop = 0,
+                totalDueToDrivers = 0,
+                totalCollections = 0,
+                totalFees = 0;
+
+            drivers.forEach(d => {
+                const balance = parseFloat(d.balance) || 0;
+                if (balance > 0) totalDueToShop += balance;
+                else if (balance < 0) totalDueToDrivers += Math.abs(balance);
+                totalCollections += parseFloat(d.total_collected || 0);
+                totalFees += parseFloat(d.total_fees || 0);
+            });
+
+            document.getElementById('totalDrivers').textContent = drivers.length;
+            document.getElementById('totalDueToShop').textContent = formatNumber(totalDueToShop);
+            document.getElementById('totalDueToDrivers').textContent = formatNumber(totalDueToDrivers);
+            document.getElementById('totalCollections').textContent = formatNumber(totalCollections);
+            document.getElementById('totalFees').textContent = formatNumber(totalFees);
+
+            if (drivers.length === 0) {
+                list.innerHTML =
+                    `<div class="text-center text-muted" style="padding:40px;"><i class="fas fa-truck fa-2x" style="display:block; margin-bottom:12px; color:var(--gray-400);"></i>لا يوجد مندوبون مسجلون<br><br><button class="btn btn-success btn-sm" onclick="openDriverManager()"><i class="fas fa-user-plus"></i> إضافة مندوب</button></div>`;
+                return;
+            }
+
+            let html = '';
+            drivers.forEach(d => {
+                const balance = parseFloat(d.balance) || 0;
+                const totalDeliveries = parseInt(d.total_deliveries) || 0;
+                const totalFeesDriver = parseFloat(d.total_fees) || 0;
+                const totalCollected = parseFloat(d.total_collected) || 0;
+                const totalPaidToShop = parseFloat(d.total_paid_to_shop) || 0;
+
+                let balanceClass = 'badge-neutral',
+                    balanceLabel = 'متساوي',
+                    balanceTooltip = 'الرصيد صفر';
+                if (balance > 0) { balanceClass = 'badge-negative';
+                    balanceLabel = 'مستحق على المندوب';
+                    balanceTooltip = 'المندوب مدين للمحل'; } else if (balance < 0) { balanceClass = 'badge-positive';
+                    balanceLabel = 'مستحق للمندوب';
+                    balanceTooltip = 'المحل مدين للمندوب'; }
+
+                html += `
+                        <div class="driver-row" style="border-right-color: ${balance > 0 ? 'var(--danger)' : balance < 0 ? 'var(--success)' : 'var(--gray-300)'};">
+                            <div class="info">
+                                <div class="name">${d.name}</div>
+                                <div class="phone">📞 ${d.phone || 'لا يوجد'} ${d.whatsapp_phone ? `<span class="whatsapp-icon"><i class="fab fa-whatsapp" style="color:#25d366;"></i> ${d.whatsapp_phone}</span>` : ''}</div>
+                                <div style="margin-top:4px; display:flex; gap:6px; flex-wrap:wrap;">
+                                    <span class="badge" style="background:var(--gray-200);">🚚 توصيلات: ${totalDeliveries}</span>
+                                    ${d.is_active !== false ? '<span class="badge" style="background:#dcfce7; color:#166534;">✅ نشط</span>' : '<span class="badge" style="background:#fee2e2; color:#991b1b;">❌ غير نشط</span>'}
+                                </div>
+                            </div>
+                            <div class="amounts">
+                                <div class="item">💰 رسوم: <span>${formatNumber(totalFeesDriver)}</span></div>
+                                <div class="item">💵 محصل: <span>${formatNumber(totalCollected)}</span></div>
+                                <div class="item ${balanceClass}" style="font-size:0.95rem; padding:4px 12px; background:var(--gray-50); border-radius:8px; cursor:help;" title="${balanceTooltip}">
+                                    ${balanceLabel}: <span>${formatNumber(Math.abs(balance))}</span>
+                                </div>
+                            </div>
+                            <div class="actions">
+                                <button class="btn btn-purple btn-sm" onclick="openSettlementModal(${d.id}, '${d.name}', ${balance})"><i class="fas fa-handshake"></i> تسوية</button>
+                                <button class="btn btn-info btn-sm" onclick="viewTransactions(${d.id}, '${d.name}')"><i class="fas fa-history"></i></button>
+                                ${balance > 0 ? `<button class="btn btn-success btn-sm" onclick="quickSettle(${d.id}, ${Math.abs(balance)})"><i class="fas fa-money-bill-wave"></i> دفع</button>` : ''}
+                            </div>
+                        </div>
+                    `;
+            });
+            list.innerHTML = html;
+        }
+
+        // ================================================================
+        //  SETTLEMENT MODAL (معدل بالكامل)
+        // ================================================================
+        async function loadWalletsForSettlement() {
+            const data = await apiFetch('/wallets');
+            if (data && data.wallets) {
+                const sel = document.getElementById('settlementWalletId');
+                sel.innerHTML = '<option value="">-- اختر --</option>';
+                data.wallets.forEach(w => {
+                    sel.innerHTML += `<option value="${w.id}">${w.name}</option>`;
+                });
+            }
+        }
+
+        function toggleSettlementPaymentFields() {
+            const method = document.getElementById('settlementPaymentMethod').value;
+            document.getElementById('settlementWalletField').style.display = (method === 'wallet' || method === 'mixed') ?
+                'block' : 'none';
+            document.getElementById('settlementMixedFields').style.display = (method === 'mixed') ? 'block' : 'none';
+            document.getElementById('settlementBaseAmountField').style.display = (method === 'mixed') ? 'none' : 'block';
+            updateSettlementSummary();
+        }
+
+        function openSettlementModal(driverId, driverName, currentBalance) {
+            document.getElementById('settlementDriverId').value = driverId;
+            document.getElementById('settlementDriverName').textContent = driverName;
+            const balanceEl = document.getElementById('settlementCurrentBalance');
+            const absBalance = Math.abs(currentBalance);
+            balanceEl.textContent = formatNumber(absBalance);
+            balanceEl.style.color = currentBalance > 0 ? 'var(--danger)' : currentBalance < 0 ? 'var(--success)' :
+            'var(--gray-500)';
+            let balanceText = '';
+            if (currentBalance > 0) balanceText = ` (مستحق على المندوب - يجب دفع ${formatNumber(absBalance)})`;
+            else if (currentBalance < 0) balanceText = ` (مستحق للمندوب - يجب دفع ${formatNumber(absBalance)})`;
+            else balanceText = ' (متساوي)';
+            balanceEl.textContent += balanceText;
+
+            document.getElementById('settlementAmount').value = absBalance.toFixed(2);
+            document.getElementById('settlementNotes').value = '';
+            document.getElementById('settlementCashAmount').value = '';
+            document.getElementById('settlementWalletAmount').value = '';
+
+            if (currentBalance > 0) document.getElementById('settlementType').value = 'driver_pays_shop';
+            else if (currentBalance < 0) document.getElementById('settlementType').value = 'shop_pays_driver';
+            else document.getElementById('settlementType').value = 'driver_pays_shop';
+
+            settlementDriverData = { id: driverId, name: driverName, balance: currentBalance };
+            loadWalletsForSettlement();
+
+            document.getElementById('settlementPaymentMethod').value = 'cash';
+            toggleSettlementPaymentFields();
+            updateSettlementSummary();
+            document.getElementById('settlementModal').classList.add('active');
+        }
+
+        function closeSettlementModal() {
+            document.getElementById('settlementModal').classList.remove('active');
+            settlementDriverData = null;
+        }
+
+        function updateSettlementSummary() {
+            const type = document.getElementById('settlementType').value;
+            const method = document.getElementById('settlementPaymentMethod').value;
+            const typeLabels = {
+                'driver_pays_shop': 'المندوب يدفع للمحل',
+                'shop_pays_driver': 'المحل يدفع للمندوب',
+                'adjustment': 'تعديل يدوي'
+            };
+            document.getElementById('summaryType').textContent = typeLabels[type] || type;
+
+            let amount = 0;
+            if (method === 'cash' || method === 'wallet') {
+                amount = parseFloat(document.getElementById('settlementAmount').value) || 0;
+            } else if (method === 'mixed') {
+                const cash = parseFloat(document.getElementById('settlementCashAmount').value) || 0;
+                const wallet = parseFloat(document.getElementById('settlementWalletAmount').value) || 0;
+                amount = cash + wallet;
+            }
+            document.getElementById('summaryAmount').textContent = formatNumber(amount);
+
+            let newBalance = settlementDriverData ? settlementDriverData.balance : 0;
+            if (type === 'driver_pays_shop') newBalance -= amount;
+            else if (type === 'shop_pays_driver') newBalance += amount;
+            document.getElementById('summaryNewBalance').textContent = formatNumber(newBalance);
+            const balEl = document.getElementById('summaryNewBalance');
+            balEl.style.color = newBalance > 0 ? 'var(--danger)' : newBalance < 0 ? 'var(--success)' : 'var(--gray-500)';
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('settlementAmount')?.addEventListener('input', updateSettlementSummary);
+            document.getElementById('settlementCashAmount')?.addEventListener('input', updateSettlementSummary);
+            document.getElementById('settlementWalletAmount')?.addEventListener('input', updateSettlementSummary);
+            document.getElementById('settlementType')?.addEventListener('change', updateSettlementSummary);
+            document.getElementById('settlementPaymentMethod')?.addEventListener('change', toggleSettlementPaymentFields);
+        });
+
+        async function submitSettlement(e) {
+            e.preventDefault();
+            const driverId = document.getElementById('settlementDriverId').value;
+            const type = document.getElementById('settlementType').value;
+            const notes = document.getElementById('settlementNotes').value.trim();
+            const paymentMethod = document.getElementById('settlementPaymentMethod').value;
+            const walletId = document.getElementById('settlementWalletId').value;
+
+            let amount = 0,
+                cashAmount = 0,
+                walletAmount = 0;
+
+            if (paymentMethod === 'cash') {
+                amount = parseFloat(document.getElementById('settlementAmount').value) || 0;
+                cashAmount = amount;
+                walletAmount = 0;
+            } else if (paymentMethod === 'wallet') {
+                amount = parseFloat(document.getElementById('settlementAmount').value) || 0;
+                if (!walletId) { showAlert('يرجى اختيار المحفظة', 'error'); return; }
+                cashAmount = 0;
+                walletAmount = amount;
+            } else if (paymentMethod === 'mixed') {
+                cashAmount = parseFloat(document.getElementById('settlementCashAmount').value) || 0;
+                walletAmount = parseFloat(document.getElementById('settlementWalletAmount').value) || 0;
+                amount = cashAmount + walletAmount;
+                if (amount <= 0) { showAlert('المبلغ الإجمالي يجب أن يكون أكبر من صفر', 'error'); return; }
+                if (!walletId) { showAlert('يرجى اختيار المحفظة للدفع المختلط', 'error'); return; }
+            }
+
+            let finalAmount = (type === 'driver_pays_shop') ? amount : -amount;
+
+            const payload = {
+                driver_id: parseInt(driverId),
+                amount: finalAmount,
+                notes: notes || `تسوية (${type})`,
+                payment_method: paymentMethod,
+                wallet_id: walletId || null,
+                cash_amount: cashAmount,
+                wallet_amount: walletAmount
+            };
+
+            const result = await apiFetch('/drivers/payment', {
+                method: 'POST',
+                body: JSON.stringify(payload)
+            });
+
+            if (result && result.success) {
+                showAlert('✅ تمت التسوية بنجاح!', 'success');
+                closeSettlementModal();
+                loadDriversSummary();
+                loadDriversForFilter();
+            } else {
+                showAlert('❌ فشل التسوية: ' + (result?.error || ''), 'error');
+            }
+        }
+
+        function quickSettle(driverId, amount) {
+            if (!confirm(`⚠️ تأكيد دفع ${formatNumber(amount)} من المندوب للمحل؟`)) return;
+            apiFetch('/drivers/payment', {
+                method: 'POST',
+                body: JSON.stringify({
+                    driver_id: parseInt(driverId),
+                    amount: amount,
+                    notes: 'دفع سريع (تسوية)',
+                    payment_method: 'cash',
+                    cash_amount: amount,
+                    wallet_amount: 0
+                })
+            }).then(result => {
+                if (result && result.success) {
+                    showAlert('✅ تم الدفع بنجاح', 'success');
+                    loadDriversSummary();
+                } else {
+                    showAlert('❌ فشل الدفع', 'error');
+                }
+            });
+        }
+
+        // ================================================================
+        //  DRIVER TRANSACTIONS
+        // ================================================================
+        async function viewTransactions(driverId, driverName) {
+            document.getElementById('transDriverName').textContent = driverName;
+            const data = await apiFetch(`/drivers/transactions?driver_id=${driverId}`);
+            if (!data) return;
+            const tbody = document.getElementById('transactionsBody');
+            if (!data.transactions || data.transactions.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-muted text-center">لا توجد حركات</td></tr>';
+            } else {
+                let html = '';
+                data.transactions.forEach(t => {
+                    const typeMap = {
+                        'delivery_fee': 'رسوم توصيل',
+                        'collection': 'تحصيل',
+                        'settlement': 'تسوية',
+                        'adjustment': 'تعديل',
+                        'payment': 'دفع',
+                        'balance_adjustment': 'تعديل الرصيد'
+                    };
+                    const amount = parseFloat(t.amount) || 0;
+                    const color = amount < 0 ? 'var(--danger)' : amount > 0 ? 'var(--success)' : 'var(--gray-500)';
+                    html += `<tr>
+                            <td>${formatDate(t.created_at)}</td>
+                            <td>${typeMap[t.type] || t.type}</td>
+                            <td style="color:${color}; font-weight:700;">${formatNumber(amount)}</td>
+                            <td>ريال</td>
+                            <td>${t.description || '-'}</td>
+                            <td>${t.wallet_name || '-'}</td>
+                        </tr>`;
+                });
+                tbody.innerHTML = html;
+            }
+            document.getElementById('transactionsModal').classList.add('active');
+        }
+
+        function closeTransactionsModal() {
+            document.getElementById('transactionsModal').classList.remove('active');
+        }
+
+        // ================================================================
+        //  DRIVER MANAGEMENT
+        // ================================================================
+        function openDriverManager() {
+            document.getElementById('driverManagerModal').classList.add('active');
+            loadDriversList();
+        }
+
+        function closeDriverManager() {
+            document.getElementById('driverManagerModal').classList.remove('active');
+        }
+
+        async function loadDriversList() {
+            const data = await apiFetch('/drivers');
+            if (!data) return;
+            const list = document.getElementById('driverList');
+            if (!data.drivers || data.drivers.length === 0) {
+                list.innerHTML = '<div class="text-center text-muted" style="padding:20px;"><i class="fas fa-users"></i> لا يوجد مندوبون</div>';
+                return;
+            }
+            let html = '';
+            data.drivers.forEach(d => {
+                html += `
+                        <div class="driver-row">
+                            <div class="info">
+                                <div class="name">${d.name}</div>
+                                <div class="phone">📞 ${d.phone || '-'} | 🚗 ${d.vehicle_info || '-'}</div>
+                                <div style="margin-top:4px;">
+                                    <span class="badge" style="background:${d.is_active !== false ? '#dcfce7' : '#fee2e2'}; color:${d.is_active !== false ? '#166534' : '#991b1b'}; padding:2px 10px; border-radius:12px;">${d.is_active !== false ? '✅ نشط' : '❌ غير نشط'}</span>
+                                    <span class="badge" style="background:var(--gray-200); padding:2px 10px; border-radius:12px;">🆔 ${d.username || d.id}</span>
+                                </div>
+                            </div>
+                            <div class="actions">
+                                <button class="btn btn-primary btn-sm" onclick="openEditDriverModal(${d.id})"><i class="fas fa-edit"></i></button>
+                                <button class="btn btn-danger btn-sm" onclick="deleteDriver(${d.id})"><i class="fas fa-trash"></i></button>
+                                <button class="btn btn-purple btn-sm" onclick="openSettlementModal(${d.id}, '${d.name}', 0)"><i class="fas fa-handshake"></i></button>
+                            </div>
+                        </div>
+                    `;
+            });
+            list.innerHTML = html;
+        }
+
+        function showAddDriverForm() {
+            document.getElementById('addDriverForm').classList.remove('hidden');
+        }
+
+        function hideAddDriverForm() {
+            document.getElementById('addDriverForm').classList.add('hidden');
+            ['newDriverName', 'newDriverPhone', 'newDriverVehicle', 'newDriverUsername', 'newDriverPassword',
+                'newDriverWhatsappPhone', 'newDriverWhatsappApikey'
+            ].forEach(id => {
+                document.getElementById(id).value = '';
+            });
+        }
+
+        async function saveNewDriver() {
+            const name = document.getElementById('newDriverName').value.trim();
+            const phone = document.getElementById('newDriverPhone').value.trim();
+            const vehicle_info = document.getElementById('newDriverVehicle').value.trim();
+            const username = document.getElementById('newDriverUsername').value.trim();
+            const password = document.getElementById('newDriverPassword').value.trim();
+            const whatsapp_phone = document.getElementById('newDriverWhatsappPhone').value.trim();
+            const whatsapp_apikey = document.getElementById('newDriverWhatsappApikey').value.trim();
+
+            if (!name || !username || !password) {
+                showAlert('الاسم، اسم المستخدم وكلمة المرور إجبارية', 'error');
+                return;
+            }
+            const result = await apiFetch('/drivers', {
+                method: 'POST',
+                body: JSON.stringify({ name, phone, vehicle_info, username, password, whatsapp_phone,
+                    whatsapp_apikey })
+            });
+            if (result && result.success) {
+                showAlert('تم إضافة المندوب', 'success');
+                hideAddDriverForm();
+                loadDriversList();
+                loadDriversForFilter();
+                loadDriversSummary();
+            } else {
+                showAlert('فشل الإضافة', 'error');
+            }
+        }
+
+        async function deleteDriver(driverId) {
+            if (!confirm('حذف المندوب؟')) return;
+            const result = await apiFetch(`/drivers/${driverId}`, { method: 'DELETE' });
+            if (result && result.success) {
+                showAlert('تم الحذف', 'success');
+                loadDriversList();
+                loadDriversForFilter();
+                loadDriversSummary();
+            } else {
+                showAlert('فشل الحذف', 'error');
+            }
+        }
+
+        let editDriverId = null;
+
+        async function openEditDriverModal(driverId) {
+            editDriverId = driverId;
+            const data = await apiFetch(`/drivers/${driverId}`);
+            if (!data || !data.driver) {
+                showAlert('فشل تحميل بيانات المندوب', 'error');
+                return;
+            }
+            const d = data.driver;
+            document.getElementById('editDriverId').value = d.id;
+            document.getElementById('editDriverName').value = d.name || '';
+            document.getElementById('editDriverPhone').value = d.phone || '';
+            document.getElementById('editDriverVehicle').value = d.vehicle_info || '';
+            document.getElementById('editDriverWhatsappPhone').value = d.whatsapp_phone || '';
+            document.getElementById('editDriverWhatsappApikey').value = d.whatsapp_apikey || '';
+            document.getElementById('editDriverPassword').value = '';
+            document.getElementById('editDriverModal').classList.add('active');
+        }
+
+        function closeEditDriverModal() {
+            document.getElementById('editDriverModal').classList.remove('active');
+            editDriverId = null;
+        }
+
+        async function submitEditDriver(e) {
+            e.preventDefault();
+            const id = parseInt(document.getElementById('editDriverId').value);
+            const name = document.getElementById('editDriverName').value.trim();
+            const phone = document.getElementById('editDriverPhone').value.trim();
+            const vehicle_info = document.getElementById('editDriverVehicle').value.trim();
+            const password = document.getElementById('editDriverPassword').value.trim();
+            const whatsapp_phone = document.getElementById('editDriverWhatsappPhone').value.trim();
+            const whatsapp_apikey = document.getElementById('editDriverWhatsappApikey').value.trim();
+
+            if (!name) { showAlert('الاسم مطلوب', 'error'); return; }
+
+            const payload = { name, phone, vehicle_info, whatsapp_phone, whatsapp_apikey };
+            if (password) payload.password = password;
+
+            const result = await apiFetch(`/drivers/${id}`, {
+                method: 'PUT',
+                body: JSON.stringify(payload)
+            });
+            if (result && result.success) {
+                showAlert('تم التحديث', 'success');
+                closeEditDriverModal();
+                loadDriversList();
+                loadDriversForFilter();
+                loadDriversSummary();
+            } else {
+                showAlert('فشل التحديث', 'error');
+            }
+        }
+
+        // ================================================================
+        //  RETURN MODAL (معدل بالكامل مع رسوم التوصيل وتغيير المندوب)
+        // ================================================================
+        async function loadDriversForReturn() {
+            const data = await apiFetch('/drivers');
+            if (data && data.drivers) {
+                const sel = document.getElementById('returnDriverId');
+                sel.innerHTML = '<option value="">-- نفس المندوب الأصلي --</option>';
+                data.drivers.forEach(d => {
+                    sel.innerHTML += `<option value="${d.id}">${d.name}</option>`;
+                });
+            }
+        }
+
+        async function loadWalletsForReturn() {
+            const data = await apiFetch('/wallets');
+            if (data && data.wallets) {
+                const sel = document.getElementById('returnWalletId');
+                sel.innerHTML = '<option value="">-- اختر --</option>';
+                data.wallets.forEach(w => {
+                    sel.innerHTML += `<option value="${w.id}">${w.name}</option>`;
+                });
+            }
+        }
+
+        function toggleReturnFeeFields() {
+            const feeType = document.getElementById('returnDeliveryFeeType').value;
+            const group = document.getElementById('returnDeliveryFeeAmountGroup');
+            if (feeType === 'free') {
+                group.style.display = 'none';
+                document.getElementById('returnDeliveryFeeAmount').value = '0';
+            } else {
+                group.style.display = 'block';
+            }
+            updateReturnTotal();
+        }
+
+        function toggleRefundFields() {
+            const method = document.getElementById('refundMethod').value;
+            document.getElementById('refundWalletField').style.display = (method === 'wallet' || method === 'mixed') ?
+                'block' : 'none';
+            document.getElementById('refundCashField').style.display = (method === 'mixed') ? 'block' : 'none';
+            document.getElementById('refundWalletAmountField').style.display = (method === 'mixed') ? 'block' : 'none';
+            updateReturnTotal();
+        }
+
+        async function openReturnModal(orderId) {
+            document.getElementById('returnOrderId').textContent = orderId;
+            const data = await apiFetch(`/online-orders/${orderId}`);
+            if (!data) return;
+            const order = data.order;
+            currentOrderForReturn = order;
+
+            const infoDiv = document.getElementById('returnOrderInfo');
+            infoDiv.innerHTML = `
+                    <div style="display:flex; flex-wrap:wrap; gap:8px; justify-content:space-between;">
+                        <span><strong>العميل:</strong> ${order.customer_name}</span>
+                        <span><strong>الهاتف:</strong> ${order.customer_phone}</span>
+                        <span><strong>الحالة:</strong> <span class="status-badge ${statusClass(order.status)}">${order.status}</span></span>
+                        <span><strong>الإجمالي:</strong> ${formatNumber(order.total_amount)}</span>
+                        <span><strong>المندوب الأصلي:</strong> ${order.driver_name || 'غير مسند'}</span>
+                    </div>
+                `;
+
+            returnOrderItems = order.items.map(item => ({
+                order_item_id: item.id,
+                product_name: item.product_name,
+                quantity_available: item.quantity,
+                unit_price: item.unit_price,
+                return_qty: 0
+            }));
+
+            let itemsHtml =
+                `<div style="font-weight:700; display:flex; padding:6px 0; border-bottom:2px solid var(--gray-200);">
+                        <span style="flex:2;">المنتج</span>
+                        <span style="flex:1; text-align:center;">المتبقي</span>
+                        <span style="flex:1; text-align:center;">للإرجاع</span>
+                        <span style="flex:1; text-align:left;">الإجمالي</span>
+                    </div>`;
+            returnOrderItems.forEach((item, index) => {
+                itemsHtml += `
+                        <div class="return-item-row">
+                            <span class="pname">${item.product_name}</span>
+                            <span class="qty-available">${item.quantity_available}</span>
+                            <input type="number" id="return_qty_${index}" min="0" max="${item.quantity_available}" value="0" step="1" oninput="updateReturnTotal()" />
+                            <span class="item-total" id="return_item_total_${index}">0.00</span>
+                        </div>
+                    `;
+            });
+            document.getElementById('returnItemsContainer').innerHTML = itemsHtml;
+
+            await loadWalletsForReturn();
+            await loadDriversForReturn();
+
+            document.getElementById('refundMethod').value = 'cash';
+            document.getElementById('returnCashAmount').value = '';
+            document.getElementById('returnWalletAmount').value = '';
+            document.getElementById('returnDeliveryFeeType').value = 'shop';
+            document.getElementById('returnDeliveryFeeAmount').value = '0';
+            document.getElementById('returnDriverId').value = '';
+
+            toggleRefundFields();
+            toggleReturnFeeFields();
+            updateReturnTotal();
+
+            document.getElementById('returnModal').classList.add('active');
+        }
+
+        function closeReturnModal() {
+            document.getElementById('returnModal').classList.remove('active');
+            returnOrderItems = [];
+            currentOrderForReturn = null;
+        }
+
+       function updateReturnTotal() {
+    let totalRefund = 0;
+    returnOrderItems.forEach((item, index) => {
+        const qtyInput = document.getElementById(`return_qty_${index}`);
+        let qty = parseInt(qtyInput.value) || 0;
+        if (qty > item.quantity_available) qty = item.quantity_available;
+        if (qty < 0) qty = 0;
+        qtyInput.value = qty;
+        const itemTotal = qty * item.unit_price;
+        document.getElementById(`return_item_total_${index}`).textContent = formatNumber(itemTotal);
+        totalRefund += itemTotal;
+    });
+
+    const feeType = document.getElementById('returnDeliveryFeeType').value;
+    let deliveryFee = 0;
+    if (feeType !== 'free') {
+        deliveryFee = parseFloat(document.getElementById('returnDeliveryFeeAmount').value) || 0;
+    }
+
+    // ========== التعديل هنا ==========
+    let totalWithFee = totalRefund;
+    if (feeType === 'customer') {
+        // الزبون يتحملها → تُخصم من المبلغ المسترد (مثلاً 5000 - 500 = 4500)
+        totalWithFee = totalRefund - deliveryFee;
+        // منع ظهور قيمة سالبة
+        totalWithFee = Math.max(0, totalWithFee);
+    } else if (feeType === 'shop') {
+        // المحل يتحملها → لا تؤثر على مبلغ العميل (يبقى 5000)
+        totalWithFee = totalRefund;
+    }
+    // feeType === 'free' → totalWithFee = totalRefund (بدون تغيير)
+
+    const method = document.getElementById('refundMethod').value;
+    if (method === 'mixed') {
+        const cashInput = document.getElementById('returnCashAmount');
+        const walletInput = document.getElementById('returnWalletAmount');
+        let cash = parseFloat(cashInput.value) || 0;
+        let wallet = parseFloat(walletInput.value) || 0;
+        const totalPaid = cash + wallet;
+        if (totalPaid > 0 && Math.abs(totalPaid - totalWithFee) > 0.01) {
+            const ratio = totalWithFee / totalPaid;
+            cashInput.value = formatNumber(cash * ratio);
+            walletInput.value = formatNumber(wallet * ratio);
+        }
+    }
+
+    document.getElementById('returnTotalDisplay').textContent = formatNumber(totalWithFee);
+}
+
+        async function submitReturn() {
+            const orderId = parseInt(document.getElementById('returnOrderId').textContent);
+
+            const items = [];
+            let hasItems = false;
+            returnOrderItems.forEach((item, index) => {
+                const qty = parseInt(document.getElementById(`return_qty_${index}`).value) || 0;
+                if (qty > 0) {
+                    items.push({ order_item_id: item.order_item_id, quantity: qty });
+                    hasItems = true;
+                }
+            });
+            if (!hasItems) {
+                showAlert('يرجى تحديد كمية لمنتج واحد على الأقل', 'error');
+                return;
+            }
+
+            const method = document.getElementById('refundMethod').value;
+            const walletId = document.getElementById('returnWalletId').value;
+            let cashRefund = 0,
+                walletRefund = 0;
+            if (method === 'cash') {
+                cashRefund = 0;
+                walletRefund = 0;
+            } else if (method === 'wallet') {
+                if (!walletId) { showAlert('يرجى اختيار المحفظة', 'error'); return; }
+                cashRefund = 0;
+                walletRefund = 0;
+            } else if (method === 'mixed') {
+                cashRefund = parseFloat(document.getElementById('returnCashAmount').value) || 0;
+                walletRefund = parseFloat(document.getElementById('returnWalletAmount').value) || 0;
+                if (cashRefund <= 0 && walletRefund <= 0) {
+                    showAlert('يرجى تحديد مبالغ للدفع المختلط', 'error');
+                    return;
+                }
+                if (!walletId) { showAlert('يرجى اختيار المحفظة للدفع المختلط', 'error'); return; }
+            }
+
+            const feeType = document.getElementById('returnDeliveryFeeType').value;
+            let deliveryFee = 0;
+            if (feeType !== 'free') {
+                deliveryFee = parseFloat(document.getElementById('returnDeliveryFeeAmount').value) || 0;
+            }
+
+            const returnDriverId = document.getElementById('returnDriverId').value;
+
+            const payload = {
+                order_id: orderId,
+                items: items,
+                refund_method: method,
+                wallet_id: walletId || null,
+                cash_refund: cashRefund,
+                wallet_refund: walletRefund,
+                return_fee: deliveryFee,
+                return_fee_type: feeType,
+                return_driver_id: returnDriverId || null
+            };
+
+            const result = await apiFetch('/driver/return-items', {
+                method: 'POST',
+                body: JSON.stringify(payload)
+            });
+
+            if (result && result.success) {
+                // ✅ رسالة نجاح معدلة حسب طلب التعديلات
+                showAlert(`✅ تم إنشاء طلب إرجاع! في انتظار تأكيد المندوب.`, 'success');
+                closeReturnModal();
+                fetchOrders(currentPage);
+                closeDetailModal();
+                if (document.getElementById('tab-drivers').classList.contains('active')) {
+                    loadDriversSummary();
+                }
+                // تحديث قائمة الإرجاع إذا كانت مفتوحة
+                if (document.getElementById('tab-returns').classList.contains('active')) {
+                    fetchReturns();
+                }
+            } else {
+                showAlert('❌ فشل الإرجاع: ' + (result?.error || ''), 'error');
+            }
+        }
+
+        // ================================================================
+        //  RETURNS MANAGEMENT (ADMIN) — جديدة بالكامل
+        // ================================================================
+
+        async function fetchReturns() {
+            const status = document.getElementById('filterReturnStatus').value;
+            const driver = document.getElementById('filterReturnDriver').value;
+            let url = '/returns?';
+            const params = new URLSearchParams();
+            if (status) params.append('status', status);
+            if (driver) params.append('driver_id', driver);
+            url += params.toString();
+
+            const data = await apiFetch(url);
+            if (!data) return;
+            returnsData = data.returns || [];
+            renderReturns(returnsData);
+        }
+
+        function renderReturns(returns) {
+            const tbody = document.getElementById('returnsBody');
+            if (returns.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">لا توجد طلبات إرجاع</td></tr>';
+                return;
+            }
+            let html = '';
+            returns.forEach(r => {
+                const statusText = r.status === 'pending' ? 'قيد الانتظار' : r.status === 'completed' ? 'تم التنفيذ' :
+                    'ملغي';
+                const statusColor = r.status === 'pending' ? 'status-new' : r.status === 'completed' ?
+                    'status-delivered' : 'status-cancelled';
+                html += `
+                        <tr>
+                            <td>${r.id}</td>
+                            <td>#${r.order_id}</td>
+                            <td>${r.customer_name || '-'}</td>
+                            <td>${r.driver_name || '-'}</td>
+                            <td>${formatNumber(r.total_refund)}</td>
+                            <td><span class="status-badge ${statusColor}">${statusText}</span></td>
+                            <td>${formatDate(r.created_at)}</td>
+                            <td>
+                                <button class="btn btn-info btn-sm" onclick="openReturnDetailsModal(${r.id})"><i class="fas fa-eye"></i></button>
+                                ${r.status === 'pending' ? `<button class="btn btn-success btn-sm" onclick="confirmReturnByAdmin(${r.id})"><i class="fas fa-check"></i></button>
+                                <button class="btn btn-danger btn-sm" onclick="cancelReturnByAdmin(${r.id})"><i class="fas fa-times"></i></button>` : ''}
+                            </td>
+                        </tr>
+                    `;
+            });
+            tbody.innerHTML = html;
+        }
+
+        async function openReturnDetailsModal(returnId) {
+            const data = await apiFetch(`/returns/${returnId}`);
+            if (!data) return;
+            const r = data.return;
+            document.getElementById('returnDetailId').textContent = returnId;
+            const content = document.getElementById('returnDetailContent');
+            let itemsHtml =
+                '<table class="items-table"><thead><tr><th>المنتج</th><th>الكمية</th><th>سعر الوحدة</th><th>الإجمالي</th></tr></thead><tbody>';
+            if (r.items && r.items.length) {
+                r.items.forEach(item => {
+                    itemsHtml +=
+                        `<tr><td>${item.product_name}</td><td>${item.quantity}</td><td>${formatNumber(item.unit_price)}</td><td>${formatNumber(item.line_total)}</td></tr>`;
+                });
+            } else {
+                itemsHtml += `<tr><td colspan="4" class="text-muted">لا توجد منتجات</td></tr>`;
+            }
+            itemsHtml += '</tbody></table>';
+
+            const statusMap = {
+                'pending': 'قيد الانتظار',
+                'completed': 'تم التنفيذ',
+                'cancelled': 'ملغي'
+            };
+            const statusColorMap = {
+                'pending': 'status-new',
+                'completed': 'status-delivered',
+                'cancelled': 'status-cancelled'
+            };
+
+            content.innerHTML = `
+                    <div class="detail-row"><label>الطلب الأصلي:</label><div class="value">#${r.order_id}</div></div>
+                    <div class="detail-row"><label>العميل:</label><div class="value">${r.customer_name || '-'}</div></div>
+                    <div class="detail-row"><label>المندوب المسند:</label><div class="value">${r.driver_name || '-'}</div></div>
+                    <div class="detail-row"><label>المبلغ المسترد:</label><div class="value">${formatNumber(r.total_refund)} ريال</div></div>
+                    <div class="detail-row"><label>طريقة الاسترداد:</label><div class="value">${r.refund_method || '-'}</div></div>
+                    <div class="detail-row"><label>رسوم التوصيل:</label><div class="value">${formatNumber(r.return_fee || 0)} ريال</div></div>
+                    <div class="detail-row"><label>نوع رسوم التوصيل:</label><div class="value">${r.return_fee_type || '-'}</div></div>
+                    <div class="detail-row"><label>الحالة:</label><div class="value"><span class="status-badge ${statusColorMap[r.status] || 'status-new'}">${statusMap[r.status] || r.status}</span></div></div>
+                    <div class="detail-row"><label>تاريخ الإنشاء:</label><div class="value">${formatDate(r.created_at)}</div></div>
+                    <hr />
+                    <h4>المنتجات المرتجعة</h4>
+                    ${itemsHtml}
+                `;
+
+            const actions = document.getElementById('returnDetailActions');
+            if (r.status === 'pending') {
+                actions.innerHTML = `
+                        <button class="btn btn-success" onclick="confirmReturnByAdmin(${returnId}); closeReturnDetailsModal();"><i class="fas fa-check"></i> تأكيد</button>
+                        <button class="btn btn-danger" onclick="cancelReturnByAdmin(${returnId}); closeReturnDetailsModal();"><i class="fas fa-times"></i> إلغاء</button>
+                        <button class="btn btn-secondary" onclick="closeReturnDetailsModal()">إغلاق</button>
+                    `;
+            } else {
+                actions.innerHTML = `<button class="btn btn-secondary" onclick="closeReturnDetailsModal()">إغلاق</button>`;
+            }
+
+            document.getElementById('returnDetailsModal').classList.add('active');
+        }
+
+        function closeReturnDetailsModal() {
+            document.getElementById('returnDetailsModal').classList.remove('active');
+        }
+
+        async function confirmReturnByAdmin(returnId) {
+            if (!confirm('تأكيد تنفيذ طلب الإرجاع هذا؟')) return;
+            const result = await apiFetch(`/returns/${returnId}/confirm`, { method: 'POST' });
+            if (result && result.success) {
+                showAlert('✅ تم تأكيد الإرجاع بنجاح', 'success');
+                fetchReturns();
+                // تحديث الطلبات أيضاً
+                if (document.getElementById('tab-orders').classList.contains('active')) {
+                    fetchOrders(currentPage);
+                }
+            } else {
+                showAlert('❌ فشل التأكيد: ' + (result?.error || ''), 'error');
+            }
+        }
+
+        async function cancelReturnByAdmin(returnId) {
+            if (!confirm('إلغاء طلب الإرجاع هذا؟')) return;
+            const result = await apiFetch(`/returns/${returnId}/cancel`, { method: 'POST' });
+            if (result && result.success) {
+                showAlert('✅ تم إلغاء طلب الإرجاع', 'success');
+                fetchReturns();
+                if (document.getElementById('tab-orders').classList.contains('active')) {
+                    fetchOrders(currentPage);
+                }
+            } else {
+                showAlert('❌ فشل الإلغاء: ' + (result?.error || ''), 'error');
+            }
+        }
+
+        // ================================================================
+        //  INITIALIZATION
+        // ================================================================
+        (async function init() {
+            if (token) {
+                try {
+                    const test = await apiFetch('/drivers');
+                    if (test !== null) {
+                        document.getElementById('loginSection').classList.add('hidden');
+                        document.getElementById('mainContent').classList.remove('hidden');
+                        await initApp();
+                        return;
+                    }
+                } catch (e) {}
+            }
+            document.getElementById('loginSection').classList.remove('hidden');
+            document.getElementById('mainContent').classList.add('hidden');
+        })();
+
+        console.log(
+            '✅ نظام ابن المختار – الواجهة المتطورة جاهزة مع جميع التعديلات (الإرجاع مع رسوم التوصيل وتغيير المندوب، التسوية بالمحفظة والمختلط، إدارة طلبات الإرجاع)'
+            );
+    </script>
+</body>
+</html>

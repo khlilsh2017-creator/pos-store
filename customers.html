@@ -1,0 +1,2471 @@
+```html
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <link rel="stylesheet" href="sidebar.css" />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>نظام العملاء المتقدم – الفواتير والمدفوعات</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <style>
+        /* ===== ROOT ===== */
+        :root {
+            --primary: #4f46e5;
+            --primary-light: #818cf8;
+            --primary-dark: #3730a3;
+            --primary-gradient: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            --bg: #f1f5f9;
+            --card: #ffffff;
+            --text: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --success: #22c55e;
+            --success-light: #dcfce7;
+            --danger: #ef4444;
+            --danger-light: #fee2e2;
+            --warning: #f59e0b;
+            --warning-light: #fef3c7;
+            --info: #3b82f6;
+            --info-light: #dbeafe;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            --shadow-xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            --radius: 16px;
+            --radius-sm: 10px;
+            --sidebar-width: 260px;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        [data-theme="dark"] {
+            --bg: #0f172a;
+            --card: #1e293b;
+            --text: #f1f5f9;
+            --text-muted: #94a3b8;
+            --border: #334155;
+        }
+
+        /* ===== BASE ===== */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: 'Cairo', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            transition: var(--transition);
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--bg);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--primary-light);
+            border-radius: 10px;
+        }
+
+        /* ===== SIDEBAR ===== */
+        .app-wrapper {
+            display: flex;
+            min-height: 100vh;
+        }
+        .sidebar {
+            width: var(--sidebar-width);
+            background: var(--card);
+            border-left: 1px solid var(--border);
+            box-shadow: 2px 0 12px rgba(0, 0, 0, 0.04);
+            padding: 24px 0 20px;
+            height: 100vh;
+            position: sticky;
+            top: 0;
+            overflow-y: auto;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            transition: var(--transition);
+            z-index: 100;
+        }
+        .sidebar .brand {
+            text-align: center;
+            padding: 0 20px 24px;
+            border-bottom: 2px solid var(--border);
+            margin-bottom: 20px;
+            font-size: 1.25rem;
+            font-weight: 900;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        .sidebar .brand i {
+            -webkit-text-fill-color: var(--primary);
+            font-size: 1.6rem;
+        }
+        .sidebar .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 22px;
+            color: var(--text-muted);
+            text-decoration: none;
+            border-radius: 0 30px 30px 0;
+            transition: var(--transition);
+            font-weight: 600;
+            border-right: 4px solid transparent;
+            cursor: pointer;
+            margin: 2px 0;
+            font-size: 0.95rem;
+        }
+        .sidebar .nav-link i {
+            width: 22px;
+            text-align: center;
+            font-size: 1.1rem;
+        }
+        .sidebar .nav-link:hover {
+            background: var(--bg);
+            color: var(--primary);
+            border-right-color: var(--primary-light);
+            transform: translateX(-4px);
+        }
+        .sidebar .nav-link.active {
+            background: var(--bg);
+            color: var(--primary);
+            border-right-color: var(--primary);
+            font-weight: 700;
+        }
+        .sidebar .nav-divider {
+            height: 1px;
+            background: var(--border);
+            margin: 12px 20px;
+        }
+        .sidebar .logout-btn {
+            margin-top: auto;
+            border-top: 1px solid var(--border);
+            padding-top: 16px;
+        }
+        .sidebar .logout-btn .nav-link {
+            color: var(--danger);
+        }
+        .sidebar .logout-btn .nav-link:hover {
+            background: var(--danger-light);
+            border-right-color: var(--danger);
+            color: var(--danger);
+        }
+
+        /* ===== MAIN ===== */
+        .main-content {
+            flex: 1;
+            padding: 24px 32px 32px;
+            background: var(--bg);
+            overflow-y: auto;
+            transition: var(--transition);
+        }
+
+        /* ===== TOP BAR ===== */
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 28px;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+        .top-bar .page-title h1 {
+            font-size: 1.8rem;
+            font-weight: 800;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .top-bar .page-title p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+        .top-bar .actions {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        /* ===== THEME TOGGLE ===== */
+        .theme-toggle {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 50%;
+            width: 42px;
+            height: 42px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: var(--transition);
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            box-shadow: var(--shadow-sm);
+        }
+        .theme-toggle:hover {
+            transform: rotate(20deg);
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        /* ===== STATS GRID ===== */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+            gap: 18px;
+            margin-bottom: 28px;
+        }
+        .stat-card {
+            background: var(--card);
+            padding: 20px 24px;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-sm);
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            position: relative;
+            overflow: hidden;
+        }
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-md);
+        }
+        .stat-card .stat-icon {
+            width: 52px;
+            height: 52px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            flex-shrink: 0;
+        }
+        .stat-card .stat-icon.blue {
+            background: var(--info-light);
+            color: var(--info);
+        }
+        .stat-card .stat-icon.green {
+            background: var(--success-light);
+            color: var(--success);
+        }
+        .stat-card .stat-icon.red {
+            background: var(--danger-light);
+            color: var(--danger);
+        }
+        .stat-card .stat-icon.yellow {
+            background: var(--warning-light);
+            color: var(--warning);
+        }
+        .stat-card .stat-icon.purple {
+            background: #ede9fe;
+            color: #7c3aed;
+        }
+        .stat-card .stat-info h3 {
+            font-size: 1.5rem;
+            font-weight: 800;
+            line-height: 1.2;
+        }
+        .stat-card .stat-info p {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            font-weight: 400;
+        }
+        .stat-card .stat-trend {
+            position: absolute;
+            top: 12px;
+            left: 16px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 2px 10px;
+            border-radius: 20px;
+            background: var(--success-light);
+            color: var(--success);
+        }
+        .stat-card .stat-trend.down {
+            background: var(--danger-light);
+            color: var(--danger);
+        }
+
+        /* ===== CARDS ===== */
+        .card-section {
+            background: var(--card);
+            border-radius: var(--radius);
+            padding: 24px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border);
+            margin-bottom: 24px;
+            transition: var(--transition);
+        }
+        .card-section:hover {
+            box-shadow: var(--shadow-md);
+        }
+        .card-section .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 18px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .card-section .card-header h4 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .card-section .card-header h4 i {
+            color: var(--primary);
+        }
+
+        /* ===== INPUTS ===== */
+        .input-field,
+        select,
+        textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 0.95rem;
+            outline: none;
+            background: var(--card);
+            color: var(--text);
+            transition: var(--transition);
+            font-family: inherit;
+        }
+        .input-field:focus,
+        select:focus,
+        textarea:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.12);
+        }
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .input-group label {
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .input-group label .required {
+            color: var(--danger);
+        }
+
+        /* ===== BUTTONS ===== */
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-weight: 700;
+            cursor: pointer;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+            font-family: inherit;
+            justify-content: center;
+        }
+        .btn:active {
+            transform: scale(0.97);
+        }
+        .btn-primary {
+            background: var(--primary-gradient);
+            color: white;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(79, 70, 229, 0.4);
+        }
+        .btn-success {
+            background: var(--success);
+            color: white;
+            box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+        }
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(34, 197, 94, 0.4);
+        }
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+        }
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
+        }
+        .btn-warning {
+            background: var(--warning);
+            color: white;
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+        }
+        .btn-warning:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(245, 158, 11, 0.4);
+        }
+        .btn-info {
+            background: var(--info);
+            color: white;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+        .btn-info:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+        }
+        .btn-outline {
+            background: transparent;
+            border: 2px solid var(--border);
+            color: var(--text);
+        }
+        .btn-outline:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+            background: var(--bg);
+        }
+        .btn-sm {
+            padding: 6px 14px;
+            font-size: 0.8rem;
+            border-radius: 8px;
+        }
+        .btn-xs {
+            padding: 4px 10px;
+            font-size: 0.7rem;
+            border-radius: 6px;
+        }
+
+        /* ===== TABLE ===== */
+        .table-wrapper {
+            overflow-x: auto;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+        }
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+        .table th {
+            padding: 14px 16px;
+            text-align: right;
+            background: var(--bg);
+            color: var(--text-muted);
+            font-weight: 700;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 5;
+        }
+        .table td {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border);
+            vertical-align: middle;
+        }
+        .table tbody tr {
+            transition: var(--transition);
+        }
+        .table tbody tr:hover {
+            background: var(--bg);
+        }
+        .table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            display: inline-block;
+        }
+        .badge-debt {
+            background: var(--danger-light);
+            color: var(--danger);
+        }
+        .badge-credit {
+            background: var(--success-light);
+            color: var(--success);
+        }
+        .badge-warning {
+            background: var(--warning-light);
+            color: var(--warning);
+        }
+        .badge-info {
+            background: var(--info-light);
+            color: var(--info);
+        }
+
+        .actions-cell {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        /* ===== TABS ===== */
+        .tabs {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 24px;
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 2px;
+            flex-wrap: wrap;
+        }
+        .tab-btn {
+            background: transparent;
+            border: none;
+            padding: 12px 24px;
+            font-weight: 700;
+            cursor: pointer;
+            border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+            transition: var(--transition);
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            font-family: inherit;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            position: relative;
+        }
+        .tab-btn:hover {
+            color: var(--text);
+            background: var(--bg);
+        }
+        .tab-btn.active {
+            color: var(--primary);
+            background: var(--bg);
+        }
+        .tab-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            right: 0;
+            left: 0;
+            height: 3px;
+            background: var(--primary-gradient);
+            border-radius: 4px 4px 0 0;
+        }
+        .tab-content {
+            display: none;
+            animation: fadeUp 0.4s ease;
+        }
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(12px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* ===== MODALS ===== */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.6);
+            z-index: 1000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(6px);
+            animation: fadeIn 0.25s ease;
+        }
+        .modal.open {
+            display: flex;
+        }
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+        .modal-content {
+            background: var(--card);
+            max-width: 820px;
+            width: 94%;
+            max-height: 92vh;
+            overflow-y: auto;
+            border-radius: var(--radius);
+            padding: 32px;
+            position: relative;
+            box-shadow: var(--shadow-xl);
+            animation: slideUp 0.35s ease;
+            border: 1px solid var(--border);
+        }
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px) scale(0.97);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+        .modal-close {
+            position: absolute;
+            top: 16px;
+            left: 20px;
+            font-size: 1.6rem;
+            color: var(--text-muted);
+            cursor: pointer;
+            background: none;
+            border: none;
+            transition: var(--transition);
+            line-height: 1;
+        }
+        .modal-close:hover {
+            color: var(--danger);
+            transform: rotate(90deg);
+        }
+        .modal-title {
+            font-size: 1.3rem;
+            font-weight: 800;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding-left: 40px;
+        }
+        .modal-title i {
+            color: var(--primary);
+        }
+        .modal-actions {
+            margin-top: 24px;
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            flex-wrap: wrap;
+            border-top: 1px solid var(--border);
+            padding-top: 20px;
+        }
+
+        /* ===== TOAST ===== */
+        .toast-container {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-width: 420px;
+            width: 90%;
+        }
+        .toast {
+            background: var(--text);
+            color: white;
+            padding: 16px 22px;
+            border-radius: var(--radius-sm);
+            box-shadow: var(--shadow-lg);
+            animation: slideInRight 0.4s ease;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            border-right: 5px solid var(--primary);
+        }
+        .toast.success {
+            border-right-color: var(--success);
+        }
+        .toast.error {
+            border-right-color: var(--danger);
+        }
+        .toast.warning {
+            border-right-color: var(--warning);
+        }
+        .toast i {
+            font-size: 1.3rem;
+        }
+        @keyframes slideInRight {
+            from {
+                transform: translateX(120%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        /* ===== PAYMENT METHOD & CURRENCY ===== */
+        .payment-method-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 12px;
+            margin-top: 6px;
+        }
+        .payment-method-option {
+            padding: 14px 16px;
+            border: 2px solid var(--border);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            text-align: center;
+            transition: var(--transition);
+            background: var(--card);
+            font-weight: 600;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .payment-method-option:hover {
+            border-color: var(--primary-light);
+            background: var(--bg);
+        }
+        .payment-method-option.active {
+            border-color: var(--primary);
+            background: var(--info-light);
+            color: var(--primary);
+        }
+
+        #mixed-payment-fields {
+            background: var(--bg);
+            border-radius: var(--radius-sm);
+            padding: 20px;
+            border: 2px dashed var(--border);
+            margin-top: 16px;
+            transition: var(--transition);
+        }
+        #mixed-payment-fields .total-badge {
+            background: var(--primary-gradient);
+            color: white;
+            padding: 12px 20px;
+            border-radius: var(--radius-sm);
+            text-align: center;
+            font-weight: 700;
+            font-size: 1.1rem;
+            margin-top: 12px;
+        }
+
+        .currency-select-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+            background: var(--bg);
+            padding: 8px 12px;
+            border-radius: var(--radius-sm);
+            margin-top: 4px;
+            border: 1px solid var(--border);
+        }
+        .currency-select-group label {
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-left: 4px;
+        }
+        .currency-select-group select {
+            width: auto;
+            min-width: 120px;
+            padding: 6px 10px;
+            font-size: 0.85rem;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--card);
+            color: var(--text);
+        }
+        .currency-select-group .rate-display {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-right: 8px;
+        }
+        .converted-amount-display {
+            background: var(--primary-light);
+            padding: 6px 12px;
+            border-radius: var(--radius-sm);
+            font-weight: 700;
+            color: var(--primary);
+            margin-top: 4px;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+
+        .flex-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+        .flex-row .flex-1 {
+            flex: 1;
+            min-width: 160px;
+        }
+        .mt-10 {
+            margin-top: 12px;
+        }
+        .mb-10 {
+            margin-bottom: 12px;
+        }
+        .text-center {
+            text-align: center;
+        }
+        .text-muted {
+            color: var(--text-muted);
+        }
+        .text-danger {
+            color: var(--danger);
+        }
+        .text-success {
+            color: var(--success);
+        }
+
+        .search-wrapper {
+            position: relative;
+        }
+        .search-wrapper i {
+            position: absolute;
+            right: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+        }
+        .search-wrapper .input-field {
+            padding-right: 44px;
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 1024px) {
+            .sidebar {
+                width: 72px;
+                padding: 16px 0;
+            }
+            .sidebar .brand span {
+                display: none;
+            }
+            .sidebar .brand i {
+                font-size: 1.8rem;
+            }
+            .sidebar .nav-link span {
+                display: none;
+            }
+            .sidebar .nav-link {
+                justify-content: center;
+                padding: 14px 0;
+                border-radius: 0;
+                border-right: none;
+                border-bottom: 3px solid transparent;
+                margin: 2px 8px;
+            }
+            .sidebar .nav-link:hover {
+                transform: none;
+                border-right: none;
+                border-bottom-color: var(--primary-light);
+            }
+            .sidebar .nav-link.active {
+                border-right: none;
+                border-bottom-color: var(--primary);
+            }
+            .main-content {
+                padding: 16px;
+            }
+            .stats-grid {
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+                gap: 12px;
+            }
+        }
+        @media (max-width: 640px) {
+            .sidebar {
+                width: 60px;
+                padding: 12px 0;
+            }
+            .sidebar .nav-link {
+                padding: 12px 0;
+                font-size: 0.8rem;
+            }
+            .main-content {
+                padding: 12px;
+            }
+            .top-bar .page-title h1 {
+                font-size: 1.2rem;
+            }
+            .stats-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 10px;
+            }
+            .stat-card {
+                padding: 14px 16px;
+            }
+            .stat-card .stat-icon {
+                width: 40px;
+                height: 40px;
+                font-size: 1.1rem;
+            }
+            .stat-card .stat-info h3 {
+                font-size: 1.1rem;
+            }
+            .modal-content {
+                padding: 20px;
+                width: 98%;
+            }
+            .card-section {
+                padding: 16px;
+            }
+            .tabs .tab-btn {
+                padding: 8px 14px;
+                font-size: 0.8rem;
+            }
+            .table th,
+            .table td {
+                padding: 10px 12px;
+                font-size: 0.8rem;
+            }
+            .flex-row .flex-1 {
+                min-width: 100%;
+            }
+            .payment-method-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            .currency-select-group {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .currency-select-group select {
+                width: 100%;
+            }
+        }
+
+        /* ===== PRINT STYLES ===== */
+        @media print {
+            .sidebar,
+            .top-bar,
+            .stats-grid,
+            .tabs,
+            .tab-content:not(#modal-statement),
+            .btn,
+            .modal-close,
+            .modal-actions,
+            .theme-toggle,
+            .no-print,
+            .app-wrapper .main-content > *:not(.modal) {
+                display: none !important;
+            }
+            .modal {
+                position: relative !important;
+                background: white !important;
+                backdrop-filter: none !important;
+                display: block !important;
+                width: 100% !important;
+                height: auto !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                box-shadow: none !important;
+                border: none !important;
+            }
+            .modal-content {
+                max-width: 100% !important;
+                padding: 20px !important;
+                box-shadow: none !important;
+                border: none !important;
+                border-radius: 0 !important;
+                overflow: visible !important;
+                max-height: none !important;
+                background: white !important;
+            }
+            .modal-actions,
+            .modal-close {
+                display: none !important;
+            }
+            #modal-statement {
+                display: block !important;
+            }
+            #statement-details-area {
+                display: block !important;
+                width: 100% !important;
+                padding: 0 !important;
+            }
+            .table-wrapper {
+                border: none !important;
+                overflow: visible !important;
+            }
+            .table {
+                border: 1px solid #ccc !important;
+                font-size: 0.85rem !important;
+                width: 100% !important;
+                border-collapse: collapse !important;
+            }
+            .table th {
+                background: #f1f5f9 !important;
+                color: #0f172a !important;
+                border-bottom: 2px solid #0f172a !important;
+                padding: 8px 10px !important;
+            }
+            .table td {
+                border-bottom: 1px solid #ddd !important;
+                padding: 6px 10px !important;
+            }
+            .table tbody tr {
+                page-break-inside: avoid;
+                break-inside: avoid;
+            }
+            .badge {
+                border: 1px solid #999 !important;
+                background: #f9f9f9 !important;
+                color: #0f172a !important;
+            }
+            .print-header {
+                display: block !important;
+                text-align: center;
+                font-size: 1.6rem;
+                font-weight: 800;
+                margin-bottom: 20px;
+                border-bottom: 3px solid #0f172a;
+                padding-bottom: 10px;
+                color: #0f172a;
+            }
+            .print-header small {
+                display: block;
+                font-weight: 400;
+                font-size: 0.9rem;
+                color: #555;
+            }
+            .card-section,
+            .stat-card {
+                background: white !important;
+                border: 1px solid #ddd !important;
+                box-shadow: none !important;
+            }
+            .modal-content,
+            #statement-details-area {
+                page-break-inside: avoid;
+                break-inside: avoid;
+            }
+        }
+        .print-header {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-wrapper">
+        <div id="sidebar-container"></div>
+
+        <!-- ===== MAIN ===== -->
+        <main class="main-content">
+
+            <!-- TOP BAR -->
+            <div class="top-bar">
+                <div class="page-title">
+                    <h1><i class="fas fa-users" style="color:var(--primary);-webkit-text-fill-color:var(--primary);"></i> إدارة العملاء</h1>
+                    <p>مرحباً بك في لوحة تحكم العملاء — تتبع الديون، إدارة المدفوعات، وكشوف الحسابات</p>
+                </div>
+                <div class="actions">
+                    <button class="theme-toggle" onclick="toggleTheme()" title="تبديل الوضع">
+                        <i class="fas fa-moon" id="theme-icon"></i>
+                    </button>
+                    <button class="btn btn-primary" onclick="openAddCustomerModal()">
+                        <i class="fas fa-plus"></i> عميل جديد
+                    </button>
+                </div>
+            </div>
+
+            <!-- STATS -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon blue"><i class="fas fa-users"></i></div>
+                    <div class="stat-info">
+                        <h3 id="stat-total-customers">0</h3>
+                        <p>إجمالي العملاء</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon red"><i class="fas fa-hand-holding-usd"></i></div>
+                    <div class="stat-info">
+                        <h3 id="stat-total-debt">0 <small style="font-size:0.6rem;font-weight:400;">ريال</small></h3>
+                        <p>إجمالي الديون</p>
+                    </div>
+                    <span class="stat-trend" id="stat-debt-trend"><i class="fas fa-arrow-up"></i> 12%</span>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon green"><i class="fas fa-check-circle"></i></div>
+                    <div class="stat-info">
+                        <h3 id="stat-paid-today">0 <small style="font-size:0.6rem;font-weight:400;">ريال</small></h3>
+                        <p>المدفوعات اليوم</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon yellow"><i class="fas fa-clock"></i></div>
+                    <div class="stat-info">
+                        <h3 id="stat-pending-invoices">0</h3>
+                        <p>فواتير معلقة</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon purple"><i class="fas fa-receipt"></i></div>
+                    <div class="stat-info">
+                        <h3 id="stat-total-invoices">0</h3>
+                        <p>إجمالي الفواتير</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TABS -->
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="tab-customers">
+                    <i class="fas fa-list"></i> العملاء
+                </button>
+                <button class="tab-btn" data-tab="tab-invoices">
+                    <i class="fas fa-receipt"></i> الفواتير المعلقة
+                </button>
+                <button class="tab-btn" data-tab="tab-payments">
+                    <i class="fas fa-hand-holding-usd"></i> سند قبض
+                </button>
+            </div>
+
+            <!-- ===== TAB 1: CUSTOMERS ===== -->
+            <div id="tab-customers" class="tab-content active">
+                <div class="card-section">
+                    <div class="card-header">
+                        <h4><i class="fas fa-search"></i> البحث والفلترة</h4>
+                        <span style="font-size:0.8rem;color:var(--text-muted);" id="customer-count">0 عميل</span>
+                    </div>
+                    <div class="search-wrapper">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="search-customer" class="input-field" placeholder="ابحث بالاسم، الهاتف، أو العنوان..." onkeyup="filterCustomers()" />
+                    </div>
+                </div>
+
+                <div class="card-section">
+                    <div class="card-header">
+                        <h4><i class="fas fa-table"></i> قائمة العملاء</h4>
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                            <button class="btn btn-outline btn-sm" onclick="refreshCustomers()"><i class="fas fa-sync-alt"></i> تحديث</button>
+                        </div>
+                    </div>
+                    <div class="table-wrapper">
+                        <table class="table" id="customers-table">
+                            <thead>
+                                <tr>
+                                    <th style="width:50px;">#</th>
+                                    <th>الاسم</th>
+                                    <th>الهاتف</th>
+                                    <th>الرصيد الحالي</th>
+                                    <th style="min-width:200px;">الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="customers-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== TAB 2: INVOICES (PENDING) ===== -->
+            <div id="tab-invoices" class="tab-content">
+                <div class="card-section">
+                    <div class="card-header">
+                        <h4><i class="fas fa-clock" style="color:var(--warning);"></i> الفواتير المعلقة (آجلة)</h4>
+                        <span style="font-size:0.8rem;color:var(--text-muted);" id="pending-invoices-count">0 فاتورة</span>
+                    </div>
+                    <div class="table-wrapper">
+                        <table class="table" id="pending-invoices-table">
+                            <thead>
+                                <tr>
+                                    <th># الفاتورة</th>
+                                    <th>العميل</th>
+                                    <th>التاريخ</th>
+                                    <th>المبلغ</th>
+                                    <th>المدفوع</th>
+                                    <th>المتبقي</th>
+                                    <th>الحالة</th>
+                                    <th>الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="pending-invoices-tbody">
+                                <tr><td colspan="8" class="text-center text-muted">جاري التحميل...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="card-section" style="background:var(--warning-light);border-color:var(--warning);">
+                    <div style="display:flex;flex-wrap:wrap;gap:16px;justify-content:space-around;">
+                        <div><strong>إجمالي المبالغ المستحقة:</strong> <span id="pending-total-amount" style="font-size:1.2rem;font-weight:800;color:var(--danger);">0.00</span> ريال</div>
+                        <div><strong>عدد الفواتير المتأخرة:</strong> <span id="pending-overdue-count" style="font-weight:800;color:var(--danger);">0</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== TAB 3: PAYMENTS ===== -->
+            <div id="tab-payments" class="tab-content">
+                <div class="card-section">
+                    <div class="card-header">
+                        <h4><i class="fas fa-hand-holding-usd" style="color:var(--success);"></i> إصدار سند قبض</h4>
+                        <span class="badge badge-info">استلام دفعة من العميل</span>
+                    </div>
+
+                    <div class="flex-row" style="margin-bottom:12px;">
+                        <div class="flex-1">
+                            <div class="input-group">
+                                <label>العميل <span class="required">*</span></label>
+                                <select id="pay-customer-id" class="input-field"></select>
+                            </div>
+                        </div>
+                        <div class="flex-1" id="amount-field-wrapper">
+                            <div class="input-group">
+                                <label>المبلغ الإجمالي <span class="required">*</span></label>
+                                <input type="number" id="pay-amount" class="input-field" step="0.01" placeholder="أدخل المبلغ" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- طريقة الدفع -->
+                    <div class="input-group" style="margin-bottom:12px;">
+                        <label>طريقة الدفع</label>
+                        <div class="payment-method-grid">
+                            <div class="payment-method-option active" data-method="cash" onclick="selectPaymentMethod('cash')">
+                                <i class="fas fa-money-bill-wave"></i> نقداً
+                            </div>
+                            <div class="payment-method-option" data-method="wallet" onclick="selectPaymentMethod('wallet')">
+                                <i class="fas fa-wallet"></i> محفظة
+                            </div>
+                            <div class="payment-method-option" data-method="mixed" onclick="selectPaymentMethod('mixed')">
+                                <i class="fas fa-arrows-left-right"></i> مختلط
+                            </div>
+                        </div>
+                        <input type="hidden" id="pay-method" value="cash" />
+                    </div>
+
+                    <!-- ===== إختيار العملة ===== -->
+                    <div class="currency-select-group" style="margin-bottom:12px;">
+                        <label for="pay-currency">العملة:</label>
+                        <select id="pay-currency" class="input-field" onchange="updateCurrencyInfo()">
+                            <!-- سيتم تعبئتها عبر JavaScript -->
+                        </select>
+                        <span class="rate-display" id="pay-currency-rate">سعر الصرف: 1 = 1 ريال</span>
+                    </div>
+
+                    <!-- حقل المحفظة للدفع العادي -->
+                    <div id="pay-wallet-div-single" style="display:none; margin-bottom:12px;">
+                        <div class="input-group">
+                            <label>اختر المحفظة</label>
+                            <select id="pay-wallet-id-single" class="input-field"></select>
+                        </div>
+                        <!-- عرض رصيد المحفظة بالعملة المختارة -->
+                        <div id="single-wallet-balance" class="converted-amount-display" style="margin-top:4px;">
+                            رصيد المحفظة: 0.00
+                        </div>
+                    </div>
+
+                    <!-- الدفع المختلط -->
+                    <div id="mixed-payment-fields" style="display:none;">
+                        <div class="flex-row">
+                            <div class="flex-1">
+                                <div class="input-group">
+                                    <label>المبلغ النقدي</label>
+                                    <input type="number" id="pay-cash-amount" class="input-field" step="0.01" value="0" oninput="updateMixedTotal()" />
+                                    <span class="rate-display" id="cash-currency-rate">سعر الصرف: 1 = 1 ريال</span>
+                                </div>
+                            </div>
+                            <div class="flex-1">
+                                <div class="input-group">
+                                    <label>المبلغ من المحفظة</label>
+                                    <input type="number" id="pay-wallet-amount" class="input-field" step="0.01" value="0" oninput="updateMixedTotal()" />
+                                    <span class="rate-display" id="wallet-currency-rate">سعر الصرف: 1 = 1 ريال</span>
+                                </div>
+                            </div>
+                            <div class="flex-1">
+                                <div class="input-group">
+                                    <label>المحفظة</label>
+                                    <select id="pay-wallet-id" class="input-field" onchange="updateMixedWalletBalance()"></select>
+                                    <div id="mixed-wallet-balance" class="converted-amount-display" style="margin-top:4px;">
+                                        رصيد المحفظة: 0.00
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="total-badge">
+                            الإجمالي المدفوع: <span id="mixed-total-display">0.00</span> ريال
+                        </div>
+                    </div>
+
+                    <!-- ملاحظات -->
+                    <div class="input-group" style="margin-top:12px;">
+                        <label>ملاحظات (اختياري)</label>
+                        <textarea id="pay-note" class="input-field" rows="2" placeholder="أضف ملاحظة حول الدفعة..."></textarea>
+                    </div>
+
+                    <button class="btn btn-success mt-10" onclick="executeQuickPayment()" style="width:100%;padding:14px;font-size:1rem;">
+                        <i class="fas fa-check-circle"></i> استلام الدفعة
+                    </button>
+                </div>
+
+                <!-- آخر المدفوعات -->
+                <div class="card-section">
+                    <div class="card-header">
+                        <h4><i class="fas fa-clock-rotate-left"></i> آخر المدفوعات</h4>
+                        <span style="font-size:0.8rem;color:var(--text-muted);">تحديث تلقائي</span>
+                    </div>
+                    <div class="table-wrapper">
+                        <table class="table">
+                            <thead>
+                                <tr><th>العميل</th><th>المبلغ</th><th>الطريقة</th><th>التاريخ</th></tr>
+                            </thead>
+                            <tbody id="recent-payments-tbody">
+                                <tr><td colspan="4" class="text-center text-muted">لا توجد مدفوعات حديثة</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- ملخص المدفوعات اليومية -->
+                <div class="card-section" style="background:var(--success-light);border-color:var(--success);">
+                    <div style="display:flex;flex-wrap:wrap;gap:16px;justify-content:space-around;">
+                        <div><strong>إجمالي المدفوعات اليوم:</strong> <span id="today-payments-total" style="font-size:1.2rem;font-weight:800;color:var(--success);">0.00</span> ريال</div>
+                        <div><strong>عدد المدفوعات اليوم:</strong> <span id="today-payments-count" style="font-weight:800;">0</span></div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- ===== MODALS ===== -->
+
+    <!-- Modal: سند القبض -->
+    <div id="modal-payment" class="modal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeModal('modal-payment')">&times;</button>
+            <div class="modal-title"><i class="fas fa-file-invoice"></i> تفاصيل سند القبض</div>
+            <div id="payment-details-area">جاري التحميل...</div>
+            <div class="modal-actions">
+                <button class="btn btn-primary btn-sm no-print" onclick="window.print()"><i class="fas fa-print"></i> طباعة</button>
+                <button class="btn btn-outline btn-sm" onclick="closeModal('modal-payment')">إغلاق</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: مشتريات العميل -->
+    <div id="modal-purchases" class="modal">
+        <div class="modal-content" style="max-width:900px;">
+            <button class="modal-close" onclick="closeModal('modal-purchases')">&times;</button>
+            <div class="modal-title"><i class="fas fa-history"></i> تاريخ مشتريات العميل</div>
+            <div id="purchases-list-area">جاري التحميل...</div>
+            <div class="modal-actions">
+                <button class="btn btn-outline btn-sm" onclick="closeModal('modal-purchases')">إغلاق</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: تفاصيل الفاتورة -->
+    <div id="modal-invoice" class="modal">
+        <div class="modal-content" style="max-width:900px;">
+            <button class="modal-close" onclick="closeModal('modal-invoice')">&times;</button>
+            <div class="modal-title"><i class="fas fa-receipt"></i> تفاصيل الفاتورة</div>
+            <div id="invoice-details-area">جاري التحميل...</div>
+            <div class="modal-actions">
+                <button class="btn btn-primary btn-sm no-print" onclick="window.print()"><i class="fas fa-print"></i> طباعة</button>
+                <button class="btn btn-warning btn-sm no-print" id="btn-edit-invoice" onclick="editInvoice()"><i class="fas fa-edit"></i> تعديل</button>
+                <button class="btn btn-danger btn-sm no-print" id="btn-cancel-invoice" onclick="cancelInvoice()"><i class="fas fa-times-circle"></i> إلغاء</button>
+                <button class="btn btn-outline btn-sm" onclick="closeModal('modal-invoice')">إغلاق</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: كشف حساب العميل -->
+    <div id="modal-statement" class="modal">
+        <div class="modal-content" style="max-width:950px;">
+            <button class="modal-close" onclick="closeModal('modal-statement')">&times;</button>
+            <div class="modal-title"><i class="fas fa-chart-line"></i> كشف حساب العميل</div>
+            <div id="statement-details-area">جاري التحميل...</div>
+            <div class="modal-actions">
+                <button class="btn btn-primary btn-sm no-print" onclick="window.print()"><i class="fas fa-print"></i> طباعة الكشف</button>
+                <button class="btn btn-outline btn-sm" onclick="closeModal('modal-statement')">إغلاق</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== NEW: Modal for customer payments (receipts) ===== -->
+    <div id="modal-customer-payments" class="modal">
+        <div class="modal-content" style="max-width:900px;">
+            <button class="modal-close" onclick="closeModal('modal-customer-payments')">&times;</button>
+            <div class="modal-title"><i class="fas fa-file-invoice"></i> سندات القبض للعميل</div>
+            <div id="customer-payments-list">جاري التحميل...</div>
+            <div style="margin-top:15px; display:flex; gap:10px; flex-wrap:wrap;">
+                <button class="btn btn-success" onclick="openAddPaymentFromModal()"><i class="fas fa-plus"></i> إضافة سند قبض</button>
+                <button class="btn btn-outline btn-sm" onclick="closeModal('modal-customer-payments')">إغلاق</button>
+            </div>
+            <div class="modal-actions">
+                <!-- يمكن إضافة أزرار إضافية هنا -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: إضافة / تعديل عميل -->
+    <div id="modal-customer" class="modal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeModal('modal-customer')">&times;</button>
+            <div class="modal-title" id="modal-customer-title"><i class="fas fa-user-plus"></i> إضافة عميل جديد</div>
+            <form id="customer-form" onsubmit="saveCustomer(event)">
+                <div class="input-group" style="margin-bottom:12px;">
+                    <label>الاسم <span class="required">*</span></label>
+                    <input type="text" id="c-name" class="input-field" required placeholder="أدخل اسم العميل" />
+                </div>
+                <div class="flex-row" style="margin-bottom:12px;">
+                    <div class="flex-1">
+                        <div class="input-group">
+                            <label>الهاتف</label>
+                            <input type="text" id="c-phone" class="input-field" placeholder="رقم الهاتف" />
+                        </div>
+                    </div>
+                    <div class="flex-1">
+                        <div class="input-group">
+                            <label>العنوان</label>
+                            <input type="text" id="c-address" class="input-field" placeholder="العنوان" />
+                        </div>
+                    </div>
+                </div>
+                <div class="input-group" style="margin-bottom:16px;">
+                    <label>الرصيد الابتدائي (مدين)</label>
+                    <input type="number" step="0.01" id="c-initial-balance" class="input-field" value="0" placeholder="0.00" />
+                </div>
+                <button type="submit" class="btn btn-primary" style="width:100%;padding:14px;">
+                    <i class="fas fa-save"></i> حفظ العميل
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ===== TOASTS ===== -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- ============================================================ -->
+    <!-- ===== JAVASCRIPT ===== -->
+    <script>
+        // ===== CONFIG =====
+        const API = 'https://api.ibnalmukhtar.com';
+        let token = localStorage.getItem('pos_token') || '';
+        let currentInvoiceId = null;
+        let selectedPaymentMethod = 'cash';
+        let currentCustomerIdForPayments = null; // used in the receipts modal
+
+        // ===== متغيرات العملات والمحافظ =====
+        let currenciesCache = [];
+        let walletsCache = [];
+
+        // ===== دوال مساعدة للعملات =====
+        function getCurrencyRate(currencyId) {
+            if (!currencyId) return 1;
+            const c = currenciesCache.find(cur => cur.id === currencyId);
+            return c && typeof c.rate_to_base === 'number' && isFinite(c.rate_to_base) ? c.rate_to_base : 1;
+        }
+
+        function getCurrencyCode(currencyId) {
+            const c = currenciesCache.find(cur => cur.id === currencyId);
+            return c ? c.code : 'YER';
+        }
+
+        function getCurrencyName(currencyId) {
+            const c = currenciesCache.find(cur => cur.id === currencyId);
+            return c ? c.name : 'ريال يمني';
+        }
+
+        // ===== تحميل العملات والمحافظ =====
+        async function loadCurrencies() {
+            try {
+                const res = await fetch(`${API}/currencies`, { headers: { 'Authorization': `Bearer ${token}` } });
+                const data = await res.json();
+                currenciesCache = data.currencies || [];
+                populateCurrencySelects();
+                updateCurrencyInfo();
+            } catch (err) {
+                console.warn('فشل تحميل العملات', err);
+                currenciesCache = [];
+            }
+        }
+
+        function populateCurrencySelects() {
+            const mainSelect = document.getElementById('pay-currency');
+            if (mainSelect) {
+                mainSelect.innerHTML = currenciesCache.map(c =>
+                    `<option value="${c.id}">${c.code} - ${c.name}</option>`
+                ).join('');
+                const base = currenciesCache.find(c => c.is_base === 1 || c.is_base === true);
+                if (base) mainSelect.value = base.id;
+            }
+            updateCurrencyInfo();
+        }
+
+        function updateCurrencyInfo() {
+            const currencyId = parseInt(document.getElementById('pay-currency').value);
+            if (currencyId) {
+                const rate = getCurrencyRate(currencyId);
+                const code = getCurrencyCode(currencyId);
+                document.getElementById('pay-currency-rate').textContent =
+                    `سعر الصرف: 1 ${code} = ${rate.toFixed(4)} ريال`;
+                document.getElementById('cash-currency-rate').textContent =
+                    `سعر الصرف: 1 ${code} = ${rate.toFixed(4)} ريال`;
+                document.getElementById('wallet-currency-rate').textContent =
+                    `سعر الصرف: 1 ${code} = ${rate.toFixed(4)} ريال`;
+                updateWalletBalanceDisplay();
+            }
+        }
+
+        async function loadWalletsForPayment() {
+            try {
+                const res = await fetch(`${API}/wallets`, { headers: { 'Authorization': `Bearer ${token}` } });
+                if (!res.ok) throw new Error('فشل تحميل المحافظ');
+                const data = await res.json();
+                walletsCache = data.wallets || [];
+                populateWalletSelects();
+                if (walletsCache.length === 0) {
+                    showToast('⚠️ لا توجد محافظ مسجلة، أضف محفظة أولاً.', 'warning');
+                }
+            } catch (err) {
+                console.error('فشل تحميل المحافظ:', err);
+                showToast('❌ خطأ في تحميل المحافظ', 'error');
+                walletsCache = [];
+                populateWalletSelects();
+            }
+        }
+
+        function populateWalletSelects() {
+            const singleSelect = document.getElementById('pay-wallet-id-single');
+            const mixedSelect = document.getElementById('pay-wallet-id');
+            const options = walletsCache.map(w =>
+                `<option value="${w.id}">${w.name}</option>`
+            ).join('');
+            const emptyOption = '<option value="">-- لا توجد محافظ --</option>';
+            const finalOptions = walletsCache.length > 0 ? options : emptyOption;
+            singleSelect.innerHTML = finalOptions;
+            mixedSelect.innerHTML = finalOptions;
+            updateWalletBalanceDisplay();
+        }
+
+        function updateWalletBalanceDisplay() {
+            // single
+            const singleWalletId = document.getElementById('pay-wallet-id-single').value;
+            const singleBalanceDiv = document.getElementById('single-wallet-balance');
+            if (singleWalletId && singleBalanceDiv) {
+                const wallet = walletsCache.find(w => w.id == singleWalletId);
+                if (wallet) {
+                    const currencyId = parseInt(document.getElementById('pay-currency').value);
+                    const balances = wallet.balances || [];
+                    const balance = balances.find(b => b.currency_id === currencyId);
+                    if (balance) {
+                        singleBalanceDiv.textContent = `رصيد المحفظة: ${balance.balance.toFixed(2)} ${getCurrencyCode(currencyId)}`;
+                    } else {
+                        singleBalanceDiv.textContent = `رصيد المحفظة: 0.00 ${getCurrencyCode(currencyId)}`;
+                    }
+                } else {
+                    singleBalanceDiv.textContent = 'رصيد المحفظة: غير متاح';
+                }
+            }
+            // mixed
+            const mixedWalletId = document.getElementById('pay-wallet-id').value;
+            const mixedBalanceDiv = document.getElementById('mixed-wallet-balance');
+            if (mixedWalletId && mixedBalanceDiv) {
+                const wallet = walletsCache.find(w => w.id == mixedWalletId);
+                if (wallet) {
+                    const currencyId = parseInt(document.getElementById('pay-currency').value);
+                    const balances = wallet.balances || [];
+                    const balance = balances.find(b => b.currency_id === currencyId);
+                    if (balance) {
+                        mixedBalanceDiv.textContent = `رصيد المحفظة: ${balance.balance.toFixed(2)} ${getCurrencyCode(currencyId)}`;
+                    } else {
+                        mixedBalanceDiv.textContent = `رصيد المحفظة: 0.00 ${getCurrencyCode(currencyId)}`;
+                    }
+                } else {
+                    mixedBalanceDiv.textContent = 'رصيد المحفظة: غير متاح';
+                }
+            }
+        }
+
+        function updateMixedWalletBalance() {
+            updateWalletBalanceDisplay();
+        }
+
+        // ===== TOAST =====
+        function showToast(msg, type = 'info') {
+            const c = document.getElementById('toast-container');
+            const t = document.createElement('div');
+            t.className = `toast ${type}`;
+            const icons = {
+                success: 'fa-check-circle',
+                error: 'fa-exclamation-circle',
+                warning: 'fa-exclamation-triangle',
+                info: 'fa-info-circle'
+            };
+            t.innerHTML = `<i class="fas ${icons[type] || icons.info}"></i> ${msg}`;
+            c.appendChild(t);
+            setTimeout(() => t.remove(), 4500);
+        }
+
+        // ===== THEME =====
+        let darkMode = localStorage.getItem('darkMode') === 'true';
+        if (darkMode) {
+            document.documentElement.setAttribute('data-theme', 'dark');
+            document.getElementById('theme-icon').className = 'fas fa-sun';
+        }
+
+        function toggleTheme() {
+            darkMode = !darkMode;
+            document.documentElement.setAttribute('data-theme', darkMode ? 'dark' : '');
+            document.getElementById('theme-icon').className = darkMode ? 'fas fa-sun' : 'fas fa-moon';
+            localStorage.setItem('darkMode', darkMode);
+        }
+
+        // ===== MODALS =====
+        function openModal(id) { document.getElementById(id).classList.add('open'); }
+
+        function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+        function formatDate(dateStr) {
+            return new Date(dateStr).toLocaleDateString('ar-EG') + ' ' + new Date(dateStr).toLocaleTimeString('ar-EG', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        // ===== TABS =====
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                this.classList.add('active');
+                const tabId = this.dataset.tab;
+                document.getElementById(tabId).classList.add('active');
+                if (tabId === 'tab-payments') {
+                    loadWalletsForPayment();
+                    loadRecentPayments();
+                }
+                if (tabId === 'tab-invoices') loadPendingInvoices();
+            });
+        });
+
+        // ===== PAYMENT METHOD =====
+        function selectPaymentMethod(method) {
+            selectedPaymentMethod = method;
+            document.getElementById('pay-method').value = method;
+            document.querySelectorAll('.payment-method-option').forEach(el => {
+                el.classList.toggle('active', el.dataset.method === method);
+            });
+            const mixedDiv = document.getElementById('mixed-payment-fields');
+            const walletSingle = document.getElementById('pay-wallet-div-single');
+            const amountWrapper = document.getElementById('amount-field-wrapper');
+            const payAmount = document.getElementById('pay-amount');
+
+            if (method === 'mixed') {
+                amountWrapper.style.display = 'none';
+                mixedDiv.style.display = 'block';
+                walletSingle.style.display = 'none';
+                updateMixedTotal();
+                loadWalletsForPayment();
+            } else if (method === 'wallet') {
+                amountWrapper.style.display = 'block';
+                payAmount.disabled = false;
+                payAmount.value = '';
+                mixedDiv.style.display = 'none';
+                walletSingle.style.display = 'block';
+                loadWalletsForPayment();
+            } else {
+                amountWrapper.style.display = 'block';
+                payAmount.disabled = false;
+                payAmount.value = '';
+                mixedDiv.style.display = 'none';
+                walletSingle.style.display = 'none';
+            }
+            updateCurrencyInfo();
+        }
+
+        function updateMixedTotal() {
+            const cash = parseFloat(document.getElementById('pay-cash-amount').value) || 0;
+            const wallet = parseFloat(document.getElementById('pay-wallet-amount').value) || 0;
+            const total = cash + wallet;
+            document.getElementById('pay-amount').value = total.toFixed(2);
+            document.getElementById('mixed-total-display').textContent = total.toFixed(2);
+            return total;
+        }
+
+        // ===== LOGOUT =====
+        function logout() {
+            if (confirm('تأكيد الخروج؟')) {
+                localStorage.removeItem('pos_token');
+                window.location.href = 'index.html';
+            }
+        }
+
+        // ===== LOAD CUSTOMERS =====
+        async function loadCustomers() {
+            try {
+                const res = await fetch(`${API}/customers`, { headers: { 'Authorization': `Bearer ${token}` } });
+                const data = await res.json();
+                const tbody = document.getElementById('customers-tbody');
+                const paySelect = document.getElementById('pay-customer-id');
+                tbody.innerHTML = '';
+                paySelect.innerHTML = '';
+
+                let totalDebt = 0;
+                data.customers.forEach((c, idx) => {
+                    const bal = parseFloat(c.balance) || 0;
+                    if (bal > 0) totalDebt += bal;
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${idx + 1}</td>
+                        <td><strong>${c.name}</strong></td>
+                        <td>${c.phone || '-'}</td>
+                        <td><span class="badge ${bal > 0 ? 'badge-debt' : 'badge-credit'}">${bal.toFixed(2)} ريال</span></td>
+                        <td>
+                            <div class="actions-cell">
+                                <button class="btn btn-info btn-xs" onclick="viewCustomerStatement(${c.id})" title="كشف حساب"><i class="fas fa-file-alt"></i> كشف</button>
+                                <button class="btn btn-primary btn-xs" onclick="viewCustomerPurchases(${c.id})" title="مشترياته"><i class="fas fa-shopping-cart"></i> مشتريات</button>
+                                <button class="btn btn-success btn-xs" onclick="openCustomerPaymentsModal(${c.id}, '${c.name}')" title="سندات"><i class="fas fa-file-invoice"></i> سندات</button>
+                            </div>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+
+                    const opt = document.createElement('option');
+                    opt.value = c.id;
+                    opt.textContent = c.name + (c.phone ? ` (${c.phone})` : '');
+                    paySelect.appendChild(opt);
+                });
+
+                document.getElementById('customer-count').textContent = data.customers.length + ' عميل';
+                document.getElementById('stat-total-customers').textContent = data.customers.length;
+                document.getElementById('stat-total-debt').innerHTML = totalDebt.toFixed(2) +
+                    ' <small style="font-size:0.6rem;font-weight:400;">ريال</small>';
+
+                await loadStats();
+                await loadPendingInvoices();
+                await loadRecentPayments();
+                await loadTodayPayments();
+
+            } catch (e) {
+                showToast('فشل تحميل العملاء', 'error');
+            }
+        }
+
+        async function loadStats() {
+            try {
+                const res = await fetch(`${API}/customers`, { headers: { 'Authorization': `Bearer ${token}` } });
+                const data = await res.json();
+                const debtCount = data.customers.filter(c => parseFloat(c.balance || 0) > 0).length;
+                document.getElementById('stat-pending-invoices').textContent = debtCount;
+                const trend = document.getElementById('stat-debt-trend');
+                const up = Math.random() > 0.5;
+                trend.className = 'stat-trend' + (up ? '' : ' down');
+                trend.innerHTML = `<i class="fas fa-arrow-${up ? 'up' : 'down'}"></i> ${(Math.random() * 20 + 2).toFixed(0)}%`;
+            } catch {}
+        }
+
+        // ===== PENDING INVOICES =====
+        async function loadPendingInvoices() {
+            try {
+                const res = await fetch(`${API}/sales`, { headers: { 'Authorization': `Bearer ${token}` } });
+                const data = await res.json();
+                const allSales = data.sales || [];
+                const pending = allSales.filter(s => {
+                    const method = (s.payment_method || '').toLowerCase();
+                    return method === 'credit' || method === 'آجل' || method === 'deferred';
+                });
+
+                const tbody = document.getElementById('pending-invoices-tbody');
+                if (pending.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">لا توجد فواتير معلقة</td></tr>';
+                    document.getElementById('pending-invoices-count').textContent = '0 فاتورة';
+                    document.getElementById('pending-total-amount').textContent = '0.00';
+                    document.getElementById('pending-overdue-count').textContent = '0';
+                    document.getElementById('stat-pending-invoices').textContent = '0';
+                    return;
+                }
+
+                let totalPending = 0;
+                let overdueCount = 0;
+                const now = new Date();
+                let rows = '';
+                pending.forEach((inv, idx) => {
+                    const total = parseFloat(inv.total_amount) || 0;
+                    const paid = parseFloat(inv.paid_amount) || 0;
+                    const remaining = total - paid;
+                    totalPending += remaining;
+                    const invDate = new Date(inv.created_at);
+                    const daysDiff = (now - invDate) / (1000 * 60 * 60 * 24);
+                    const isOverdue = daysDiff > 30 && remaining > 0.01;
+                    if (isOverdue) overdueCount++;
+
+                    rows += `
+                        <tr>
+                            <td><strong>#${inv.invoice_number || inv.id}</strong></td>
+                            <td>${inv.customer_name || 'غير معروف'}</td>
+                            <td>${formatDate(inv.created_at)}</td>
+                            <td>${total.toFixed(2)}</td>
+                            <td>${paid.toFixed(2)}</td>
+                            <td><span class="badge badge-debt">${remaining.toFixed(2)}</span></td>
+                            <td><span class="badge ${isOverdue ? 'badge-danger' : 'badge-warning'}">${isOverdue ? 'متأخرة' : 'معلقة'}</span></td>
+                            <td>
+                                <button class="btn btn-info btn-xs" onclick="viewInvoiceDetails(${inv.id})"><i class="fas fa-eye"></i> عرض</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+
+                tbody.innerHTML = rows;
+                document.getElementById('pending-invoices-count').textContent = pending.length + ' فاتورة';
+                document.getElementById('pending-total-amount').textContent = totalPending.toFixed(2);
+                document.getElementById('pending-overdue-count').textContent = overdueCount;
+                document.getElementById('stat-pending-invoices').textContent = pending.length;
+                document.getElementById('stat-total-invoices').textContent = allSales.length;
+
+            } catch (e) {
+                document.getElementById('pending-invoices-tbody').innerHTML =
+                    '<tr><td colspan="8" class="text-center text-danger">فشل تحميل الفواتير المعلقة</td></tr>';
+                console.error(e);
+            }
+        }
+
+        // ===== RECENT PAYMENTS =====
+        async function loadRecentPayments() {
+            try {
+                const res = await fetch(`${API}/customers/recent-payments`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!res.ok) throw new Error('No endpoint');
+                const data = await res.json();
+                const tbody = document.getElementById('recent-payments-tbody');
+                if (!data.payments || data.payments.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">لا توجد مدفوعات حديثة</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = data.payments.map(p => `
+                    <tr>
+                        <td>${p.customer_name || 'غير معروف'}</td>
+                        <td><strong>${parseFloat(p.amount).toFixed(2)} ريال</strong></td>
+                        <td><span class="badge badge-info">${p.payment_method || 'نقداً'}</span></td>
+                        <td>${formatDate(p.created_at)}</td>
+                    </tr>
+                `).join('');
+            } catch {
+                document.getElementById('recent-payments-tbody').innerHTML =
+                    '<tr><td colspan="4" class="text-center text-muted">لا توجد مدفوعات حديثة</td></tr>';
+            }
+        }
+
+        // ===== TODAY PAYMENTS =====
+        async function loadTodayPayments() {
+            try {
+                const res = await fetch(`${API}/customers/today-payments`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!res.ok) throw new Error('No endpoint');
+                const data = await res.json();
+                const total = data.total || 0;
+                const count = data.count || 0;
+                document.getElementById('stat-paid-today').innerHTML = total.toFixed(2) +
+                    ' <small style="font-size:0.6rem;font-weight:400;">ريال</small>';
+                document.getElementById('today-payments-total').textContent = total.toFixed(2);
+                document.getElementById('today-payments-count').textContent = count;
+            } catch {
+                try {
+                    const res2 = await fetch(`${API}/customers/recent-payments`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    const data2 = await res2.json();
+                    if (data2.payments) {
+                        const today = new Date().toDateString();
+                        const todayPayments = data2.payments.filter(p =>
+                            new Date(p.created_at).toDateString() === today
+                        );
+                        const total = todayPayments.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
+                        document.getElementById('stat-paid-today').innerHTML = total.toFixed(2) +
+                            ' <small style="font-size:0.6rem;font-weight:400;">ريال</small>';
+                        document.getElementById('today-payments-total').textContent = total.toFixed(2);
+                        document.getElementById('today-payments-count').textContent = todayPayments.length;
+                    }
+                } catch {}
+            }
+        }
+
+        // ===== FILTER CUSTOMERS =====
+        function filterCustomers() {
+            const search = document.getElementById('search-customer').value.toLowerCase().trim();
+            document.querySelectorAll('#customers-tbody tr').forEach(row => {
+                const text = row.innerText.toLowerCase();
+                row.style.display = text.includes(search) ? '' : 'none';
+            });
+        }
+
+        function refreshCustomers() {
+            loadCustomers();
+            showToast('تم تحديث القائمة', 'success');
+        }
+
+        // ===== ADD CUSTOMER =====
+        function openAddCustomerModal() {
+            document.getElementById('modal-customer-title').innerHTML = '<i class="fas fa-user-plus"></i> إضافة عميل جديد';
+            document.getElementById('customer-form').reset();
+            document.getElementById('c-initial-balance').value = '0';
+            openModal('modal-customer');
+        }
+
+        async function saveCustomer(e) {
+            e.preventDefault();
+            const body = {
+                name: document.getElementById('c-name').value.trim(),
+                phone: document.getElementById('c-phone').value.trim(),
+                address: document.getElementById('c-address').value.trim(),
+                initial_balance: parseFloat(document.getElementById('c-initial-balance').value) || 0
+            };
+            if (!body.name) return showToast('الاسم مطلوب', 'warning');
+            try {
+                const res = await fetch(`${API}/customers`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    showToast('تمت إضافة العميل بنجاح', 'success');
+                    closeModal('modal-customer');
+                    loadCustomers();
+                } else {
+                    showToast(data.error || 'خطأ في الإضافة', 'error');
+                }
+            } catch { showToast('خطأ في الاتصال', 'error'); }
+        }
+
+        // ===== CUSTOMER PAYMENTS MODAL =====
+        function openCustomerPaymentsModal(customerId, customerName) {
+            currentCustomerIdForPayments = customerId;
+            document.getElementById('customer-payments-list').innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin fa-2x"></i><br>جاري تحميل السندات...</div>';
+            openModal('modal-customer-payments');
+            // Set title
+            document.querySelector('#modal-customer-payments .modal-title').innerHTML =
+                `<i class="fas fa-file-invoice"></i> سندات القبض للعميل: ${customerName}`;
+            loadCustomerPayments(customerId);
+        }
+
+        async function loadCustomerPayments(customerId) {
+            try {
+                // We'll fetch statement to get payments only
+                const res = await fetch(`${API}/customers/statement?customer_id=${customerId}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                const payments = data.statement.filter(s => s.type === 'payment');
+                const container = document.getElementById('customer-payments-list');
+                if (payments.length === 0) {
+                    container.innerHTML = '<p class="text-muted text-center">لا توجد سندات قبض مسجلة لهذا العميل</p>';
+                    return;
+                }
+                // Sort by date descending
+                payments.sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+                let html = `<div class="table-wrapper"><table class="table"><thead>
+                    <tr><th>#</th><th>المبلغ</th><th>العملة</th><th>طريقة الدفع</th><th>المحفظة</th><th>التاريخ</th><th>ملاحظة</th><th>إلغاء</th></tr>
+                </thead><tbody>`;
+                payments.forEach((p, idx) => {
+                    const currencyId = p.currency_id || 1; // fallback
+                    const currencyCode = getCurrencyCode(currencyId);
+                    const currencyName = getCurrencyName(currencyId);
+                    const walletName = p.wallet_name || '-';
+                    const method = p.payment_method || 'نقداً';
+                    html += `
+                        <tr>
+                            <td>${idx+1}</td>
+                            <td><strong>${parseFloat(p.amount).toFixed(2)}</strong></td>
+                            <td><span class="badge badge-info">${currencyCode} (${currencyName})</span></td>
+                            <td>${method}</td>
+                            <td>${walletName}</td>
+                            <td>${formatDate(p.created_at)}</td>
+                            <td>${p.note || ''}</td>
+                            <td><button class="btn btn-danger btn-xs" onclick="cancelCustomerPayment(${p.id}, ${customerId})"><i class="fas fa-times"></i></button></td>
+                        </tr>
+                    `;
+                });
+                html += '</tbody></table></div>';
+                container.innerHTML = html;
+            } catch (e) {
+                document.getElementById('customer-payments-list').innerHTML =
+                    `<p class="text-danger text-center">فشل تحميل السندات: ${e.message}</p>`;
+                console.error(e);
+            }
+        }
+
+        // ===== CANCEL CUSTOMER PAYMENT =====
+        async function cancelCustomerPayment(paymentId, customerId) {
+            if (!confirm('هل أنت متأكد من إلغاء هذا السند؟')) return;
+            try {
+                const res = await fetch(`${API}/operations/cancel-payment`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ payment_type: 'customer', payment_id: paymentId })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    showToast('تم إلغاء السند بنجاح', 'success');
+                    // Reload payments list and refresh customer stats
+                    loadCustomerPayments(customerId);
+                    loadCustomers();
+                } else {
+                    showToast(data.error || 'فشل الإلغاء', 'error');
+                }
+            } catch (e) {
+                showToast('خطأ في الاتصال', 'error');
+            }
+        }
+
+        // ===== OPEN ADD PAYMENT FROM MODAL =====
+        function openAddPaymentFromModal() {
+            // Close the receipts modal and switch to the payment tab with the customer selected
+            closeModal('modal-customer-payments');
+            if (currentCustomerIdForPayments) {
+                document.getElementById('pay-customer-id').value = currentCustomerIdForPayments;
+                document.querySelector('[data-tab="tab-payments"]').click();
+                showToast('يمكنك إضافة سند قبض جديد للعميل', 'info');
+                document.getElementById('tab-payments').scrollIntoView({ behavior: 'smooth' });
+                loadWalletsForPayment();
+            }
+        }
+
+        // ===== QUICK PAY (used in payment tab) =====
+        async function executeQuickPayment() {
+            const customer_id = document.getElementById('pay-customer-id').value;
+            const method = document.getElementById('pay-method').value;
+            const note = document.getElementById('pay-note').value;
+            const currency_id = parseInt(document.getElementById('pay-currency').value);
+
+            let totalAmount = 0;
+            let cashPaid = 0,
+                walletPaid = 0;
+            let cashCurrencyId = currency_id,
+                walletCurrencyId = currency_id;
+
+            if (!customer_id) return showToast('اختر عميلاً أولاً', 'warning');
+
+            if (method === 'mixed') {
+                cashPaid = parseFloat(document.getElementById('pay-cash-amount').value) || 0;
+                walletPaid = parseFloat(document.getElementById('pay-wallet-amount').value) || 0;
+                totalAmount = cashPaid + walletPaid;
+                if (totalAmount <= 0) return showToast('المبلغ الإجمالي يجب أن يكون أكبر من صفر', 'warning');
+                if (walletPaid > 0 && !document.getElementById('pay-wallet-id').value) {
+                    return showToast('اختر محفظة للمبلغ المدفوع منها', 'warning');
+                }
+                cashCurrencyId = currency_id;
+                walletCurrencyId = currency_id;
+            } else {
+                totalAmount = parseFloat(document.getElementById('pay-amount').value);
+                if (!totalAmount || totalAmount <= 0) return showToast('أدخل المبلغ بشكل صحيح', 'warning');
+                if (method === 'wallet' && !document.getElementById('pay-wallet-id-single').value) {
+                    return showToast('اختر محفظة', 'warning');
+                }
+                if (method === 'cash') {
+                    cashPaid = totalAmount;
+                    cashCurrencyId = currency_id;
+                } else if (method === 'wallet') {
+                    walletPaid = totalAmount;
+                    walletCurrencyId = currency_id;
+                }
+            }
+
+            let payload = {
+                customer_id: customer_id,
+                amount: totalAmount,
+                payment_method: method,
+                note: note || '',
+                currency_id: currency_id,
+                cash_currency_id: cashCurrencyId,
+                wallet_currency_id: walletCurrencyId
+            };
+
+            if (method === 'wallet') {
+                payload.wallet_id = document.getElementById('pay-wallet-id-single').value;
+                payload.wallet_amount = walletPaid;
+            } else if (method === 'mixed') {
+                if (Math.abs(cashPaid + walletPaid - totalAmount) > 0.01) {
+                    return showToast('مجموع النقد والمحفظة يجب أن يساوي المبلغ الإجمالي', 'error');
+                }
+                payload.cash_paid = cashPaid;
+                payload.wallet_paid = walletPaid;
+                if (walletPaid > 0) {
+                    payload.wallet_id = document.getElementById('pay-wallet-id').value;
+                }
+            } else {
+                payload.cash_paid = cashPaid;
+                payload.cash_currency_id = cashCurrencyId;
+            }
+
+            try {
+                const res = await fetch(`${API}/customers/payments`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    const currencyName = getCurrencyName(currency_id);
+                    showToast(`تم استلام ${totalAmount.toFixed(2)} ${currencyName} بنجاح. رقم السند: ${data.payment_id}`, 'success');
+                    document.getElementById('pay-amount').value = '';
+                    document.getElementById('pay-note').value = '';
+                    document.getElementById('pay-cash-amount').value = '0';
+                    document.getElementById('pay-wallet-amount').value = '0';
+                    document.getElementById('mixed-total-display').textContent = '0.00';
+                    loadCustomers();
+                    viewPaymentSlip(data.payment_id, customer_id);
+                } else {
+                    showToast(data.error || 'فشل العملية', 'error');
+                }
+            } catch { showToast('خطأ في الاتصال بالسيرفر', 'error'); }
+        }
+
+        // ===== VIEW PAYMENT SLIP =====
+        async function viewPaymentSlip(paymentId, customerId) {
+            openModal('modal-payment');
+            document.getElementById('payment-details-area').innerHTML =
+                '<div class="text-center"><i class="fas fa-spinner fa-spin fa-2x"></i><br>جاري التحميل...</div>';
+            try {
+                const res = await fetch(`${API}/customers/statement?customer_id=${customerId}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                const slip = data.statement.find(s => s.id == paymentId && s.type === 'payment');
+                if (slip) {
+                    const currencyId = slip.currency_id || 1;
+                    const currencyCode = getCurrencyCode(currencyId);
+                    const currencyName = getCurrencyName(currencyId);
+                    const walletDisplay = slip.wallet_name ? ` (المحفظة: ${slip.wallet_name})` : '';
+                    document.getElementById('payment-details-area').innerHTML = `
+                        <div class="print-header">سند قبض <small>رقم السند: #${slip.id}</small></div>
+                        <div style="border:3px dashed var(--primary); padding:24px; text-align:center; border-radius:12px; margin:8px 0; background:var(--bg);">
+                            <h3 style="font-size:1.8rem;font-weight:900;color:var(--primary);">سند قبض</h3>
+                            <p><strong>رقم السند:</strong> #${slip.id}</p>
+                            <p><strong>المبلغ:</strong> <span style="font-size:1.6rem;font-weight:900;color:var(--success);">${parseFloat(slip.amount).toFixed(2)}</span> ${currencyCode} (${currencyName})</p>
+                            <p><strong>طريقة الدفع:</strong> ${slip.payment_method || 'نقداً'} ${walletDisplay}</p>
+                            <p><strong>التاريخ:</strong> ${formatDate(slip.created_at)}</p>
+                            ${slip.note ? `<p><strong>ملاحظة:</strong> ${slip.note}</p>` : ''}
+                            <hr style="margin:16px 0;border-color:var(--border);">
+                            <small style="color:var(--text-muted);">تم الاستلام بنجاح ✓</small>
+                        </div>
+                    `;
+                } else {
+                    document.getElementById('payment-details-area').innerHTML =
+                        '<p class="text-danger text-center">لم يتم العثور على السند</p>';
+                }
+            } catch {
+                document.getElementById('payment-details-area').innerHTML =
+                    '<p class="text-danger text-center">خطأ في عرض السند</p>';
+            }
+        }
+
+        // ===== VIEW CUSTOMER STATEMENT (with currency) =====
+        async function viewCustomerStatement(customerId) {
+            openModal('modal-statement');
+            document.getElementById('statement-details-area').innerHTML =
+                '<div class="text-center"><i class="fas fa-spinner fa-spin fa-2x"></i><br>جاري حساب الكشف...</div>';
+            try {
+                const res = await fetch(`${API}/customers/statement?customer_id=${customerId}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                const movements = data.statement || [];
+                movements.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+
+                const displayMovements = [];
+                for (const m of movements) {
+                    if (m.type === 'payment') {
+                        displayMovements.push({
+                            ...m,
+                            displayType: 'دفعة',
+                            amount: parseFloat(m.amount) || 0,
+                            isPayment: true,
+                            isSale: false,
+                            currency_id: m.currency_id || 1,
+                            currency_code: getCurrencyCode(m.currency_id || 1)
+                        });
+                    } else if (m.type === 'sale') {
+                        try {
+                            const invRes = await fetch(`${API}/sales/${m.id}`, {
+                                headers: { 'Authorization': `Bearer ${token}` }
+                            });
+                            if (invRes.ok) {
+                                const inv = await invRes.json();
+                                const paymentMethod = (inv.payment_method || '').toLowerCase();
+                                if (paymentMethod === 'credit' || paymentMethod === 'آجل') {
+                                    displayMovements.push({
+                                        ...m,
+                                        displayType: 'فاتورة آجلة',
+                                        amount: parseFloat(m.total_amount) || 0,
+                                        isPayment: false,
+                                        isSale: true,
+                                        invoice_number: m.invoice_number,
+                                        payment_method: paymentMethod,
+                                        currency_id: inv.currency_id || 1,
+                                        currency_code: getCurrencyCode(inv.currency_id || 1)
+                                    });
+                                }
+                            } else {
+                                displayMovements.push({
+                                    ...m,
+                                    displayType: 'فاتورة آجلة',
+                                    amount: parseFloat(m.total_amount) || 0,
+                                    isPayment: false,
+                                    isSale: true,
+                                    invoice_number: m.invoice_number || m.id,
+                                    payment_method: 'credit',
+                                    currency_id: 1,
+                                    currency_code: 'YER'
+                                });
+                            }
+                        } catch (e) {
+                            console.warn('خطأ في جلب تفاصيل الفاتورة', m.id, e);
+                        }
+                    }
+                }
+
+                displayMovements.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+
+                let balance = 0;
+                let rows = '';
+                if (displayMovements.length === 0) {
+                    rows = `<tr><td colspan="7" class="text-center text-muted">لا توجد حركات (فواتير آجلة أو مدفوعات) لهذا العميل</td></tr>`;
+                } else {
+                    rows = displayMovements.map(m => {
+                        let debit = 0,
+                            credit = 0;
+                        if (m.isSale) {
+                            debit = m.amount;
+                            balance += debit;
+                        } else if (m.isPayment) {
+                            credit = m.amount;
+                            balance -= credit;
+                        }
+                        const currencyDisplay = m.currency_code ? `${m.currency_code}` : 'YER';
+                        return `
+                            <tr>
+                                <td>${formatDate(m.created_at)}</td>
+                                <td>${m.displayType}</td>
+                                <td>${m.isSale ? 'فاتورة #'+m.invoice_number : 'سند قبض #'+m.id}</td>
+                                <td style="text-align:left;color:${m.isSale ? 'var(--danger)' : 'var(--success)'};">${m.amount.toFixed(2)} ${currencyDisplay}</td>
+                                <td style="text-align:left;">${m.isSale ? 'مدين' : 'دائن'}</td>
+                                <td style="text-align:left;"><span class="badge ${balance > 0.01 ? 'badge-debt' : 'badge-credit'}">${balance.toFixed(2)} ريال</span></td>
+                            </tr>
+                        `;
+                    }).join('');
+                }
+
+                const finalBalance = balance;
+                const content = `
+                    <div class="print-header">كشف حساب العميل <small>رقم العميل: ${customerId}</small></div>
+                    <div style="margin-bottom:16px;padding:16px;background:var(--bg);border-radius:var(--radius-sm);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;">
+                        <strong style="font-size:1.1rem;">الرصيد النهائي المستحق:</strong>
+                        <span class="badge ${finalBalance > 0.01 ? 'badge-debt' : 'badge-credit'}" style="font-size:1.2rem;padding:8px 20px;">${finalBalance.toFixed(2)} ريال</span>
+                    </div>
+                    <div class="table-wrapper">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>التاريخ</th>
+                                    <th>النوع</th>
+                                    <th>البيان</th>
+                                    <th style="text-align:left;">المبلغ</th>
+                                    <th style="text-align:left;">مدين/دائن</th>
+                                    <th style="text-align:left;">الرصيد التراكمي</th>
+                                </tr>
+                            </thead>
+                            <tbody>${rows}</tbody>
+                        </table>
+                    </div>
+                    <div style="margin-top:12px;font-size:0.8rem;color:var(--text-muted);">
+                        * تعرض هذه القائمة الفواتير الآجلة والمدفوعات فقط. الفواتير النقدية لا تظهر لأنها لا تؤثر على الرصيد.
+                    </div>
+                `;
+
+                document.getElementById('statement-details-area').innerHTML = content;
+            } catch (error) {
+                document.getElementById('statement-details-area').innerHTML =
+                    `<p class="text-danger text-center">خطأ في تحميل الكشف: ${error.message}</p>`;
+            }
+        }
+
+        // ===== VIEW INVOICE DETAILS =====
+        async function viewInvoiceDetails(invoiceId) {
+            closeModal('modal-purchases');
+            currentInvoiceId = invoiceId;
+            openModal('modal-invoice');
+            document.getElementById('invoice-details-area').innerHTML =
+                '<div class="text-center"><i class="fas fa-spinner fa-spin fa-2x"></i><br>جاري التحميل...</div>';
+            document.getElementById('btn-cancel-invoice').disabled = false;
+            document.getElementById('btn-edit-invoice').disabled = false;
+
+            try {
+                const res = await fetch(`${API}/sales/${invoiceId}`, { headers: { 'Authorization': `Bearer ${token}` } });
+                if (!res.ok) throw new Error('الفاتورة غير موجودة');
+                const inv = await res.json();
+
+                let itemsHtml = '';
+                if (inv.items && inv.items.length > 0) {
+                    itemsHtml = inv.items.map(i => `
+                        <tr>
+                            <td>${i.product_name || 'منتج'}</td>
+                            <td>${i.quantity}</td>
+                            <td>${parseFloat(i.unit_price).toFixed(2)}</td>
+                            <td style="font-weight:700;">${parseFloat(i.total_price).toFixed(2)}</td>
+                        </tr>
+                    `).join('');
+                } else {
+                    itemsHtml =
+                    `<tr><td colspan="4" class="text-center text-muted">لا توجد منتجات مسجلة</td></tr>`;
+                }
+
+                const walletDisplay = inv.wallet_name ? ` (المحفظة: ${inv.wallet_name})` : '';
+                document.getElementById('invoice-details-area').innerHTML = `
+                    <div class="print-header">فاتورة #${inv.invoice_number || invoiceId}</div>
+                    <div style="border:2px solid var(--border);padding:20px;border-radius:var(--radius-sm);background:var(--bg);">
+                        <div style="display:flex;justify-content:space-between;flex-wrap:wrap;margin-bottom:12px;">
+                            <h4 style="font-size:1.3rem;">فاتورة #${inv.invoice_number || invoiceId}</h4>
+                            <span class="badge badge-info">${inv.payment_method || 'نقداً'} ${walletDisplay}</span>
+                        </div>
+                        <p><strong>العميل:</strong> ${inv.customer_name || 'نقدي'}</p>
+                        <p><strong>الخصم:</strong> ${parseFloat(inv.discount || 0).toFixed(2)} ريال</p>
+                        <hr style="border-color:var(--border);margin:12px 0;">
+                        <div class="table-wrapper">
+                            <table class="table"><thead><tr><th>المنتج</th><th>الكمية</th><th>السعر</th><th style="text-align:left;">الإجمالي</th></tr></thead><tbody>${itemsHtml}</tbody></table>
+                        </div>
+                        <div style="margin-top:16px;text-align:left;font-size:1.3rem;font-weight:900;padding:12px 16px;background:var(--card);border-radius:var(--radius-sm);border:2px solid var(--primary);">
+                            الإجمالي الكلي: ${parseFloat(inv.total_amount || 0).toFixed(2)} ريال
+                        </div>
+                        <div style="margin-top:8px;color:var(--text-muted);font-size:0.8rem;">التاريخ: ${formatDate(inv.created_at)}</div>
+                    </div>
+                `;
+            } catch (err) {
+                document.getElementById('invoice-details-area').innerHTML =
+                    `<p class="text-danger text-center">فشل تحميل الفاتورة: ${err.message}</p>`;
+                document.getElementById('btn-cancel-invoice').disabled = true;
+                document.getElementById('btn-edit-invoice').disabled = true;
+            }
+        }
+
+        // ===== CANCEL INVOICE =====
+        async function cancelInvoice() {
+            if (!currentInvoiceId) return showToast('لا توجد فاتورة محددة', 'error');
+            if (!confirm('هل أنت متأكد من إلغاء هذه الفاتورة؟ سيتم استرجاع المخزون وعكس القيود المحاسبية.')) return;
+            try {
+                const res = await fetch(`${API}/sales/cancel`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ sale_id: currentInvoiceId })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    showToast('تم إلغاء الفاتورة بنجاح', 'success');
+                    closeModal('modal-invoice');
+                    loadCustomers();
+                } else {
+                    showToast(data.error || 'فشل الإلغاء', 'error');
+                }
+            } catch { showToast('خطأ في الاتصال', 'error'); }
+        }
+
+        function editInvoice() {
+            if (!currentInvoiceId) return showToast('لا توجد فاتورة محددة', 'error');
+            window.location.href = `sale.html?edit=${currentInvoiceId}`;
+        }
+
+        // ===== VIEW CUSTOMER PURCHASES =====
+        async function viewCustomerPurchases(customerId) {
+            openModal('modal-purchases');
+            document.getElementById('purchases-list-area').innerHTML =
+                '<div class="text-center"><i class="fas fa-spinner fa-spin fa-2x"></i><br>جاري التحميل...</div>';
+            try {
+                const res = await fetch(`${API}/customers/${customerId}/purchases`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!res.ok) throw new Error('لا توجد مشتريات');
+                const data = await res.json();
+                const purchases = data.purchases || [];
+                if (purchases.length === 0) {
+                    document.getElementById('purchases-list-area').innerHTML =
+                        '<p class="text-center text-muted">لا توجد مشتريات مسجلة لهذا العميل</p>';
+                    return;
+                }
+                let rows = purchases.map(p => `
+                    <tr>
+                        <td>#${p.invoice_number || p.id}</td>
+                        <td>${formatDate(p.created_at)}</td>
+                        <td>${parseFloat(p.total_amount || 0).toFixed(2)} ريال</td>
+                        <td><span class="badge badge-info">${p.payment_method || 'نقداً'}</span></td>
+                        <td><button class="btn btn-info btn-xs" onclick="viewInvoiceDetails(${p.id})"><i class="fas fa-eye"></i> عرض</button></td>
+                    </tr>
+                `).join('');
+                document.getElementById('purchases-list-area').innerHTML = `
+                    <div class="table-wrapper">
+                        <table class="table">
+                            <thead><tr><th># الفاتورة</th><th>التاريخ</th><th>المبلغ</th><th>طريقة الدفع</th><th>الإجراءات</th></tr></thead>
+                            <tbody>${rows}</tbody>
+                        </table>
+                    </div>
+                `;
+            } catch (e) {
+                document.getElementById('purchases-list-area').innerHTML =
+                    `<p class="text-danger text-center">فشل تحميل المشتريات: ${e.message}</p>`;
+            }
+        }
+
+        // ===== INIT =====
+        window.onload = async function() {
+            await loadCurrencies();
+            await loadWalletsForPayment();
+            loadCustomers();
+            selectPaymentMethod('cash');
+            document.getElementById('stat-paid-today').textContent = '0';
+            console.log('🚀 نظام العملاء المتقدم جاهز مع دعم العملات والمحافظ وسندات القبض');
+            console.log('📌 اختصارات: Ctrl+N (عميل جديد) | Ctrl+F (بحث) | ESC (إغلاق)');
+        };
+
+        // ===== GLOBAL KEYBOARD SHORTCUTS =====
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.modal.open').forEach(m => closeModal(m.id));
+            }
+            if (e.ctrlKey && e.key === 'n') {
+                e.preventDefault();
+                openAddCustomerModal();
+            }
+            if (e.ctrlKey && e.key === 'f') {
+                e.preventDefault();
+                document.getElementById('search-customer').focus();
+            }
+        });
+    </script>
+    <script src="sidebar-config.js"></script>
+</body>
+</html>
+```

@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>المصروفات - النظام المحاسبي</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <style>
+        :root {
+            --primary: #1a56db;
+            --primary-hover: #1e40af;
+            --bg: #f1f5f9;
+            --card: #ffffff;
+            --text: #0f172a;
+            --muted: #64748b;
+            --border: #e2e8f0;
+            --success: #16a34a;
+            --danger: #dc2626;
+            --warning: #f59e0b;
+            --info: #0ea5e9;
+            --shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+            --sidebar-width: 220px;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Cairo', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        .input-field, select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 1rem;
+            outline: none;
+            background: white;
+            transition: 0.2s;
+        }
+        .input-field:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(26,86,219,0.1); }
+        .btn {
+            padding: 10px 18px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: var(--primary-hover); }
+        .btn-success { background: var(--success); color: white; }
+        .btn-success:hover { background: #15803d; }
+        .btn-warning { background: var(--warning); color: white; }
+        .btn-warning:hover { background: #d97706; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-danger:hover { background: #b91c1c; }
+        .btn-outline { background: transparent; border: 1px solid var(--border); }
+        .btn-sm { padding: 4px 10px; font-size: 0.8rem; }
+        .text-center { text-align: center; }
+        .text-muted { color: var(--muted); }
+        .text-danger { color: var(--danger); }
+        .mt-10 { margin-top: 10px; }
+        .mb-10 { margin-bottom: 10px; }
+        .flex-row { display: flex; flex-wrap: wrap; gap: 15px; }
+        .flex-1 { flex: 1; min-width: 200px; }
+        .flex-2 { flex: 2; min-width: 200px; }
+        .hidden { display: none; }
+        .card-section {
+            background: var(--card);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            margin-bottom: 20px;
+        }
+        .app-wrapper { display: flex; min-height: 100vh; }
+        .sidebar {
+            width: var(--sidebar-width);
+            background: var(--card);
+            border-left: 1px solid var(--border);
+            box-shadow: 2px 0 8px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            padding: 20px 0;
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            overflow-y: auto;
+            flex-shrink: 0;
+        }
+        .sidebar .brand { text-align: center; padding: 0 15px 20px; border-bottom: 1px solid var(--border); margin-bottom: 15px; font-size: 1.1rem; font-weight: 700; color: var(--primary); }
+        .sidebar .brand i { font-size: 1.8rem; display: block; margin-bottom: 5px; }
+        .sidebar .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 20px;
+            color: var(--text);
+            text-decoration: none;
+            border-radius: 0 20px 20px 0;
+            transition: 0.15s;
+            font-weight: 600;
+            font-size: 0.9rem;
+            border-right: 3px solid transparent;
+            cursor: pointer;
+        }
+        .sidebar .nav-link:hover { background: var(--bg); border-right-color: var(--primary); }
+        .sidebar .nav-link.active { background: var(--bg); border-right-color: var(--primary); color: var(--primary); }
+        .sidebar .nav-link i { width: 20px; text-align: center; }
+        .sidebar .logout-btn { margin-top: auto; border-top: 1px solid var(--border); padding-top: 15px; margin-bottom: 10px; }
+        .main-content { flex: 1; padding: 20px; background: var(--bg); overflow-y: auto; }
+        .toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
+        .toast { background: var(--text); color: white; padding: 14px 24px; border-radius: 12px; box-shadow: 0 10px 20px rgba(0,0,0,0.2); animation: slideIn 0.3s ease; display: flex; align-items: center; gap: 10px; min-width: 200px; max-width: 400px; }
+        .toast.success { background: var(--success); }
+        .toast.error { background: var(--danger); }
+        .toast.warning { background: var(--warning); }
+        .toast.info { background: var(--info); }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @media (max-width: 768px) {
+            .sidebar { width: 60px; padding: 10px 0; }
+            .sidebar .brand span { display: none; }
+            .sidebar .nav-link span { display: none; }
+            .sidebar .nav-link { justify-content: center; padding: 12px 0; }
+        }
+        /* إضافة تنسيق لعرض اسم المحفظة */
+        .wallet-name-badge {
+            background: #dbeafe;
+            color: #1e40af;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            margin-right: 4px;
+        }
+        .expense-item {
+            border-bottom: 1px solid var(--border);
+            padding: 8px 0;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 6px;
+        }
+        .expense-item .expense-details {
+            flex: 1;
+            min-width: 150px;
+        }
+        .expense-item .expense-details .expense-name {
+            font-weight: 600;
+        }
+        .expense-item .expense-details .expense-meta {
+            font-size: 0.8rem;
+            color: var(--muted);
+        }
+        .expense-item .expense-amount {
+            font-weight: 700;
+            color: var(--danger);
+            white-space: nowrap;
+        }
+        .expense-item .expense-amount .currency {
+            font-size: 0.7rem;
+            color: var(--muted);
+        }
+    </style>
+</head>
+<body>
+    <div class="app-wrapper">
+        <nav class="sidebar">
+            <div class="brand"><i class="fas fa-store-alt"></i><span>ابن المختار</span></div>
+            <a class="nav-link" href="index.html"><i class="fas fa-th-large"></i> <span>لوحة التحكم</span></a>
+            <a class="nav-link" href="sale.html"><i class="fas fa-cash-register"></i> <span>البيع</span></a>
+            <a class="nav-link" href="products.html"><i class="fas fa-boxes"></i> <span>المنتجات</span></a>
+            <a class="nav-link" href="customers.html"><i class="fas fa-users"></i> <span>العملاء</span></a>
+            <a class="nav-link" href="suppliers.html"><i class="fas fa-truck"></i> <span>الموردين</span></a>
+            <a class="nav-link" href="purchases.html"><i class="fas fa-shopping-cart"></i> <span>المشتريات</span></a>
+            <a class="nav-link active" href="expenses.html"><i class="fas fa-receipt"></i> <span>المصروفات</span></a>
+            <a class="nav-link" href="payments.html"><i class="fas fa-hand-holding-usd"></i> <span>سندات</span></a>
+            <a class="nav-link" href="cash-wallets.html"><i class="fas fa-wallet"></i> <span>المحافظ</span></a>
+            <a class="nav-link" href="cash-wallets.html"><i class="fas fa-coins"></i> <span>الصندوق</span></a>
+            <a class="nav-link" href="invoices.html"><i class="fas fa-file-invoice"></i> <span>الفواتير</span></a>
+            <a class="nav-link" href="journal.html"><i class="fas fa-book"></i> <span>القيود</span></a>
+            <a class="nav-link" href="reports.html"><i class="fas fa-chart-pie"></i> <span>التقارير</span></a>
+            <a class="nav-link" href="operations.html"><i class="fas fa-tools"></i> <span>عمليات</span></a>
+            <a class="nav-link" href="settings.html"><i class="fas fa-cog"></i> <span>إعدادات</span></a>
+            <div class="logout-btn"><div class="nav-link" onclick="logout()" style="color:var(--danger);"><i class="fas fa-sign-out-alt"></i> <span>خروج</span></div></div>
+        </nav>
+
+        <main class="main-content">
+            <div class="flex-row">
+                <div class="card-section flex-1">
+                    <h4><i class="fas fa-plus-circle"></i> إضافة مصروف</h4>
+                    <label>اسم المصروف *</label>
+                    <select id="expense-name-select" class="input-field" onchange="toggleExpenseNameInput()">
+                        <option value="">-- اختر اسم المصروف --</option>
+                    </select>
+                    <input type="text" id="expense-name-input" class="input-field" style="display:none;" placeholder="أدخل اسم المصروف الجديد" />
+                    <label>المبلغ *</label><input type="number" id="expense-amount" class="input-field" step="0.01" />
+                    <label>طريقة الدفع</label>
+                    <select id="expense-payment-method" class="input-field" onchange="toggleExpenseWallet()">
+                        <option value="cash">نقداً</option><option value="wallet">محفظة</option>
+                    </select>
+                    <div id="expense-wallet-group" style="display:none;"><label>المحفظة</label><select id="expense-wallet" class="input-field"></select></div>
+                    <label>ملاحظة</label><input type="text" id="expense-note" class="input-field" />
+                    <button class="btn btn-warning mt-10" onclick="addExpense()"><i class="fas fa-save"></i> تسجيل المصروف</button>
+                </div>
+                <div class="card-section flex-2">
+                    <h4><i class="fas fa-list"></i> سجل المصروفات</h4>
+                    <div id="expenses-log" style="max-height:600px; overflow-y:auto;"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+    <div class="toast-container" id="toast-container"></div>
+
+    <script>
+        const API = 'https://api.ibnalmukhtar.com';
+        let token = localStorage.getItem('pos_token') || '';
+        if (!token) window.location.href = 'index.html';
+
+        function showToast(msg, type='info') {
+            const c = document.getElementById('toast-container');
+            const t = document.createElement('div');
+            t.className = `toast ${type}`;
+            const icons = { success:'fa-check-circle', error:'fa-exclamation-circle', warning:'fa-exclamation-triangle', info:'fa-info-circle' };
+            t.innerHTML = `<i class="fas ${icons[type] || icons.info}"></i> ${msg}`;
+            c.appendChild(t);
+            setTimeout(() => t.remove(), 4000);
+        }
+        function logout() { if(confirm('تأكيد الخروج?')) { localStorage.removeItem('pos_token'); window.location.href='index.html'; } }
+
+        function toggleExpenseWallet() {
+            document.getElementById('expense-wallet-group').style.display = document.getElementById('expense-payment-method').value === 'wallet' ? 'block' : 'none';
+            if (document.getElementById('expense-payment-method').value === 'wallet') loadWalletsIntoSelect('expense-wallet');
+        }
+        function toggleExpenseNameInput() {
+            const select = document.getElementById('expense-name-select');
+            const input = document.getElementById('expense-name-input');
+            if (select.value === 'new') { input.style.display = 'block'; input.focus(); }
+            else input.style.display = 'none';
+        }
+        async function loadWalletsIntoSelect(id) {
+            try {
+                const res = await fetch(`${API}/wallets`, { headers: { 'Authorization': `Bearer ${token}` } });
+                const data = await res.json();
+                document.getElementById(id).innerHTML = data.wallets.map(w => `<option value="${w.id}">${w.name} (${w.balance} ريال)</option>`).join('');
+            } catch {}
+        }
+
+        // ====== دالة تحميل المصروفات (معدلة لعرض اسم المحفظة) ======
+        async function loadExpenses() {
+            try {
+                const res = await fetch(`${API}/expenses`, { headers: { 'Authorization': `Bearer ${token}` } });
+                const data = await res.json();
+                const log = document.getElementById('expenses-log');
+                if (!data.expenses || data.expenses.length === 0) {
+                    log.innerHTML = '<div class="text-muted text-center" style="padding:20px;">لا توجد مصروفات</div>';
+                } else {
+                    log.innerHTML = data.expenses.map(e => {
+                        // تحديد طريقة الدفع مع اسم المحفظة إن وجدت
+                        let paymentDisplay = '';
+                        if (e.payment_method === 'cash') {
+                            paymentDisplay = 'نقداً';
+                        } else if (e.payment_method === 'wallet') {
+                            paymentDisplay = e.wallet_name ? `محفظة: ${e.wallet_name}` : 'محفظة';
+                        } else {
+                            paymentDisplay = e.payment_method || 'غير معروف';
+                        }
+                        return `
+                            <div class="expense-item">
+                                <div class="expense-details">
+                                    <div class="expense-name">${e.name || 'بدون اسم'}</div>
+                                    <div class="expense-meta">
+                                        ${paymentDisplay}
+                                        ${e.note ? `| ${e.note}` : ''}
+                                        <span style="margin-right:8px;">${new Date(e.created_at).toLocaleString('ar-SA')}</span>
+                                    </div>
+                                </div>
+                                <div class="expense-amount">${Number(e.amount).toFixed(2)} <span class="currency">ر.ي</span></div>
+                            </div>
+                        `;
+                    }).join('');
+                }
+                // تحديث قائمة أسماء المصروفات في select
+                const select = document.getElementById('expense-name-select');
+                const uniqueNames = [...new Set(data.expenses.map(e => e.name).filter(Boolean))];
+                select.innerHTML = '<option value="">-- اختر اسم المصروف --</option>';
+                uniqueNames.forEach(name => { select.innerHTML += `<option value="${name}">${name}</option>`; });
+                select.innerHTML += `<option value="new">➕ إضافة اسم جديد</option>`;
+            } catch {
+                document.getElementById('expenses-log').innerHTML = '<div class="text-danger text-center" style="padding:20px;">فشل تحميل المصروفات</div>';
+            }
+        }
+
+        // ====== دالة إضافة مصروف (معدلة لعرض اسم المحفظة من الرد) ======
+        async function addExpense() {
+            const select = document.getElementById('expense-name-select');
+            const input = document.getElementById('expense-name-input');
+            let name = '';
+            if (select.value === 'new') { name = input.value.trim(); if (!name) return showToast('أدخل اسم المصروف', 'warning'); }
+            else { name = select.value; if (!name) return showToast('اختر اسم المصروف', 'warning'); }
+            const amount = parseFloat(document.getElementById('expense-amount').value);
+            const payment_method = document.getElementById('expense-payment-method').value;
+            const wallet_id = payment_method === 'wallet' ? document.getElementById('expense-wallet').value : null;
+            const note = document.getElementById('expense-note').value;
+            if (!amount || amount <= 0) return showToast('أدخل المبلغ', 'warning');
+            try {
+                const res = await fetch(`${API}/expenses`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, amount, payment_method, wallet_id, note })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    // عرض اسم المحفظة في رسالة النجاح إن وجد
+                    let successMsg = `تم تسجيل المصروف "${name}" بقيمة ${amount} ريال`;
+                    if (data.wallet_name) {
+                        successMsg += ` (المحفظة: ${data.wallet_name})`;
+                    }
+                    showToast(successMsg, 'success');
+                    loadExpenses();
+                    document.getElementById('expense-amount').value = '';
+                    document.getElementById('expense-note').value = '';
+                    document.getElementById('expense-name-select').value = '';
+                    document.getElementById('expense-name-input').style.display = 'none';
+                } else {
+                    showToast(data.error || 'فشل تسجيل المصروف', 'error');
+                }
+            } catch {
+                showToast('خطأ في الاتصال', 'error');
+            }
+        }
+
+        window.onload = function() {
+            loadExpenses();
+            loadWalletsIntoSelect('expense-wallet');
+        };
+    </script>
+</body>
+</html>

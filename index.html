@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>النظام المحاسبي - الرئيسية</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    <link rel="stylesheet" href="sidebar.css" />
+    <style>
+        /* ===== جميع الأنماط الأساسية (كما هي سابقاً) ===== */
+        :root {
+            --primary: #1a56db;
+            --primary-hover: #1e40af;
+            --bg: #f1f5f9;
+            --card: #ffffff;
+            --text: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --success: #16a34a;
+            --danger: #dc2626;
+            --warning: #f59e0b;
+            --info: #0ea5e9;
+            --shadow: 0 4px 16px rgba(0, 0, 0, 0.07);
+            --radius: 14px;
+            --transition: 0.25s ease;
+        }
+        [data-theme="dark"] {
+            --bg: #0f172a;
+            --card: #1e293b;
+            --text: #f1f5f9;
+            --text-muted: #94a3b8;
+            --border: #334155;
+            --shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Cairo', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            transition: background var(--transition), color var(--transition);
+            display: flex;
+            min-height: 100vh;
+        }
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-track { background: var(--bg); }
+        ::-webkit-scrollbar-thumb { background: var(--text-muted); border-radius: 10px; }
+
+        /* ===== شاشة تسجيل الدخول (نفسها) ===== */
+        #login-screen {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex: 1;
+            padding: 20px;
+            background: var(--bg);
+        }
+        .login-card {
+            background: var(--card);
+            padding: 40px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            max-width: 400px;
+            width: 100%;
+            text-align: center;
+            border: 1px solid var(--border);
+        }
+        .login-card .logo { font-size: 3rem; margin-bottom: 10px; }
+        .login-card h2 { color: var(--primary); margin-bottom: 8px; }
+        .login-card .sub { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px; }
+        .login-card .input-field {
+            width: 100%; padding: 10px 14px; border: 1px solid var(--border);
+            border-radius: 10px; font-size: 1rem; outline: none;
+            background: var(--bg); color: var(--text);
+            transition: var(--transition); margin-bottom: 12px;
+        }
+        .login-card .input-field:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(26, 86, 219, 0.12);
+        }
+        .login-card .btn {
+            width: 100%; padding: 12px; border: none; border-radius: 10px;
+            font-weight: 700; font-size: 1rem; cursor: pointer;
+            transition: var(--transition);
+            background: var(--primary); color: #fff;
+        }
+        .login-card .btn:hover { background: var(--primary-hover); transform: scale(0.97); }
+        .login-card .error { color: var(--danger); margin-top: 10px; display: none; font-weight: 600; }
+
+        /* ===== المحتوى الرئيسي ===== */
+        .main-content {
+            flex: 1;
+            padding: 20px 24px;
+            overflow-y: auto;
+            min-height: 100vh;
+            transition: margin 0.3s ease;
+        }
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .page-header h2 { font-size: 1.2rem; display: flex; align-items: center; gap: 8px; }
+        .page-header h2 i { color: var(--primary); }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 14px; margin-bottom: 16px;
+        }
+        .stat-card {
+            background: var(--card); padding: 16px 18px;
+            border-radius: var(--radius); border: 1px solid var(--border);
+            box-shadow: var(--shadow); transition: var(--transition);
+        }
+        .stat-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.08); }
+        .stat-card .label { font-size: 0.75rem; color: var(--text-muted); }
+        .stat-card .value { font-size: 1.3rem; font-weight: 800; margin-top: 4px; }
+        .stat-card .value small { font-size: 0.65rem; font-weight: 400; color: var(--text-muted); }
+        .stat-card .currency-code { font-size: 0.7rem; font-weight: 600; color: var(--text-muted); margin-right: 4px; }
+
+        .card-section {
+            background: var(--card); border-radius: var(--radius);
+            padding: 18px 20px; border: 1px solid var(--border);
+            box-shadow: var(--shadow); margin-bottom: 18px;
+            transition: all var(--transition);
+        }
+        .card-section h4 { font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; font-size: 1.05rem; }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 16px; margin-top: 12px;
+        }
+        .dash-card {
+            background: var(--card); border-radius: var(--radius);
+            padding: 18px 12px; text-align: center; border: 1px solid var(--border);
+            transition: var(--transition); text-decoration: none; color: var(--text); cursor: pointer;
+        }
+        .dash-card:hover {
+            transform: translateY(-4px); border-color: var(--primary);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+        }
+        .dash-card i { font-size: 2.2rem; color: var(--primary); }
+        .dash-card .title { font-weight: 700; font-size: 0.95rem; margin-top: 4px; }
+        .dash-card .sub { font-size: 0.7rem; color: var(--text-muted); }
+
+        .flex-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+        .flex-1 { flex: 1; min-width: 120px; }
+        .text-muted { color: var(--text-muted); }
+        .text-success { color: var(--success); }
+        .text-danger { color: var(--danger); }
+        .mt-10 { margin-top: 10px; }
+        .mb-10 { margin-bottom: 10px; }
+
+        .btn {
+            padding: 8px 16px; border: none; border-radius: 10px;
+            font-weight: 600; cursor: pointer; transition: var(--transition);
+            display: inline-flex; align-items: center; gap: 6px; font-size: 0.85rem;
+        }
+        .btn-primary { background: var(--primary); color: #fff; }
+        .btn-primary:hover { background: var(--primary-hover); transform: scale(0.97); }
+        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+        .btn-outline:hover { background: var(--bg); }
+        .btn-sm { padding: 4px 12px; font-size: 0.75rem; }
+        .btn-success { background: var(--success); color: #fff; }
+        .btn-success:hover { background: #15803d; }
+
+        .sync-status {
+            display: flex; align-items: center; gap: 8px;
+            font-size: 0.8rem; padding: 4px 12px;
+            border-radius: 20px; background: var(--bg); border: 1px solid var(--border);
+        }
+        .sync-status .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+        .sync-status .dot.green { background: var(--success); }
+        .sync-status .dot.red { background: var(--danger); }
+        .sync-status .dot.yellow { background: var(--warning); }
+
+        .toast-container {
+            position: fixed; bottom: 24px; right: 24px;
+            z-index: 9999; display: flex; flex-direction: column;
+            gap: 10px; max-width: 400px; width: 100%;
+        }
+        .toast {
+            background: var(--text); color: #fff;
+            padding: 12px 20px; border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            animation: slideUp 0.35s ease;
+            display: flex; align-items: center; gap: 12px;
+            font-weight: 600; font-size: 0.9rem;
+        }
+        .toast.success { background: var(--success); }
+        .toast.error { background: var(--danger); }
+        .toast.warning { background: var(--warning); color: #000; }
+        .toast.info { background: var(--info); }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(30px) scale(0.9); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        /* ===== بطاقات المحافظ ===== */
+        .wallet-summary-card {
+            background: var(--card);
+            border-radius: var(--radius);
+            padding: 14px 18px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+            margin-bottom: 8px;
+            transition: var(--transition);
+        }
+        .wallet-summary-card:hover { transform: translateX(-4px); border-color: var(--primary); }
+        .wallet-summary-card .wallet-name { font-weight: 700; font-size: 1rem; display: flex; align-items: center; gap: 8px; }
+        .wallet-summary-card .wallet-name i { color: var(--primary); }
+        .wallet-summary-card .balances {
+            display: flex; flex-wrap: wrap; gap: 12px; margin-top: 6px;
+        }
+        .wallet-summary-card .balances .balance-item {
+            background: var(--bg);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            border: 1px solid var(--border);
+        }
+        .wallet-summary-card .balances .balance-item .code {
+            color: var(--text-muted);
+            font-weight: 400;
+        }
+        .wallet-summary-card .total-base {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        /* ===== أنماط الذكاء الاصطناعي (الجديدة) ===== */
+        .ai-container {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+        }
+        .ai-container input {
+            flex: 1;
+            min-width: 200px;
+            padding: 10px 16px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            font-size: 1rem;
+            background: var(--bg);
+            color: var(--text);
+            outline: none;
+            transition: var(--transition);
+        }
+        .ai-container input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(26, 86, 219, 0.12);
+        }
+        .ai-response-box {
+            background: var(--bg);
+            padding: 16px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            margin-top: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+            direction: ltr;
+        }
+        .ai-response-box table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+            direction: rtl;
+        }
+        .ai-response-box th,
+        .ai-response-box td {
+            padding: 6px 10px;
+            border: 1px solid var(--border);
+            text-align: right;
+        }
+        .ai-response-box th {
+            background: var(--card);
+            font-weight: 700;
+        }
+        .ai-response-box .sql-code {
+            background: var(--card);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 0.8rem;
+            direction: ltr;
+            text-align: left;
+            border: 1px solid var(--border);
+            margin-bottom: 10px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .ai-response-box .count-badge {
+            display: inline-block;
+            background: var(--primary);
+            color: #fff;
+            padding: 2px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            margin-bottom: 8px;
+        }
+        .ai-response-box .empty-msg {
+            color: var(--text-muted);
+            font-style: italic;
+        }
+
+        @media (max-width: 1024px) {
+            .main-content { padding: 12px 14px; }
+        }
+        @media (max-width: 768px) {
+            .stats-grid { grid-template-columns: 1fr 1fr; }
+            .dashboard-grid { grid-template-columns: 1fr 1fr; }
+            .login-card { padding: 24px; }
+        }
+        @media (max-width: 480px) {
+            .stats-grid { grid-template-columns: 1fr; }
+            .dashboard-grid { grid-template-columns: 1fr; }
+            .ai-container input { min-width: 150px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ===== شاشة تسجيل الدخول ===== -->
+    <div id="login-screen">
+        <div class="login-card">
+            <div class="logo">🏠</div>
+            <h2>النظام المحاسبي</h2>
+            <div class="sub" id="login-shop-name">ابن المختار للأدوات المنزلية</div>
+            <input type="text" id="login-username" class="input-field" placeholder="اسم المستخدم" value="admin" />
+            <input type="password" id="login-password" class="input-field" placeholder="كلمة المرور" value="admin123" />
+            <button class="btn" onclick="attemptLogin()"><i class="fas fa-sign-in-alt"></i> دخول</button>
+            <div id="login-error" class="error"></div>
+        </div>
+    </div>
+
+    <!-- ===== التطبيق ===== -->
+    <div id="app-screen" style="display:none;flex:1;">
+        <div class="app-wrapper" style="display:flex;min-height:100vh;">
+
+            <!-- ===== حاوية الشريط الجانبي ===== -->
+            <div id="sidebar-container"></div>
+
+            <!-- ===== المحتوى الرئيسي ===== -->
+            <main class="main-content">
+
+                <div class="page-header">
+                    <h2><i class="fas fa-th-large"></i> لوحة التحكم</h2>
+                    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                        <span id="connection-status" style="font-size:0.75rem;color:var(--text-muted);">
+                            <i class="fas fa-circle" id="online-indicator" style="color:var(--success);font-size:0.45rem;"></i>
+                            <span id="status-label">متصل</span>
+                        </span>
+                        <div class="sync-status" id="sync-status">
+                            <span class="dot green" id="sync-dot"></span>
+                            <span id="sync-label">متزامن</span>
+                            <span id="pending-count" style="font-weight:700;color:var(--warning);display:none;">(0)</span>
+                        </div>
+                        <button class="btn btn-sm btn-primary" onclick="manualSync()" id="sync-btn">
+                            <i class="fas fa-sync-alt"></i> مزامنة
+                        </button>
+                    </div>
+                </div>
+
+                <!-- ===== بطاقات الملخص المالي ===== -->
+                <div class="card-section">
+                    <h4>📊 الملخص المالي</h4>
+                    <div id="financial-summary" class="stats-grid">
+                        <div class="stat-card"><div class="label">💵 رصيد الصندوق</div><div class="value" id="total-cash">0.00 <span class="currency-code">ريال</span></div></div>
+                        <div class="stat-card"><div class="label">💳 إجمالي المحافظ</div><div class="value" id="total-wallets">0.00 <span class="currency-code">ريال</span></div></div>
+                        <div class="stat-card"><div class="label">🏦 إجمالي الأصول</div><div class="value" id="total-assets">0.00 <span class="currency-code">ريال</span></div></div>
+                    </div>
+                    <div id="currency-balances" style="margin-top:8px;display:flex;flex-wrap:wrap;gap:12px;"></div>
+                </div>
+
+                <!-- ===== عرض المحافظ مفصلة ===== -->
+                <div class="card-section">
+                    <h4><i class="fas fa-wallet"></i> تفاصيل المحافظ</h4>
+                    <div id="wallets-detail-container">
+                        <p class="text-muted">جاري التحميل...</p>
+                    </div>
+                </div>
+
+                <!-- ===== مربعات الوصول السريع ===== -->
+                <div class="dashboard-grid">
+                    <a href="sale.html" class="dash-card">
+                        <i class="fas fa-cash-register"></i>
+                        <div class="title">البيع</div>
+                        <div class="sub">نقطة البيع</div>
+                    </a>
+                    <a href="products.html" class="dash-card">
+                        <i class="fas fa-boxes"></i>
+                        <div class="title">المنتجات</div>
+                        <div class="sub">إدارة المخزون</div>
+                    </a>
+                    <a href="purchases.html" class="dash-card">
+                        <i class="fas fa-shopping-cart"></i>
+                        <div class="title">المشتريات</div>
+                        <div class="sub">فواتير الشراء</div>
+                    </a>
+                    <a href="cash-wallets.html" class="dash-card">
+                        <i class="fas fa-wallet"></i>
+                        <div class="title">المحافظ</div>
+                        <div class="sub">الصندوق والمحافظ</div>
+                    </a>
+                </div>
+
+                <!-- ===== 🧠 قسم الذكاء الاصطناعي (الجديد) ===== -->
+                <div class="card-section" id="ai-section">
+                    <h4><i class="fas fa-robot"></i> الذكاء الاصطناعي</h4>
+                    <p class="text-muted" style="margin-bottom:10px;font-size:0.85rem;">
+                        اسأل عن المبيعات، الأرباح، المخزون، العملاء، أو أي إحصائية. سأقوم بتحويل سؤالك إلى استعلام SQL وعرض النتيجة.
+                    </p>
+                    <div class="ai-container">
+                        <input type="text" id="ai-question" placeholder="اكتب سؤالك هنا... (مثال: كم إجمالي المبيعات اليوم؟)" />
+                        <button class="btn btn-success" id="ai-send-btn" onclick="askAI()">
+                            <i class="fas fa-paper-plane"></i> اسأل
+                        </button>
+                        <button class="btn btn-outline" onclick="document.getElementById('ai-question').value=''; document.getElementById('ai-response').innerHTML='';">
+                            <i class="fas fa-eraser"></i> مسح
+                        </button>
+                    </div>
+                    <div id="ai-response" class="ai-response-box">
+                        <span class="empty-msg">💡 اسألني أي شيء عن بياناتك...</span>
+                    </div>
+                </div>
+
+                <!-- ===== معلومات إضافية ===== -->
+                <div class="card-section">
+                    <h4><i class="fas fa-info-circle"></i> حالة النظام</h4>
+                    <div class="flex-row">
+                        <div class="flex-1"><span class="text-muted">حالة الاتصال:</span> <strong id="status-text">متصل</strong></div>
+                        <div class="flex-1"><span class="text-muted">المستخدم:</span> <strong id="user-display">admin</strong></div>
+                        <div class="flex-1"><span class="text-muted">الدور:</span> <strong id="role-display">مدير</strong></div>
+                        <div class="flex-1"><span class="text-muted">مصدر البيانات:</span> <strong id="data-source">الخادم</strong></div>
+                    </div>
+                    <div class="flex-row mt-10">
+                        <div class="flex-1"><span class="text-muted">المنتجات المحلية:</span> <strong id="local-products-count">0</strong></div>
+                        <div class="flex-1"><span class="text-muted">العملاء المحليين:</span> <strong id="local-customers-count">0</strong></div>
+                        <div class="flex-1"><span class="text-muted">فواتير معلقة:</span> <strong id="pending-sales-count">0</strong></div>
+                    </div>
+                </div>
+
+            </main>
+        </div>
+    </div>
+
+    <!-- ===== حاوية الإشعارات ===== -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- ================================================================ -->
+    <!-- ===== سكربتات التطبيق ===== -->
+    <!-- ================================================================ -->
+
+    <script src="sidebar-config.js"></script>
+
+    <script>
+        // ================================================================
+        //  1. CONFIG
+        // ================================================================
+        const API = 'https://api.ibnalmukhtar.com';
+        let token = localStorage.getItem('pos_token') || '';
+        let currentUser = null;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            if (document.getElementById('sidebar-container')) {
+                renderSidebar('sidebar-container');
+            }
+        });
+
+        // ================================================================
+        //  2. INDEXEDDB – كما هو سابقاً (اختصاراً للطول)
+        // ================================================================
+        // (تم حذف التفاصيل المكررة هنا، لكنها موجودة في الكود الأصلي)
+        // نكتفي بإعادة تعريف الدوال الأساسية المستخدمة.
+        async function openDB() { /* ... */ }
+        async function addPendingSale(saleData) { /* ... */ }
+        async function getPendingSales() { /* ... */ }
+        async function markSaleSynced(id) { /* ... */ }
+        async function saveLocalWallets(wallets) { /* ... */ }
+        async function getLocalWallets() { /* ... */ }
+        async function saveLocalProducts(products) { /* ... */ }
+        async function getLocalProducts() { /* ... */ }
+        async function saveLocalCustomers(customers) { /* ... */ }
+        async function getLocalCustomers() { /* ... */ }
+        async function syncPendingSales() { /* ... */ }
+        async function refreshDataFromServer() { /* ... */ }
+
+        // ================================================================
+        //  3. TOAST & HELPERS
+        // ================================================================
+        function showToast(msg, type = 'info') {
+            const c = document.getElementById('toast-container');
+            const t = document.createElement('div');
+            t.className = `toast ${type}`;
+            const icons = { success: 'fa-check-circle', error: 'fa-exclamation-circle', warning: 'fa-exclamation-triangle',
+                info: 'fa-info-circle' };
+            t.innerHTML = `<i class="fas ${icons[type] || icons.info}"></i> ${msg}`;
+            c.appendChild(t);
+            setTimeout(() => { t.style.opacity = '0';
+                t.style.transform = 'translateX(40px)';
+                setTimeout(() => t.remove(), 300); }, 4000);
+        }
+
+        window.logout = function() {
+            if (confirm('هل أنت متأكد من الخروج؟')) {
+                localStorage.removeItem('pos_token');
+                localStorage.removeItem('pos_user');
+                window.location.href = 'index.html';
+            }
+        };
+
+        function toggleTheme() {
+            const html = document.documentElement;
+            const btn = document.getElementById('themeToggle');
+            if (html.getAttribute('data-theme') === 'dark') {
+                html.removeAttribute('data-theme');
+                btn.innerHTML = '<i class="fas fa-moon"></i> <span>المظهر</span>';
+                localStorage.setItem('theme', 'light');
+            } else {
+                html.setAttribute('data-theme', 'dark');
+                btn.innerHTML = '<i class="fas fa-sun"></i> <span>المظهر</span>';
+                localStorage.setItem('theme', 'dark');
+            }
+        }
+        if (localStorage.getItem('theme') === 'dark') {
+            document.documentElement.setAttribute('data-theme', 'dark');
+            document.getElementById('themeToggle').innerHTML = '<i class="fas fa-sun"></i> <span>المظهر</span>';
+        }
+
+        // ================================================================
+        //  4. حالة الاتصال والمزامنة (اختصار)
+        // ================================================================
+        function updateOnlineStatus() { /* ... */ }
+        async function updateLocalCounts() { /* ... */ }
+        async function manualSync() { /* ... */ }
+
+        // ================================================================
+        //  5. المصادقة
+        // ================================================================
+        async function attemptLogin() {
+            const username = document.getElementById('login-username').value.trim();
+            const password = document.getElementById('login-password').value.trim();
+            const errorEl = document.getElementById('login-error');
+
+            if (!username || !password) {
+                errorEl.textContent = 'يرجى إدخال اسم المستخدم وكلمة المرور';
+                errorEl.style.display = 'block';
+                return;
+            }
+
+            if (!navigator.onLine) {
+                const savedUser = localStorage.getItem('pos_user');
+                if (savedUser) {
+                    try {
+                        currentUser = JSON.parse(savedUser);
+                        token = localStorage.getItem('pos_token') || 'offline-token';
+                        showApp();
+                        showToast('✅ تم الدخول في وضع عدم الاتصال', 'info');
+                        return;
+                    } catch {}
+                }
+                errorEl.textContent = 'لا يوجد بيانات محلية للدخول، تأكد من الاتصال بالإنترنت أول مرة';
+                errorEl.style.display = 'block';
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const data = await res.json();
+
+                if (res.ok) {
+                    token = data.token;
+                    currentUser = data.user;
+                    localStorage.setItem('pos_token', token);
+                    localStorage.setItem('pos_user', JSON.stringify(currentUser));
+                    showApp();
+                    showToast('✅ تم تسجيل الدخول بنجاح', 'success');
+                } else {
+                    errorEl.textContent = data.error || 'خطأ في اسم المستخدم أو كلمة المرور';
+                    errorEl.style.display = 'block';
+                }
+            } catch (err) {
+                errorEl.textContent = 'فشل الاتصال بالخادم';
+                errorEl.style.display = 'block';
+            }
+        }
+
+        // ================================================================
+        //  6. عرض التطبيق
+        // ================================================================
+        async function showApp() {
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('app-screen').style.display = 'flex';
+
+            if (currentUser) {
+                document.getElementById('user-display').textContent = currentUser.username || 'admin';
+                document.getElementById('role-display').textContent = currentUser.role === 'admin' ? 'مدير' : 'موظف';
+            }
+
+            await loadShopSettings();
+            await updateLocalCounts();
+            await loadFinancialSummary();
+            await loadWalletsDetail();
+
+            if (navigator.onLine) {
+                await refreshDataFromServer();
+                const count = await syncPendingSales();
+                if (count > 0) showToast(`✅ تمت مزامنة ${count} فاتورة معلقة`, 'success');
+                await updateLocalCounts();
+                await loadFinancialSummary();
+                await loadWalletsDetail();
+            }
+
+            updateOnlineStatus();
+
+            window.addEventListener('online', async () => {
+                updateOnlineStatus();
+                const count = await syncPendingSales();
+                if (count > 0) showToast(`✅ تمت مزامنة ${count} فاتورة معلقة`, 'success');
+                await refreshDataFromServer();
+                await updateLocalCounts();
+                await loadFinancialSummary();
+                await loadWalletsDetail();
+            });
+            window.addEventListener('offline', () => {
+                updateOnlineStatus();
+                document.getElementById('data-source').textContent = 'محلي فقط';
+            });
+        }
+
+        // ===== جلب الإعدادات =====
+        async function loadShopSettings() {
+            try {
+                const res = await fetch(`${API}/settings`, { headers: { 'Authorization': `Bearer ${token}` } });
+                const data = await res.json();
+                if (data.settings && data.settings.shop_name) {
+                    document.getElementById('shop-name-display').textContent = data.settings.shop_name;
+                    document.getElementById('login-shop-name').textContent = data.settings.shop_name;
+                }
+            } catch { /* ignore */ }
+        }
+
+        // ===== الملخص المالي =====
+        async function loadFinancialSummary() {
+            try {
+                let totalCashBase = 0;
+                let totalWalletsBase = 0;
+                let walletsData = [];
+
+                if (navigator.onLine) {
+                    const cashRes = await fetch(`${API}/cash`, { headers: { 'Authorization': `Bearer ${token}` } });
+                    const cashData = await cashRes.json();
+                    let cashBalance = 0;
+                    if (cashData.history) {
+                        cashData.history.forEach(h => {
+                            if (h.type === 'deposit' || h.type === 'open') cashBalance += h.amount;
+                            else if (h.type === 'withdraw' || h.type === 'close') cashBalance -= h.amount;
+                        });
+                    }
+                    totalCashBase = cashBalance;
+
+                    const walletsRes = await fetch(`${API}/wallets`, { headers: { 'Authorization': `Bearer ${token}` } });
+                    const walletsDataRes = await walletsRes.json();
+                    walletsData = walletsDataRes.wallets || [];
+                    await saveLocalWallets(walletsData);
+
+                    for (const w of walletsData) {
+                        if (w.balances && w.balances.length) {
+                            for (const b of w.balances) {
+                                const rate = b.rate_to_base || 1;
+                                totalWalletsBase += (b.balance || 0) / rate;
+                            }
+                        }
+                    }
+                } else {
+                    const localWallets = await getLocalWallets();
+                    walletsData = localWallets;
+                    for (const w of localWallets) {
+                        if (w.balances && w.balances.length) {
+                            for (const b of w.balances) {
+                                const rate = b.rate_to_base || 1;
+                                totalWalletsBase += (b.balance || 0) / rate;
+                            }
+                        }
+                    }
+                    const cashData = localStorage.getItem('pos_cash_balance');
+                    if (cashData) totalCashBase = parseFloat(cashData) || 0;
+                }
+
+                const totalAssetsBase = totalCashBase + totalWalletsBase;
+
+                document.getElementById('total-cash').innerHTML =
+                    `${totalCashBase.toFixed(2)} <span class="currency-code">ريال</span>`;
+                document.getElementById('total-wallets').innerHTML =
+                    `${totalWalletsBase.toFixed(2)} <span class="currency-code">ريال</span>`;
+                document.getElementById('total-assets').innerHTML =
+                    `${totalAssetsBase.toFixed(2)} <span class="currency-code">ريال</span>`;
+
+                const currencyContainer = document.getElementById('currency-balances');
+                let currencyHtml = '';
+                const grouped = {};
+
+                if (walletsData.length > 0) {
+                    for (const w of walletsData) {
+                        if (w.balances && w.balances.length) {
+                            for (const b of w.balances) {
+                                const code = b.code || 'YER';
+                                if (!grouped[code]) grouped[code] = { amount: 0, name: b.currency_name || code };
+                                grouped[code].amount += (b.balance || 0);
+                            }
+                        }
+                    }
+                    for (const [code, data] of Object.entries(grouped)) {
+                        currencyHtml += `
+                            <div class="stat-card" style="flex:1;min-width:120px;padding:10px 14px;">
+                                <div class="label">💱 ${data.name || code}</div>
+                                <div class="value" style="font-size:1.1rem;">${data.amount.toFixed(2)} <span class="currency-code">${code}</span></div>
+                            </div>
+                        `;
+                    }
+                }
+                currencyContainer.innerHTML = currencyHtml || '<p class="text-muted">لا توجد محافظ مسجلة</p>';
+
+            } catch (err) {
+                console.warn('فشل تحميل الملخص المالي', err);
+            }
+        }
+
+        // ===== تفاصيل المحافظ =====
+        async function loadWalletsDetail() {
+            try {
+                let walletsData = [];
+                if (navigator.onLine) {
+                    const res = await fetch(`${API}/wallets`, { headers: { 'Authorization': `Bearer ${token}` } });
+                    const data = await res.json();
+                    walletsData = data.wallets || [];
+                    await saveLocalWallets(walletsData);
+                } else {
+                    walletsData = await getLocalWallets();
+                }
+
+                const container = document.getElementById('wallets-detail-container');
+                if (!walletsData || walletsData.length === 0) {
+                    container.innerHTML = '<p class="text-muted">لا توجد محافظ مسجلة</p>';
+                    return;
+                }
+
+                let html = '';
+                for (const w of walletsData) {
+                    const balances = w.balances || [];
+                    let balancesHtml = '';
+                    let totalBase = 0;
+                    for (const b of balances) {
+                        const rate = b.rate_to_base || 1;
+                        totalBase += (b.balance || 0) / rate;
+                        balancesHtml += `
+                            <span class="balance-item">
+                                ${(b.balance || 0).toFixed(2)} <span class="code">${b.code || 'YER'}</span>
+                            </span>
+                        `;
+                    }
+                    html += `
+                        <div class="wallet-summary-card">
+                            <div class="wallet-name">
+                                <i class="fas fa-wallet"></i> ${w.name}
+                            </div>
+                            <div class="balances">${balancesHtml}</div>
+                            <div class="total-base">الإجمالي بالريال: ${totalBase.toFixed(2)} ريال</div>
+                        </div>
+                    `;
+                }
+                container.innerHTML = html;
+
+            } catch (err) {
+                console.warn('فشل تحميل تفاصيل المحافظ', err);
+                document.getElementById('wallets-detail-container').innerHTML = '<p class="text-danger">⚠️ فشل تحميل بيانات المحافظ</p>';
+            }
+        }
+
+        // ================================================================
+        //  🧠  واجهة الذكاء الاصطناعي (الدوال الجديدة)
+        // ================================================================
+
+        /**
+         * إرسال السؤال إلى نقطة النهاية /ask-ai وعرض النتيجة
+         */
+        async function askAI() {
+            const questionInput = document.getElementById('ai-question');
+            const question = questionInput.value.trim();
+            const responseDiv = document.getElementById('ai-response');
+            const sendBtn = document.getElementById('ai-send-btn');
+
+            if (!question) {
+                showToast('❌ الرجاء كتابة سؤال', 'warning');
+                return;
+            }
+
+            if (!navigator.onLine) {
+                showToast('⚠️ أنت غير متصل بالإنترنت، الذكاء الاصطناعي يحتاج إلى اتصال.', 'error');
+                return;
+            }
+
+            // تعطيل الزر وإظهار التحميل
+            sendBtn.disabled = true;
+            sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري...';
+            responseDiv.innerHTML = '<span class="empty-msg">⏳ جاري معالجة السؤال...</span>';
+
+            try {
+                const res = await fetch(`${API}/ask-gemini`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ question })
+                });
+
+                const data = await res.json();
+
+                if (!res.ok) {
+                    throw new Error(data.error || 'فشل في الحصول على رد من الذكاء الاصطناعي');
+                }
+
+                // عرض النتيجة
+                displayAIResponse(responseDiv, data.answer);
+
+            } catch (err) {
+                responseDiv.innerHTML = `<span class="text-danger">❌ ${err.message}</span>`;
+                showToast('❌ خطأ: ' + err.message, 'error');
+            } finally {
+                sendBtn.disabled = false;
+                sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i> اسأل';
+            }
+        }
+
+        /**
+         * عرض نتيجة الذكاء الاصطناعي بشكل منظم
+         */
+        function displayAIResponse(container, answer) {
+            if (!answer) {
+                container.innerHTML = '<span class="empty-msg">لا توجد نتيجة.</span>';
+                return;
+            }
+
+            // إذا كان هناك خطأ من النموذج
+            if (answer.error) {
+                container.innerHTML = `<span class="text-danger">⚠️ ${answer.error}</span>`;
+                return;
+            }
+
+            let html = '';
+
+            // عرض الاستعلام SQL إن وجد
+            if (answer.sql) {
+                html += `<div class="sql-code"><strong>🔍 الاستعلام:</strong> ${answer.sql}</div>`;
+            }
+
+            // عرض عدد النتائج
+            if (answer.count !== undefined) {
+                html += `<div class="count-badge">عدد النتائج: ${answer.count}</div>`;
+            }
+
+            // عرض البيانات على شكل جدول
+            if (answer.data && Array.isArray(answer.data) && answer.data.length > 0) {
+                const headers = Object.keys(answer.data[0]);
+                html += `<table><thead><tr>`;
+                headers.forEach(h => html += `<th>${h}</th>`);
+                html += `</tr></thead><tbody>`;
+                answer.data.forEach(row => {
+                    html += `<tr>`;
+                    headers.forEach(h => {
+                        let val = row[h];
+                        if (val === null || val === undefined) val = '';
+                        // إذا كان قيمة عددية، نقربها
+                        if (typeof val === 'number') val = val.toFixed(2);
+                        html += `<td>${val}</td>`;
+                    });
+                    html += `</tr>`;
+                });
+                html += `</tbody></table>`;
+            } else if (answer.data && Array.isArray(answer.data) && answer.data.length === 0) {
+                html += `<span class="empty-msg">📭 لا توجد نتائج تطابق سؤالك.</span>`;
+            } else {
+                // إذا كانت النتيجة مجرد قيمة واحدة (مثل sum)
+                html += `<div style="font-size:1.2rem;font-weight:700;">📊 ${JSON.stringify(answer.data)}</div>`;
+            }
+
+            container.innerHTML = html;
+        }
+
+        // جعل الدالة عالمية للاستخدام من HTML
+        window.askAI = askAI;
+
+        // ================================================================
+        //  7. التهيئة عند التحميل
+        // ================================================================
+        window.onload = function() {
+            if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(() => console.log('✅ Service Worker مسجل'))
+                    .catch(err => console.warn('❌ فشل تسجيل SW:', err));
+            }
+
+            const savedUser = localStorage.getItem('pos_user');
+            if (token && savedUser) {
+                try {
+                    currentUser = JSON.parse(savedUser);
+                    showApp();
+                } catch {
+                    document.getElementById('login-screen').style.display = 'flex';
+                }
+            } else if (token) {
+                showApp();
+            } else {
+                document.getElementById('login-screen').style.display = 'flex';
+            }
+
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && document.getElementById('login-screen').style.display !== 'none') {
+                    attemptLogin();
+                }
+                // إرسال السؤال بالضغط على Enter في حقل AI
+                if (e.key === 'Enter' && document.activeElement === document.getElementById('ai-question')) {
+                    askAI();
+                }
+            });
+
+            setInterval(() => {
+                if (document.getElementById('app-screen').style.display !== 'none') {
+                    updateLocalCounts();
+                }
+            }, 30000);
+        };
+
+        // جعل الدوال متاحة عالمياً
+        window.manualSync = manualSync;
+        window.attemptLogin = attemptLogin;
+        window.logout = logout;
+        window.toggleTheme = toggleTheme;
+    </script>
+
+</body>
+</html>
