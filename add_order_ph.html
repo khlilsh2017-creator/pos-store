@@ -2208,21 +2208,24 @@
             }
         }
 
-        function clearSearch() {
-            const input = document.getElementById('top-search-input');
-            input.value = '';
-            currentSearch = '';
-            const hint = document.getElementById('search-hint');
+       function clearSearch() {
+    const input = document.getElementById('top-search-input');
+    if (input) {
+        input.value = '';
+        currentSearch = '';
+        const hint = document.getElementById('search-hint');
+        if (hint) {
             hint.textContent = '(ابحث بـ 4 أحرف فأكثر)';
             hint.style.color = 'var(--muted)';
-            saveFilterState();
-            // إخفاء القائمة المنسدلة
-            const dropdown = document.getElementById('search-dropdown');
-            if (dropdown) dropdown.style.display = 'none';
-            // إعادة تحميل الشبكة (عند مسح البحث، نعرض جميع المنتجات في الشبكة مع احترام التصنيف)
-            fetchProducts('', selectedCategoryId);
-            input.focus();
         }
+        saveFilterState();
+        const dropdown = document.getElementById('search-dropdown');
+        if (dropdown) dropdown.style.display = 'none';
+        // إعادة تحميل المنتجات بدون بحث (مع الحفاظ على التصنيف)
+        fetchProducts('', selectedCategoryId);
+        input.focus();
+    }
+}
 
         // عند الكتابة في حقل البحث العلوي
         document.getElementById('top-search-input')?.addEventListener('input', function(e) {
@@ -2493,19 +2496,33 @@
         }
 
         function quickAddToCart(productId) {
-            const product = productsCache.find(p => p.id === productId);
-            if (!product) return showToast('المنتج غير موجود', 'error');
-            const stock = product.stock_quantity || 0;
-            if (!appSettings.allow_negative_stock && stock <= 0) {
-                return showToast('⚠️ المنتج غير متوفر', 'warning');
-            }
-            addToCart(product.id, product.name || 'بدون اسم', product.price || 0, product.cost || 0, 1);
-            showToast(`✅ تمت إضافة ${product.name}`, 'success');
-            playClickSound();
-            // إغلاق القائمة المنسدلة بعد الإضافة
-            const dropdown = document.getElementById('search-dropdown');
-            if (dropdown) dropdown.style.display = 'none';
+    const product = productsCache.find(p => p.id === productId);
+    if (!product) return showToast('المنتج غير موجود', 'error');
+    const stock = product.stock_quantity || 0;
+    if (!appSettings.allow_negative_stock && stock <= 0) {
+        return showToast('⚠️ المنتج غير متوفر', 'warning');
+    }
+    addToCart(product.id, product.name || 'بدون اسم', product.price || 0, product.cost || 0, 1);
+    showToast(`✅ تمت إضافة ${product.name}`, 'success');
+    playClickSound();
+
+    // === التعديل المطلوب: مسح النص وإعادة ضبط البحث ===
+    const dropdown = document.getElementById('search-dropdown');
+    if (dropdown) dropdown.style.display = 'none';
+
+    const searchInput = document.getElementById('top-search-input');
+    if (searchInput) {
+        searchInput.value = '';
+        currentSearch = '';
+        const hint = document.getElementById('search-hint');
+        if (hint) {
+            hint.textContent = '(ابحث بـ 4 أحرف فأكثر)';
+            hint.style.color = 'var(--muted)';
         }
+        // إعادة تحميل المنتجات بدون بحث (مع الحفاظ على التصنيف)
+        fetchProducts('', selectedCategoryId);
+    }
+}
 
         // ================================================================
         //  CAMERA SCANNER (متروك)
@@ -2802,31 +2819,46 @@
         }
 
         function confirmAddToCart() {
-            const priceInput = document.getElementById('modal-sale-price');
-            const qtyInput = document.getElementById('modal-quantity');
-            const discountInput = document.getElementById('modal-item-discount');
-            const notesInput = document.getElementById('modal-item-notes');
-            const price = parseFloat(priceInput?.value) || 0;
-            const qty = parseInt(qtyInput?.value) || 1;
-            const discount = parseFloat(discountInput?.value) || 0;
-            const notes = notesInput?.value.trim() || '';
-            const product = currentProductForCart;
-            if (!product) return;
-            if (qty <= 0) return showToast('الكمية يجب أن تكون أكبر من صفر', 'warning');
-            const stock = product.stock_quantity || 0;
-            if (!appSettings.allow_negative_stock && qty > stock) {
-                return showToast(`⚠️ الكمية (${qty}) أكبر من المخزون (${stock})`, 'warning');
-            }
-            const cost = product.cost || 0;
-            const finalPrice = Math.max(0, price - discount);
-            if (!appSettings.allow_below_cost && finalPrice < cost) {
-                if (!confirm(`⚠️ السعر بعد الخصم (${finalPrice.toFixed(2)}) أقل من التكلفة (${cost.toFixed(2)}). متابعة؟`)) return;
-            }
-            addToCart(product.id, product.name || 'بدون اسم', finalPrice, cost, qty, notes);
-            closeModal('add-to-cart-modal');
-            showToast(`✅ تم إضافة ${product.name} (${qty})`, 'success');
-            playSuccessSound();
+    const priceInput = document.getElementById('modal-sale-price');
+    const qtyInput = document.getElementById('modal-quantity');
+    const discountInput = document.getElementById('modal-item-discount');
+    const notesInput = document.getElementById('modal-item-notes');
+    const price = parseFloat(priceInput?.value) || 0;
+    const qty = parseInt(qtyInput?.value) || 1;
+    const discount = parseFloat(discountInput?.value) || 0;
+    const notes = notesInput?.value.trim() || '';
+    const product = currentProductForCart;
+    if (!product) return;
+    if (qty <= 0) return showToast('الكمية يجب أن تكون أكبر من صفر', 'warning');
+    const stock = product.stock_quantity || 0;
+    if (!appSettings.allow_negative_stock && qty > stock) {
+        return showToast(`⚠️ الكمية (${qty}) أكبر من المخزون (${stock})`, 'warning');
+    }
+    const cost = product.cost || 0;
+    const finalPrice = Math.max(0, price - discount);
+    if (!appSettings.allow_below_cost && finalPrice < cost) {
+        if (!confirm(`⚠️ السعر بعد الخصم (${finalPrice.toFixed(2)}) أقل من التكلفة (${cost.toFixed(2)}). متابعة؟`)) return;
+    }
+    addToCart(product.id, product.name || 'بدون اسم', finalPrice, cost, qty, notes);
+    closeModal('add-to-cart-modal');
+    showToast(`✅ تم إضافة ${product.name} (${qty})`, 'success');
+    playSuccessSound();
+
+    // === التعديل المطلوب: مسح النص وإعادة ضبط البحث ===
+    const searchInput = document.getElementById('top-search-input');
+    if (searchInput && searchInput.value.trim().length > 0) {
+        searchInput.value = '';
+        currentSearch = '';
+        const hint = document.getElementById('search-hint');
+        if (hint) {
+            hint.textContent = '(ابحث بـ 4 أحرف فأكثر)';
+            hint.style.color = 'var(--muted)';
         }
+        const dropdown = document.getElementById('search-dropdown');
+        if (dropdown) dropdown.style.display = 'none';
+        fetchProducts('', selectedCategoryId);
+    }
+}
 
         // ================================================================
         //  EDIT CART ITEM
