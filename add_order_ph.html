@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
+    <!-- استدعاء المكتبة من جهازك / سيرفرك مباشرة -->
+<script src="html2pdf.bundle.min.js"></script>
     <link rel="manifest" href="manifest_pos_s.json" />
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
@@ -2502,7 +2504,7 @@
     if (!appSettings.allow_negative_stock && stock <= 0) {
         return showToast('⚠️ المنتج غير متوفر', 'warning');
     }
-    addToCart(product.id, product.name || 'بدون اسم', product.price || 0, product.cost || 0, 1);
+   addToCart(product.id, product.name || 'بدون اسم', product.price || 0, product.cost || 0, 1);
     showToast(`✅ تمت إضافة ${product.name}`, 'success');
     playClickSound();
 
@@ -2828,6 +2830,7 @@
     const discount = parseFloat(discountInput?.value) || 0;
     const notes = notesInput?.value.trim() || '';
     const product = currentProductForCart;
+    
     if (!product) return;
     if (qty <= 0) return showToast('الكمية يجب أن تكون أكبر من صفر', 'warning');
     const stock = product.stock_quantity || 0;
@@ -2839,12 +2842,14 @@
     if (!appSettings.allow_below_cost && finalPrice < cost) {
         if (!confirm(`⚠️ السعر بعد الخصم (${finalPrice.toFixed(2)}) أقل من التكلفة (${cost.toFixed(2)}). متابعة؟`)) return;
     }
-    addToCart(product.id, product.name || 'بدون اسم', finalPrice, cost, qty, notes);
+    
+    // إرسال السعر الأصلي والخصم كلٌ على حدة
+    addToCart(product.id, product.name || 'بدون اسم', price, cost, qty, notes, discount);
+    
     closeModal('add-to-cart-modal');
     showToast(`✅ تم إضافة ${product.name} (${qty})`, 'success');
     playSuccessSound();
 
-    // === التعديل المطلوب: مسح النص وإعادة ضبط البحث ===
     const searchInput = document.getElementById('top-search-input');
     if (searchInput && searchInput.value.trim().length > 0) {
         searchInput.value = '';
@@ -2859,7 +2864,6 @@
         fetchProducts('', selectedCategoryId);
     }
 }
-
         // ================================================================
         //  EDIT CART ITEM
         // ================================================================
@@ -2890,39 +2894,43 @@
         }
 
         function confirmEditCartItem() {
-            const priceInput = document.getElementById('edit-sale-price');
-            const qtyInput = document.getElementById('edit-quantity');
-            const discountInput = document.getElementById('edit-item-discount');
-            const notesInput = document.getElementById('edit-item-notes');
-            const price = parseFloat(priceInput?.value) || 0;
-            const qty = parseInt(qtyInput?.value) || 1;
-            const discount = parseFloat(discountInput?.value) || 0;
-            const notes = notesInput?.value.trim() || '';
-            const index = editingCartIndex;
-            if (index < 0 || index >= cart.length) return showToast('خطأ في التعديل', 'error');
-            const item = cart[index];
-            const product = productsCache.find(p => p.id === item.id);
-            const stock = product ? product.stock_quantity || 0 : 999;
-            if (qty <= 0) return showToast('الكمية يجب أن تكون أكبر من صفر', 'warning');
-            if (!appSettings.allow_negative_stock && qty > stock) {
-                return showToast(`⚠️ الكمية (${qty}) أكبر من المخزون (${stock})`, 'warning');
-            }
-            const cost = item.cost || 0;
-            const finalPrice = Math.max(0, price - discount);
-            if (!appSettings.allow_below_cost && finalPrice < cost) {
-                if (!confirm(`⚠️ السعر بعد الخصم (${finalPrice.toFixed(2)}) أقل من التكلفة (${cost.toFixed(2)}). متابعة؟`)) return;
-            }
-            cart[index].price = finalPrice;
-            cart[index].quantity = qty;
-            cart[index].discount = discount;
-            cart[index].notes = notes;
-            saveCartToLocal();
-            renderCart();
-            closeModal('edit-cart-item-modal');
-            showToast(`✅ تم تحديث ${item.name}`, 'success');
-            playSuccessSound();
-        }
-
+    const priceInput = document.getElementById('edit-sale-price');
+    const qtyInput = document.getElementById('edit-quantity');
+    const discountInput = document.getElementById('edit-item-discount');
+    const notesInput = document.getElementById('edit-item-notes');
+    const price = parseFloat(priceInput?.value) || 0;
+    const qty = parseInt(qtyInput?.value) || 1;
+    const discount = parseFloat(discountInput?.value) || 0;
+    const notes = notesInput?.value.trim() || '';
+    const index = editingCartIndex;
+    
+    if (index < 0 || index >= cart.length) return showToast('خطأ في التعديل', 'error');
+    const item = cart[index];
+    const product = productsCache.find(p => p.id === item.id);
+    const stock = product ? product.stock_quantity || 0 : 999;
+    
+    if (qty <= 0) return showToast('الكمية يجب أن تكون أكبر من صفر', 'warning');
+    if (!appSettings.allow_negative_stock && qty > stock) {
+        return showToast(`⚠️ الكمية (${qty}) أكبر من المخزون (${stock})`, 'warning');
+    }
+    const cost = item.cost || 0;
+    const finalPrice = Math.max(0, price - discount);
+    if (!appSettings.allow_below_cost && finalPrice < cost) {
+        if (!confirm(`⚠️ السعر بعد الخصم (${finalPrice.toFixed(2)}) أقل من التكلفة (${cost.toFixed(2)}). متابعة؟`)) return;
+    }
+    
+    // حفظ السعر الأصلي بدلاً من السعر بعد الخصم
+    cart[index].price = price; 
+    cart[index].quantity = qty;
+    cart[index].discount = discount; // حفظ الخصم ليظهر في الفاتورة
+    cart[index].notes = notes;
+    
+    saveCartToLocal();
+    renderCart();
+    closeModal('edit-cart-item-modal');
+    showToast(`✅ تم تحديث ${item.name}`, 'success');
+    playSuccessSound();
+}
         // ================================================================
         //  CART with SWIPE
         // ================================================================
@@ -2944,41 +2952,42 @@
             renderCart();
         }
 
-        function addToCart(id, name, price, cost, quantity = 1, notes = '') {
-            const product = productsCache.find(p => p.id === id);
-            if (!product) return showToast('المنتج غير موجود', 'error');
+        function addToCart(id, name, price, cost, quantity = 1, notes = '', discount = 0) {
+    const product = productsCache.find(p => p.id === id);
+    if (!product) return showToast('المنتج غير موجود', 'error');
 
-            if (!appSettings.allow_negative_stock) {
-                const stock = product.stock_quantity || 0;
-                const existing = cart.find(i => i.id === id);
-                const currentQty = existing ? existing.quantity : 0;
-                if (currentQty + quantity > stock) {
-                    showToast(`⚠️ الكمية المطلوبة (${currentQty + quantity}) تتجاوز المخزون (${stock})`, 'warning');
-                    return;
-                }
-            }
-
-            if (!appSettings.allow_below_cost && price < cost) {
-                if (!confirm(`⚠️ سعر البيع (${price.toFixed(2)}) أقل من التكلفة (${cost.toFixed(2)}). هل تريد المتابعة؟`)) {
-                    return;
-                }
-            }
-
-            const existing = cart.find(i => i.id === id);
-            if (existing) {
-                existing.quantity += quantity;
-                existing.price = price;
-                existing.cost = cost;
-                existing.discount = existing.discount || 0;
-                existing.notes = notes || existing.notes || '';
-            } else {
-                cart.push({ id, name, price, cost, quantity, discount: 0, notes });
-            }
-            saveCartToLocal();
-            renderCart();
-            const searchInput = document.getElementById('top-search-input');
-            if (searchInput) searchInput.focus();
+    if (!appSettings.allow_negative_stock) {
+        const stock = product.stock_quantity || 0;
+        const existing = cart.find(i => i.id === id);
+        const currentQty = existing ? existing.quantity : 0;
+        if (currentQty + quantity > stock) {
+            showToast(`⚠️ الكمية المطلوبة (${currentQty + quantity}) تتجاوز المخزون (${stock})`, 'warning');
+            return;
         }
+    }
+
+    if (!appSettings.allow_below_cost && (price - discount) < cost) {
+        if (!confirm(`⚠️ سعر البيع (${(price - discount).toFixed(2)}) أقل من التكلفة (${cost.toFixed(2)}). هل تريد المتابعة؟`)) {
+            return;
+        }
+    }
+
+    const existing = cart.find(i => i.id === id);
+    if (existing) {
+        existing.quantity += quantity;
+        existing.price = price;
+        existing.cost = cost;
+        existing.discount = discount; // حفظ الخصم الجديد
+        existing.notes = notes || existing.notes || '';
+    } else {
+        cart.push({ id, name, price, cost, quantity, discount: discount, notes });
+    }
+    
+    saveCartToLocal();
+    renderCart();
+    const searchInput = document.getElementById('top-search-input');
+    if (searchInput) searchInput.focus();
+}
 
         function changeQty(index, delta) {
             const item = cart[index];
@@ -3688,141 +3697,135 @@
         // ================================================================
         //  QUICK ORDER
         // ================================================================
-        async function quickOrder() {
-            if (cart.length === 0) return showToast('⚠️ السلة فارغة', 'warning');
-            if (!selectedCustomerData) { showToast('⚠️ يرجى إدخال بيانات العميل', 'warning');
-                openCustomerModal(); return; }
-            const mainPhone = selectedCustomerData.mainPhone;
-            const address = selectedCustomerData.address;
-            if (!mainPhone || !address) { showToast('رقم الهاتف والعنوان مطلوبان', 'warning');
-                openCustomerModal(); return; }
-
-            const btn = document.querySelector('.bottom-actions .btn-warning');
-            if (!btn) return;
-            const originalHTML = btn.innerHTML;
-            btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> جاري...`;
-            btn.disabled = true;
-            setProgress(30);
-
-            try {
-                const extraPhones = selectedCustomerData.extraPhones || [];
-                const allPhones = [mainPhone, ...extraPhones];
-                const uniquePhones = [...new Set(allPhones)];
-                const subtotal = cart.reduce((s, i) => s + ((i.price || 0) - (i.discount || 0)) * i.quantity, 0);
-                const discount = parseFloat(document.getElementById('cart-discount')?.value) || 0;
-                const discountType = document.getElementById('discount-type')?.value || 'fixed';
-                let discountAmount = discountType === 'percentage' ? subtotal * (discount / 100) : discount;
-                const fee = parseFloat(document.getElementById('deliveryFee')?.value) || 0;
-                const feePaidWithOrder = document.getElementById('deliveryFeePayment')?.value === 'مع الطلب';
-                const total = Math.max(0, subtotal - discountAmount + (feePaidWithOrder ? fee : 0));
-
-                const items = cart.map(item => ({
-                    product_id: item.id,
-                    product_name: item.name,
-                    quantity: item.quantity,
-                    unit_price: item.price,
-                    discount: item.discount || 0,
-                    notes: item.notes || ''
-                }));
-
-                const payload = {
-                    customer_name: selectedCustomerData.name || undefined,
-                    customer_phones: uniquePhones,
-                    customer_address: address,
-                    governorate: selectedCustomerData.governorate || 'صنعاء',
-                    delivery_type: selectedCustomerData.deliveryType || 'داخل صنعاء',
-                    delivery_fee: fee,
-                    delivery_fee_payment: feePaidWithOrder ? 'مع الطلب' : 'عند الاستلام',
-                    payment_method: 'عند الاستلام',
-                    items: items,
-                    notes: 'طلب سريع',
-                    total_amount: total
-                };
-
-                const res = await fetch(`${API}/online-orders`, {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                const data = await res.json();
-                setProgress(100);
-                setTimeout(() => setProgress(0), 500);
-                if (res.ok && data.success) {
-                    const orderId = data.order_id || (data.order ? data.order.id : '');
-                    const invoiceNum = data.invoice_number || (data.order ? data.order.invoice_number : '');
-                    if (orderId) document.getElementById('display-order-id').innerText = orderId;
-                    if (invoiceNum) document.getElementById('display-invoice-number').innerText = invoiceNum;
-                    showToast(`✅ تم حفظ الطلب السريع #${orderId}`, 'success');
-                    playSuccessSound();
-                    resetOrderForm();
-                    fetchProducts(currentSearch, selectedCategoryId);
-                } else { showToast(data.error || 'فشل الطلب السريع', 'error');
-                    playErrorSound(); }
-            } catch (err) { showToast(err.message || 'خطأ في الاتصال', 'error');
-                playErrorSound(); } finally { btn.innerHTML = originalHTML;
-                btn.disabled = false; }
-        }
-
-        // ================================================================
-        //  PRINT ORDER SUMMARY
-        // ================================================================
         function printOrderSummary() {
-            if (cart.length === 0) return showToast('لا توجد بيانات للطباعة', 'warning');
-            const shopName = localStorage.getItem('shop_name') || 'ابن المختار للأدوات المنزلية';
-            const shopPhone = localStorage.getItem('shop_phone') || '773266534';
-            const subtotal = cart.reduce((s, i) => s + ((i.price || 0) - (i.discount || 0)) * i.quantity, 0);
-            const discount = parseFloat(document.getElementById('cart-discount')?.value) || 0;
-            const discountType = document.getElementById('discount-type')?.value || 'fixed';
-            let discountAmount = discountType === 'percentage' ? subtotal * (discount / 100) : discount;
-            const fee = parseFloat(document.getElementById('deliveryFee')?.value) || 0;
-            const feePaidWithOrder = document.getElementById('deliveryFeePayment')?.value === 'مع الطلب';
-            const total = Math.max(0, subtotal - discountAmount + (feePaidWithOrder ? fee : 0));
-            const customerName = selectedCustomerData ? (selectedCustomerData.name || selectedCustomerData.mainPhone) :
-                'غير محدد';
-            const customerPhone = selectedCustomerData ? selectedCustomerData.mainPhone : '';
-            const customerAddress = selectedCustomerData ? selectedCustomerData.address : '';
+    if (cart.length === 0) return showToast('لا توجد بيانات للطباعة', 'warning');
+    
+    const shopName = localStorage.getItem('shop_name') || 'ابن المختار للأدوات المنزلية';
+    const shopPhone = localStorage.getItem('shop_phone') || '773266534';
+    const subtotal = cart.reduce((s, i) => s + ((i.price || 0) - (i.discount || 0)) * i.quantity, 0);
+    const discount = parseFloat(document.getElementById('cart-discount')?.value) || 0;
+    const discountType = document.getElementById('discount-type')?.value || 'fixed';
+    let discountAmount = discountType === 'percentage' ? subtotal * (discount / 100) : discount;
+    const fee = parseFloat(document.getElementById('deliveryFee')?.value) || 0;
+    const feePaidWithOrder = document.getElementById('deliveryFeePayment')?.value === 'مع الطلب';
+    const total = Math.max(0, subtotal - discountAmount + (feePaidWithOrder ? fee : 0));
+    
+    const customerName = selectedCustomerData ? (selectedCustomerData.name || selectedCustomerData.mainPhone) : 'غير محدد';
+    const customerPhone = selectedCustomerData ? selectedCustomerData.mainPhone : '';
+    const customerAddress = selectedCustomerData ? selectedCustomerData.address : '';
 
-            const content = `
-                <div style="font-family:'Cairo',sans-serif;direction:rtl;padding:20px;max-width:400px;margin:0 auto;background:white;color:#0f172a;">
-                    <div style="text-align:center;border-bottom:2px solid #1a56db;padding-bottom:12px;margin-bottom:12px;">
-                        <h3 style="color:#1a56db;">🏠 ${escapeHTML(shopName)}</h3>
-                        <p style="font-size:0.8rem;color:#94a3b8;">📞 ${escapeHTML(shopPhone)}</p>
-                    </div>
-                    <div style="font-size:0.8rem;margin-bottom:10px;">
-                        <div><strong>👤 العميل:</strong> ${escapeHTML(customerName)}</div>
-                        <div><strong>📞 الهاتف:</strong> ${escapeHTML(customerPhone)}</div>
-                        <div><strong>📍 العنوان:</strong> ${escapeHTML(customerAddress)}</div>
-                        <div><strong>💳 الدفع:</strong> ${document.getElementById('payment-method')?.value || ''}</div>
-                        <div><strong>📅 التاريخ:</strong> ${new Date().toLocaleString('ar-SA')}</div>
-                    </div>
-                    <table style="width:100%;border-collapse:collapse;font-size:0.75rem;margin:8px 0;">
-                        <thead><tr style="background:#f0f4f9;"><th style="padding:6px;">#</th><th style="padding:6px;">المنتج</th><th style="padding:6px;">الكمية</th><th style="padding:6px;">السعر</th><th style="padding:6px;">الإجمالي</th></tr></thead>
-                        <tbody>
-                            ${cart.map((item,i) => `
-                                <tr><td style="padding:4px;border-bottom:1px solid #e2e8f0;">${i+1}</td>
-                                <td style="padding:4px;border-bottom:1px solid #e2e8f0;">${escapeHTML(item.name)}</td>
-                                <td style="padding:4px;border-bottom:1px solid #e2e8f0;">${item.quantity}</td>
-                                <td style="padding:4px;border-bottom:1px solid #e2e8f0;">${((item.price||0)-(item.discount||0)).toFixed(2)}</td>
-                                <td style="padding:4px;border-bottom:1px solid #e2e8f0;">${(((item.price||0)-(item.discount||0))*item.quantity).toFixed(2)}</td></tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                    <div style="text-align:left;font-size:0.85rem;margin-top:8px;border-top:2px solid #e2e8f0;padding-top:8px;">
-                        <div style="display:flex;justify-content:space-between;"><span>المجموع:</span><span>${subtotal.toFixed(2)} ريال</span></div>
-                        ${discount > 0 ? `<div style="display:flex;justify-content:space-between;"><span>الخصم:</span><span>${discount.toFixed(2)} ريال</span></div>` : ''}
-                        <div style="display:flex;justify-content:space-between;"><span>رسوم التوصيل:</span><span>${fee.toFixed(2)} ريال</span></div>
-                        <div style="display:flex;justify-content:space-between;font-weight:800;font-size:1rem;border-top:2px solid #0f172a;padding-top:6px;margin-top:4px;"><span>الإجمالي:</span><span>${total.toFixed(2)} ريال</span></div>
-                    </div>
-                    <div style="text-align:center;font-size:0.7rem;color:#94a3b8;margin-top:14px;border-top:1px solid #e2e8f0;padding-top:10px;">شكراً لتعاملكم معنا</div>
-                </div>
-            `;
-            const win = window.open('', '_blank', 'width=400,height=600,scrollbars=yes');
-            if (!win) return showToast('⚠️ يرجى السماح بالنوافذ المنبثقة', 'warning');
-            win.document.write(
-                `<html><head><title>طلب إنترنت</title><style>body{margin:0;padding:0;background:#f0f4f9;}</style></head><body>${content}<script>window.onload=function(){setTimeout(function(){window.print();setTimeout(function(){window.close();},1000);},300);}<\/script></body></html>`
-                );
-            win.document.close();
-        }
+    const invoiceHtml = `
+        <div style="font-family:'Cairo', sans-serif; direction:rtl; padding:20px; width:720px; background:#ffffff; color:#0f172a; margin:0 auto;">
+            
+            <div style="text-align:center; border-bottom:2px solid #1a56db; padding-bottom:15px; margin-bottom:20px;">
+                <h2 style="color:#1a56db; margin:0; font-size:1.8rem;">${escapeHTML(shopName)}</h2>
+                <p style="font-size:1.1rem; color:#475569; margin:8px 0 0 0;">الهاتف: ${escapeHTML(shopPhone)}</p>
+            </div>
+            
+            <div style="background:#f8fafc; padding:15px; border-radius:8px; border:1px solid #e2e8f0; margin-bottom:20px;">
+                <table style="width:100%; border-collapse:collapse; font-size:1rem;">
+                    <tr>
+                        <td style="padding:6px; text-align:right; width:50%;"><strong>العميل:</strong> ${escapeHTML(customerName)}</td>
+                        <td style="padding:6px; text-align:left; width:50%;"><strong>التاريخ:</strong> ${new Date().toLocaleString('ar-SA')}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding:6px; text-align:right;"><strong>الهاتف:</strong> ${escapeHTML(customerPhone)}</td>
+                        <td style="padding:6px; text-align:left;"><strong>طريقة الدفع:</strong> ${document.getElementById('payment-method')?.value || ''}</td>
+                    </tr>
+                    <tr>
+                        <td colspan="2" style="padding:6px; text-align:right;"><strong>العنوان:</strong> ${escapeHTML(customerAddress)}</td>
+                    </tr>
+                </table>
+            </div>
+
+            <table style="width:100%; border-collapse:collapse; font-size:1rem; margin-bottom:20px;">
+                <thead>
+                    <tr style="border-bottom:2px solid #0f172a; background:#f0f4f9;">
+                        <th style="padding:12px 5px; text-align:right; width:5%;">#</th>
+                        <th style="padding:12px 5px; text-align:right; width:45%;">الصنف</th>
+                        <th style="padding:12px 5px; text-align:center; width:15%;">الكمية</th>
+                        <th style="padding:12px 5px; text-align:center; width:15%;">السعر</th>
+                        <th style="padding:12px 5px; text-align:center; width:20%;">الإجمالي</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${cart.map((item, i) => {
+                        const itemPrice = item.price || 0;
+                        const itemDiscount = item.discount || 0;
+                        const effectivePrice = itemPrice - itemDiscount;
+                        const itemTotal = effectivePrice * item.quantity;
+                        const discountHtml = itemDiscount > 0 ? `<br><span style="font-size:0.8rem; color:#dc2626;">(خصم: ${itemDiscount.toFixed(2)})</span>` : '';
+                        
+                        return `
+                        <tr style="border-bottom:1px solid #e2e8f0;">
+                            <td style="padding:12px 5px; text-align:right; vertical-align:top;">${i+1}</td>
+                            <td style="padding:12px 5px; text-align:right; vertical-align:top;">${escapeHTML(item.name)}${discountHtml}</td>
+                            <td style="padding:12px 5px; text-align:center; vertical-align:top;">${item.quantity}</td>
+                            <td style="padding:12px 5px; text-align:center; vertical-align:top;" dir="ltr">${effectivePrice.toFixed(2)}</td>
+                            <td style="padding:12px 5px; text-align:center; vertical-align:top;" dir="ltr">${itemTotal.toFixed(2)}</td>
+                        </tr>
+                        `;
+                    }).join('')}
+                </tbody>
+            </table>
+
+            <table style="width:100%; border-collapse:collapse;">
+                <tr>
+                    <td style="width:50%;"></td>
+                    <td style="width:50%;">
+                        <table style="width:100%; border-collapse:collapse; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; font-size:1rem;">
+                            <tr>
+                                <td style="padding:10px; text-align:right; border-bottom:1px solid #e2e8f0;">المجموع:</td>
+                                <td style="padding:10px; text-align:left; border-bottom:1px solid #e2e8f0;" dir="ltr">${subtotal.toFixed(2)} ريال</td>
+                            </tr>
+                            <tr>
+                                <td style="padding:10px; text-align:right; border-bottom:1px solid #e2e8f0; color:#dc2626;">الخصم الكلي:</td>
+                                <td style="padding:10px; text-align:left; border-bottom:1px solid #e2e8f0; color:#dc2626;" dir="ltr">${discountAmount.toFixed(2)} ريال</td>
+                            </tr>
+                            <tr>
+                                <td style="padding:10px; text-align:right; border-bottom:1px solid #e2e8f0;">رسوم التوصيل:</td>
+                                <td style="padding:10px; text-align:left; border-bottom:1px solid #e2e8f0;" dir="ltr">${fee.toFixed(2)} ريال</td>
+                            </tr>
+                            <tr>
+                                <td style="padding:15px 10px; text-align:right; font-weight:bold; font-size:1.2rem; color:#1a56db;">الإجمالي:</td>
+                                <td style="padding:15px 10px; text-align:left; font-weight:bold; font-size:1.2rem; color:#1a56db;" dir="ltr">${total.toFixed(2)} ريال</td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+            </table>
+            
+            <div style="text-align:center; font-size:1rem; color:#475569; margin-top:30px; border-top:1px solid #e2e8f0; padding-top:15px;">
+                شكراً لتعاملكم معنا
+            </div>
+        </div>
+    `;
+
+    const orderIdRaw = document.getElementById('display-order-id')?.innerText;
+    const orderIdForName = (orderIdRaw && orderIdRaw !== '--') ? orderIdRaw : 'جديد';
+    
+    const opt = {
+        margin:       10, 
+        filename:     `فاتورة_رقم_${orderIdForName}.pdf`,
+        image:        { type: 'jpeg', quality: 1 },
+        html2canvas:  { 
+            scale: 2, 
+            useCORS: true,
+            scrollY: 0,
+            scrollX: 0
+        }, 
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' } 
+    };
+
+    showToast('⏳ جاري تجهيز الفاتورة كملف PDF...', 'info');
+    
+    html2pdf().set(opt).from(invoiceHtml).save().then(() => {
+        showToast('✅ تم تحميل الفاتورة بنجاح', 'success');
+    }).catch(err => {
+        console.error('PDF Error:', err);
+        showToast('❌ حدث خطأ أثناء إنشاء الـ PDF', 'error');
+    });
+}
 
         // ================================================================
         //  CATEGORY MANAGEMENT
