@@ -10,7 +10,7 @@
   "orientation": "portrait",
   "dir": "rtl",
   "lang": "ar",
-  "scope": "/cashier/",
+  "scope": "/",
   "icons": [
     {
       "src": "/icon-192x192.png",

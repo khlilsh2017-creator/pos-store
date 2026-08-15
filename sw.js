@@ -2,7 +2,7 @@
 // 🏢 Service Worker - نظام ابن مختار (النسخة الموحدة v10)
 // ============================================================
 
-const CACHE_NAME = 'ibn-mukhtar-pos-v14';
+const CACHE_NAME = 'ibn-mukhtar-pos-v15';
 const STATIC_ASSETS = [
     '/',
     '/index.html',

@@ -430,24 +430,98 @@
             padding-bottom: 100px;
         }
 
-        /* --- PULL TO REFRESH --- */
-        .pull-to-refresh {
+        /* --- NEW TOP SEARCH BAR --- */
+        .top-search-bar {
+            background: var(--card);
+            border-radius: var(--radius);
+            padding: 8px 12px;
+            margin-bottom: 12px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            position: sticky;
+            top: calc(var(--nav-height) + 8px);
+            z-index: 40;
+            transition: background 0.3s;
+        }
+        .top-search-bar .search-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .top-search-bar .search-row input {
+            flex: 1;
+            min-width: 140px;
+        }
+        .top-search-bar .search-row .btn {
+            width: auto;
+            min-height: 40px;
+            padding: 8px 14px;
+        }
+        .top-search-bar .search-hint {
+            font-size: 0.65rem;
+            color: var(--muted);
+            white-space: nowrap;
+        }
+
+        /* --- DROPDOWN SEARCH RESULTS --- */
+        .search-dropdown {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            max-height: 300px;
+            overflow-y: auto;
+            box-shadow: var(--shadow-lg);
+            display: none;
+            position: relative;
+            z-index: 45;
+            margin-top: 4px;
+        }
+        .search-dropdown .dropdown-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .search-dropdown .dropdown-item:active {
+            background: var(--bg);
+        }
+        .search-dropdown .dropdown-item .name {
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+        .search-dropdown .dropdown-item .price {
+            font-weight: 700;
+            color: var(--primary);
+            font-size: 0.8rem;
+        }
+        .search-dropdown .dropdown-item .stock-badge {
+            font-size: 0.6rem;
+        }
+        .search-dropdown .no-results {
+            padding: 16px;
             text-align: center;
-            padding: 10px;
             color: var(--muted);
             font-size: 0.8rem;
-            transition: all 0.3s;
-            height: 0;
-            overflow: hidden;
-            opacity: 0;
         }
-        .pull-to-refresh.active {
-            height: 50px;
-            opacity: 1;
-        }
-        .pull-to-refresh i {
-            display: block;
-            font-size: 1.5rem;
+
+        /* --- SETTINGS INFO --- */
+        .settings-info {
+            font-size: 0.65rem;
+            color: var(--muted);
+            padding: 4px 8px;
+            background: var(--bg);
+            border-radius: 6px;
+            margin: 4px 0;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
         }
 
         /* --- CUSTOMER SUMMARY --- */
@@ -732,19 +806,22 @@
         }
 
         /* --- PRODUCTS --- */
-        .search-bar {
+        .products-section {
+            margin-top: 12px;
+        }
+        .products-section .section-header {
             display: flex;
-            gap: 6px;
-            margin-bottom: 8px;
+            justify-content: space-between;
+            align-items: center;
             flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 8px;
         }
-        .search-bar input {
-            flex: 1;
-            min-width: 120px;
-        }
-        .search-bar select {
+        .products-section .section-header .toggle-btn {
             width: auto;
-            min-width: 80px;
+            min-height: 36px;
+            padding: 6px 14px;
+            font-size: 0.85rem;
         }
 
         .products-grid {
@@ -752,6 +829,10 @@
             grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
             gap: 10px;
             padding: 4px 0;
+            transition: opacity 0.3s ease;
+        }
+        .products-grid.hidden {
+            display: none;
         }
         .product-card {
             background: var(--card);
@@ -1231,6 +1312,10 @@
                 padding: 2px 8px;
                 gap: 6px;
             }
+            .top-search-bar input {
+                font-size: 14px;
+                min-height: 40px;
+            }
         }
         @media (max-width: 380px) {
             .products-grid {
@@ -1247,11 +1332,8 @@
 </head>
 <body>
 
-    <!-- ===== PULL TO REFRESH ===== -->
-    <div class="pull-to-refresh" id="pull-to-refresh">
-        <i class="fas fa-chevron-down"></i>
-        <span>اسحب للتحديث</span>
-    </div>
+    <!-- ===== PULL TO REFRESH (مُعطّل) ===== -->
+    <div class="pull-to-refresh" id="pull-to-refresh" style="display:none;"></div>
 
     <!-- ===== PROGRESS BAR ===== -->
     <div class="progress-bar" id="progress-bar">
@@ -1274,12 +1356,27 @@
             <button class="btn btn-xs btn-outline" onclick="toggleDarkMode()" style="min-height:30px;width:auto;padding:4px 8px;">
                 <i class="fas fa-moon" id="dark-mode-icon"></i>
             </button>
+            <button class="btn btn-xs btn-outline" onclick="refreshData()" style="min-height:30px;width:auto;padding:4px 8px;" title="تحديث">
+                <i class="fas fa-sync-alt"></i>
+            </button>
             <span class="avatar" id="user-avatar">م</span>
             <span id="user-name">مستخدم</span>
             <span style="font-size:0.6rem;color:var(--muted);" id="user-role">-</span>
             <span id="online-indicator" style="color:var(--success);font-size:0.5rem;">●</span>
         </div>
     </header>
+
+    <!-- ===== TOP SEARCH BAR (جديد في الأعلى) ===== -->
+    <div class="top-search-bar" id="top-search-bar">
+        <div class="search-row">
+            <input type="text" id="top-search-input" class="input-field input-field-sm" placeholder="🔍 بحث عن منتج..." autocomplete="off" />
+            <button class="btn btn-sm btn-primary" onclick="triggerSearch()"><i class="fas fa-search"></i></button>
+            <button class="btn btn-sm btn-outline" onclick="clearSearch()"><i class="fas fa-times"></i></button>
+            <span class="search-hint" id="search-hint">(ابحث بـ 4 أحرف فأكثر)</span>
+        </div>
+        <!-- القائمة المنسدلة لنتائج البحث -->
+        <div class="search-dropdown" id="search-dropdown"></div>
+    </div>
 
     <!-- ===== MAIN ===== -->
     <main class="main-content" id="main-content">
@@ -1290,6 +1387,11 @@
             <span id="order-status-badge" class="status-badge new">جديد</span>
             <span id="order-payment-method-display" style="font-size:0.7rem;color:var(--text-secondary);"></span>
             <span style="font-size:0.65rem;color:var(--muted);margin-right:auto;">لا يمكن تعديل بعض الحقول</span>
+        </div>
+
+        <!-- عرض الإعدادات -->
+        <div class="settings-info" id="settings-info">
+            ⚙️ جاري تحميل الإعدادات...
         </div>
 
         <!-- ===== CUSTOMER ROW ===== -->
@@ -1417,21 +1519,18 @@
             </div>
         </div>
 
-        <!-- ===== PRODUCTS SECTION ===== -->
-        <div class="card">
-            <div class="search-bar">
-                <input type="text" id="search-input" class="input-field input-field-sm" placeholder="🔍 بحث..." oninput="applyFilters()" />
-                <select id="sort-select" class="input-field input-field-sm" style="width:auto;min-width:80px;" onchange="applyFilters()">
-                    <option value="name">الاسم</option>
-                    <option value="category">التصنيف</option>
-                    <option value="popularity">الأكثر طلباً</option>
-                    <option value="date">تاريخ الإضافة</option>
-                    <option value="supplier">المورد</option>
-                    <option value="most_sold">الأكثر مبيعات</option>
-                </select>
-                <button class="btn btn-sm btn-outline" onclick="document.getElementById('search-input').value='';applyFilters();" style="width:auto;"><i class="fas fa-times"></i></button>
+        <!-- ===== PRODUCTS SECTION (مع زر إخفاء/إظهار) ===== -->
+        <div class="card products-section" id="products-section">
+            <div class="section-header">
+                <h4 style="font-size:1rem;font-weight:700;display:flex;align-items:center;gap:6px;">
+                    <i class="fas fa-boxes"></i> المنتجات
+                </h4>
+                <button class="btn btn-sm btn-outline toggle-btn" id="toggle-products-btn" onclick="toggleProductsVisibility()">
+                    <i class="fas fa-chevron-up"></i> إخفاء
+                </button>
             </div>
 
+            <!-- تم إزالة حقل البحث من هنا، أصبح في الأعلى -->
             <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
                 <select id="main-category" class="input-field input-field-sm" style="flex:1;min-width:100px;" onchange="onMainCategoryChange()">
                     <option value="">📂 جميع الأقسام</option>
@@ -1445,6 +1544,14 @@
             <div class="products-grid" id="products-grid">
                 <div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>جاري التحميل...</p></div>
             </div>
+
+            <!-- عنصر select المخفي لتجنب خطأ sort-select -->
+            <select id="sort-select" style="display:none;">
+                <option value="name">الاسم</option>
+                <option value="category">التصنيف</option>
+                <option value="popularity">الأكثر مبيعاً</option>
+            </select>
+
             <div class="products-count" id="products-count-label">عدد المنتجات: --</div>
         </div>
 
@@ -1615,6 +1722,14 @@
         let updatingPaidFromDiscount = false;
         let phoneSearchTimeout = null;
         let isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        let searchTimeout = null;
+        let productsVisible = true; // حالة إخفاء/إظهار المنتجات
+
+        // إعدادات التطبيق من الخادم
+        let appSettings = {
+            allow_negative_stock: false,
+            allow_below_cost: false
+        };
 
         // Audio feedback
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -1719,45 +1834,41 @@
             d.textContent = str; return d.innerHTML; }
 
         // ================================================================
-        //  PULL TO REFRESH
+        //  SETTINGS (تحميل الإعدادات من الخادم)
         // ================================================================
-        let touchStartY = 0;
-        let isPulling = false;
-
-        document.addEventListener('touchstart', (e) => {
-            touchStartY = e.touches[0].clientY;
-        }, { passive: true });
-
-        document.addEventListener('touchmove', (e) => {
-            const scrollY = window.scrollY;
-            if (scrollY <= 0 && e.touches[0].clientY - touchStartY > 80) {
-                isPulling = true;
-                const el = document.getElementById('pull-to-refresh');
-                if (el) {
-                    el.classList.add('active');
-                    el.innerHTML = '<i class="fas fa-chevron-up"></i><span>أفلت للتحديث</span>';
+        async function loadSettings() {
+            try {
+                const res = await fetch(`${API}/settings`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                if (data.settings) {
+                    appSettings.allow_negative_stock = data.settings.allow_negative_stock === '1';
+                    appSettings.allow_below_cost = data.settings.allow_below_cost === '1';
                 }
-            }
-        }, { passive: true });
-
-        document.addEventListener('touchend', (e) => {
-            if (isPulling) {
-                isPulling = false;
-                const el = document.getElementById('pull-to-refresh');
-                if (el) {
-                    el.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>جاري التحديث...</span>';
-                    el.classList.add('active');
+                // عرض الإعدادات في الواجهة
+                const infoEl = document.getElementById('settings-info');
+                if (infoEl) {
+                    infoEl.innerHTML = `
+                        ⚙️ بيع سالب: <span style="color:${appSettings.allow_negative_stock ? 'var(--success)' : 'var(--danger)'};">${appSettings.allow_negative_stock ? 'مفعل' : 'غير مفعل'}</span> 
+                        | بيع أقل من التكلفة: <span style="color:${appSettings.allow_below_cost ? 'var(--success)' : 'var(--danger)'};">${appSettings.allow_below_cost ? 'مفعل' : 'غير مفعل'}</span>
+                    `;
                 }
-                refreshData();
-                setTimeout(() => {
-                    if (el) {
-                        el.classList.remove('active');
-                        el.innerHTML = '<i class="fas fa-chevron-down"></i><span>اسحب للتحديث</span>';
-                    }
-                }, 1500);
+            } catch (e) {
+                console.warn('فشل تحميل الإعدادات', e);
+                const infoEl = document.getElementById('settings-info');
+                if (infoEl) infoEl.innerHTML = '⚠️ تعذر تحميل الإعدادات، استخدم القيم الافتراضية (ممنوع)';
             }
-        }, { passive: true });
+        }
 
+        // ================================================================
+        //  PULL TO REFRESH (معطل تماماً)
+        // ================================================================
+        // تم تعطيل جميع مستمعي السحب نهائياً
+
+        // ================================================================
+        //  REFRESH DATA (زر التحديث)
+        // ================================================================
         async function refreshData() {
             setProgress(30);
             showToast('🔄 جاري التحديث...', 'info');
@@ -1768,6 +1879,7 @@
             await loadAllCategories();
             await loadDrivers();
             await fetchCustomersList();
+            await loadSettings();
             await fetchProducts(currentSearch, selectedCategoryId);
             setProgress(100);
             setTimeout(() => setProgress(0), 500);
@@ -2060,10 +2172,8 @@
         function sortProducts(products) {
             const sort = currentSort;
             let filtered = products;
-            // إذا كان الترتيب "الأكثر مبيعات" نطبق فلترًا لعرض المنتجات التي لها مبيعات فقط
             if (sort === 'most_sold') {
                 filtered = products.filter(p => (p.sales_count || 0) > 0);
-                // نرتب تنازلياً حسب عدد المبيعات
                 return filtered.sort((a, b) => (b.sales_count || 0) - (a.sales_count || 0));
             }
             const sorted = [...filtered];
@@ -2076,12 +2186,124 @@
             return sorted;
         }
 
-        function applyFilters() {
-            currentSort = document.getElementById('sort-select').value;
-            const search = document.getElementById('search-input').value.trim();
-            currentSearch = search;
+        // ================================================================
+        //  SEARCH LOGIC (تبدأ بعد 4 أحرف) - تعرض النتائج في dropdown
+        // ================================================================
+        function triggerSearch() {
+            const input = document.getElementById('top-search-input');
+            const searchTerm = input.value.trim();
+            currentSearch = searchTerm;
             saveFilterState();
-            fetchProducts(search, selectedCategoryId);
+            fetchProducts(currentSearch, selectedCategoryId); // سيتم تعديلها لعرض النتائج في dropdown
+            const hint = document.getElementById('search-hint');
+            if (searchTerm.length >= 4) {
+                hint.textContent = `(بحث عن: "${searchTerm}")`;
+                hint.style.color = 'var(--success)';
+            } else if (searchTerm.length > 0) {
+                hint.textContent = `(ادخل 4 أحرف على الأقل، لديك ${searchTerm.length})`;
+                hint.style.color = 'var(--warning)';
+            } else {
+                hint.textContent = '(ابحث بـ 4 أحرف فأكثر)';
+                hint.style.color = 'var(--muted)';
+            }
+        }
+
+        function clearSearch() {
+            const input = document.getElementById('top-search-input');
+            input.value = '';
+            currentSearch = '';
+            const hint = document.getElementById('search-hint');
+            hint.textContent = '(ابحث بـ 4 أحرف فأكثر)';
+            hint.style.color = 'var(--muted)';
+            saveFilterState();
+            // إخفاء القائمة المنسدلة
+            const dropdown = document.getElementById('search-dropdown');
+            if (dropdown) dropdown.style.display = 'none';
+            // إعادة تحميل الشبكة (عند مسح البحث، نعرض جميع المنتجات في الشبكة مع احترام التصنيف)
+            fetchProducts('', selectedCategoryId);
+            input.focus();
+        }
+
+        // عند الكتابة في حقل البحث العلوي
+        document.getElementById('top-search-input')?.addEventListener('input', function(e) {
+            clearTimeout(searchTimeout);
+            const term = this.value.trim();
+            const hint = document.getElementById('search-hint');
+            if (term.length > 0 && term.length < 4) {
+                hint.textContent = `(ادخل 4 أحرف على الأقل، لديك ${term.length})`;
+                hint.style.color = 'var(--warning)';
+                // إخفاء القائمة إذا كانت مفتوحة
+                const dropdown = document.getElementById('search-dropdown');
+                if (dropdown) dropdown.style.display = 'none';
+                return;
+            }
+            if (term.length >= 4) {
+                hint.textContent = `(بحث عن: "${term}")`;
+                hint.style.color = 'var(--success)';
+                searchTimeout = setTimeout(() => {
+                    currentSearch = term;
+                    saveFilterState();
+                    fetchProducts(currentSearch, selectedCategoryId);
+                }, 300);
+            } else {
+                hint.textContent = '(ابحث بـ 4 أحرف فأكثر)';
+                hint.style.color = 'var(--muted)';
+                if (term.length === 0) {
+                    currentSearch = '';
+                    saveFilterState();
+                    fetchProducts('', selectedCategoryId);
+                    const dropdown = document.getElementById('search-dropdown');
+                    if (dropdown) dropdown.style.display = 'none';
+                }
+            }
+        });
+
+        // السماح بالبحث عند الضغط على زر البحث
+        document.getElementById('top-search-bar')?.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                triggerSearch();
+            }
+        });
+
+        // ================================================================
+        //  TOGGLE PRODUCTS VISIBILITY
+        // ================================================================
+        function toggleProductsVisibility() {
+            productsVisible = !productsVisible;
+            const grid = document.getElementById('products-grid');
+            const btn = document.getElementById('toggle-products-btn');
+            if (!grid) return;
+            if (productsVisible) {
+                grid.classList.remove('hidden');
+                btn.innerHTML = '<i class="fas fa-chevron-up"></i> إخفاء';
+            } else {
+                grid.classList.add('hidden');
+                btn.innerHTML = '<i class="fas fa-chevron-down"></i> عرض';
+            }
+            try {
+                localStorage.setItem('products_visible', productsVisible ? 'true' : 'false');
+            } catch (e) {}
+        }
+
+        function loadProductsVisibility() {
+            try {
+                const saved = localStorage.getItem('products_visible');
+                if (saved === 'false') {
+                    productsVisible = false;
+                    const grid = document.getElementById('products-grid');
+                    const btn = document.getElementById('toggle-products-btn');
+                    if (grid) grid.classList.add('hidden');
+                    if (btn) btn.innerHTML = '<i class="fas fa-chevron-down"></i> عرض';
+                }
+            } catch (e) {}
+        }
+
+        // ================================================================
+        //  PRODUCTS FETCH & RENDER (تعديل لعرض النتائج في dropdown)
+        // ================================================================
+        function applyFilters() {
+            // تم دمجها مع triggerSearch
         }
 
         async function fetchProducts(search = '', categoryId = null) {
@@ -2092,6 +2314,70 @@
 
             const grid = document.getElementById('products-grid');
             const countLabel = document.getElementById('products-count-label');
+            const dropdown = document.getElementById('search-dropdown');
+
+            // إذا كان البحث أقل من 4 أحرف، نخفي القائمة ونعرض رسالة في الشبكة
+            if (currentSearch.length > 0 && currentSearch.length < 4) {
+                if (dropdown) dropdown.style.display = 'none';
+                if (grid) {
+                    grid.innerHTML = `
+                        <div class="empty-state" style="grid-column:1/-1;">
+                            <i class="fas fa-info-circle"></i>
+                            <p>اكتب 4 أحرف على الأقل لبدء البحث</p>
+                        </div>
+                    `;
+                }
+                if (countLabel) countLabel.textContent = 'اكتب 4 أحرف للبحث';
+                setProgress(100);
+                setTimeout(() => setProgress(0), 500);
+                return;
+            }
+
+            // إذا كان هناك بحث نشط، نعرض النتائج في dropdown ولا نغير الشبكة (نتركها كما هي أو نخفيها)
+            // لكن نترك الشبكة كما هي (مع الحفاظ على حالة الإخفاء) ونعرض نتائج البحث في dropdown فقط.
+            // إذا لم يكن هناك بحث، نعرض الشبكة بشكل طبيعي ونخفي dropdown.
+
+            if (currentSearch.length === 0) {
+                // لا يوجد بحث: نخفي dropdown ونعرض الشبكة
+                if (dropdown) dropdown.style.display = 'none';
+                // نعيد تحميل الشبكة بالمنتجات الكاملة (حسب التصنيف)
+                if (!navigator.onLine) {
+                    const localProducts = await getLocalProducts();
+                    productsCache = localProducts;
+                    let filtered = localProducts;
+                    if (selectedCategoryId) {
+                        filtered = filtered.filter(p => p.category_id == selectedCategoryId);
+                    }
+                    renderProductsGrid(filtered);
+                    if (countLabel) countLabel.textContent = `عدد المنتجات: ${filtered.length}`;
+                } else {
+                    try {
+                        let url = `${API}/products?limit=3000`;
+                        if (selectedCategoryId) url += `&category_id=${selectedCategoryId}`;
+                        if (currentSort) url += `&sort=${encodeURIComponent(currentSort)}`;
+                        const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
+                        const data = await res.json();
+                        productsCache = data.products || [];
+                        await saveProductsToLocal(productsCache);
+                        renderProductsGrid(productsCache);
+                        if (countLabel) countLabel.textContent = `عدد المنتجات: ${productsCache.length}`;
+                    } catch (err) {
+                        const localProducts = await getLocalProducts();
+                        productsCache = localProducts;
+                        renderProductsGrid(localProducts);
+                        if (countLabel) countLabel.textContent = `عدد المنتجات: ${localProducts.length} (محلي)`;
+                        showToast('فشل تحميل المنتجات، عرض محلي', 'warning');
+                    }
+                }
+                setProgress(100);
+                setTimeout(() => setProgress(0), 500);
+                return;
+            }
+
+            // هنا لدينا بحث (أكثر من 4 أحرف)
+            // نعرض النتائج في dropdown ونخفي الشبكة إذا كانت ظاهرة (أو نبقيها كما هي حسب رغبة المستخدم)
+            // لكننا لا نخفي الشبكة بالقوة، نتركها كما هي (قد تكون مخفية بواسطة زر الإخفاء)
+            // نعرض dropdown مع النتائج
 
             if (!navigator.onLine) {
                 const localProducts = await getLocalProducts();
@@ -2106,14 +2392,14 @@
                 if (selectedCategoryId) {
                     filtered = filtered.filter(p => p.category_id == selectedCategoryId);
                 }
-                renderProductsGrid(filtered);
-                if (countLabel) countLabel.textContent = `عدد المنتجات: ${filtered.length}`;
+                renderSearchDropdown(filtered);
+                // لا نغير الشبكة
+                if (countLabel) countLabel.textContent = `عدد المنتجات: ${filtered.length} (نتائج البحث)`;
                 setProgress(100);
                 setTimeout(() => setProgress(0), 500);
                 return;
             }
 
-            if (grid) grid.innerHTML = '<div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>جاري التحميل...</p></div>';
             try {
                 let url = `${API}/products?limit=3000`;
                 if (currentSearch) url += `&search=${encodeURIComponent(currentSearch)}`;
@@ -2123,21 +2409,61 @@
                 const data = await res.json();
                 productsCache = data.products || [];
                 await saveProductsToLocal(productsCache);
-                renderProductsGrid(productsCache);
-                if (countLabel) countLabel.textContent = `عدد المنتجات: ${productsCache.length}`;
+                // عرض النتائج في dropdown
+                renderSearchDropdown(productsCache);
+                // تحديث عدد المنتجات في التسمية (اختياري)
+                if (countLabel) countLabel.textContent = `عدد المنتجات: ${productsCache.length} (نتائج البحث)`;
                 setProgress(100);
                 setTimeout(() => setProgress(0), 500);
             } catch (err) {
                 const localProducts = await getLocalProducts();
                 productsCache = localProducts;
-                renderProductsGrid(localProducts);
-                if (countLabel) countLabel.textContent = `عدد المنتجات: ${localProducts.length} (محلي)`;
+                let filtered = localProducts;
+                if (currentSearch) {
+                    filtered = filtered.filter(p =>
+                        (p.name && p.name.toLowerCase().includes(currentSearch.toLowerCase())) ||
+                        (p.barcode && p.barcode.includes(currentSearch))
+                    );
+                }
+                if (selectedCategoryId) {
+                    filtered = filtered.filter(p => p.category_id == selectedCategoryId);
+                }
+                renderSearchDropdown(filtered);
+                if (countLabel) countLabel.textContent = `عدد المنتجات: ${filtered.length} (محلي - نتائج البحث)`;
                 showToast('فشل تحميل المنتجات، عرض محلي', 'warning');
                 setProgress(100);
                 setTimeout(() => setProgress(0), 500);
             }
         }
 
+        // دالة لعرض نتائج البحث في القائمة المنسدلة
+        function renderSearchDropdown(products) {
+            const dropdown = document.getElementById('search-dropdown');
+            if (!dropdown) return;
+            if (!products || products.length === 0) {
+                dropdown.innerHTML = `<div class="no-results">لا توجد نتائج</div>`;
+                dropdown.style.display = 'block';
+                return;
+            }
+            // ترتيب المنتجات حسب الاسم أو حسب الأفضلية
+            const sorted = sortProducts(products);
+            dropdown.innerHTML = sorted.map(p => {
+                const stock = p.stock_quantity || 0;
+                let stockLabel = `${stock}`;
+                if (stock === 0) stockLabel = 'نفد';
+                else if (stock < 5) stockLabel = `${stock} ⚠️`;
+                return `
+                    <div class="dropdown-item" onclick="quickAddToCart(${p.id})">
+                        <span class="name">${escapeHTML(p.name || 'بدون اسم')}</span>
+                        <span class="price">${(p.price || 0).toFixed(2)} ريال</span>
+                        <span class="stock-badge ${stock === 0 ? 'out-stock' : (stock < 5 ? 'low-stock' : 'in-stock')}">${stockLabel}</span>
+                    </div>
+                `;
+            }).join('');
+            dropdown.style.display = 'block';
+        }
+
+        // تعديل دالة renderProductsGrid بحيث تبقى كما هي لكن لا تتداخل مع dropdown
         function renderProductsGrid(products) {
             const sorted = sortProducts(products);
             const grid = document.getElementById('products-grid');
@@ -2169,14 +2495,20 @@
         function quickAddToCart(productId) {
             const product = productsCache.find(p => p.id === productId);
             if (!product) return showToast('المنتج غير موجود', 'error');
-            if ((product.stock_quantity || 0) <= 0) return showToast('⚠️ المنتج غير متوفر', 'warning');
+            const stock = product.stock_quantity || 0;
+            if (!appSettings.allow_negative_stock && stock <= 0) {
+                return showToast('⚠️ المنتج غير متوفر', 'warning');
+            }
             addToCart(product.id, product.name || 'بدون اسم', product.price || 0, product.cost || 0, 1);
             showToast(`✅ تمت إضافة ${product.name}`, 'success');
             playClickSound();
+            // إغلاق القائمة المنسدلة بعد الإضافة
+            const dropdown = document.getElementById('search-dropdown');
+            if (dropdown) dropdown.style.display = 'none';
         }
 
         // ================================================================
-        //  CAMERA SCANNER (متروك لكن لا يُستخدم)
+        //  CAMERA SCANNER (متروك)
         // ================================================================
         let scannerStream = null;
 
@@ -2193,16 +2525,14 @@
                         video.srcObject = stream;
                         video.setAttribute('playsinline', '');
                         video.play();
-                        // محاكاة المسح (للتوضيح)
                         setTimeout(() => {
-                            const input = document.getElementById('search-input');
+                            const input = document.getElementById('top-search-input');
                             if (input) {
-                                // نعطي مثال لرمز وهمي
                                 const simulatedCodes = ['123456789', '987654321', '111222333'];
                                 const code = simulatedCodes[Math.floor(Math.random() * simulatedCodes
                                 .length)];
                                 input.value = code;
-                                applyFilters();
+                                triggerSearch();
                             }
                             closeCameraScanner();
                         }, 3000);
@@ -2484,10 +2814,12 @@
             if (!product) return;
             if (qty <= 0) return showToast('الكمية يجب أن تكون أكبر من صفر', 'warning');
             const stock = product.stock_quantity || 0;
-            if (qty > stock) return showToast(`الكمية (${qty}) أكبر من المخزون (${stock})`, 'warning');
+            if (!appSettings.allow_negative_stock && qty > stock) {
+                return showToast(`⚠️ الكمية (${qty}) أكبر من المخزون (${stock})`, 'warning');
+            }
             const cost = product.cost || 0;
             const finalPrice = Math.max(0, price - discount);
-            if (finalPrice < cost) {
+            if (!appSettings.allow_below_cost && finalPrice < cost) {
                 if (!confirm(`⚠️ السعر بعد الخصم (${finalPrice.toFixed(2)}) أقل من التكلفة (${cost.toFixed(2)}). متابعة؟`)) return;
             }
             addToCart(product.id, product.name || 'بدون اسم', finalPrice, cost, qty, notes);
@@ -2540,10 +2872,12 @@
             const product = productsCache.find(p => p.id === item.id);
             const stock = product ? product.stock_quantity || 0 : 999;
             if (qty <= 0) return showToast('الكمية يجب أن تكون أكبر من صفر', 'warning');
-            if (qty > stock) return showToast(`الكمية (${qty}) أكبر من المخزون (${stock})`, 'warning');
+            if (!appSettings.allow_negative_stock && qty > stock) {
+                return showToast(`⚠️ الكمية (${qty}) أكبر من المخزون (${stock})`, 'warning');
+            }
             const cost = item.cost || 0;
             const finalPrice = Math.max(0, price - discount);
-            if (finalPrice < cost) {
+            if (!appSettings.allow_below_cost && finalPrice < cost) {
                 if (!confirm(`⚠️ السعر بعد الخصم (${finalPrice.toFixed(2)}) أقل من التكلفة (${cost.toFixed(2)}). متابعة؟`)) return;
             }
             cart[index].price = finalPrice;
@@ -2579,30 +2913,53 @@
         }
 
         function addToCart(id, name, price, cost, quantity = 1, notes = '') {
+            const product = productsCache.find(p => p.id === id);
+            if (!product) return showToast('المنتج غير موجود', 'error');
+
+            if (!appSettings.allow_negative_stock) {
+                const stock = product.stock_quantity || 0;
+                const existing = cart.find(i => i.id === id);
+                const currentQty = existing ? existing.quantity : 0;
+                if (currentQty + quantity > stock) {
+                    showToast(`⚠️ الكمية المطلوبة (${currentQty + quantity}) تتجاوز المخزون (${stock})`, 'warning');
+                    return;
+                }
+            }
+
+            if (!appSettings.allow_below_cost && price < cost) {
+                if (!confirm(`⚠️ سعر البيع (${price.toFixed(2)}) أقل من التكلفة (${cost.toFixed(2)}). هل تريد المتابعة؟`)) {
+                    return;
+                }
+            }
+
             const existing = cart.find(i => i.id === id);
-            if (existing) { existing.quantity += quantity;
+            if (existing) {
+                existing.quantity += quantity;
                 existing.price = price;
                 existing.cost = cost;
                 existing.discount = existing.discount || 0;
-                existing.notes = notes || existing.notes || ''; } else {
+                existing.notes = notes || existing.notes || '';
+            } else {
                 cart.push({ id, name, price, cost, quantity, discount: 0, notes });
             }
             saveCartToLocal();
             renderCart();
-            // التركيز على حقل البحث بدلاً من الباركود
-            const searchInput = document.getElementById('search-input');
+            const searchInput = document.getElementById('top-search-input');
             if (searchInput) searchInput.focus();
         }
 
         function changeQty(index, delta) {
             const item = cart[index];
             const product = productsCache.find(p => p.id === item.id);
-            const stock = product ? product.stock_quantity || 0 : 999;
+            if (!product) return;
+            const stock = product.stock_quantity || 0;
             const newQty = item.quantity + delta;
             if (newQty < 1) { cart.splice(index, 1);
                 saveCartToLocal();
                 renderCart(); return; }
-            if (newQty > stock) return showToast(`الكمية (${newQty}) أكبر من المخزون (${stock})`, 'warning');
+            if (!appSettings.allow_negative_stock && newQty > stock) {
+                return showToast(`⚠️ الكمية (${newQty}) أكبر من المخزون (${stock})`, 'warning');
+            }
             item.quantity = newQty;
             saveCartToLocal();
             renderCart();
@@ -3456,20 +3813,15 @@
             const mainCats = allCategories.filter(c => c.parent_id === null);
             mainSelect.innerHTML = '<option value="">📂 جميع الأقسام</option>';
             mainCats.forEach(cat => { mainSelect.innerHTML += `<option value="${cat.id}">${escapeHTML(cat.name)}</option>`; });
-            // استعادة التصنيف المخزن
             if (selectedCategoryId) {
-                // نبحث إذا كان التصنيف في القائمة الرئيسية أو الفرعية
                 const exists = allCategories.some(c => c.id == selectedCategoryId);
                 if (exists) {
-                    // نضبط القيمة
                     const cat = allCategories.find(c => c.id == selectedCategoryId);
                     if (cat && cat.parent_id !== null) {
-                        // تصنيف فرعي
                         mainSelect.value = cat.parent_id;
                         onMainCategoryChange();
                         const subSelect = document.getElementById('sub-category');
                         if (subSelect) {
-                            // ننتظر حتى تملأ القائمة الفرعية ثم نضبط القيمة
                             setTimeout(() => {
                                 subSelect.value = selectedCategoryId;
                             }, 50);
@@ -3502,7 +3854,6 @@
             if (subCats.length > 0 && subSelect) {
                 subSelect.style.display = 'block';
                 subCats.forEach(cat => { subSelect.innerHTML += `<option value="${cat.id}">${escapeHTML(cat.name)}</option>`; });
-                // إذا كان التصنيف المختار فرعياً، نضبطه
                 if (selectedCategoryId && subCats.some(c => c.id == selectedCategoryId)) {
                     subSelect.value = selectedCategoryId;
                     selectedCategoryId = parseInt(selectedCategoryId);
@@ -3632,6 +3983,7 @@
             populateCurrencySelects();
             populateWalletSelects();
             await loadAllCategories();
+            await loadSettings();
             fetchProducts(currentSearch, selectedCategoryId);
             loadDrivers();
             await fetchCustomersList();
@@ -3645,22 +3997,23 @@
             loadCurrentUser();
             updateOnlineStatus();
             loadCartFromLocal();
+            loadProductsVisibility(); // استعادة حالة إخفاء المنتجات
 
-            // استعادة الفلتر من التخزين المحلي
             const savedState = loadFilterState();
             if (savedState) {
                 currentSearch = savedState.search || '';
                 selectedCategoryId = savedState.categoryId || null;
                 currentSort = savedState.sort || 'name';
-                // تعيين الحقول
-                document.getElementById('search-input').value = currentSearch;
-                document.getElementById('sort-select').value = currentSort;
+                document.getElementById('top-search-input').value = currentSearch;
+                const sortSelect = document.getElementById('sort-select');
+                if (sortSelect) sortSelect.value = currentSort;
             } else {
                 currentSearch = '';
                 selectedCategoryId = null;
                 currentSort = 'name';
-                document.getElementById('search-input').value = '';
-                document.getElementById('sort-select').value = 'name';
+                document.getElementById('top-search-input').value = '';
+                const sortSelect = document.getElementById('sort-select');
+                if (sortSelect) sortSelect.value = 'name';
             }
 
             setProgress(20);
@@ -3668,9 +4021,10 @@
             await loadWalletsFromServer();
             populateCurrencySelects();
             populateWalletSelects();
-            await loadAllCategories(); // هذه الدالة ستضبط التصنيفات وتستعيد التصنيف المخزن
+            await loadAllCategories();
             await loadDrivers();
             await fetchCustomersList();
+            await loadSettings();
 
             const hasLocal = await loadProductsFromLocal();
             if (navigator.onLine) {
@@ -3681,8 +4035,7 @@
             setProgress(100);
             setTimeout(() => setProgress(0), 500);
 
-            // التركيز على حقل البحث
-            const searchInput = document.getElementById('search-input');
+            const searchInput = document.getElementById('top-search-input');
             if (searchInput) searchInput.focus();
 
             handlePaymentMethodChange();
@@ -3705,7 +4058,6 @@
             const orderId = params.get('order_id');
             if (orderId) { setTimeout(() => { loadOrderForEdit(parseInt(orderId)); }, 500); }
 
-            // Service Worker registration for PWA
             if ('serviceWorker' in navigator) {
                 try {
                     const registration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
@@ -3715,7 +4067,6 @@
                 }
             }
 
-            // Request notification permission
             if ('Notification' in window && Notification.permission === 'default') {
                 Notification.requestPermission();
             }
@@ -3723,16 +4074,21 @@
 
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Enter') {
-                // إذا كان التركيز على حقل البحث، نقوم بتطبيق الفلتر (تم بالفعل عبر oninput)
-                // لكن يمكن أن نضيف سلوكاً آخر
+                const target = e.target;
+                if (target && target.id === 'top-search-input') {
+                    e.preventDefault();
+                    triggerSearch();
+                }
             }
             if (e.key === 'Escape') {
                 document.querySelectorAll('.modal-overlay.active').forEach(el => closeModal(el.id));
                 closeCameraScanner();
+                const dropdown = document.getElementById('search-dropdown');
+                if (dropdown) dropdown.style.display = 'none';
             }
         });
 
-        console.log('📱 صفحة الجوال – طلبات الإنترنت (تم إزالة الباركود، حفظ الفلتر، إضافة خيار الأكثر مبيعات)');
+        console.log('📱 صفحة الجوال – طلبات الإنترنت (تم تحديث البحث: 4 أحرف، وإخفاء/إظهار المنتجات، وعرض النتائج في قائمة منسدلة)');
     </script>
 </body>
 </html>
