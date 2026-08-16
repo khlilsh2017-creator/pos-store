@@ -7,6 +7,13 @@
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
     <link rel="stylesheet" href="sidebar.css" />
+
+    <!-- ===== مكتبات Firebase للإشعارات ===== -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js">
+    </script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging-compat.js">
+    </script>
+
     <style>
         /* ===== جميع الأنماط الأساسية (كما هي سابقاً) ===== */
         :root {
@@ -33,7 +40,11 @@
             --border: #334155;
             --shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
         }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
         body {
             font-family: 'Cairo', sans-serif;
             background: var(--bg);
@@ -42,9 +53,17 @@
             display: flex;
             min-height: 100vh;
         }
-        ::-webkit-scrollbar { width: 5px; height: 5px; }
-        ::-webkit-scrollbar-track { background: var(--bg); }
-        ::-webkit-scrollbar-thumb { background: var(--text-muted); border-radius: 10px; }
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--bg);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--text-muted);
+            border-radius: 10px;
+        }
 
         /* ===== شاشة تسجيل الدخول (نفسها) ===== */
         #login-screen {
@@ -65,27 +84,57 @@
             text-align: center;
             border: 1px solid var(--border);
         }
-        .login-card .logo { font-size: 3rem; margin-bottom: 10px; }
-        .login-card h2 { color: var(--primary); margin-bottom: 8px; }
-        .login-card .sub { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px; }
+        .login-card .logo {
+            font-size: 3rem;
+            margin-bottom: 10px;
+        }
+        .login-card h2 {
+            color: var(--primary);
+            margin-bottom: 8px;
+        }
+        .login-card .sub {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-bottom: 20px;
+        }
         .login-card .input-field {
-            width: 100%; padding: 10px 14px; border: 1px solid var(--border);
-            border-radius: 10px; font-size: 1rem; outline: none;
-            background: var(--bg); color: var(--text);
-            transition: var(--transition); margin-bottom: 12px;
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            font-size: 1rem;
+            outline: none;
+            background: var(--bg);
+            color: var(--text);
+            transition: var(--transition);
+            margin-bottom: 12px;
         }
         .login-card .input-field:focus {
             border-color: var(--primary);
             box-shadow: 0 0 0 3px rgba(26, 86, 219, 0.12);
         }
         .login-card .btn {
-            width: 100%; padding: 12px; border: none; border-radius: 10px;
-            font-weight: 700; font-size: 1rem; cursor: pointer;
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
             transition: var(--transition);
-            background: var(--primary); color: #fff;
+            background: var(--primary);
+            color: #fff;
         }
-        .login-card .btn:hover { background: var(--primary-hover); transform: scale(0.97); }
-        .login-card .error { color: var(--danger); margin-top: 10px; display: none; font-weight: 600; }
+        .login-card .btn:hover {
+            background: var(--primary-hover);
+            transform: scale(0.97);
+        }
+        .login-card .error {
+            color: var(--danger);
+            margin-top: 10px;
+            display: none;
+            font-weight: 600;
+        }
 
         /* ===== المحتوى الرئيسي ===== */
         .main-content {
@@ -103,102 +152,247 @@
             flex-wrap: wrap;
             gap: 10px;
         }
-        .page-header h2 { font-size: 1.2rem; display: flex; align-items: center; gap: 8px; }
-        .page-header h2 i { color: var(--primary); }
+        .page-header h2 {
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .page-header h2 i {
+            color: var(--primary);
+        }
 
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-            gap: 14px; margin-bottom: 16px;
+            gap: 14px;
+            margin-bottom: 16px;
         }
         .stat-card {
-            background: var(--card); padding: 16px 18px;
-            border-radius: var(--radius); border: 1px solid var(--border);
-            box-shadow: var(--shadow); transition: var(--transition);
+            background: var(--card);
+            padding: 16px 18px;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+            transition: var(--transition);
         }
-        .stat-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.08); }
-        .stat-card .label { font-size: 0.75rem; color: var(--text-muted); }
-        .stat-card .value { font-size: 1.3rem; font-weight: 800; margin-top: 4px; }
-        .stat-card .value small { font-size: 0.65rem; font-weight: 400; color: var(--text-muted); }
-        .stat-card .currency-code { font-size: 0.7rem; font-weight: 600; color: var(--text-muted); margin-right: 4px; }
+        .stat-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+        }
+        .stat-card .label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+        .stat-card .value {
+            font-size: 1.3rem;
+            font-weight: 800;
+            margin-top: 4px;
+        }
+        .stat-card .value small {
+            font-size: 0.65rem;
+            font-weight: 400;
+            color: var(--text-muted);
+        }
+        .stat-card .currency-code {
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-right: 4px;
+        }
 
         .card-section {
-            background: var(--card); border-radius: var(--radius);
-            padding: 18px 20px; border: 1px solid var(--border);
-            box-shadow: var(--shadow); margin-bottom: 18px;
+            background: var(--card);
+            border-radius: var(--radius);
+            padding: 18px 20px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+            margin-bottom: 18px;
             transition: all var(--transition);
         }
-        .card-section h4 { font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; font-size: 1.05rem; }
+        .card-section h4 {
+            font-weight: 700;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 1.05rem;
+        }
 
         .dashboard-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-            gap: 16px; margin-top: 12px;
+            gap: 16px;
+            margin-top: 12px;
         }
         .dash-card {
-            background: var(--card); border-radius: var(--radius);
-            padding: 18px 12px; text-align: center; border: 1px solid var(--border);
-            transition: var(--transition); text-decoration: none; color: var(--text); cursor: pointer;
+            background: var(--card);
+            border-radius: var(--radius);
+            padding: 18px 12px;
+            text-align: center;
+            border: 1px solid var(--border);
+            transition: var(--transition);
+            text-decoration: none;
+            color: var(--text);
+            cursor: pointer;
         }
         .dash-card:hover {
-            transform: translateY(-4px); border-color: var(--primary);
-            box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+            transform: translateY(-4px);
+            border-color: var(--primary);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
         }
-        .dash-card i { font-size: 2.2rem; color: var(--primary); }
-        .dash-card .title { font-weight: 700; font-size: 0.95rem; margin-top: 4px; }
-        .dash-card .sub { font-size: 0.7rem; color: var(--text-muted); }
+        .dash-card i {
+            font-size: 2.2rem;
+            color: var(--primary);
+        }
+        .dash-card .title {
+            font-weight: 700;
+            font-size: 0.95rem;
+            margin-top: 4px;
+        }
+        .dash-card .sub {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+        }
 
-        .flex-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
-        .flex-1 { flex: 1; min-width: 120px; }
-        .text-muted { color: var(--text-muted); }
-        .text-success { color: var(--success); }
-        .text-danger { color: var(--danger); }
-        .mt-10 { margin-top: 10px; }
-        .mb-10 { margin-bottom: 10px; }
+        .flex-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+        }
+        .flex-1 {
+            flex: 1;
+            min-width: 120px;
+        }
+        .text-muted {
+            color: var(--text-muted);
+        }
+        .text-success {
+            color: var(--success);
+        }
+        .text-danger {
+            color: var(--danger);
+        }
+        .mt-10 {
+            margin-top: 10px;
+        }
+        .mb-10 {
+            margin-bottom: 10px;
+        }
 
         .btn {
-            padding: 8px 16px; border: none; border-radius: 10px;
-            font-weight: 600; cursor: pointer; transition: var(--transition);
-            display: inline-flex; align-items: center; gap: 6px; font-size: 0.85rem;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.85rem;
         }
-        .btn-primary { background: var(--primary); color: #fff; }
-        .btn-primary:hover { background: var(--primary-hover); transform: scale(0.97); }
-        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
-        .btn-outline:hover { background: var(--bg); }
-        .btn-sm { padding: 4px 12px; font-size: 0.75rem; }
-        .btn-success { background: var(--success); color: #fff; }
-        .btn-success:hover { background: #15803d; }
+        .btn-primary {
+            background: var(--primary);
+            color: #fff;
+        }
+        .btn-primary:hover {
+            background: var(--primary-hover);
+            transform: scale(0.97);
+        }
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text);
+        }
+        .btn-outline:hover {
+            background: var(--bg);
+        }
+        .btn-sm {
+            padding: 4px 12px;
+            font-size: 0.75rem;
+        }
+        .btn-success {
+            background: var(--success);
+            color: #fff;
+        }
+        .btn-success:hover {
+            background: #15803d;
+        }
 
         .sync-status {
-            display: flex; align-items: center; gap: 8px;
-            font-size: 0.8rem; padding: 4px 12px;
-            border-radius: 20px; background: var(--bg); border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.8rem;
+            padding: 4px 12px;
+            border-radius: 20px;
+            background: var(--bg);
+            border: 1px solid var(--border);
         }
-        .sync-status .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
-        .sync-status .dot.green { background: var(--success); }
-        .sync-status .dot.red { background: var(--danger); }
-        .sync-status .dot.yellow { background: var(--warning); }
+        .sync-status .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .sync-status .dot.green {
+            background: var(--success);
+        }
+        .sync-status .dot.red {
+            background: var(--danger);
+        }
+        .sync-status .dot.yellow {
+            background: var(--warning);
+        }
 
         .toast-container {
-            position: fixed; bottom: 24px; right: 24px;
-            z-index: 9999; display: flex; flex-direction: column;
-            gap: 10px; max-width: 400px; width: 100%;
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-width: 400px;
+            width: 100%;
         }
         .toast {
-            background: var(--text); color: #fff;
-            padding: 12px 20px; border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            background: var(--text);
+            color: #fff;
+            padding: 12px 20px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
             animation: slideUp 0.35s ease;
-            display: flex; align-items: center; gap: 12px;
-            font-weight: 600; font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 600;
+            font-size: 0.9rem;
         }
-        .toast.success { background: var(--success); }
-        .toast.error { background: var(--danger); }
-        .toast.warning { background: var(--warning); color: #000; }
-        .toast.info { background: var(--info); }
+        .toast.success {
+            background: var(--success);
+        }
+        .toast.error {
+            background: var(--danger);
+        }
+        .toast.warning {
+            background: var(--warning);
+            color: #000;
+        }
+        .toast.info {
+            background: var(--info);
+        }
         @keyframes slideUp {
-            from { opacity: 0; transform: translateY(30px) scale(0.9); }
-            to { opacity: 1; transform: translateY(0) scale(1); }
+            from {
+                opacity: 0;
+                transform: translateY(30px) scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
         }
 
         /* ===== بطاقات المحافظ ===== */
@@ -211,11 +405,25 @@
             margin-bottom: 8px;
             transition: var(--transition);
         }
-        .wallet-summary-card:hover { transform: translateX(-4px); border-color: var(--primary); }
-        .wallet-summary-card .wallet-name { font-weight: 700; font-size: 1rem; display: flex; align-items: center; gap: 8px; }
-        .wallet-summary-card .wallet-name i { color: var(--primary); }
+        .wallet-summary-card:hover {
+            transform: translateX(-4px);
+            border-color: var(--primary);
+        }
+        .wallet-summary-card .wallet-name {
+            font-weight: 700;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .wallet-summary-card .wallet-name i {
+            color: var(--primary);
+        }
         .wallet-summary-card .balances {
-            display: flex; flex-wrap: wrap; gap: 12px; margin-top: 6px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 6px;
         }
         .wallet-summary-card .balances .balance-item {
             background: var(--bg);
@@ -313,17 +521,31 @@
         }
 
         @media (max-width: 1024px) {
-            .main-content { padding: 12px 14px; }
+            .main-content {
+                padding: 12px 14px;
+            }
         }
         @media (max-width: 768px) {
-            .stats-grid { grid-template-columns: 1fr 1fr; }
-            .dashboard-grid { grid-template-columns: 1fr 1fr; }
-            .login-card { padding: 24px; }
+            .stats-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            .dashboard-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            .login-card {
+                padding: 24px;
+            }
         }
         @media (max-width: 480px) {
-            .stats-grid { grid-template-columns: 1fr; }
-            .dashboard-grid { grid-template-columns: 1fr; }
-            .ai-container input { min-width: 150px; }
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            .ai-container input {
+                min-width: 150px;
+            }
         }
     </style>
 </head>
@@ -477,22 +699,204 @@
         });
 
         // ================================================================
-        //  2. INDEXEDDB – كما هو سابقاً (اختصاراً للطول)
+        //  2. INDEXEDDB – (مختصرة، كما في الأصل)
         // ================================================================
-        // (تم حذف التفاصيل المكررة هنا، لكنها موجودة في الكود الأصلي)
-        // نكتفي بإعادة تعريف الدوال الأساسية المستخدمة.
-        async function openDB() { /* ... */ }
-        async function addPendingSale(saleData) { /* ... */ }
-        async function getPendingSales() { /* ... */ }
-        async function markSaleSynced(id) { /* ... */ }
-        async function saveLocalWallets(wallets) { /* ... */ }
-        async function getLocalWallets() { /* ... */ }
-        async function saveLocalProducts(products) { /* ... */ }
-        async function getLocalProducts() { /* ... */ }
-        async function saveLocalCustomers(customers) { /* ... */ }
-        async function getLocalCustomers() { /* ... */ }
-        async function syncPendingSales() { /* ... */ }
-        async function refreshDataFromServer() { /* ... */ }
+        async function openDB() {
+            return new Promise((resolve, reject) => {
+                const req = indexedDB.open('PosDB', 2);
+                req.onupgradeneeded = (e) => {
+                    const db = e.target.result;
+                    if (!db.objectStoreNames.contains('pendingSales')) {
+                        db.createObjectStore('pendingSales', { keyPath: 'id', autoIncrement: true });
+                    }
+                    if (!db.objectStoreNames.contains('wallets')) {
+                        db.createObjectStore('wallets', { keyPath: 'id' });
+                    }
+                    if (!db.objectStoreNames.contains('products')) {
+                        db.createObjectStore('products', { keyPath: 'id' });
+                    }
+                    if (!db.objectStoreNames.contains('customers')) {
+                        db.createObjectStore('customers', { keyPath: 'id' });
+                    }
+                };
+                req.onsuccess = (e) => resolve(e.target.result);
+                req.onerror = (e) => reject(e.target.error);
+            });
+        }
+
+        async function addPendingSale(saleData) {
+            try {
+                const db = await openDB();
+                const tx = db.transaction('pendingSales', 'readwrite');
+                const store = tx.objectStore('pendingSales');
+                store.add({ ...saleData, synced: false, timestamp: Date.now() });
+                await new Promise((resolve, reject) => {
+                    tx.oncomplete = resolve;
+                    tx.onerror = (e) => reject(e.target.error);
+                });
+            } catch (err) { console.warn('addPendingSale error:', err); }
+        }
+
+        async function getPendingSales() {
+            try {
+                const db = await openDB();
+                const tx = db.transaction('pendingSales', 'readonly');
+                const store = tx.objectStore('pendingSales');
+                const all = await new Promise((resolve) => {
+                    const req = store.getAll();
+                    req.onsuccess = () => resolve(req.result);
+                    req.onerror = () => resolve([]);
+                });
+                return all.filter(item => !item.synced);
+            } catch { return []; }
+        }
+
+        async function markSaleSynced(id) {
+            try {
+                const db = await openDB();
+                const tx = db.transaction('pendingSales', 'readwrite');
+                const store = tx.objectStore('pendingSales');
+                const item = await new Promise((resolve) => {
+                    const req = store.get(id);
+                    req.onsuccess = () => resolve(req.result);
+                    req.onerror = () => resolve(null);
+                });
+                if (item) {
+                    item.synced = true;
+                    store.put(item);
+                }
+                await new Promise((resolve, reject) => {
+                    tx.oncomplete = resolve;
+                    tx.onerror = (e) => reject(e.target.error);
+                });
+            } catch (err) { console.warn('markSaleSynced error:', err); }
+        }
+
+        async function saveLocalWallets(wallets) {
+            try {
+                const db = await openDB();
+                const tx = db.transaction('wallets', 'readwrite');
+                const store = tx.objectStore('wallets');
+                await store.clear();
+                for (const w of wallets) store.put(w);
+                await new Promise((resolve, reject) => {
+                    tx.oncomplete = resolve;
+                    tx.onerror = (e) => reject(e.target.error);
+                });
+            } catch (err) { console.warn('saveLocalWallets error:', err); }
+        }
+
+        async function getLocalWallets() {
+            try {
+                const db = await openDB();
+                const tx = db.transaction('wallets', 'readonly');
+                const store = tx.objectStore('wallets');
+                const all = await new Promise((resolve) => {
+                    const req = store.getAll();
+                    req.onsuccess = () => resolve(req.result);
+                    req.onerror = () => resolve([]);
+                });
+                return all;
+            } catch { return []; }
+        }
+
+        async function saveLocalProducts(products) {
+            try {
+                const db = await openDB();
+                const tx = db.transaction('products', 'readwrite');
+                const store = tx.objectStore('products');
+                await store.clear();
+                for (const p of products) store.put(p);
+                await new Promise((resolve, reject) => {
+                    tx.oncomplete = resolve;
+                    tx.onerror = (e) => reject(e.target.error);
+                });
+            } catch (err) { console.warn('saveLocalProducts error:', err); }
+        }
+
+        async function getLocalProducts() {
+            try {
+                const db = await openDB();
+                const tx = db.transaction('products', 'readonly');
+                const store = tx.objectStore('products');
+                const all = await new Promise((resolve) => {
+                    const req = store.getAll();
+                    req.onsuccess = () => resolve(req.result);
+                    req.onerror = () => resolve([]);
+                });
+                return all;
+            } catch { return []; }
+        }
+
+        async function saveLocalCustomers(customers) {
+            try {
+                const db = await openDB();
+                const tx = db.transaction('customers', 'readwrite');
+                const store = tx.objectStore('customers');
+                await store.clear();
+                for (const c of customers) store.put(c);
+                await new Promise((resolve, reject) => {
+                    tx.oncomplete = resolve;
+                    tx.onerror = (e) => reject(e.target.error);
+                });
+            } catch (err) { console.warn('saveLocalCustomers error:', err); }
+        }
+
+        async function getLocalCustomers() {
+            try {
+                const db = await openDB();
+                const tx = db.transaction('customers', 'readonly');
+                const store = tx.objectStore('customers');
+                const all = await new Promise((resolve) => {
+                    const req = store.getAll();
+                    req.onsuccess = () => resolve(req.result);
+                    req.onerror = () => resolve([]);
+                });
+                return all;
+            } catch { return []; }
+        }
+
+        async function syncPendingSales() {
+            try {
+                const pending = await getPendingSales();
+                let syncedCount = 0;
+                for (const item of pending) {
+                    try {
+                        const res = await fetch(`${API}/sales`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${token}`
+                            },
+                            body: JSON.stringify(item)
+                        });
+                        if (res.ok) {
+                            await markSaleSynced(item.id);
+                            syncedCount++;
+                        }
+                    } catch (err) { console.warn('syncPendingSales item error:', err); }
+                }
+                return syncedCount;
+            } catch { return 0; }
+        }
+
+        async function refreshDataFromServer() {
+            if (!navigator.onLine) return;
+            try {
+                const res = await fetch(`${API}/products`, { headers: { 'Authorization': `Bearer ${token}` } });
+                const data = await res.json();
+                if (data.products) await saveLocalProducts(data.products);
+
+                const custRes = await fetch(`${API}/customers`, { headers: { 'Authorization': `Bearer ${token}` } });
+                const custData = await custRes.json();
+                if (custData.customers) await saveLocalCustomers(custData.customers);
+
+                const walletRes = await fetch(`${API}/wallets`, { headers: { 'Authorization': `Bearer ${token}` } });
+                const walletData = await walletRes.json();
+                if (walletData.wallets) await saveLocalWallets(walletData.wallets);
+
+            } catch (err) { console.warn('refreshDataFromServer error:', err); }
+        }
 
         // ================================================================
         //  3. TOAST & HELPERS
@@ -537,11 +941,72 @@
         }
 
         // ================================================================
-        //  4. حالة الاتصال والمزامنة (اختصار)
+        //  4. حالة الاتصال والمزامنة
         // ================================================================
-        function updateOnlineStatus() { /* ... */ }
-        async function updateLocalCounts() { /* ... */ }
-        async function manualSync() { /* ... */ }
+        function updateOnlineStatus() {
+            const isOnline = navigator.onLine;
+            const indicator = document.getElementById('online-indicator');
+            const label = document.getElementById('status-label');
+            const statusText = document.getElementById('status-text');
+            const dataSource = document.getElementById('data-source');
+            if (isOnline) {
+                indicator.style.color = 'var(--success)';
+                label.textContent = 'متصل';
+                statusText.textContent = 'متصل';
+                dataSource.textContent = 'الخادم';
+            } else {
+                indicator.style.color = 'var(--danger)';
+                label.textContent = 'غير متصل';
+                statusText.textContent = 'غير متصل';
+                dataSource.textContent = 'محلي فقط';
+            }
+        }
+
+        async function updateLocalCounts() {
+            try {
+                const products = await getLocalProducts();
+                document.getElementById('local-products-count').textContent = products.length || 0;
+                const customers = await getLocalCustomers();
+                document.getElementById('local-customers-count').textContent = customers.length || 0;
+                const pending = await getPendingSales();
+                document.getElementById('pending-sales-count').textContent = pending.length || 0;
+                const pendingEl = document.getElementById('pending-count');
+                if (pending.length > 0) {
+                    pendingEl.style.display = 'inline';
+                    pendingEl.textContent = `(${pending.length})`;
+                    document.getElementById('sync-dot').className = 'dot yellow';
+                    document.getElementById('sync-label').textContent = 'معلق';
+                } else {
+                    pendingEl.style.display = 'none';
+                    document.getElementById('sync-dot').className = 'dot green';
+                    document.getElementById('sync-label').textContent = 'متزامن';
+                }
+            } catch (err) { console.warn('updateLocalCounts error:', err); }
+        }
+
+        async function manualSync() {
+            if (!navigator.onLine) {
+                showToast('⚠️ لا يوجد اتصال بالإنترنت للمزامنة', 'warning');
+                return;
+            }
+            const btn = document.getElementById('sync-btn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري...';
+            try {
+                const count = await syncPendingSales();
+                if (count > 0) showToast(`✅ تمت مزامنة ${count} فاتورة معلقة`, 'success');
+                await refreshDataFromServer();
+                await updateLocalCounts();
+                await loadFinancialSummary();
+                await loadWalletsDetail();
+                showToast('✅ تمت المزامنة الكاملة', 'success');
+            } catch (err) {
+                showToast('❌ فشل المزامنة: ' + err.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-sync-alt"></i> مزامنة';
+            }
+        }
 
         // ================================================================
         //  5. المصادقة
@@ -564,6 +1029,8 @@
                         currentUser = JSON.parse(savedUser);
                         token = localStorage.getItem('pos_token') || 'offline-token';
                         showApp();
+                        // تفعيل الإشعارات في وضع غير متصل (قد لا تعمل لكن نحاول)
+                        registerAdminNotifications();
                         showToast('✅ تم الدخول في وضع عدم الاتصال', 'info');
                         return;
                     } catch {}
@@ -588,6 +1055,8 @@
                     localStorage.setItem('pos_user', JSON.stringify(currentUser));
                     showApp();
                     showToast('✅ تم تسجيل الدخول بنجاح', 'success');
+                    // ===== تفعيل إشعارات الإدارة =====
+                    registerAdminNotifications();
                 } else {
                     errorEl.textContent = data.error || 'خطأ في اسم المستخدم أو كلمة المرور';
                     errorEl.style.display = 'block';
@@ -634,6 +1103,8 @@
                 await updateLocalCounts();
                 await loadFinancialSummary();
                 await loadWalletsDetail();
+                // إعادة تسجيل الإشعارات عند العودة للاتصال
+                registerAdminNotifications();
             });
             window.addEventListener('offline', () => {
                 updateOnlineStatus();
@@ -725,11 +1196,11 @@
                     }
                     for (const [code, data] of Object.entries(grouped)) {
                         currencyHtml += `
-                            <div class="stat-card" style="flex:1;min-width:120px;padding:10px 14px;">
-                                <div class="label">💱 ${data.name || code}</div>
-                                <div class="value" style="font-size:1.1rem;">${data.amount.toFixed(2)} <span class="currency-code">${code}</span></div>
-                            </div>
-                        `;
+                                <div class="stat-card" style="flex:1;min-width:120px;padding:10px 14px;">
+                                    <div class="label">💱 ${data.name || code}</div>
+                                    <div class="value" style="font-size:1.1rem;">${data.amount.toFixed(2)} <span class="currency-code">${code}</span></div>
+                                </div>
+                            `;
                     }
                 }
                 currencyContainer.innerHTML = currencyHtml || '<p class="text-muted">لا توجد محافظ مسجلة</p>';
@@ -767,36 +1238,34 @@
                         const rate = b.rate_to_base || 1;
                         totalBase += (b.balance || 0) / rate;
                         balancesHtml += `
-                            <span class="balance-item">
-                                ${(b.balance || 0).toFixed(2)} <span class="code">${b.code || 'YER'}</span>
-                            </span>
-                        `;
+                                <span class="balance-item">
+                                    ${(b.balance || 0).toFixed(2)} <span class="code">${b.code || 'YER'}</span>
+                                </span>
+                            `;
                     }
                     html += `
-                        <div class="wallet-summary-card">
-                            <div class="wallet-name">
-                                <i class="fas fa-wallet"></i> ${w.name}
+                            <div class="wallet-summary-card">
+                                <div class="wallet-name">
+                                    <i class="fas fa-wallet"></i> ${w.name}
+                                </div>
+                                <div class="balances">${balancesHtml}</div>
+                                <div class="total-base">الإجمالي بالريال: ${totalBase.toFixed(2)} ريال</div>
                             </div>
-                            <div class="balances">${balancesHtml}</div>
-                            <div class="total-base">الإجمالي بالريال: ${totalBase.toFixed(2)} ريال</div>
-                        </div>
-                    `;
+                        `;
                 }
                 container.innerHTML = html;
 
             } catch (err) {
                 console.warn('فشل تحميل تفاصيل المحافظ', err);
-                document.getElementById('wallets-detail-container').innerHTML = '<p class="text-danger">⚠️ فشل تحميل بيانات المحافظ</p>';
+                document.getElementById('wallets-detail-container').innerHTML =
+                '<p class="text-danger">⚠️ فشل تحميل بيانات المحافظ</p>';
             }
         }
 
         // ================================================================
-        //  🧠  واجهة الذكاء الاصطناعي (الدوال الجديدة)
+        //  🧠  واجهة الذكاء الاصطناعي
         // ================================================================
 
-        /**
-         * إرسال السؤال إلى نقطة النهاية /ask-ai وعرض النتيجة
-         */
         async function askAI() {
             const questionInput = document.getElementById('ai-question');
             const question = questionInput.value.trim();
@@ -813,7 +1282,6 @@
                 return;
             }
 
-            // تعطيل الزر وإظهار التحميل
             sendBtn.disabled = true;
             sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري...';
             responseDiv.innerHTML = '<span class="empty-msg">⏳ جاري معالجة السؤال...</span>';
@@ -834,7 +1302,6 @@
                     throw new Error(data.error || 'فشل في الحصول على رد من الذكاء الاصطناعي');
                 }
 
-                // عرض النتيجة
                 displayAIResponse(responseDiv, data.answer);
 
             } catch (err) {
@@ -846,16 +1313,12 @@
             }
         }
 
-        /**
-         * عرض نتيجة الذكاء الاصطناعي بشكل منظم
-         */
         function displayAIResponse(container, answer) {
             if (!answer) {
                 container.innerHTML = '<span class="empty-msg">لا توجد نتيجة.</span>';
                 return;
             }
 
-            // إذا كان هناك خطأ من النموذج
             if (answer.error) {
                 container.innerHTML = `<span class="text-danger">⚠️ ${answer.error}</span>`;
                 return;
@@ -863,17 +1326,14 @@
 
             let html = '';
 
-            // عرض الاستعلام SQL إن وجد
             if (answer.sql) {
                 html += `<div class="sql-code"><strong>🔍 الاستعلام:</strong> ${answer.sql}</div>`;
             }
 
-            // عرض عدد النتائج
             if (answer.count !== undefined) {
                 html += `<div class="count-badge">عدد النتائج: ${answer.count}</div>`;
             }
 
-            // عرض البيانات على شكل جدول
             if (answer.data && Array.isArray(answer.data) && answer.data.length > 0) {
                 const headers = Object.keys(answer.data[0]);
                 html += `<table><thead><tr>`;
@@ -884,7 +1344,6 @@
                     headers.forEach(h => {
                         let val = row[h];
                         if (val === null || val === undefined) val = '';
-                        // إذا كان قيمة عددية، نقربها
                         if (typeof val === 'number') val = val.toFixed(2);
                         html += `<td>${val}</td>`;
                     });
@@ -894,15 +1353,98 @@
             } else if (answer.data && Array.isArray(answer.data) && answer.data.length === 0) {
                 html += `<span class="empty-msg">📭 لا توجد نتائج تطابق سؤالك.</span>`;
             } else {
-                // إذا كانت النتيجة مجرد قيمة واحدة (مثل sum)
                 html += `<div style="font-size:1.2rem;font-weight:700;">📊 ${JSON.stringify(answer.data)}</div>`;
             }
 
             container.innerHTML = html;
         }
 
-        // جعل الدالة عالمية للاستخدام من HTML
         window.askAI = askAI;
+
+        // ================================================================
+        //  🔔  إعدادات Firebase والإشعارات (الجديدة)
+        // ================================================================
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDjMiUhBOF9h1arbea4ZAorD-GdtATQ3Fs",
+            authDomain: "ibn-al-mukhtar-pos.firebaseapp.com",
+            projectId: "ibn-al-mukhtar-pos",
+            storageBucket: "ibn-al-mukhtar-pos.firebasestorage.app",
+            messagingSenderId: "953096430757",
+            appId: "1:953096430757:web:7c2b60bd719aa70964994c"
+        };
+
+        // تهيئة Firebase
+        firebase.initializeApp(firebaseConfig);
+        const messaging = firebase.messaging();
+        const VAPID_PUBLIC_KEY =
+            'BA9marUJoHM798iWVpRAXh8nFutDsZ6JaiXDnl_nTbO3pmVLte7SB7pMn-jmOs0BzTgFengv8Br3MkA1llwh5tM';
+
+        /**
+         * تسجيل توكن الإدارة في الخادم لاستقبال الإشعارات
+         */
+        async function registerAdminNotifications() {
+            try {
+                // التحقق من صلاحية الإشعارات
+                if (!('Notification' in window)) {
+                    console.warn('🚫 متصفحك لا يدعم الإشعارات');
+                    return;
+                }
+
+                let permission = Notification.permission;
+                if (permission === 'default') {
+                    permission = await Notification.requestPermission();
+                }
+                if (permission !== 'granted') {
+                    console.warn('🚫 تم رفض صلاحية الإشعارات');
+                    return;
+                }
+
+                // التأكد من وجود Service Worker جاهز
+                const registration = await navigator.serviceWorker.ready;
+
+                // الحصول على توكن FCM
+                const currentToken = await messaging.getToken({
+                    vapidKey: VAPID_PUBLIC_KEY,
+                    serviceWorkerRegistration: registration
+                });
+
+                if (!currentToken) {
+                    console.warn('🚫 لم يتم الحصول على توكن FCM');
+                    return;
+                }
+
+                // إرسال التوكن إلى الباك إند لتسجيل الإدارة
+                const res = await fetch(`${API}/api/register-admin-fcm-token`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        token: currentToken,
+                        device_info: navigator.userAgent
+                    })
+                });
+
+                if (res.ok) {
+                    console.log('✅ تم تفعيل إشعارات الإدارة بنجاح');
+                    showToast('🔔 تم تفعيل الإشعارات الفورية', 'success');
+                } else {
+                    const errData = await res.json();
+                    console.warn('⚠️ فشل تسجيل توكن الإدارة:', errData);
+                }
+            } catch (error) {
+                console.error('❌ خطأ في تسجيل إشعارات الإدارة:', error);
+            }
+        }
+
+        // استقبال الإشعارات عندما تكون صفحة الإدارة مفتوحة (foreground)
+        messaging.onMessage((payload) => {
+            const title = payload.notification?.title || '📬 إشعار جديد';
+            const body = payload.notification?.body || '';
+            showToast(`🔔 ${title}: ${body}`, 'info');
+        });
 
         // ================================================================
         //  7. التهيئة عند التحميل
@@ -919,11 +1461,14 @@
                 try {
                     currentUser = JSON.parse(savedUser);
                     showApp();
+                    // ===== تفعيل الإشعارات للمدير المسجل مسبقاً =====
+                    registerAdminNotifications();
                 } catch {
                     document.getElementById('login-screen').style.display = 'flex';
                 }
             } else if (token) {
                 showApp();
+                registerAdminNotifications();
             } else {
                 document.getElementById('login-screen').style.display = 'flex';
             }
@@ -932,7 +1477,6 @@
                 if (e.key === 'Enter' && document.getElementById('login-screen').style.display !== 'none') {
                     attemptLogin();
                 }
-                // إرسال السؤال بالضغط على Enter في حقل AI
                 if (e.key === 'Enter' && document.activeElement === document.getElementById('ai-question')) {
                     askAI();
                 }
@@ -950,6 +1494,7 @@
         window.attemptLogin = attemptLogin;
         window.logout = logout;
         window.toggleTheme = toggleTheme;
+        window.registerAdminNotifications = registerAdminNotifications;
     </script>
 
 </body>

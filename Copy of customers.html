@@ -1,464 +1,521 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>حركة المخزون - المنتجات</title>
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-  <style>
-    :root {
-      --primary: #1a56db;
-      --primary-hover: #1e40af;
-      --bg: #f1f5f9;
-      --card: #ffffff;
-      --text: #0f172a;
-      --muted: #64748b;
-      --border: #e2e8f0;
-      --success: #16a34a;
-      --danger: #dc2626;
-      --warning: #f59e0b;
-      --info: #0ea5e9;
-      --shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: 'Cairo', sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      padding: 20px;
-    }
-    .container {
-      max-width: 1400px;
-      margin: 0 auto;
-    }
-    .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 15px;
-      margin-bottom: 25px;
-    }
-    .header h1 {
-      font-size: 1.8rem;
-      color: var(--primary);
-    }
-    .search-box {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-    .search-box input, .search-box select {
-      padding: 10px 14px;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      font-size: 1rem;
-      background: white;
-      outline: none;
-      min-width: 200px;
-    }
-    .search-box input:focus, .search-box select:focus {
-      border-color: var(--primary);
-      box-shadow: 0 0 0 3px rgba(26,86,219,0.1);
-    }
-    .btn {
-      padding: 10px 18px;
-      border: none;
-      border-radius: 8px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: 0.2s;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      background: var(--primary);
-      color: white;
-    }
-    .btn:hover { background: var(--primary-hover); }
-    .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
-    .btn-outline:hover { background: var(--bg); }
-    .btn-sm { padding: 6px 12px; font-size: 0.85rem; }
-    .btn-success { background: var(--success); }
-    .btn-success:hover { background: #15803d; }
-    .btn-danger { background: var(--danger); }
-    .btn-danger:hover { background: #b91c1c; }
-
-    .card {
-      background: var(--card);
-      border-radius: 16px;
-      padding: 20px;
-      box-shadow: var(--shadow);
-      border: 1px solid var(--border);
-      margin-bottom: 20px;
-    }
-    .table-wrapper {
-      overflow-x: auto;
-      margin-top: 15px;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.95rem;
-    }
-    th {
-      background: var(--bg);
-      font-weight: 600;
-      padding: 12px 8px;
-      text-align: right;
-      border-bottom: 2px solid var(--border);
-    }
-    td {
-      padding: 10px 8px;
-      border-bottom: 1px solid var(--border);
-      vertical-align: middle;
-    }
-    tr:hover { background: #f8fafc; }
-    .product-row { cursor: pointer; }
-    .product-row.active { background: #e0f2fe; }
-    .badge {
-      display: inline-block;
-      padding: 3px 10px;
-      border-radius: 20px;
-      font-size: 0.75rem;
-      font-weight: 600;
-    }
-    .badge-in { background: #dcfce7; color: #166534; }
-    .badge-out { background: #fee2e2; color: #991b1b; }
-    .badge-info { background: #dbeafe; color: #1e40af; }
-    .text-center { text-align: center; }
-    .text-muted { color: var(--muted); }
-    .mt-10 { margin-top: 10px; }
-    .mb-10 { margin-bottom: 10px; }
-    .flex-row { display: flex; flex-wrap: wrap; gap: 15px; align-items: center; }
-    .flex-1 { flex: 1; min-width: 150px; }
-    .pagination {
-      display: flex;
-      justify-content: center;
-      gap: 10px;
-      margin-top: 20px;
-      align-items: center;
-    }
-    .pagination button {
-      padding: 6px 14px;
-      border: 1px solid var(--border);
-      background: white;
-      border-radius: 6px;
-      cursor: pointer;
-      font-weight: 600;
-    }
-    .pagination button:hover { background: var(--bg); }
-    .pagination .active-page {
-      background: var(--primary);
-      color: white;
-      border-color: var(--primary);
-    }
-    .movement-detail {
-      background: #f8fafc;
-      padding: 15px;
-      border-radius: 10px;
-      margin-top: 10px;
-      border-right: 4px solid var(--primary);
-    }
-    .movement-detail .title {
-      font-weight: 700;
-      font-size: 1.1rem;
-      margin-bottom: 8px;
-    }
-    .movement-detail .meta {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 15px;
-      font-size: 0.9rem;
-      color: var(--muted);
-    }
-    .movement-detail .meta span i { margin-left: 4px; }
-    .loading { text-align: center; padding: 40px; color: var(--muted); }
-    .empty { text-align: center; padding: 30px; color: var(--muted); font-size: 1.1rem; }
-
-    @media (max-width: 768px) {
-      .header { flex-direction: column; align-items: stretch; }
-      .search-box input, .search-box select { width: 100%; }
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧪 اختبار الإشعارات - ابن مختار</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Cairo', sans-serif;
+            background: #f0f4ff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 24px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.08);
+        }
+        h1 {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: #1e293b;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .subtitle {
+            color: #64748b;
+            font-size: 0.9rem;
+            margin-bottom: 24px;
+        }
+        .form-group {
+            margin-bottom: 18px;
+        }
+        label {
+            display: block;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 6px;
+            font-size: 0.85rem;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e9edf2;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            font-family: 'Cairo', sans-serif;
+            transition: border-color 0.2s;
+            background: #f8fafc;
+        }
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #3498db;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(52,152,219,0.1);
+        }
+        textarea {
+            resize: vertical;
+            min-height: 70px;
+        }
+        .btn {
+            padding: 14px 28px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 700;
+            font-family: 'Cairo', sans-serif;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #2980b9;
+            transform: scale(1.01);
+        }
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .btn-success {
+            background: #22c55e;
+            color: white;
+        }
+        .btn-success:hover {
+            background: #16a34a;
+        }
+        .btn-danger {
+            background: #dc2626;
+            color: white;
+        }
+        .btn-danger:hover {
+            background: #b91c1c;
+        }
+        .btn-outline {
+            background: transparent;
+            border: 2px solid #e9edf2;
+            color: #1e293b;
+        }
+        .btn-outline:hover {
+            border-color: #3498db;
+            background: #f8fafc;
+        }
+        .row-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .row-actions .btn {
+            flex: 1;
+            min-width: 120px;
+        }
+        .result-box {
+            margin-top: 20px;
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 16px;
+            border: 1px solid #e9edf2;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.8rem;
+            white-space: pre-wrap;
+            direction: ltr;
+            text-align: left;
+            color: #1e293b;
+        }
+        .result-box.error {
+            border-color: #dc2626;
+            background: #fef2f2;
+        }
+        .result-box.success {
+            border-color: #22c55e;
+            background: #f0fdf4;
+        }
+        .result-box .log-line {
+            padding: 2px 0;
+            border-bottom: 1px solid #e9edf2;
+        }
+        .result-box .log-line .time {
+            color: #94a3b8;
+            font-size: 0.7rem;
+        }
+        .badge {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+        .badge-success { background: #dcfce7; color: #166534; }
+        .badge-danger { background: #fee2e2; color: #991b1b; }
+        .badge-warning { background: #fef3c7; color: #b45309; }
+        .badge-info { background: #e0f2fe; color: #0284c7; }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 16px 0;
+        }
+        .stat-card {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 14px;
+            border: 1px solid #e9edf2;
+            text-align: center;
+        }
+        .stat-card .number {
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: #1e293b;
+        }
+        .stat-card .label {
+            font-size: 0.7rem;
+            color: #64748b;
+        }
+        .status-dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 6px;
+        }
+        .status-dot.online { background: #22c55e; }
+        .status-dot.offline { background: #dc2626; }
+        .status-dot.loading { background: #f59e0b; animation: pulse 1s infinite; }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+        .token-list {
+            margin-top: 12px;
+            background: white;
+            border-radius: 8px;
+            padding: 10px;
+            border: 1px solid #e9edf2;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        .token-item {
+            font-size: 0.7rem;
+            padding: 4px 8px;
+            border-bottom: 1px solid #f1f5f9;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+        }
+        .token-item .token-preview {
+            color: #64748b;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 200px;
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #94a3b8;
+        }
+        @media (max-width: 480px) {
+            .container { padding: 16px; }
+            .stats-grid { grid-template-columns: 1fr; }
+            .row-actions .btn { min-width: 100px; }
+            .token-item .token-preview { max-width: 100px; }
+        }
+        .form-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .form-row .form-group {
+            flex: 1;
+            min-width: 150px;
+        }
+    </style>
 </head>
 <body>
-<div class="container">
-  <div class="header">
-    <h1><i class="fas fa-boxes"></i> حركة المخزون</h1>
-    <div class="search-box">
-      <input type="text" id="searchInput" placeholder="بحث باسم المنتج أو الباركود..." />
-      <select id="categoryFilter">
-        <option value="">جميع التصنيفات</option>
-      </select>
-      <button class="btn" onclick="loadProducts()"><i class="fas fa-sync-alt"></i> تحديث</button>
+    <div class="container">
+        <h1>🧪 اختبار الإشعارات</h1>
+        <p class="subtitle">أرسل إشعاراً تجريبياً للمندوبين أو المشرفين المسجلين</p>
+
+        <!-- حالة الاتصال -->
+        <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px; flex-wrap:wrap;">
+            <span>🔗 الخادم: <span id="serverStatus" class="badge badge-success">متصل</span></span>
+            <span>📱 FCM: <span id="fcmStatus" class="badge badge-info">جارِ التحقق...</span></span>
+        </div>
+
+        <!-- الإحصائيات -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="number" id="driverTokensCount">0</div>
+                <div class="label">🚚 توكنات المندوبين</div>
+            </div>
+            <div class="stat-card">
+                <div class="number" id="adminTokensCount">0</div>
+                <div class="label">👤 توكنات المشرفين</div>
+            </div>
+        </div>
+
+        <!-- نموذج الإرسال -->
+        <div class="form-group">
+            <label>📌 نوع الإشعار</label>
+            <select id="notificationType">
+                <option value="driver">🚚 للمندوبين (driver.html)</option>
+                <option value="admin">👤 للمشرفين (orders.html)</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>📝 العنوان</label>
+            <input type="text" id="notifTitle" placeholder="مثال: 📦 طلب جديد" value="🧪 إشعار تجريبي">
+        </div>
+
+        <div class="form-group">
+            <label>📄 النص</label>
+            <input type="text" id="notifBody" placeholder="محتوى الإشعار" value="هذا إشعار اختبار من نظام ابن مختار">
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label>🔗 الرابط (اختياري)</label>
+                <input type="text" id="notifLink" placeholder="https://pos.ibnalmukhtar.com/..." value="https://pos.ibnalmukhtar.com/driver.html">
+            </div>
+        </div>
+
+        <div class="row-actions" style="margin-top:12px;">
+            <button class="btn btn-primary" id="sendBtn" onclick="sendTestNotification()">
+                📨 إرسال الإشعار
+            </button>
+            <button class="btn btn-outline" onclick="loadTokensStats()">
+                🔄 تحديث الإحصائيات
+            </button>
+        </div>
+
+        <!-- سجل النتائج -->
+        <div id="resultContainer" style="margin-top:16px;">
+            <div class="result-box" id="resultBox">
+                <span style="color:#94a3b8;">⏳ انتظر إرسال إشعار لرؤية النتائج...</span>
+            </div>
+        </div>
+
+        <!-- عرض التوكنات -->
+        <details style="margin-top:16px;">
+            <summary style="cursor:pointer; font-weight:600; color:#1e293b;">📋 عرض التوكنات المسجلة</summary>
+            <div id="tokensList" class="token-list">
+                <div class="loading">⏳ جاري التحميل...</div>
+            </div>
+        </details>
     </div>
-  </div>
 
-  <div class="card">
-    <div class="flex-row">
-      <div class="flex-1"><strong>عدد المنتجات:</strong> <span id="productCount">0</span></div>
-      <div class="flex-1"><span class="badge badge-in">دخول</span> <span class="badge badge-out">خروج</span> <span class="badge badge-info">أنواع أخرى</span></div>
-    </div>
-    <div class="table-wrapper">
-      <table>
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>المنتج</th>
-            <th>الباركود</th>
-            <th>المخزون الحالي</th>
-            <th>السعر</th>
-            <th>التكلفة</th>
-            <th>التصنيف</th>
-            <th>إجراء</th>
-          </tr>
-        </thead>
-        <tbody id="productsTableBody">
-          <tr><td colspan="8" class="loading">جاري التحميل...</td></tr>
-        </tbody>
-      </table>
-    </div>
-    <div class="pagination" id="paginationControls"></div>
-  </div>
+    <script>
+        const API_BASE = 'https://api.ibnalmukhtar.com';
+        let driverTokens = [];
+        let adminTokens = [];
 
-  <!-- قسم عرض تفاصيل الحركة لمنتج معين -->
-  <div id="movementDetails" class="card" style="display:none;">
-    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-      <h3 id="movementProductTitle"><i class="fas fa-history"></i> سجل حركة المنتج</h3>
-      <button class="btn btn-outline btn-sm" onclick="closeMovementDetails()"><i class="fas fa-times"></i> إغلاق</button>
-    </div>
-    <div id="movementList" class="mt-10"></div>
-  </div>
-</div>
+        // ============================================================
+        // 1. جلب إحصائيات التوكنات
+        // ============================================================
+        async function loadTokensStats() {
+            try {
+                const token = localStorage.getItem('driverToken') || prompt('أدخل التوكن الخاص بك (Bearer Token):');
+                if (!token) {
+                    alert('مطلوب توكن للمصادقة');
+                    return;
+                }
 
-<script>
-  const API_BASE = 'https://api.ibnalmukhtar.com'; // غيّر إلى رابط الـ API الخاص بك
-  let token = localStorage.getItem('pos_token') || '';
-  if (!token) {
-    // إذا لم يكن هناك توكن، يمكن التوجيه إلى صفحة تسجيل الدخول أو عرض رسالة
-    document.body.innerHTML = '<div style="text-align:center;padding:50px;"><h2>الرجاء تسجيل الدخول أولاً</h2><button onclick="window.location.href=\'index.html\'">تسجيل الدخول</button></div>';
-  }
+                const res = await fetch(`${API_BASE}/fcm-tokens`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
 
-  let currentPage = 1;
-  const pageSize = 20;
-  let productsData = [];
-  let categoriesMap = {};
-  let selectedProductId = null;
+                if (!res.ok) {
+                    const error = await res.text();
+                    throw new Error(`خطأ ${res.status}: ${error}`);
+                }
 
-  // جلب التصنيفات لملء الفلتر
-  async function loadCategories() {
-    try {
-      const res = await fetch(`${API_BASE}/categories?flat=1`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const data = await res.json();
-      if (data.categories) {
-        const select = document.getElementById('categoryFilter');
-        // احتفظ بالخيار الأول
-        select.innerHTML = '<option value="">جميع التصنيفات</option>';
-        data.categories.forEach(cat => {
-          const opt = document.createElement('option');
-          opt.value = cat.id;
-          opt.textContent = cat.name;
-          select.appendChild(opt);
-          categoriesMap[cat.id] = cat.name;
+                const data = await res.json();
+                driverTokens = data.driver_tokens || [];
+                adminTokens = data.admin_tokens || [];
+
+                document.getElementById('driverTokensCount').textContent = driverTokens.length;
+                document.getElementById('adminTokensCount').textContent = adminTokens.length;
+                document.getElementById('fcmStatus').textContent = '✅ جاهز';
+                document.getElementById('fcmStatus').className = 'badge badge-success';
+
+                renderTokensList(driverTokens, adminTokens);
+
+            } catch (err) {
+                document.getElementById('fcmStatus').textContent = '❌ فشل';
+                document.getElementById('fcmStatus').className = 'badge badge-danger';
+                console.error('❌ فشل جلب الإحصائيات:', err);
+                showResult(`❌ فشل جلب الإحصائيات: ${err.message}`, 'error');
+            }
+        }
+
+        function renderTokensList(driverTokens, adminTokens) {
+            const container = document.getElementById('tokensList');
+            if (!container) return;
+            let html = '';
+
+            if (driverTokens.length === 0 && adminTokens.length === 0) {
+                html = '<div style="color:#94a3b8; padding:12px;">⚠️ لا توجد توكنات مسجلة</div>';
+            } else {
+                if (driverTokens.length > 0) {
+                    html += `<div style="font-weight:600; margin:8px 0 4px;">🚚 المندوبين (${driverTokens.length})</div>`;
+                    driverTokens.forEach(t => {
+                        html += `<div class="token-item">
+                            <span class="token-preview">${t.token.substring(0, 40)}...</span>
+                            <span class="badge badge-info">مندوب #${t.driver_id}</span>
+                        </div>`;
+                    });
+                }
+                if (adminTokens.length > 0) {
+                    html += `<div style="font-weight:600; margin:8px 0 4px;">👤 المشرفين (${adminTokens.length})</div>`;
+                    adminTokens.forEach(t => {
+                        html += `<div class="token-item">
+                            <span class="token-preview">${t.token.substring(0, 40)}...</span>
+                            <span class="badge badge-info">مشرف</span>
+                        </div>`;
+                    });
+                }
+            }
+            container.innerHTML = html;
+        }
+
+        // ============================================================
+        // 2. إرسال إشعار اختبار
+        // ============================================================
+        async function sendTestNotification() {
+            const btn = document.getElementById('sendBtn');
+            const title = document.getElementById('notifTitle').value.trim() || '🧪 إشعار تجريبي';
+            const body = document.getElementById('notifBody').value.trim() || 'هذا إشعار اختبار';
+            const link = document.getElementById('notifLink').value.trim() || 'https://pos.ibnalmukhtar.com/driver.html';
+            const type = document.getElementById('notificationType').value;
+
+            if (!title || !body) {
+                showResult('⚠️ الرجاء إدخال عنوان ونص للإشعار', 'error');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = '⏳ جاري الإرسال...';
+
+            const logLines = [];
+            const startTime = new Date();
+
+            try {
+                const token = localStorage.getItem('driverToken') || prompt('أدخل التوكن الخاص بك (Bearer Token):');
+                if (!token) {
+                    throw new Error('مطلوب توكن للمصادقة');
+                }
+
+                logLines.push(`📨 إرسال إشعار (${type}) في ${startTime.toLocaleTimeString()}`);
+                logLines.push(`📌 العنوان: ${title}`);
+                logLines.push(`📄 النص: ${body}`);
+                logLines.push(`🔗 الرابط: ${link}`);
+                logLines.push(`👥 المستلمون: ${type === 'driver' ? 'المندوبين' : 'المشرفين'}`);
+                logLines.push('---');
+
+                const payload = { title, body, link };
+                const endpoint = type === 'driver' ? '/test-notification' : '/test-admin-notification';
+
+                const res = await fetch(`${API_BASE}${endpoint}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const responseText = await res.text();
+                let responseData;
+                try {
+                    responseData = JSON.parse(responseText);
+                } catch {
+                    responseData = { raw: responseText };
+                }
+
+                const elapsed = ((new Date() - startTime) / 1000).toFixed(2);
+                logLines.push(`⏱️ الزمن: ${elapsed} ثانية`);
+                logLines.push(`📊 حالة HTTP: ${res.status} ${res.statusText}`);
+
+                if (res.ok) {
+                    logLines.push('✅ نجاح!');
+                    logLines.push(`📦 الاستجابة: ${JSON.stringify(responseData, null, 2)}`);
+                    showResult(logLines.join('\n'), 'success');
+                } else {
+                    logLines.push('❌ فشل!');
+                    logLines.push(`📦 التفاصيل: ${JSON.stringify(responseData, null, 2)}`);
+                    showResult(logLines.join('\n'), 'error');
+                }
+
+                // تحديث الإحصائيات تلقائياً
+                await loadTokensStats();
+
+            } catch (err) {
+                logLines.push(`❌ خطأ: ${err.message}`);
+                showResult(logLines.join('\n'), 'error');
+                console.error('❌ خطأ في الإرسال:', err);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '📨 إرسال الإشعار';
+            }
+        }
+
+        // ============================================================
+        // 3. عرض النتائج
+        // ============================================================
+        function showResult(text, type = 'info') {
+            const box = document.getElementById('resultBox');
+            box.className = 'result-box ' + (type === 'error' ? 'error' : (type === 'success' ? 'success' : ''));
+            const lines = text.split('\n').map(line => {
+                const time = new Date().toLocaleTimeString();
+                return `<div class="log-line"><span class="time">[${time}]</span> ${escapeHtml(line)}</div>`;
+            }).join('');
+            box.innerHTML = lines;
+            // تمرير للأسفل تلقائياً
+            box.scrollTop = box.scrollHeight;
+        }
+
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        // ============================================================
+        // 4. التهيئة
+        // ============================================================
+        window.addEventListener('load', () => {
+            loadTokensStats();
+            // تحديث كل 30 ثانية
+            setInterval(loadTokensStats, 30000);
         });
-      }
-    } catch (e) { console.error('خطأ في تحميل التصنيفات:', e); }
-  }
 
-  // جلب المنتجات
-  async function loadProducts(page = 1) {
-    const search = document.getElementById('searchInput').value.trim();
-    const category = document.getElementById('categoryFilter').value;
-    const limit = pageSize;
-    const offset = (page - 1) * limit;
-
-    let url = `${API_BASE}/products?limit=${limit}&page=${page}&sort=name`;
-    if (search) url += `&search=${encodeURIComponent(search)}`;
-    if (category) url += `&category_id=${category}`;
-
-    try {
-      const res = await fetch(url, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (!res.ok) throw new Error('فشل جلب المنتجات');
-      const data = await res.json();
-      productsData = data.products || [];
-      document.getElementById('productCount').textContent = productsData.length;
-
-      renderProductsTable(productsData);
-      renderPagination(page, Math.ceil(productsData.length / pageSize) || 1);
-    } catch (e) {
-      document.getElementById('productsTableBody').innerHTML = `<tr><td colspan="8" class="text-center text-muted">خطأ في التحميل: ${e.message}</td></tr>`;
-      console.error(e);
-    }
-  }
-
-  // عرض المنتجات في الجدول
-  function renderProductsTable(products) {
-    const tbody = document.getElementById('productsTableBody');
-    if (!products || products.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="8" class="empty">لا توجد منتجات</td></tr>`;
-      return;
-    }
-    let html = '';
-    products.forEach((p, idx) => {
-      const isActive = p.id === selectedProductId;
-      html += `
-        <tr class="product-row ${isActive ? 'active' : ''}" onclick="selectProduct(${p.id})">
-          <td>${idx + 1}</td>
-          <td><strong>${p.name}</strong></td>
-          <td>${p.barcode || '-'}</td>
-          <td>${p.stock_quantity || 0}</td>
-          <td>${p.price || 0}</td>
-          <td>${p.cost || 0}</td>
-          <td>${p.category_name || '-'}</td>
-          <td><button class="btn btn-sm btn-outline" onclick="event.stopPropagation(); viewMovements(${p.id})"><i class="fas fa-eye"></i> الحركة</button></td>
-        </tr>
-      `;
-    });
-    tbody.innerHTML = html;
-  }
-
-  // التحكم في الترقيم
-  function renderPagination(current, totalPages) {
-    const container = document.getElementById('paginationControls');
-    if (totalPages <= 1) {
-      container.innerHTML = '';
-      return;
-    }
-    let html = `<button onclick="changePage(${current-1})" ${current<=1?'disabled':''}>السابق</button>`;
-    for (let i = 1; i <= totalPages; i++) {
-      html += `<button onclick="changePage(${i})" class="${i===current?'active-page':''}">${i}</button>`;
-    }
-    html += `<button onclick="changePage(${current+1})" ${current>=totalPages?'disabled':''}>التالي</button>`;
-    container.innerHTML = html;
-  }
-
-  function changePage(page) {
-    if (page < 1) return;
-    currentPage = page;
-    loadProducts(page);
-  }
-
-  // تحديد منتج (تمييز الصف)
-  function selectProduct(productId) {
-    selectedProductId = productId;
-    loadProducts(currentPage); // إعادة تحميل لتحديث التظليل
-  }
-
-  // عرض حركة المنتج
-  async function viewMovements(productId) {
-    const detailsDiv = document.getElementById('movementDetails');
-    const listDiv = document.getElementById('movementList');
-    const titleEl = document.getElementById('movementProductTitle');
-
-    // البحث عن اسم المنتج من البيانات المخزنة
-    const product = productsData.find(p => p.id === productId);
-    titleEl.innerHTML = `<i class="fas fa-history"></i> سجل حركة المنتج: ${product ? product.name : '#' + productId}`;
-
-    detailsDiv.style.display = 'block';
-    listDiv.innerHTML = '<div class="loading">جاري تحميل الحركة...</div>';
-
-    try {
-      const res = await fetch(`${API_BASE}/products/${productId}/stock-movements`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (!res.ok) throw new Error('فشل جلب الحركة');
-      const data = await res.json();
-      const movements = data.movements || [];
-      if (movements.length === 0) {
-        listDiv.innerHTML = '<div class="empty">لا توجد حركة مخزون لهذا المنتج</div>';
-        return;
-      }
-
-      let html = '';
-      movements.forEach(m => {
-        const change = m.quantity_change || 0;
-        const typeClass = change > 0 ? 'badge-in' : (change < 0 ? 'badge-out' : 'badge-info');
-        const typeLabel = change > 0 ? 'دخول' : (change < 0 ? 'خروج' : 'تعديل');
-        const refTypeMap = {
-          'sale': 'بيع',
-          'cancel_sale': 'إلغاء بيع',
-          'return_sale': 'إرجاع بيع',
-          'full_return_sale': 'مرتجع كلي',
-          'undo_cancel_sale': 'عكس إلغاء بيع',
-          'undo_return_sale': 'عكس إرجاع',
-          'purchase': 'شراء',
-          'cancel_purchase': 'إلغاء شراء',
-          'return_purchase': 'إرجاع شراء',
-          'undo_cancel_purchase': 'عكس إلغاء شراء',
-          'online_order': 'طلب إنترنت',
-          'update_online_order': 'تحديث طلب إنترنت',
-          'update_online_order_revert': 'عكس تحديث طلب',
-          'cancel_online_order': 'إلغاء طلب إنترنت',
-          'delivery_failed': 'فشل توصيل',
-          'online_order_return': 'إرجاع طلب إنترنت',
-          'sale_update': 'تحديث فاتورة',
-          'sale_update_revert': 'عكس تحديث فاتورة',
-          'cancel_sale_cogs': 'إلغاء تكلفة بيع',
-          'undo_cancel_sale_cogs': 'عكس إلغاء تكلفة'
-        };
-        const refLabel = refTypeMap[m.reference_type] || m.reference_type || 'غير معروف';
-
-        html += `
-          <div class="movement-detail">
-            <div class="title">
-              <span class="badge ${typeClass}">${typeLabel}</span>
-              <span>${change > 0 ? '+' : ''}${change}</span>
-              <span style="font-weight:400;font-size:0.9rem;color:var(--muted);margin-right:10px;">
-                ${m.old_quantity} → ${m.new_quantity}
-              </span>
-              ${m.supplier_name ? `<span class="badge badge-info" style="font-size:0.7rem;">${m.supplier_name}</span>` : ''}
-            </div>
-            <div class="meta">
-              <span><i class="far fa-calendar-alt"></i> ${new Date(m.created_at).toLocaleString('ar-EG')}</span>
-              <span><i class="fas fa-tag"></i> ${refLabel} ${m.reference_id ? '#'+m.reference_id : ''}</span>
-              ${m.note ? `<span><i class="fas fa-pencil-alt"></i> ${m.note}</span>` : ''}
-              ${m.created_by_name ? `<span><i class="fas fa-user"></i> ${m.created_by_name}</span>` : ''}
-            </div>
-          </div>
-        `;
-      });
-      listDiv.innerHTML = html;
-    } catch (e) {
-      listDiv.innerHTML = `<div class="empty">خطأ: ${e.message}</div>`;
-      console.error(e);
-    }
-
-    // تمرير إلى القسم
-    detailsDiv.scrollIntoView({ behavior: 'smooth' });
-  }
-
-  function closeMovementDetails() {
-    document.getElementById('movementDetails').style.display = 'none';
-    selectedProductId = null;
-    // إعادة تحميل الصفحة لإزالة التظليل
-    loadProducts(currentPage);
-  }
-
-  // البحث الفوري (مع تأخير)
-  let searchTimeout = null;
-  document.getElementById('searchInput').addEventListener('input', function() {
-    clearTimeout(searchTimeout);
-    searchTimeout = setTimeout(() => {
-      currentPage = 1;
-      loadProducts(1);
-    }, 400);
-  });
-
-  document.getElementById('categoryFilter').addEventListener('change', function() {
-    currentPage = 1;
-    loadProducts(1);
-  });
-
-  // التهيئة
-  window.onload = function() {
-    loadCategories();
-    loadProducts(1);
-  };
-</script>
+        // تصدير الدوال إلى النافذة
+        window.sendTestNotification = sendTestNotification;
+        window.loadTokensStats = loadTokensStats;
+    </script>
 </body>
 </html>
