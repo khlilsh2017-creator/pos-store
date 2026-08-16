@@ -97,6 +97,9 @@ self.addEventListener('activate', event => {
 // --------------------------------------------
 // 3️⃣ استراتيجية الجلب (Fetch)
 // --------------------------------------------
+// --------------------------------------------
+// 3️⃣ استراتيجية الجلب (Fetch)
+// --------------------------------------------
 self.addEventListener('fetch', event => {
     const { request } = event;
     const url = new URL(request.url);
@@ -105,38 +108,39 @@ self.addEventListener('fetch', event => {
                        url.pathname === '/';
     const isStaticAsset = STATIC_ASSETS.some(asset => url.pathname === asset || url.pathname + '/' === asset);
     const isExternalLib = url.origin !== self.location.origin && 
-                         (url.pathname.includes('fonts.googleapis.com') || 
-                          url.pathname.includes('cdnjs.cloudflare.com') ||
-                          url.pathname.includes('cdn.jsdelivr.net'));
+                          (url.pathname.includes('fonts.googleapis.com') || 
+                           url.pathname.includes('cdnjs.cloudflare.com') ||
+                           url.pathname.includes('cdn.jsdelivr.net'));
 
-    // تجاهل طلبات API والتحليلات
+    // تجاهل طلبات API والتحليلات تماماً ليتعامل معها المتصفح مباشرة
     if (url.pathname.includes('/api/') ||
         url.pathname.includes('analytics') ||
         url.pathname.includes('google-analytics') ||
         url.pathname.includes('doubleclick.net')) {
-        return fetch(request);
+        return; // ترك الطلب للمتصفح (إزالة fetch(request) لتجنب تكرار الطلبات)
     }
 
     // ===== استراتيجية صفحات HTML (Network First مع تجاوز الكاش) =====
     if (isHtmlPage) {
         event.respondWith(
-            fetch(request, { cache: 'no-store' })
+            fetch(request) // تم الإصلاح: إزالة { cache: 'no-store' } التي تكسر طلبات الـ navigate
                 .then(response => {
-                    if (response.status === 200) {
+                    if (response && response.status === 200) {
                         const clone = response.clone();
                         caches.open(DYNAMIC_CACHE)
                             .then(cache => cache.put(request, clone))
                             .catch(() => {});
                         return response;
                     }
-                    return caches.match(request)
+                    return caches.match(request, { ignoreSearch: true })
                         .then(cached => cached || new Response(OFFLINE_PAGE, {
                             status: 503,
                             headers: { 'Content-Type': 'text/html; charset=utf-8' }
                         }));
                 })
                 .catch(() => {
-                    return caches.match(request)
+                    // في حالة انقطاع الإنترنت، جلب الصفحة من الكاش (مع تجاهل الروابط الفرعية Parameter)
+                    return caches.match(request, { ignoreSearch: true })
                         .then(cached => cached || new Response(OFFLINE_PAGE, {
                             status: 503,
                             headers: { 'Content-Type': 'text/html; charset=utf-8' }
@@ -149,10 +153,15 @@ self.addEventListener('fetch', event => {
     // ===== استراتيجية الموارد الثابتة (Cache First) =====
     if (isStaticAsset || isExternalLib) {
         event.respondWith(
-            caches.match(request)
+            caches.match(request, { ignoreSearch: true })
                 .then(cached => {
                     if (cached) {
-                        fetch(request).catch(() => {});
+                        // تحديث الكاش في الخلفية بدون تعطيل عرض الصفحة
+                        fetch(request).then(response => {
+                            if(response && response.status === 200) {
+                                caches.open(STATIC_CACHE).then(cache => cache.put(request, response));
+                            }
+                        }).catch(() => {});
                         return cached;
                     }
                     return fetch(request)
@@ -170,17 +179,14 @@ self.addEventListener('fetch', event => {
         return;
     }
 
-    // ===== للطلبات الأخرى (صور، خطوط، إلخ) =====
+    // ===== للطلبات الأخرى (صور، خطوط غير مدرجة، إلخ) =====
     event.respondWith(
-        caches.match(request)
+        caches.match(request, { ignoreSearch: true })
             .then(cached => {
-                if (cached) {
-                    fetch(request).catch(() => {});
-                    return cached;
-                }
+                if (cached) return cached;
                 return fetch(request)
                     .then(response => {
-                        if (response && response.status === 200) {
+                        if (response && response.status === 200 && request.method === 'GET') {
                             const clone = response.clone();
                             caches.open(DYNAMIC_CACHE)
                                 .then(cache => cache.put(request, clone))
@@ -189,10 +195,8 @@ self.addEventListener('fetch', event => {
                         return response;
                     })
                     .catch(() => {
-                        return new Response('⚠️ غير متصل', {
-                            status: 503,
-                            headers: { 'Content-Type': 'text/plain; charset=utf-8' }
-                        });
+                        // تفادي تعطل النظام في حال فقدان الصور أو الموارد
+                        return new Response('', { status: 404, statusText: 'Not Found' });
                     });
             })
     );
