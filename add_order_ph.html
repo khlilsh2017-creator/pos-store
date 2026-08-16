@@ -3368,33 +3368,45 @@
         // ================================================================
         //  RESET ORDER
         // ================================================================
-        function resetOrderForm() {
-            cart = [];
-            localStorage.removeItem('pos_cart_online');
-            setElementValue('cart-discount', 0);
-            selectedCustomerData = null;
-            updateCustomerSummary();
-            renderCart();
-        
-            setElementValue('cash-paid', 0);
-            setElementValue('wallet-paid', 0);
-            setElementValue('paid-amount', 0);
-            setElementValue('deliveryFee', 0);
-            setElementValue('notes', '');
-            setElementValue('payment-method', 'عند الاستلام');
-            setElementText('page-subtitle', 'جديد');
-            editingOrderId = null;
-            editingOrderStatus = null;
-            currentDraftId = null;
-            document.getElementById('cancel-order-btn').style.display = 'none';
-            document.getElementById('order-status-bar').style.display = 'none';
-            document.getElementById('display-order-id').innerText = '--';
-            document.getElementById('display-invoice-number').innerText = '--';
-            handlePaymentMethodChange();
-            showToast('تم إعادة تعيين النموذج', 'info');
-            playClickSound();
+        // ================================================================
+//  RESET ORDER
+// ================================================================
+function resetOrderForm() {
+    cart = [];
+    localStorage.removeItem('pos_cart_online');
+    setElementValue('cart-discount', 0);
+    selectedCustomerData = null;
+    updateCustomerSummary();
+    renderCart();
+    setElementValue('cash-paid', 0);
+    setElementValue('wallet-paid', 0);
+    setElementValue('paid-amount', 0);
+    setElementValue('deliveryFee', 0);
+    setElementValue('notes', '');
+    setElementValue('payment-method', 'عند الاستلام');
+    setElementText('page-subtitle', 'جديد');
+    
+    editingOrderId = null;
+    editingOrderStatus = null;
+    currentDraftId = null; // تصفير المسودة
 
-        }
+    // حماية الأسطر التي تسببت في الخطأ (حتى لا يتوقف الكود إذا لم يجد العنصر)
+    const cancelBtn = document.getElementById('cancel-order-btn');
+    if (cancelBtn) cancelBtn.style.display = 'none';
+
+    const statusBar = document.getElementById('order-status-bar');
+    if (statusBar) statusBar.style.display = 'none';
+
+    const displayOrderId = document.getElementById('display-order-id');
+    if (displayOrderId) displayOrderId.innerText = '--';
+
+    const displayInvoiceNum = document.getElementById('display-invoice-number');
+    if (displayInvoiceNum) displayInvoiceNum.innerText = '--';
+    
+    handlePaymentMethodChange();
+    showToast('تم إعادة تعيين النموذج', 'info');
+    playClickSound();
+}
 
         // ================================================================
         //  EDIT ORDERS
@@ -3949,6 +3961,9 @@
 // ================================================================
 //  DRAFTS MANAGEMENT (نظام المسودات المتعددة)
 // ================================================================
+// ================================================================
+//  SAVE DRAFT (المسودة)
+// ================================================================
 function saveDraft() {
     if (cart.length === 0) return showToast('⚠️ السلة فارغة، لا يمكن حفظ مسودة', 'warning');
 
@@ -3991,6 +4006,11 @@ function saveDraft() {
     localStorage.setItem('pos_drafts_list', JSON.stringify(drafts));
     currentDraftId = draftId;
     showToast('✅ تم حفظ المسودة في الجهاز بنجاح', 'success');
+
+    // إظهار رسالة تأكيد (هل تريد تحميل الفاتورة؟)
+    if (confirm('تم حفظ بيانات المسودة بنجاح. هل تريد تحميل الفاتورة (كـ مسودة) الآن؟')) {
+        printOrderSummary(true); 
+    }
 }
 
 function openDraftsModal() {
