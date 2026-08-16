@@ -1,8 +1,12 @@
 // ============================================================
-// 🏢 Service Worker - نظام ابن مختار (النسخة المحسنة للإشعارات)
+// 🏢 Service Worker - نظام ابن مختار (النسخة المستقرة v17)
 // ============================================================
 
-const CACHE_NAME = 'ibn-mukhtar-pos-v16';
+const CACHE_NAME = 'ibn-mukhtar-pos-v17';
+const STATIC_CACHE = 'ibn-mukhtar-static-v17';
+const DYNAMIC_CACHE = 'ibn-mukhtar-dynamic-v17';
+
+// قائمة الملفات الثابتة التي سيتم تخزينها مسبقاً
 const STATIC_ASSETS = [
     '/',
     '/index.html',
@@ -40,19 +44,163 @@ const STATIC_ASSETS = [
 // 1️⃣ تثبيت Service Worker
 // --------------------------------------------
 self.addEventListener('install', event => {
+    console.log('[SW] 📦 تثبيت الإصدار الجديد:', CACHE_NAME);
     event.waitUntil(
-        caches.open(CACHE_NAME)
+        caches.open(STATIC_CACHE)
             .then(cache => {
-                console.log('[SW] 📦 تخزين الملفات الأساسية');
+                console.log('[SW] 📦 تخزين الملفات الثابتة');
                 return cache.addAll(STATIC_ASSETS);
             })
+            .then(() => self.skipWaiting())
             .catch(err => console.warn('[SW] ⚠️ فشل تخزين بعض الملفات:', err))
     );
-    self.skipWaiting();
 });
 
 // --------------------------------------------
-// 2️⃣ استقبال الإشعارات (Push) - المحور الرئيسي
+// 2️⃣ تفعيل Service Worker وتنظيف الكاش القديم
+// --------------------------------------------
+self.addEventListener('activate', event => {
+    console.log('[SW] 🚀 تفعيل الإصدار:', CACHE_NAME);
+    event.waitUntil(
+        caches.keys()
+            .then(keys => {
+                return Promise.all(
+                    keys.filter(key => key !== STATIC_CACHE && key !== DYNAMIC_CACHE)
+                        .map(key => {
+                            console.log('[SW] 🗑️ حذف الكاش القديم:', key);
+                            return caches.delete(key);
+                        })
+                );
+            })
+            .then(() => {
+                // السيطرة على جميع الصفحات المفتوحة
+                return self.clients.claim();
+            })
+    );
+});
+
+// --------------------------------------------
+// 3️⃣ استراتيجية الجلب (Fetch)
+// --------------------------------------------
+self.addEventListener('fetch', event => {
+    const { request } = event;
+    const url = new URL(request.url);
+    const isHtmlPage = request.headers.get('Accept')?.includes('text/html') || 
+                       url.pathname.endsWith('.html') || 
+                       url.pathname === '/';
+    const isStaticAsset = STATIC_ASSETS.some(asset => url.pathname === asset || url.pathname + '/' === asset);
+    const isExternalLib = url.origin !== self.location.origin && 
+                         (url.pathname.includes('fonts.googleapis.com') || 
+                          url.pathname.includes('cdnjs.cloudflare.com') ||
+                          url.pathname.includes('cdn.jsdelivr.net'));
+
+    // تجاهل طلبات التحليلات والإحصائيات وAPI
+    if (url.pathname.includes('/api/') ||
+        url.pathname.includes('analytics') ||
+        url.pathname.includes('google-analytics') ||
+        url.pathname.includes('doubleclick.net')) {
+        return fetch(request);
+    }
+
+    // استراتيجية Network First لصفحات HTML (مع خيار التخزين المؤقت)
+    if (isHtmlPage) {
+        event.respondWith(
+            fetch(request)
+                .then(response => {
+                    // تخزين نسخة من الصفحة في الكاش الديناميكي
+                    if (response.status === 200) {
+                        const clone = response.clone();
+                        caches.open(DYNAMIC_CACHE)
+                            .then(cache => cache.put(request, clone))
+                            .catch(() => {});
+                    }
+                    return response;
+                })
+                .catch(() => {
+                    // إذا فشلت الشبكة، حاول جلب الصفحة من الكاش
+                    return caches.match(request)
+                        .then(cachedResponse => {
+                            if (cachedResponse) {
+                                console.log('[SW] 📄 عرض الصفحة من الكاش:', url.pathname);
+                                return cachedResponse;
+                            }
+                            // إذا لم توجد في الكاش، عرض صفحة Offline
+                            return new Response(OFFLINE_PAGE, {
+                                status: 503,
+                                headers: { 'Content-Type': 'text/html; charset=utf-8' }
+                            });
+                        });
+                })
+        );
+        return;
+    }
+
+    // استراتيجية Cache First للموارد الثابتة (CSS, JS, صور)
+    if (isStaticAsset || isExternalLib) {
+        event.respondWith(
+            caches.match(request)
+                .then(cachedResponse => {
+                    if (cachedResponse) {
+                        // تحديث الكاش في الخلفية (stale-while-revalidate)
+                        fetch(request)
+                            .then(response => {
+                                if (response && response.status === 200) {
+                                    const clone = response.clone();
+                                    caches.open(STATIC_CACHE)
+                                        .then(cache => cache.put(request, clone))
+                                        .catch(() => {});
+                                }
+                            })
+                            .catch(() => {});
+                        return cachedResponse;
+                    }
+                    // إذا لم يوجد في الكاش، جلب من الشبكة
+                    return fetch(request)
+                        .then(response => {
+                            if (response && response.status === 200) {
+                                const clone = response.clone();
+                                caches.open(STATIC_CACHE)
+                                    .then(cache => cache.put(request, clone))
+                                    .catch(() => {});
+                            }
+                            return response;
+                        });
+                })
+        );
+        return;
+    }
+
+    // للطلبات الأخرى (مثل الصور، الخطوط، إلخ) - استراتيجية Cache First
+    event.respondWith(
+        caches.match(request)
+            .then(cachedResponse => {
+                if (cachedResponse) {
+                    fetch(request).catch(() => {});
+                    return cachedResponse;
+                }
+                return fetch(request)
+                    .then(response => {
+                        if (response && response.status === 200) {
+                            const clone = response.clone();
+                            caches.open(DYNAMIC_CACHE)
+                                .then(cache => cache.put(request, clone))
+                                .catch(() => {});
+                        }
+                        return response;
+                    })
+                    .catch(() => {
+                        // إذا فشل كل شيء، عرض رسالة خطأ بسيطة للموارد
+                        return new Response('⚠️ غير متصل بالإنترنت', {
+                            status: 503,
+                            headers: { 'Content-Type': 'text/plain; charset=utf-8' }
+                        });
+                    });
+            })
+    );
+});
+
+// --------------------------------------------
+// 4️⃣ استقبال الإشعارات (Push) - مع التفاصيل
 // --------------------------------------------
 self.addEventListener('push', event => {
     console.log('📩 تم استقبال حدث push!');
@@ -82,7 +230,6 @@ self.addEventListener('push', event => {
                 notificationData.icon = payload.notification.icon || notificationData.icon;
                 notificationData.badge = payload.notification.badge || notificationData.badge;
                 
-                // استخراج الرابط من data أو fcm_options
                 if (payload.data) {
                     notificationData.link = payload.data.link || payload.data.click_action || '/';
                     notificationData.data.link = notificationData.link;
@@ -102,14 +249,12 @@ self.addEventListener('push', event => {
                 notificationData.requireInteraction = payload.requireInteraction !== undefined ? payload.requireInteraction : true;
             }
             
-            // إضافة أي بيانات إضافية
             if (payload.data) {
                 notificationData.data = { ...notificationData.data, ...payload.data };
             }
         }
     } catch (error) {
         console.warn('⚠️ خطأ في معالجة بيانات الإشعار:', error);
-        // محاولة قراءة النص العادي
         if (event.data) {
             const text = event.data.text();
             if (text) {
@@ -127,7 +272,6 @@ self.addEventListener('push', event => {
 
     console.log('📨 الإشعار النهائي:', notificationData);
 
-    // خيارات الإشعار المتقدمة
     const options = {
         body: notificationData.body,
         icon: notificationData.icon,
@@ -140,16 +284,13 @@ self.addEventListener('push', event => {
             { action: 'open', title: '📂 فتح التطبيق' },
             { action: 'close', title: '❌ إغلاق' }
         ],
-        // إضافة صورة كبيرة إن وجدت
         image: notificationData.image || null
     };
 
-    // إضافة رابط مخصص في البيانات
     if (notificationData.link) {
         options.data.link = notificationData.link;
     }
 
-    // عرض الإشعار
     event.waitUntil(
         self.registration.showNotification(notificationData.title, options)
             .then(() => console.log('✅ تم عرض الإشعار بنجاح'))
@@ -158,13 +299,12 @@ self.addEventListener('push', event => {
 });
 
 // --------------------------------------------
-// 3️⃣ التعامل مع النقر على الإشعار
+// 5️⃣ التعامل مع النقر على الإشعار
 // --------------------------------------------
 self.addEventListener('notificationclick', event => {
     console.log('🖱️ تم النقر على الإشعار:', event.notification);
     event.notification.close();
 
-    // تحديد الرابط المستهدف
     let link = '/';
     if (event.notification.data && event.notification.data.link) {
         link = event.notification.data.link;
@@ -172,7 +312,6 @@ self.addEventListener('notificationclick', event => {
         link = event.notification.data.url;
     }
 
-    // التعامل مع الأزرار
     if (event.action === 'open' || !event.action) {
         event.waitUntil(
             clients.matchAll({ 
@@ -180,102 +319,20 @@ self.addEventListener('notificationclick', event => {
                 includeUncontrolled: true 
             })
             .then(clientList => {
-                // البحث عن نافذة مفتوحة لنفس الرابط
                 for (const client of clientList) {
                     if (client.url === link && 'focus' in client) {
                         return client.focus();
                     }
                 }
-                // إذا لم توجد نافذة، افتح واحدة جديدة
                 if (clients.openWindow) {
                     return clients.openWindow(link);
                 }
             })
             .catch(() => {
-                // محاولة بديلة
                 clients.openWindow(link).catch(() => {});
             })
         );
     }
-});
-
-// --------------------------------------------
-// 4️⃣ استراتيجية الجلب (Cache First)
-// --------------------------------------------
-self.addEventListener('fetch', event => {
-    const { request } = event;
-
-    // تجاهل طلبات التحليلات و API
-    if (request.url.includes('google-analytics') ||
-        request.url.includes('analytics') ||
-        request.url.includes('doubleclick.net') ||
-        request.url.includes('/api/')) {
-        return;
-    }
-
-    event.respondWith(
-        caches.match(request)
-            .then(cachedResponse => {
-                if (cachedResponse) {
-                    // تحديث الكاش في الخلفية
-                    fetch(request)
-                        .then(fetchResponse => {
-                            if (fetchResponse && fetchResponse.status === 200) {
-                                caches.open(CACHE_NAME)
-                                    .then(cache => cache.put(request, fetchResponse.clone()))
-                                    .catch(() => {});
-                            }
-                        })
-                        .catch(() => {});
-                    return cachedResponse;
-                }
-
-                return fetch(request)
-                    .then(fetchResponse => {
-                        if (fetchResponse && fetchResponse.status === 200) {
-                            const clone = fetchResponse.clone();
-                            caches.open(CACHE_NAME)
-                                .then(cache => cache.put(request, clone))
-                                .catch(() => {});
-                        }
-                        return fetchResponse;
-                    })
-                    .catch(() => {
-                        if (request.headers.get('Accept')?.includes('text/html')) {
-                            return new Response(OFFLINE_PAGE, {
-                                status: 503,
-                                headers: { 'Content-Type': 'text/html; charset=utf-8' }
-                            });
-                        }
-                        return new Response('⚠️ غير متصل بالإنترنت', {
-                            status: 503,
-                            headers: { 'Content-Type': 'text/plain; charset=utf-8' }
-                        });
-                    });
-            })
-    );
-});
-
-// --------------------------------------------
-// 5️⃣ التفعيل وتنظيف الكاش
-// --------------------------------------------
-self.addEventListener('activate', event => {
-    event.waitUntil(
-        caches.keys()
-            .then(keys => {
-                return Promise.all(
-                    keys.filter(key => key !== CACHE_NAME)
-                        .map(key => {
-                            console.log('[SW] 🗑️ حذف الكاش القديم:', key);
-                            return caches.delete(key);
-                        })
-                );
-            })
-            .then(() => {
-                console.log('[SW] 🚀 تم التفعيل، الإصدار:', CACHE_NAME);
-                return self.clients.claim();
-            })
-    );
 });
 
 // --------------------------------------------
@@ -288,7 +345,7 @@ self.addEventListener('message', event => {
 });
 
 // --------------------------------------------
-// 7️⃣ صفحة Offline
+// 7️⃣ صفحة Offline المحسّنة
 // --------------------------------------------
 const OFFLINE_PAGE = `<!DOCTYPE html>
 <html dir="rtl" lang="ar">
