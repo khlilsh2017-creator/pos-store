@@ -4,7 +4,7 @@
 
 const CACHE_NAME = 'ibn-mukhtar-pos-v18';
 const STATIC_CACHE = 'ibn-mukhtar-static-v18';
-const DYNAMIC_CACHE = 'ibn-mukhtar-dynamic-v18';
+const DYNAMIC_CACHE = 'ibn-mukhtar-dynamic-v19';
 const VERSION = '2025-02-17-001'; // غيّر هذا الرقم مع كل تحديث رئيسي
 
 // قائمة الملفات الثابتة (أضف أي ملفات جديدة هنا)
