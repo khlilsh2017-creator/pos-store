@@ -2075,9 +2075,9 @@
             }
         }
 
-        function logout() {
-    // إيقاف أي مؤقتات إن وجدت
-    stopPolling && stopPolling();
+       function logout() {
+    // إيقاف أي مؤقتات إن وجدت (تم إزالة stopPolling)
+    // stopPolling && stopPolling();  // <-- تم حذف هذا السطر
 
     clearToken();
     clearDriverId();
@@ -2087,7 +2087,7 @@
     totalBalance = 0;
     localStorage.removeItem('driverBalance');
 
-    // --- مسح IndexedDB بالكامل (الطلبات والعمليات) ---
+    // مسح IndexedDB بالكامل (الطلبات والعمليات)
     openDB().then(db => {
         let tx1 = db.transaction(STORES.ORDERS, 'readwrite');
         tx1.objectStore(STORES.ORDERS).clear();
@@ -2097,8 +2097,7 @@
 
     showLoginScreen();
     showToast('👋 تم تسجيل الخروج');
-}
-        function toggleSideMenu() { showToast('📱 القائمة قيد التطوير'); }
+}        function toggleSideMenu() { showToast('📱 القائمة قيد التطوير'); }
 
         function showToast(message) {
             const toast = document.createElement('div');
