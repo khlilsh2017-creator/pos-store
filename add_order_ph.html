@@ -3686,27 +3686,30 @@
             }));
 
             const payload = {
-                customer_name: selectedCustomerData.name || undefined,
-                customer_phones: uniquePhones,
-                customer_address: address,
-                governorate: selectedCustomerData.governorate || 'صنعاء',
-                delivery_type: selectedCustomerData.deliveryType || 'داخل صنعاء',
-                delivery_fee: fee,
-                delivery_fee_payment: feePaidWithOrder ? 'مع الطلب' : 'عند الاستلام',
-                payment_method: paymentMethod,
-                prepaid_payment_method: prepaid_payment_method,
-                prepaid_cash_amount: prepaid_cash_amount,
-                prepaid_wallet_amount: prepaid_wallet_amount,
-                prepaid_wallet_id: prepaid_wallet_id ? parseInt(prepaid_wallet_id) : null,
-                currency_id: order_currency_id ? parseInt(order_currency_id) : undefined,
-                cash_currency_id: cash_currency_id ? parseInt(cash_currency_id) : undefined,
-                wallet_currency_id: wallet_currency_id ? parseInt(wallet_currency_id) : undefined,
-                items: items,
-                notes: document.getElementById('notes')?.value.trim() || '',
-                driver_id: document.getElementById('driverSelect')?.value ? parseInt(document.getElementById('driverSelect')
-                    .value) : undefined,
-                total_amount: total
-            };
+    customer_name: selectedCustomerData.name || undefined,
+    customer_phones: uniquePhones,
+    customer_address: address,
+    governorate: selectedCustomerData.governorate || 'صنعاء',
+    delivery_type: selectedCustomerData.deliveryType || 'داخل صنعاء',
+    delivery_fee: fee,
+    delivery_fee_payment: feePaidWithOrder ? 'مع الطلب' : 'عند الاستلام',
+    payment_method: paymentMethod,
+    prepaid_payment_method: prepaid_payment_method,
+    prepaid_cash_amount: prepaid_cash_amount,
+    prepaid_wallet_amount: prepaid_wallet_amount,
+    prepaid_wallet_id: prepaid_wallet_id ? parseInt(prepaid_wallet_id) : null,
+    currency_id: order_currency_id ? parseInt(order_currency_id) : undefined,
+    cash_currency_id: cash_currency_id ? parseInt(cash_currency_id) : undefined,
+    wallet_currency_id: wallet_currency_id ? parseInt(wallet_currency_id) : undefined,
+    items: items,
+    notes: document.getElementById('notes')?.value.trim() || '',
+    driver_id: document.getElementById('driverSelect')?.value ? parseInt(document.getElementById('driverSelect').value) : undefined,
+    total_amount: total,
+    
+    // --- الجديد: إرسال الخصم للسيرفر لحفظه ---
+    discount: discount,
+    discount_amount: discountAmount 
+};
 
             const btn = document.querySelector('.bottom-actions .btn-success');
             if (!btn) return;
