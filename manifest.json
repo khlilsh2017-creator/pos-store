@@ -3,14 +3,14 @@
   "name": "مندوبي",
   "short_name": "المندوب",
   "description": "متجر ابن المختار للأدوات المنزلية يوفر لك أفضل المنتجات بجودة عالية وأسعار منافسة مع توصيل سريع داخل اليمن.",
-"start_url": "/driver.html?app=driver",
+"start_url": "/driver.html",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#1a237e",
   "orientation": "portrait",
   "dir": "rtl",
   "lang": "ar",
-  "scope": "/",
+  "scope": "/driver.html",
   "icons": [
     {
       "src": "/icon-192x192.png",
