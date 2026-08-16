@@ -3,7 +3,7 @@
   "name": "صندوق البيع",
   "short_name": "انشاء طلبات الانترنت",
   "description": "واجهة الكاشير السريعة لابن المختار: إتمام عمليات البيع، طباعة الفواتير، والبحث عن المنتجات بلمسة واحدة.",
-  "start_url": "/add_order_ph.html",
+  "start_url": "/add_order_ph.html?app=cashier",
   "display": "standalone",
   "background_color": "#fff8e1",
   "theme_color": "#C62828",
