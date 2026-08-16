@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging-compat.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>مندوب - طلباتي</title>
@@ -237,6 +239,18 @@
         let isPushEnabled = false;
         let swRegistration = null;
         let lastAccountData = {};
+
+        // إعدادات Firebase (نفس الإعدادات الموجودة في ملف الـ Service Worker)
+        const firebaseConfig = {
+            apiKey: "AIzaSyDjMiUhBOF9h1arbea4ZAorD-GdtATQ3Fs",
+            authDomain: "ibn-al-mukhtar-pos.firebaseapp.com",
+            projectId: "ibn-al-mukhtar-pos",
+            storageBucket: "ibn-al-mukhtar-pos.firebasestorage.app",
+            messagingSenderId: "953096430757",
+            appId: "1:953096430757:web:7c2b60bd719aa70964994c"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const messaging = firebase.messaging();
 
         // =============================================================
         // 2. IndexedDB
@@ -494,6 +508,7 @@
                     showToast('⚠️ الإشعارات ممنوعة');
                     return false;
                 }
+                
                 if (!swRegistration) {
                     swRegistration = await registerServiceWorker();
                     if (!swRegistration) {
@@ -502,52 +517,32 @@
                     }
                 }
                 await navigator.serviceWorker.ready;
-                // داخل registerForPushNotifications
-let existingSub = await swRegistration.pushManager.getSubscription();
-if (existingSub) {
-    pushSubscription = existingSub;
-    const token = existingSub.endpoint;
-    const driverId = getDriverId();
-    const savedToken = localStorage.getItem('fcmToken');
 
-    // فقط أرسل إلى الخادم إذا كان التوكن مختلفاً عن المخزن
-    if (driverId && savedToken !== token) {
-        const sent = await sendTokenToServer(token, driverId);
-        if (sent) {
-            localStorage.setItem('fcmToken', token);
-        } else {
-            // فشل التسجيل، نعرض خطأ
-            showToast('❌ فشل تحديث الإشعارات في الخادم');
-            return false;
-        }
-    }
-    isPushEnabled = true;
-    updateNotificationUI(true);
-    showToast('✅ الإشعارات مفعلة مسبقاً');
-    return true;
-}
-                const applicationServerKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
-                const subscription = await swRegistration.pushManager.subscribe({
-                    userVisibleOnly: true,
-                    applicationServerKey: applicationServerKey
+                // ===== التعديل الأهم: جلب التوكن الصحيح عبر Firebase SDK =====
+                const token = await messaging.getToken({
+                    vapidKey: VAPID_PUBLIC_KEY,
+                    serviceWorkerRegistration: swRegistration
                 });
-                pushSubscription = subscription;
-                const token = subscription.endpoint;
-                const driverId = getDriverId();
-                if (!driverId) {
-                    showToast('❌ رقم المندوب غير متاح');
-                    return false;
-                }
-                const sent = await sendTokenToServer(token, driverId);
-                if (sent) {
-                    isPushEnabled = true;
-                    updateNotificationUI(true);
-                    localStorage.setItem('fcmToken', token); // ✅ حفظ التوكن
-                    showToast('✅ تم تفعيل الإشعارات');
-                    return true;
+
+                if (token) {
+                    const driverId = getDriverId();
+                    if (!driverId) {
+                        showToast('❌ رقم المندوب غير متاح');
+                        return false;
+                    }
+                    const sent = await sendTokenToServer(token, driverId);
+                    if (sent) {
+                        isPushEnabled = true;
+                        updateNotificationUI(true);
+                        localStorage.setItem('fcmToken', token); // حفظ التوكن الصافي
+                        showToast('✅ تم تفعيل الإشعارات');
+                        return true;
+                    } else {
+                        showToast('❌ فشل تسجيل الإشعارات في الخادم');
+                        return false;
+                    }
                 } else {
-                    await subscription.unsubscribe();
-                    showToast('❌ فشل تسجيل الإشعارات في الخادم');
+                    showToast('❌ لم يتم استخراج توكن الإشعارات');
                     return false;
                 }
             } catch (err) {
