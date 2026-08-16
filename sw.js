@@ -1,8 +1,8 @@
 // ============================================================
-// 🏢 Service Worker - نظام ابن مختار (النسخة الموحدة v10)
+// 🏢 Service Worker - نظام ابن مختار (النسخة المحسنة للإشعارات)
 // ============================================================
 
-const CACHE_NAME = 'ibn-mukhtar-pos-v15';
+const CACHE_NAME = 'ibn-mukhtar-pos-v16';
 const STATIC_ASSETS = [
     '/',
     '/index.html',
@@ -36,50 +36,228 @@ const STATIC_ASSETS = [
     '/icon-512x512.png'
 ];
 
-const EXTERNAL_LIBS = [
-    'https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&display=swap',
-    'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css',
-    'https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js'
-];
+// --------------------------------------------
+// 1️⃣ تثبيت Service Worker
+// --------------------------------------------
+self.addEventListener('install', event => {
+    event.waitUntil(
+        caches.open(CACHE_NAME)
+            .then(cache => {
+                console.log('[SW] 📦 تخزين الملفات الأساسية');
+                return cache.addAll(STATIC_ASSETS);
+            })
+            .catch(err => console.warn('[SW] ⚠️ فشل تخزين بعض الملفات:', err))
+    );
+    self.skipWaiting();
+});
 
 // --------------------------------------------
-// 1️⃣ مرحلة التثبيت (Install)
+// 2️⃣ استقبال الإشعارات (Push) - المحور الرئيسي
 // --------------------------------------------
 self.addEventListener('push', event => {
     console.log('📩 تم استقبال حدث push!');
-    console.log('📦 بيانات الإشعار:', event.data);
-
-    let data = { title: '📦 طلب جديد', body: 'توجد طلبات جديدة', link: '/driver.html' };
-    try {
-        if (event.data) {
-            const parsed = event.data.json();
-            data = { ...data, ...parsed };
-        }
-    } catch (_) {
-        data.body = event.data.text() || data.body;
-    }
-
-    console.log('📨 الإشعار النهائي:', data);
-
-    const options = {
-        body: data.body,
+    
+    // استخراج البيانات من الإشعار
+    let notificationData = {
+        title: '📦 طلب جديد',
+        body: 'توجد طلبات جديدة',
+        link: '/',
         icon: '/icon-192x192.png',
         badge: '/icon-192x192.png',
         vibrate: [200, 100, 200],
-        data: { link: data.link || '/driver.html' },
-        actions: [
-            { action: 'open', title: '📂 فتح التطبيق' },
-            { action: 'close', title: '❌ إلغاء' }
-        ]
+        tag: 'default',
+        requireInteraction: true,
+        data: { link: '/' }
     };
 
+    try {
+        if (event.data) {
+            const payload = event.data.json();
+            console.log('📨 بيانات الإشعار الخام:', payload);
+            
+            // إذا كان الإشعار من Firebase (يحتوي على notification و data)
+            if (payload.notification) {
+                notificationData.title = payload.notification.title || notificationData.title;
+                notificationData.body = payload.notification.body || notificationData.body;
+                notificationData.icon = payload.notification.icon || notificationData.icon;
+                notificationData.badge = payload.notification.badge || notificationData.badge;
+                
+                // استخراج الرابط من data أو fcm_options
+                if (payload.data) {
+                    notificationData.link = payload.data.link || payload.data.click_action || '/';
+                    notificationData.data.link = notificationData.link;
+                }
+                if (payload.fcmOptions) {
+                    notificationData.link = payload.fcmOptions.link || notificationData.link;
+                    notificationData.data.link = notificationData.link;
+                }
+            } 
+            // إذا كان الإشعار مخصصاً (من الخادم مباشرة)
+            else if (payload.title || payload.body) {
+                notificationData.title = payload.title || notificationData.title;
+                notificationData.body = payload.body || notificationData.body;
+                notificationData.link = payload.link || payload.click_action || '/';
+                notificationData.data.link = notificationData.link;
+                notificationData.tag = payload.tag || notificationData.tag;
+                notificationData.requireInteraction = payload.requireInteraction !== undefined ? payload.requireInteraction : true;
+            }
+            
+            // إضافة أي بيانات إضافية
+            if (payload.data) {
+                notificationData.data = { ...notificationData.data, ...payload.data };
+            }
+        }
+    } catch (error) {
+        console.warn('⚠️ خطأ في معالجة بيانات الإشعار:', error);
+        // محاولة قراءة النص العادي
+        if (event.data) {
+            const text = event.data.text();
+            if (text) {
+                try {
+                    const parsed = JSON.parse(text);
+                    notificationData.title = parsed.title || notificationData.title;
+                    notificationData.body = parsed.body || notificationData.body;
+                    notificationData.link = parsed.link || '/';
+                } catch {
+                    notificationData.body = text;
+                }
+            }
+        }
+    }
+
+    console.log('📨 الإشعار النهائي:', notificationData);
+
+    // خيارات الإشعار المتقدمة
+    const options = {
+        body: notificationData.body,
+        icon: notificationData.icon,
+        badge: notificationData.badge || notificationData.icon,
+        vibrate: notificationData.vibrate || [200, 100, 200],
+        data: notificationData.data || { link: notificationData.link },
+        tag: notificationData.tag || 'default',
+        requireInteraction: notificationData.requireInteraction !== undefined ? notificationData.requireInteraction : true,
+        actions: [
+            { action: 'open', title: '📂 فتح التطبيق' },
+            { action: 'close', title: '❌ إغلاق' }
+        ],
+        // إضافة صورة كبيرة إن وجدت
+        image: notificationData.image || null
+    };
+
+    // إضافة رابط مخصص في البيانات
+    if (notificationData.link) {
+        options.data.link = notificationData.link;
+    }
+
+    // عرض الإشعار
     event.waitUntil(
-        self.registration.showNotification(data.title || '🏢 ابن مختار', options)
+        self.registration.showNotification(notificationData.title, options)
+            .then(() => console.log('✅ تم عرض الإشعار بنجاح'))
+            .catch(err => console.error('❌ فشل عرض الإشعار:', err))
     );
 });
 
 // --------------------------------------------
-// 2️⃣ مرحلة التفعيل (Activate) + تنظيف الكاش القديم
+// 3️⃣ التعامل مع النقر على الإشعار
+// --------------------------------------------
+self.addEventListener('notificationclick', event => {
+    console.log('🖱️ تم النقر على الإشعار:', event.notification);
+    event.notification.close();
+
+    // تحديد الرابط المستهدف
+    let link = '/';
+    if (event.notification.data && event.notification.data.link) {
+        link = event.notification.data.link;
+    } else if (event.notification.data && event.notification.data.url) {
+        link = event.notification.data.url;
+    }
+
+    // التعامل مع الأزرار
+    if (event.action === 'open' || !event.action) {
+        event.waitUntil(
+            clients.matchAll({ 
+                type: 'window', 
+                includeUncontrolled: true 
+            })
+            .then(clientList => {
+                // البحث عن نافذة مفتوحة لنفس الرابط
+                for (const client of clientList) {
+                    if (client.url === link && 'focus' in client) {
+                        return client.focus();
+                    }
+                }
+                // إذا لم توجد نافذة، افتح واحدة جديدة
+                if (clients.openWindow) {
+                    return clients.openWindow(link);
+                }
+            })
+            .catch(() => {
+                // محاولة بديلة
+                clients.openWindow(link).catch(() => {});
+            })
+        );
+    }
+});
+
+// --------------------------------------------
+// 4️⃣ استراتيجية الجلب (Cache First)
+// --------------------------------------------
+self.addEventListener('fetch', event => {
+    const { request } = event;
+
+    // تجاهل طلبات التحليلات و API
+    if (request.url.includes('google-analytics') ||
+        request.url.includes('analytics') ||
+        request.url.includes('doubleclick.net') ||
+        request.url.includes('/api/')) {
+        return;
+    }
+
+    event.respondWith(
+        caches.match(request)
+            .then(cachedResponse => {
+                if (cachedResponse) {
+                    // تحديث الكاش في الخلفية
+                    fetch(request)
+                        .then(fetchResponse => {
+                            if (fetchResponse && fetchResponse.status === 200) {
+                                caches.open(CACHE_NAME)
+                                    .then(cache => cache.put(request, fetchResponse.clone()))
+                                    .catch(() => {});
+                            }
+                        })
+                        .catch(() => {});
+                    return cachedResponse;
+                }
+
+                return fetch(request)
+                    .then(fetchResponse => {
+                        if (fetchResponse && fetchResponse.status === 200) {
+                            const clone = fetchResponse.clone();
+                            caches.open(CACHE_NAME)
+                                .then(cache => cache.put(request, clone))
+                                .catch(() => {});
+                        }
+                        return fetchResponse;
+                    })
+                    .catch(() => {
+                        if (request.headers.get('Accept')?.includes('text/html')) {
+                            return new Response(OFFLINE_PAGE, {
+                                status: 503,
+                                headers: { 'Content-Type': 'text/html; charset=utf-8' }
+                            });
+                        }
+                        return new Response('⚠️ غير متصل بالإنترنت', {
+                            status: 503,
+                            headers: { 'Content-Type': 'text/plain; charset=utf-8' }
+                        });
+                    });
+            })
+    );
+});
+
+// --------------------------------------------
+// 5️⃣ التفعيل وتنظيف الكاش
 // --------------------------------------------
 self.addEventListener('activate', event => {
     event.waitUntil(
@@ -95,102 +273,13 @@ self.addEventListener('activate', event => {
             })
             .then(() => {
                 console.log('[SW] 🚀 تم التفعيل، الإصدار:', CACHE_NAME);
-                return self.clients.claim(); // السيطرة على الصفحات المفتوحة
+                return self.clients.claim();
             })
     );
 });
 
 // --------------------------------------------
-// 3️⃣ استراتيجية الجلب (Fetch) - Cache First مع تحديث الخلفية
-// --------------------------------------------
-self.addEventListener('fetch', event => {
-    const { request } = event;
-
-    // تجاهل طلبات التحليلات والإحصائيات
-    if (request.url.includes('google-analytics') ||
-        request.url.includes('analytics') ||
-        request.url.includes('doubleclick.net')) {
-        return;
-    }
-
-    // تجاهل طلبات API (لو وجدت)
-    if (request.url.includes('/api/')) {
-        return fetch(request);
-    }
-
-    event.respondWith(
-        caches.match(request)
-            .then(cachedResponse => {
-                if (cachedResponse) {
-                    // تحديث الكاش في الخلفية (stale-while-revalidate)
-                    fetch(request)
-                        .then(fetchResponse => {
-                            if (fetchResponse && fetchResponse.status === 200) {
-                                caches.open(CACHE_NAME)
-                                    .then(cache => cache.put(request, fetchResponse.clone()))
-                                    .catch(() => {});
-                            }
-                        })
-                        .catch(() => {});
-                    return cachedResponse;
-                }
-
-                // لم يوجد في الكاش → جلب من الشبكة
-                return fetch(request)
-                    .then(fetchResponse => {
-                        if (fetchResponse && fetchResponse.status === 200) {
-                            const clone = fetchResponse.clone();
-                            caches.open(CACHE_NAME)
-                                .then(cache => cache.put(request, clone))
-                                .catch(() => {});
-                        }
-                        return fetchResponse;
-                    })
-                    .catch(() => {
-                        // عرض صفحة Offline للمستندات HTML
-                        if (request.headers.get('Accept')?.includes('text/html')) {
-                            return new Response(OFFLINE_PAGE, {
-                                status: 503,
-                                headers: { 'Content-Type': 'text/html; charset=utf-8' }
-                            });
-                        }
-                        // للموارد الأخرى (صور، CSS، JS)
-                        return new Response('⚠️ غير متصل بالإنترنت', {
-                            status: 503,
-                            headers: { 'Content-Type': 'text/plain; charset=utf-8' }
-                        });
-                    });
-            })
-    );
-});
-
-// --------------------------------------------
-// 4️⃣ دعم الإشعارات (Push Notifications)
-// --------------------------------------------
-
-
-// --------------------------------------------
-// 5️⃣ التعامل مع النقر على الإشعار
-// --------------------------------------------
-self.addEventListener('notificationclick', event => {
-    event.notification.close();
-
-    if (event.action === 'open' || !event.action) {
-        const link = event.notification.data?.link || '/';
-        event.waitUntil(
-            clients.matchAll({ type: 'window', includeUncontrolled: true })
-                .then(clientList => {
-                    if (clientList.length > 0) {
-                        return clientList[0].focus();
-                    }
-                    return clients.openWindow(link);
-                })
-        );
-    }
-});
-
-// --------------------------------------------
-// 6️⃣ تحديث التطبيق عبر الرسائل (message)
+// 6️⃣ تحديث التطبيق عبر الرسائل
 // --------------------------------------------
 self.addEventListener('message', event => {
     if (event.data === 'skipWaiting') {
@@ -199,7 +288,7 @@ self.addEventListener('message', event => {
 });
 
 // --------------------------------------------
-// 7️⃣ صفحة Offline المدمجة (HTML)
+// 7️⃣ صفحة Offline
 // --------------------------------------------
 const OFFLINE_PAGE = `<!DOCTYPE html>
 <html dir="rtl" lang="ar">
