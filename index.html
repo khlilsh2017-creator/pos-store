@@ -1440,11 +1440,38 @@
         }
 
         // استقبال الإشعارات عندما تكون صفحة الإدارة مفتوحة (foreground)
-        messaging.onMessage((payload) => {
-            const title = payload.notification?.title || '📬 إشعار جديد';
-            const body = payload.notification?.body || '';
-            showToast(`🔔 ${title}: ${body}`, 'info');
+        // في index.html - استقبال الإشعارات في المقدمة (Foreground)
+messaging.onMessage((payload) => {
+    console.log('📨 إشعار في المقدمة:', payload);
+    
+    let title = '📬 إشعار جديد';
+    let body = 'لديك إشعار جديد';
+    let link = '/';
+    
+    if (payload.notification) {
+        title = payload.notification.title || title;
+        body = payload.notification.body || body;
+    }
+    
+    if (payload.data) {
+        link = payload.data.link || payload.data.click_action || '/';
+    }
+    
+    if (payload.fcmOptions) {
+        link = payload.fcmOptions.link || link;
+    }
+    
+    showToast(`🔔 ${title}: ${body}`, 'info');
+    
+    // يمكن إضافة إشعار المتصفح أيضاً
+    if (Notification.permission === 'granted') {
+        new Notification(title, {
+            body: body,
+            icon: '/icon-192x192.png',
+            data: { link: link }
         });
+    }
+});
 
         // ================================================================
         //  7. التهيئة عند التحميل
