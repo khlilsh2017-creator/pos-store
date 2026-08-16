@@ -205,12 +205,22 @@ self.addEventListener('fetch', event => {
 // --------------------------------------------
 // 4️⃣ استقبال الإشعارات (Push)
 // --------------------------------------------
+// --------------------------------------------
+// 4️⃣ استقبال الإشعارات (Push)
+// --------------------------------------------
 self.addEventListener('push', event => {
     console.log('📩 تم استقبال حدث push!');
-    
+
+    // التحقق من وجود بيانات مرسلة من السيرفر
+    if (!event.data) {
+        console.log('⚠️ لا توجد بيانات في الإشعار.');
+        return; 
+    }
+
+    // إعدادات افتراضية أساسية (بدون نصوص تجريبية ثابتة)
     let notificationData = {
-        title: '📦 طلب جديد',
-        body: 'توجد طلبات جديدة',
+        title: 'إشعار جديد',
+        body: '',
         link: '/',
         icon: '/icon-192x192.png',
         badge: '/icon-192x192.png',
@@ -221,75 +231,64 @@ self.addEventListener('push', event => {
     };
 
     try {
-        if (event.data) {
-            const payload = event.data.json();
-            console.log('📨 بيانات الإشعار الخام:', payload);
-            
-            if (payload.notification) {
-                notificationData.title = payload.notification.title || notificationData.title;
-                notificationData.body = payload.notification.body || notificationData.body;
-                notificationData.icon = payload.notification.icon || notificationData.icon;
-                notificationData.badge = payload.notification.badge || notificationData.badge;
-                
-                if (payload.data) {
-                    notificationData.link = payload.data.link || payload.data.click_action || '/';
-                    notificationData.data.link = notificationData.link;
-                }
-                if (payload.fcmOptions) {
-                    notificationData.link = payload.fcmOptions.link || notificationData.link;
-                    notificationData.data.link = notificationData.link;
-                }
-            } 
-            else if (payload.title || payload.body) {
-                notificationData.title = payload.title || notificationData.title;
-                notificationData.body = payload.body || notificationData.body;
-                notificationData.link = payload.link || payload.click_action || '/';
-                notificationData.data.link = notificationData.link;
-                notificationData.tag = payload.tag || notificationData.tag;
-                notificationData.requireInteraction = payload.requireInteraction !== undefined ? payload.requireInteraction : true;
-            }
+        const payload = event.data.json();
+        console.log('📨 بيانات الإشعار الخام:', payload);
+        
+        if (payload.notification) {
+            notificationData.title = payload.notification.title || notificationData.title;
+            notificationData.body = payload.notification.body || notificationData.body;
+            notificationData.icon = payload.notification.icon || notificationData.icon;
+            notificationData.badge = payload.notification.badge || notificationData.badge;
             
             if (payload.data) {
-                notificationData.data = { ...notificationData.data, ...payload.data };
+                notificationData.link = payload.data.link || payload.data.click_action || '/';
+                notificationData.data.link = notificationData.link;
             }
+            if (payload.fcmOptions) {
+                notificationData.link = payload.fcmOptions.link || notificationData.link;
+                notificationData.data.link = notificationData.link;
+            }
+        } 
+        else if (payload.title || payload.body) {
+            notificationData.title = payload.title || notificationData.title;
+            notificationData.body = payload.body || notificationData.body;
+            notificationData.link = payload.link || payload.click_action || '/';
+            notificationData.data.link = notificationData.link;
+            notificationData.tag = payload.tag || notificationData.tag;
+            notificationData.requireInteraction = payload.requireInteraction !== undefined ? payload.requireInteraction : true;
+        }
+        
+        if (payload.data) {
+            notificationData.data = { ...notificationData.data, ...payload.data };
         }
     } catch (error) {
-        console.warn('⚠️ خطأ في معالجة بيانات الإشعار:', error);
-        if (event.data) {
-            const text = event.data.text();
-            if (text) {
-                try {
-                    const parsed = JSON.parse(text);
-                    notificationData.title = parsed.title || notificationData.title;
-                    notificationData.body = parsed.body || notificationData.body;
-                    notificationData.link = parsed.link || '/';
-                } catch {
-                    notificationData.body = text;
-                }
-            }
+        console.warn('⚠️ فشل تحليل JSON، محاولة القراءة كنص عادي...');
+        const text = event.data.text();
+        if (text) {
+            notificationData.body = text;
         }
     }
 
-    console.log('📨 الإشعار النهائي:', notificationData);
+    // منع ظهور إشعارات فارغة مزعجة للمستخدم إذا لم يكن هناك نص (Body)
+    if (!notificationData.body) {
+        console.log('🚫 تم إلغاء عرض الإشعار لعدم وجود محتوى (Body).');
+        return;
+    }
 
     const options = {
         body: notificationData.body,
         icon: notificationData.icon,
-        badge: notificationData.badge || notificationData.icon,
-        vibrate: notificationData.vibrate || [200, 100, 200],
-        data: notificationData.data || { link: notificationData.link },
-        tag: notificationData.tag || 'default',
-        requireInteraction: notificationData.requireInteraction !== undefined ? notificationData.requireInteraction : true,
+        badge: notificationData.badge,
+        vibrate: notificationData.vibrate,
+        data: notificationData.data,
+        tag: notificationData.tag,
+        requireInteraction: notificationData.requireInteraction,
         actions: [
             { action: 'open', title: '📂 فتح التطبيق' },
             { action: 'close', title: '❌ إغلاق' }
         ],
         image: notificationData.image || null
     };
-
-    if (notificationData.link) {
-        options.data.link = notificationData.link;
-    }
 
     event.waitUntil(
         self.registration.showNotification(notificationData.title, options)
