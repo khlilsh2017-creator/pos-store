@@ -2227,24 +2227,35 @@
         // =============================================================
         // 14. تهيئة التطبيق
         // =============================================================
-        window.addEventListener('load', async () => {
-            updateConnectionStatus();
+       // =============================================================
+// 14. تهيئة التطبيق
+// =============================================================
+window.addEventListener('load', async () => {
+    updateConnectionStatus();
 
-            if ('serviceWorker' in navigator) {
-                await initializePushNotifications();
-            }
+    if ('serviceWorker' in navigator) {
+        await initializePushNotifications();
 
-            const token = getToken();
-            const driverId = getDriverId();
-            if (token && driverId) {
-                loadFilterSettings();
-                loadDashboard();
-                if (navigator.onLine) syncAllOperations();
-            } else {
-                showLoginScreen();
+        // 👇 أضف هذا الكود هنا لاستقبال رسالة إعادة التحميل
+        navigator.serviceWorker.addEventListener('message', event => {
+            if (event.data && event.data.action === 'reload') {
+                console.log('🔄 إعادة تحميل الصفحة بأمر من Service Worker');
+                window.location.reload(true);
             }
-            updateSyncCounter();
         });
+    }
+
+    const token = getToken();
+    const driverId = getDriverId();
+    if (token && driverId) {
+        loadFilterSettings();
+        loadDashboard();
+        if (navigator.onLine) syncAllOperations();
+    } else {
+        showLoginScreen();
+    }
+    updateSyncCounter();
+});
 
         window.addEventListener('online', () => {
             updateConnectionStatus();
@@ -2293,13 +2304,6 @@
         `;
         document.head.appendChild(styleEl);
     </script>
-    if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.addEventListener('message', event => {
-        if (event.data && event.data.action === 'reload') {
-            console.log('🔄 إعادة تحميل الصفحة بأمر من Service Worker');
-            window.location.reload(true);
-        }
-    });
-}
+    
 </body>
 </html>
