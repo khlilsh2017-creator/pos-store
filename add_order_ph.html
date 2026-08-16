@@ -3459,6 +3459,7 @@ function resetOrderForm() {
         const data = await res.json();
         const order = data.order;
         if (!order) { showToast('الطلب غير موجود', 'error'); return; }
+        
         const allowedStatuses = ['جديد', 'قيد التوصيل', 'مُسند لمندوب'];
         if (!allowedStatuses.includes(order.status)) {
             showToast(`لا يمكن تعديل طلب بحالة "${order.status}"`, 'warning');
@@ -3466,6 +3467,7 @@ function resetOrderForm() {
         }
         
         resetOrderForm();
+        
         editingOrderId = orderId;
         editingOrderStatus = order.status;
         document.getElementById('page-subtitle').innerText = `تعديل #${orderId}`;
@@ -3473,12 +3475,17 @@ function resetOrderForm() {
         document.getElementById('display-invoice-number').innerText = order.invoice_number || 'غير محدد';
 
         const statusBar = document.getElementById('order-status-bar');
-        statusBar.style.display = 'flex';
+        if (statusBar) statusBar.style.display = 'flex';
         const statusBadge = document.getElementById('order-status-badge');
-        statusBadge.textContent = order.status;
-        statusBadge.className = 'status-badge ' + ({ 'جديد': 'new', 'مُسند لمندوب': 'assigned', 'قيد التوصيل': 'delivering' } [order.status] || 'new');
-        document.getElementById('order-payment-method-display').textContent = `💳 ${order.payment_method}`;
-        document.getElementById('cancel-order-btn').style.display = 'inline-flex';
+        if (statusBadge) {
+            statusBadge.textContent = order.status;
+            statusBadge.className = 'status-badge ' + ({ 'جديد': 'new', 'مُسند لمندوب': 'assigned', 'قيد التوصيل': 'delivering' } [order.status] || 'new');
+        }
+        const orderPaymentDisplay = document.getElementById('order-payment-method-display');
+        if (orderPaymentDisplay) orderPaymentDisplay.textContent = `💳 ${order.payment_method}`;
+        
+        const cancelBtn = document.getElementById('cancel-order-btn');
+        if (cancelBtn) cancelBtn.style.display = 'inline-flex';
 
         selectedCustomerData = {
             mainPhone: order.customer_phone || '',
@@ -3493,12 +3500,18 @@ function resetOrderForm() {
         document.getElementById('deliveryFee').value = order.delivery_fee || 0;
         document.getElementById('deliveryFeePayment').value = order.delivery_fee_payment || 'مع الطلب';
         document.getElementById('notes').value = order.notes || '';
-        document.getElementById('payment-method').value = order.payment_method || 'عند الاستلام';
         
-        // --- الجديد 1: جلب الخصم الإجمالي للطلب ---
-        document.getElementById('cart-discount').value = parseFloat(order.discount) || parseFloat(order.discount_amount) || 0;
-        
-        // --- الجديد 2: تحديد العملة الأساسية للفاتورة ---
+        // --- 1. تحميل المحافظ والعملات أولاً لضمان عدم مسح البيانات لاحقاً ---
+        if (currenciesCache.length === 0) { await loadCurrencies(); populateCurrencySelects(); }
+        if (walletsCache.length === 0) { await loadWalletsFromServer(); populateWalletSelects(); }
+
+        // --- 2. جلب الخصم الإجمالي للطلب ---
+        const discountInput = document.getElementById('cart-discount');
+        if (discountInput) discountInput.value = parseFloat(order.discount) || parseFloat(order.discount_amount) || 0;
+        const discountTypeSelect = document.getElementById('discount-type');
+        if (discountTypeSelect) discountTypeSelect.value = order.discount_type || 'fixed';
+
+        // --- 3. تحديد العملة الأساسية للفاتورة ---
         if (order.currency_id) {
             const orderCurSel = document.getElementById('order-currency-select');
             if (orderCurSel) {
@@ -3509,7 +3522,18 @@ function resetOrderForm() {
             }
         }
 
-        handlePaymentMethodChange();
+        // --- 4. ضبط طريقة الدفع بطريقة ذكية لضمان تفعيل الحقول الصحيحة ---
+        const paymentMethod = order.payment_method || 'عند الاستلام';
+        let normalizedPaymentMethod = 'عند الاستلام';
+        if (paymentMethod.includes('مدفوع مسبقاً') || paymentMethod.includes('prepaid')) {
+            if (paymentMethod.includes('مختلط') || paymentMethod.includes('mixed')) {
+                normalizedPaymentMethod = 'مدفوع مسبقاً (مختلط)';
+            } else {
+                normalizedPaymentMethod = 'مدفوع مسبقاً (محفظة)';
+            }
+        }
+        document.getElementById('payment-method').value = normalizedPaymentMethod;
+        handlePaymentMethodChange(); // هذا سيفعل إظهار الحقول المخصصة
 
         if (order.assigned_driver_id) {
             const driverSel = document.getElementById('driverSelect');
@@ -3519,6 +3543,7 @@ function resetOrderForm() {
             }
         }
 
+        // --- 5. تعبئة السلة والمنتجات مع الخصم الخاص بها ---
         if (order.items && order.items.length > 0) {
             cart = order.items.map(item => ({
                 id: item.product_id,
@@ -3526,7 +3551,6 @@ function resetOrderForm() {
                 price: parseFloat(item.unit_price) || 0,
                 cost: 0,
                 quantity: parseInt(item.quantity) || 1,
-                // --- الجديد 3: التأكد من قراءة خصم الصنف كرقم ---
                 discount: parseFloat(item.discount) || parseFloat(item.discount_amount) || 0,
                 notes: item.note || item.notes || ''
             }));
@@ -3541,25 +3565,8 @@ function resetOrderForm() {
             renderCart();
         }
 
-        // --- الجديد 4: استرجاع تفاصيل الدفع والعملة المحددة مسبقاً بطريقة أذكى ---
-        const isPrepaid = order.payment_method && order.payment_method.includes('مدفوع مسبقاً');
-        
-        if (currenciesCache.length === 0) { await loadCurrencies(); populateCurrencySelects(); }
-        if (walletsCache.length === 0) { await loadWalletsFromServer(); populateWalletSelects(); }
-
-        const ensureSelectOption = (selectId, value, text) => {
-            const sel = document.getElementById(selectId);
-            if (!sel || !value) return;
-            if (!sel.querySelector(`option[value="${value}"]`)) {
-                const opt = document.createElement('option');
-                opt.value = value;
-                opt.textContent = text || `ID: ${value}`;
-                sel.appendChild(opt);
-            }
-            sel.value = value;
-        };
-
-        // استخراج تفاصيل الدفع سواء كانت محفوظة في مصفوفة فرعية أو في الجذر
+        // --- 6. استرجاع تفاصيل الدفع والعملة المحددة مسبقاً ---
+        const isPrepaid = normalizedPaymentMethod.includes('مدفوع مسبقاً');
         let details = {};
         if (order.actual_payment_details) {
             details = typeof order.actual_payment_details === 'string' ? JSON.parse(order.actual_payment_details) : order.actual_payment_details;
@@ -3568,42 +3575,58 @@ function resetOrderForm() {
         }
 
         if (isPrepaid) {
-            if (order.payment_method === 'مدفوع مسبقاً (محفظة)') {
-                const wId = details.wallet_id || order.prepaid_wallet_id;
-                const wCur = details.currency_id || order.wallet_currency_id || order.currency_id;
-                const wAmt = details.wallet_amount || order.prepaid_wallet_amount || order.paid_amount || 0;
-                
-                ensureSelectOption('wallet-select', wId, `محفظة #${wId}`);
-                ensureSelectOption('wallet-currency-select', wCur, `عملة #${wCur}`);
-                document.getElementById('paid-amount').value = wAmt;
-                
-                onWalletSelectChange();
-                
-            } else if (order.payment_method === 'مدفوع مسبقاً (مختلط)') {
-                const wId = details.wallet_id || order.prepaid_wallet_id;
-                const cashCur = details.cash_currency_id || order.cash_currency_id;
-                const wCur = details.wallet_currency_id || order.wallet_currency_id;
-                const cashAmt = details.cash_amount || order.prepaid_cash_amount || 0;
-                const wAmt = details.wallet_amount || order.prepaid_wallet_amount || 0;
+            const ensureSelectOption = (selectId, value, text) => {
+                const sel = document.getElementById(selectId);
+                if (!sel || !value) return;
+                if (!sel.querySelector(`option[value="${value}"]`)) {
+                    const opt = document.createElement('option');
+                    opt.value = value;
+                    opt.textContent = text || `ID: ${value}`;
+                    sel.appendChild(opt);
+                }
+                sel.value = value;
+            };
 
-                document.getElementById('cash-paid').value = cashAmt;
-                document.getElementById('wallet-paid').value = wAmt;
+            // نؤخر التنفيذ بجزء من الثانية لضمان تهيئة القوائم المنسدلة في المتصفح أولاً
+            setTimeout(() => {
+                if (details.prepaid_method === 'wallet' || normalizedPaymentMethod === 'مدفوع مسبقاً (محفظة)') {
+                    const wId = details.wallet_id || order.prepaid_wallet_id;
+                    const wCur = details.currency_id || order.wallet_currency_id || order.currency_id;
+                    const wAmt = details.wallet_amount || order.prepaid_wallet_amount || order.paid_amount || 0;
+                    
+                    ensureSelectOption('wallet-select', wId, `محفظة #${wId}`);
+                    ensureSelectOption('wallet-currency-select', wCur, `عملة #${wCur}`);
+                    document.getElementById('paid-amount').value = wAmt;
+                    
+                    onWalletSelectChange();
+                    updateTotalsFromPaid(); // استرجاع الخصم تلقائياً للبيانات القديمة
+                    
+                } else if (details.prepaid_method === 'mixed' || normalizedPaymentMethod === 'مدفوع مسبقاً (مختلط)') {
+                    const wId = details.wallet_id || order.prepaid_wallet_id;
+                    const cashCur = details.cash_currency_id || order.cash_currency_id;
+                    const wCur = details.wallet_currency_id || order.wallet_currency_id;
+                    const cashAmt = details.cash_amount || order.prepaid_cash_amount || 0;
+                    const wAmt = details.wallet_amount || order.prepaid_wallet_amount || 0;
+
+                    document.getElementById('cash-paid').value = cashAmt;
+                    document.getElementById('wallet-paid').value = wAmt;
+                    
+                    ensureSelectOption('mixed-cash-currency', cashCur, `عملة #${cashCur}`);
+                    ensureSelectOption('mixed-wallet-currency', wCur, `عملة #${wCur}`);
+                    ensureSelectOption('mixed-wallet', wId, `محفظة #${wId}`);
+                    
+                    onMixedWalletChange();
+                    updateTotalsFromPaidMixed(); // استرجاع الخصم تلقائياً للبيانات القديمة
+                }
                 
-                ensureSelectOption('mixed-cash-currency', cashCur, `عملة #${cashCur}`);
-                ensureSelectOption('mixed-wallet-currency', wCur, `عملة #${wCur}`);
-                ensureSelectOption('mixed-wallet', wId, `محفظة #${wId}`);
-                
-                onMixedWalletChange();
-            }
+                // تحديث المجاميع مرة واحدة بالنهاية لتعكس كل شيء بدقة
+                updateTotals();
+            }, 250);
+            
+        } else {
+            // للفواتير غير المدفوعة مسبقاً (مثل: عند الاستلام)
+            setTimeout(() => { updateTotals(); }, 150);
         }
-
-        // تحديث إجمالي الفاتورة ليعكس البيانات المحملة
-        setTimeout(() => {
-            updateTotals();
-            if (isPrepaid && order.payment_method === 'مدفوع مسبقاً (مختلط)') {
-                updateTotalsFromPaidMixed();
-            }
-        }, 100);
         
         setProgress(100);
         setTimeout(() => setProgress(0), 500);
@@ -3732,7 +3755,8 @@ function resetOrderForm() {
         driver_id: document.getElementById('driverSelect')?.value ? parseInt(document.getElementById('driverSelect').value) : undefined,
         total_amount: total,
         discount: discount,
-        discount_amount: discountAmount 
+        discount_amount: discountAmount ,
+        discount_type: discountType, // <--- أضف هذا السطر
     };
 
     const btn = document.querySelector('.bottom-actions .btn-success');
@@ -3767,10 +3791,7 @@ function resetOrderForm() {
             showToast(`✅ ${editingOrderId ? 'تم تحديث' : 'تم حفظ'} الطلب ${orderId || ''}`, 'success');
             playSuccessSound();
 
-            // === مسح المسودة المحفوظة محلياً بعد إتمام الطلب بنجاح ===
-            
-
-            // === مسح المسودة من القائمة بعد إتمام الطلب بنجاح ===
+            // === 1. مسح المسودة من القائمة بعد إتمام الطلب بنجاح ===
             if (currentDraftId) {
                 let drafts = JSON.parse(localStorage.getItem('pos_drafts_list') || '[]');
                 drafts = drafts.filter(d => d.id !== currentDraftId);
@@ -3778,8 +3799,15 @@ function resetOrderForm() {
                 currentDraftId = null; // تصفير الـ ID
             }
 
+            // === 2. إنشاء الفاتورة التلقائي (يجب أن يكون قبل تفريغ الفورم) ===
+            if (generateInvoice) {
+                await printOrderSummary(false); // الانتظار حتى يكتمل إنشاء الـ PDF
+            }
+
+            // === 3. إعادة تعيين النموذج وتحديث المنتجات ===
             resetOrderForm();
             fetchProducts(currentSearch, selectedCategoryId);
+            
         } else { 
             showToast(data.error || 'فشل حفظ الطلب', 'error');
             playErrorSound(); 
@@ -3805,16 +3833,29 @@ function resetOrderForm() {
             return resolve();
         }
         
+        // --- 1. جلب عملة الطلب وسعر الصرف ---
+        const orderCurrencyId = parseInt(document.getElementById('order-currency-select')?.value);
+        const currencyCode = orderCurrencyId ? getCurrencyCode(orderCurrencyId) : 'ريال';
+        const rate = orderCurrencyId ? getCurrencyRate(orderCurrencyId) : 1;
+
         const shopName = localStorage.getItem('shop_name') || 'ابن المختار للأدوات المنزلية';
         const shopPhone = localStorage.getItem('shop_phone') || '773266534';
-        const subtotal = cart.reduce((s, i) => s + ((i.price || 0) - (i.discount || 0)) * i.quantity, 0);
-        const discount = parseFloat(document.getElementById('cart-discount')?.value) || 0;
-        const discountType = document.getElementById('discount-type')?.value || 'fixed';
-        let discountAmount = discountType === 'percentage' ? subtotal * (discount / 100) : discount;
-        const fee = parseFloat(document.getElementById('deliveryFee')?.value) || 0;
-        const feePaidWithOrder = document.getElementById('deliveryFeePayment')?.value === 'مع الطلب';
-        const total = Math.max(0, subtotal - discountAmount + (feePaidWithOrder ? fee : 0));
         
+        // --- 2. حساب المبالغ بالعملة الأساسية (ريال) ---
+        const rawSubtotal = cart.reduce((s, i) => s + ((i.price || 0) - (i.discount || 0)) * i.quantity, 0);
+        const rawDiscount = parseFloat(document.getElementById('cart-discount')?.value) || 0;
+        const discountType = document.getElementById('discount-type')?.value || 'fixed';
+        let rawDiscountAmount = discountType === 'percentage' ? rawSubtotal * (rawDiscount / 100) : rawDiscount;
+        const rawFee = parseFloat(document.getElementById('deliveryFee')?.value) || 0;
+        const feePaidWithOrder = document.getElementById('deliveryFeePayment')?.value === 'مع الطلب';
+        const rawTotal = Math.max(0, rawSubtotal - rawDiscountAmount + (feePaidWithOrder ? rawFee : 0));
+        
+        // --- 3. تحويل المبالغ لعملة الطلب المحددة ---
+        const subtotal = rawSubtotal / rate;
+        const discountAmount = rawDiscountAmount / rate;
+        const fee = rawFee / rate;
+        const total = rawTotal / rate;
+
         const customerName = selectedCustomerData ? (selectedCustomerData.name || selectedCustomerData.mainPhone) : 'غير محدد';
         const customerPhone = selectedCustomerData ? [selectedCustomerData.mainPhone, ...(selectedCustomerData.extraPhones || [])].filter(Boolean).join(' - ') : '';
         const customerAddress = selectedCustomerData ? selectedCustomerData.address : '';
@@ -3823,9 +3864,7 @@ function resetOrderForm() {
         let paymentDetailsHtml = '';
 
         if (paymentMethod === 'عند الاستلام') {
-            const orderCurrencyId = parseInt(document.getElementById('order-currency-select')?.value);
-            const orderCurrencyCode = orderCurrencyId ? getCurrencyCode(orderCurrencyId) : 'ريال';
-            paymentDetailsHtml = `عملة الطلب: ${orderCurrencyCode}`;
+            paymentDetailsHtml = `عملة الطلب: ${currencyCode}`;
         } else if (paymentMethod === 'مدفوع مسبقاً (محفظة)') {
             const walletCurrencyId = parseInt(document.getElementById('wallet-currency-select')?.value);
             const walletCurrencyCode = walletCurrencyId ? getCurrencyCode(walletCurrencyId) : 'ريال';
@@ -3882,14 +3921,15 @@ function resetOrderForm() {
                             <th style="padding:12px 5px; text-align:right; width:5%;">#</th>
                             <th style="padding:12px 5px; text-align:right; width:45%;">الصنف</th>
                             <th style="padding:12px 5px; text-align:center; width:15%;">الكمية</th>
-                            <th style="padding:12px 5px; text-align:center; width:15%;">السعر</th>
-                            <th style="padding:12px 5px; text-align:center; width:20%;">الإجمالي</th>
+                            <th style="padding:12px 5px; text-align:center; width:15%;">السعر (${currencyCode})</th>
+                            <th style="padding:12px 5px; text-align:center; width:20%;">الإجمالي (${currencyCode})</th>
                         </tr>
                     </thead>
                     <tbody>
                         ${cart.map((item, i) => {
-                            const itemPrice = item.price || 0;
-                            const itemDiscount = item.discount || 0;
+                            // تحويل سعر المنتج وخصمه إلى عملة الطلب
+                            const itemPrice = (item.price || 0) / rate;
+                            const itemDiscount = (item.discount || 0) / rate;
                             const effectivePrice = itemPrice - itemDiscount;
                             const itemTotal = effectivePrice * item.quantity;
                             const discountHtml = itemDiscount > 0 ? `<br><span style="font-size:0.8rem; color:#dc2626;">(خصم: ${itemDiscount.toFixed(2)})</span>` : '';
@@ -3913,24 +3953,28 @@ function resetOrderForm() {
                             <table style="width:100%; border-collapse:collapse; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; font-size:1rem;">
                                 <tr>
                                     <td style="padding:10px; text-align:right; border-bottom:1px solid #e2e8f0;">المجموع:</td>
-                                    <td style="padding:10px; text-align:left; border-bottom:1px solid #e2e8f0;" dir="ltr">${subtotal.toFixed(2)} ريال</td>
+                                    <td style="padding:10px; text-align:left; border-bottom:1px solid #e2e8f0;" dir="ltr">${subtotal.toFixed(2)} ${currencyCode}</td>
                                 </tr>
                                 <tr>
                                     <td style="padding:10px; text-align:right; border-bottom:1px solid #e2e8f0; color:#dc2626;">الخصم الكلي:</td>
-                                    <td style="padding:10px; text-align:left; border-bottom:1px solid #e2e8f0; color:#dc2626;" dir="ltr">${discountAmount.toFixed(2)} ريال</td>
+                                    <td style="padding:10px; text-align:left; border-bottom:1px solid #e2e8f0; color:#dc2626;" dir="ltr">${discountAmount.toFixed(2)} ${currencyCode}</td>
                                 </tr>
                                 <tr>
                                     <td style="padding:10px; text-align:right; border-bottom:1px solid #e2e8f0;">رسوم التوصيل:</td>
-                                    <td style="padding:10px; text-align:left; border-bottom:1px solid #e2e8f0;" dir="ltr">${fee.toFixed(2)} ريال</td>
+                                    <td style="padding:10px; text-align:left; border-bottom:1px solid #e2e8f0;" dir="ltr">${fee.toFixed(2)} ${currencyCode}</td>
                                 </tr>
                                 <tr>
                                     <td style="padding:15px 10px; text-align:right; font-weight:bold; font-size:1.2rem; color:#1a56db;">الإجمالي:</td>
-                                    <td style="padding:15px 10px; text-align:left; font-weight:bold; font-size:1.2rem; color:#1a56db;" dir="ltr">${total.toFixed(2)} ريال</td>
+                                    <td style="padding:15px 10px; text-align:left; font-weight:bold; font-size:1.2rem; color:#1a56db;" dir="ltr">${total.toFixed(2)} ${currencyCode}</td>
                                 </tr>
                             </table>
                         </td>
                     </tr>
                 </table>
+                
+                <div style="text-align:center; font-size:1rem; color:#475569; margin-top:30px; border-top:1px solid #e2e8f0; padding-top:15px;">
+                    شكراً لتعاملكم معنا
+                </div>
             </div>
         `;
 
