@@ -13,44 +13,42 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const messaging = firebase.messaging();
 
-// استقبال الإشعارات في الخلفية
-// معالج push مباشر (نسخة احتياطية)
-self.addEventListener('push', event => {
-    console.log('📩 Push event received (direct handler)');
-    let data = { title: '📦 ابن مختار', body: 'لديك إشعار جديد', link: '/driver.html' };
-    try {
-        if (event.data) {
-            const parsed = event.data.json();
-            data = { ...data, ...parsed };
-        }
-    } catch (e) {
-        data.body = event.data.text() || data.body;
-    }
-    const options = {
-        body: data.body,
-        icon: '/icon-192x192.png',
-        badge: '/icon-192x192.png',
-        vibrate: [200, 100, 200],
-        data: { url: data.link || '/driver.html' },
-        actions: [
-            { action: 'open', title: '📂 فتح' },
-            { action: 'close', title: '❌ إغلاق' }
-        ]
-    };
-    event.waitUntil(
-        self.registration.showNotification(data.title, options)
-    );
+// تحديث الـ SW فوراً
+self.addEventListener('install', (event) => {
+  event.waitUntil(self.skipWaiting());
+});
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(self.clients.claim());
+});
+
+// عرض الإشعارات في الخلفية
+messaging.onBackgroundMessage((payload) => {
+  const notificationTitle = payload.notification?.title || '📦 إشعار جديد';
+  const notificationOptions = {
+    body: payload.notification?.body || '',
+    icon: '/icon-512x512.png',
+    badge: '/icon-512x512.png',
+    data: payload.data || {},
+  };
+  self.registration.showNotification(notificationTitle, notificationOptions);
 });
 
 // معالجة النقر على الإشعار
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  
   const urlToOpen = event.notification.data?.url || 'https://pos.ibnalmukhtar.com/driver.html';
-  
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true })
       .then((clientList) => {
+        // إرسال رسالة للصفحة لتحديث البيانات فوراً
+        clientList.forEach(client => {
+          client.postMessage({
+            type: 'NEW_NOTIFICATION',
+            payload: event.notification.data || {}
+          });
+        });
+        // تركيز النافذة المفتوحة أو فتح جديدة
         for (const client of clientList) {
           if (client.url.includes('ibnalmukhtar.com') && 'focus' in client) {
             return client.focus();

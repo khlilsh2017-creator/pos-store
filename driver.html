@@ -8,7 +8,7 @@
     <title>مندوب - طلباتي</title>
     <link rel="manifest" href="manifest.json">
     <style>
-        /* --- جميع الأنماط السابقة --- */
+        /* --- جميع الأنماط السابقة (لم تتغير) --- */
         :root {
             --primary: #3498db;
             --primary-dark: #2980b9;
@@ -226,7 +226,7 @@
         // =============================================================
         const API_BASE = 'https://api.ibnalmukhtar.com';
         let currentOrders = [];
-        let totalBalance = 0; // الرصيد الفعلي من الخادم
+        let totalBalance = 0;
         let currentStatusFilter = '';
         let currentPeriod = 'today';
         let currentView = 'orders';
@@ -240,7 +240,6 @@
         let swRegistration = null;
         let lastAccountData = {};
 
-        // إعدادات Firebase (نفس الإعدادات الموجودة في ملف الـ Service Worker)
         const firebaseConfig = {
             apiKey: "AIzaSyDjMiUhBOF9h1arbea4ZAorD-GdtATQ3Fs",
             authDomain: "ibn-al-mukhtar-pos.firebaseapp.com",
@@ -278,8 +277,7 @@
                         opStore.createIndex('synced', 'synced', { unique: false });
                     }
                 };
-                request.onsuccess = (event) => { db = event.target.result;
-                    resolve(db); };
+                request.onsuccess = (event) => { db = event.target.result; resolve(db); };
                 request.onerror = (event) => reject(event.target.error);
             });
         }
@@ -351,8 +349,7 @@
                 const request = store.get(opId);
                 request.onsuccess = () => {
                     const op = request.result;
-                    if (op) { op.synced = true;
-                        store.put(op); }
+                    if (op) { op.synced = true; store.put(op); }
                     resolve();
                 };
                 request.onerror = () => reject(request.error);
@@ -396,104 +393,34 @@
         }
 
         // =============================================================
-        // 4. Service Worker والإشعارات (FCM) - (نفس الكود السابق)
+        // 4. Service Worker والإشعارات (FCM)
         // =============================================================
         const VAPID_PUBLIC_KEY = 'BA9marUJoHM798iWVpRAXh8nFutDsZ6JaiXDnl_nTbO3pmVLte7SB7pMn-jmOs0BzTgFengv8Br3MkA1llwh5tM';
 
-        async function createServiceWorker() {
-            const swCode = `
-                self.addEventListener('install', (event) => {
-                    event.waitUntil(self.skipWaiting());
-                });
-                self.addEventListener('activate', (event) => {
-                    event.waitUntil(self.clients.claim());
-                });
-                self.addEventListener('push', (event) => {
-                    let data = { title: '📦 طلب جديد', body: 'توجد طلبات جديدة', link: '/driver.html' };
-                    try {
-                        if (event.data) {
-                            data = event.data.json();
-                        }
-                    } catch (e) {}
-                    const options = {
-                        body: data.body || 'توجد طلبات جديدة',
-                        icon: 'https://pos.ibnalmukhtar.com/icon-512x512.png',
-                        badge: 'https://pos.ibnalmukhtar.com/icon-512x512.png',
-                        vibrate: [200, 100, 200],
-                        data: { link: data.link || '/driver.html' },
-                        actions: [
-                            { action: 'open', title: '📂 فتح التطبيق' },
-                            { action: 'close', title: 'إغلاق' }
-                        ]
-                    };
-                    event.waitUntil(
-                        self.registration.showNotification(data.title || '📦 طلب جديد', options)
-                    );
-                });
-                self.addEventListener('notificationclick', (event) => {
-                    event.notification.close();
-                    if (event.action === 'open' || !event.action) {
-                        const link = event.notification.data?.link || '/driver.html';
-                        event.waitUntil(
-                            clients.matchAll({ type: 'window', includeUncontrolled: true })
-                            .then((clientList) => {
-                                if (clientList.length > 0) {
-                                    return clientList[0].focus();
-                                }
-                                return clients.openWindow(link);
-                            })
-                        );
-                    }
-                });
-            `;
-
+        async function registerServiceWorker() {
             try {
-                const swBlob = new Blob([swCode], { type: 'application/javascript' });
-                const swUrl = URL.createObjectURL(swBlob);
-                const registration = await navigator.serviceWorker.register(swUrl, { scope: '/' });
-                URL.revokeObjectURL(swUrl);
+                const registration = await navigator.serviceWorker.register('./firebase-messaging-sw.js', { scope: '/' });
+                console.log('✅ تم تسجيل Firebase Service Worker');
+                if (registration.waiting) {
+                    registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+                }
+                await navigator.serviceWorker.ready;
+                if (registration.active) {
+                    console.log('✅ الـ SW نشط:', registration.active.scriptURL);
+                }
                 return registration;
             } catch (err) {
-                console.warn('فشل إنشاء Service Worker ديناميكي:', err);
+                console.warn('⚠️ فشل تسجيل Firebase SW:', err);
                 try {
                     const registration = await navigator.serviceWorker.register('./sw.js', { scope: '/' });
                     return registration;
                 } catch (e2) {
-                    console.error('فشل تسجيل Service Worker من الملف الثابت:', e2);
+                    console.error('فشل كلا السيرفس ووركر', e2);
                     return null;
                 }
             }
         }
 
-       async function registerServiceWorker() {
-    try {
-        const registration = await navigator.serviceWorker.register('./firebase-messaging-sw.js', { scope: '/' });
-        console.log('✅ تم تسجيل Firebase Service Worker');
-
-        // إذا كان هناك SW في حالة انتظار، فعّله فوراً
-        if (registration.waiting) {
-            registration.waiting.postMessage({ type: 'SKIP_WAITING' });
-        }
-
-        // انتظر حتى يصبح نشطاً
-        await navigator.serviceWorker.ready;
-        if (registration.active) {
-            console.log('✅ الـ SW نشط:', registration.active.scriptURL);
-        }
-
-        return registration;
-    } catch (err) {
-        console.warn('⚠️ فشل تسجيل Firebase SW:', err);
-        // محاولة sw.js كحل احتياطي
-        try {
-            const registration = await navigator.serviceWorker.register('./sw.js', { scope: '/' });
-            return registration;
-        } catch (e2) {
-            console.error('فشل كلا السيرفس ووركر', e2);
-            return null;
-        }
-    }
-}
         async function registerForPushNotifications() {
             try {
                 if (!('Notification' in window)) {
@@ -518,7 +445,6 @@
                 }
                 await navigator.serviceWorker.ready;
 
-                // ===== التعديل الأهم: جلب التوكن الصحيح عبر Firebase SDK =====
                 const token = await messaging.getToken({
                     vapidKey: VAPID_PUBLIC_KEY,
                     serviceWorkerRegistration: swRegistration
@@ -534,7 +460,7 @@
                     if (sent) {
                         isPushEnabled = true;
                         updateNotificationUI(true);
-                        localStorage.setItem('fcmToken', token); // حفظ التوكن الصافي
+                        localStorage.setItem('fcmToken', token);
                         showToast('✅ تم تفعيل الإشعارات');
                         return true;
                     } else {
@@ -553,43 +479,30 @@
         }
 
         async function sendTokenToServer(token, driverId) {
-    try {
-        const res = await fetch(`${API_BASE}/api/register-fcm-token`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${getToken()}`
-            },
-            body: JSON.stringify({
-                token: token,
-                driver_id: parseInt(driverId),
-                device_info: navigator.userAgent
-            })
-        });
-
-        if (!res.ok) {
-            const errorText = await res.text();
-            console.error('❌ فشل التسجيل في الخادم:', res.status, errorText);
-            return false;
-        }
-
-        const data = await res.json();
-        return data.success === true;
-    } catch (err) {
-        console.error('خطأ في الاتصال بالخادم:', err);
-        return false;
-    }
-}
-
-        function urlBase64ToUint8Array(base64String) {
-            const padding = '='.repeat((4 - base64String.length % 4) % 4);
-            const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
-            const rawData = window.atob(base64);
-            const outputArray = new Uint8Array(rawData.length);
-            for (let i = 0; i < rawData.length; ++i) {
-                outputArray[i] = rawData.charCodeAt(i);
+            try {
+                const res = await fetch(`${API_BASE}/api/register-fcm-token`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${getToken()}`
+                    },
+                    body: JSON.stringify({
+                        token: token,
+                        driver_id: parseInt(driverId),
+                        device_info: navigator.userAgent
+                    })
+                });
+                if (!res.ok) {
+                    const errorText = await res.text();
+                    console.error('❌ فشل التسجيل في الخادم:', res.status, errorText);
+                    return false;
+                }
+                const data = await res.json();
+                return data.success === true;
+            } catch (err) {
+                console.error('خطأ في الاتصال بالخادم:', err);
+                return false;
             }
-            return outputArray;
         }
 
         async function unsubscribeFromPush() {
@@ -643,60 +556,60 @@
             if (!navigator.serviceWorker) return;
             navigator.serviceWorker.addEventListener('message', event => {
                 if (event.data && event.data.type === 'NEW_NOTIFICATION') {
-                    showToast(`📩 ${event.data.title}: ${event.data.body}`);
-                    if (currentView === 'orders') {
-                        loadDashboard();
-                    } else if (currentView === 'returns') {
-                        loadReturnRequests();
-                    } else {
-                        loadDashboard();
+                    const payload = event.data.payload || {};
+                    showToast(`📩 ${payload.title || 'إشعار'}: ${payload.body || ''}`);
+                    // تحديث القائمة فوراً
+                    refreshOrders();
+                    // إذا تضمن الإشعار order_id، نعرض النافذة المنبثقة
+                    if (payload.order_id) {
+                        const orderId = parseInt(payload.order_id);
+                        showOrderUpdateDialog(orderId);
                     }
                 }
             });
         }
 
         async function initializePushNotifications() {
-    try {
-        swRegistration = await registerServiceWorker();
-        if (!swRegistration) {
-            console.warn('Service Worker غير متاح');
-            return;
-        }
-        setupSWMessageListener();
-        const pushEnabled = localStorage.getItem('pushEnabled') === 'true';
-        if (pushEnabled) {
-            const sub = await swRegistration.pushManager.getSubscription();
-            if (sub) {
-                pushSubscription = sub;
-                isPushEnabled = true;
-                updateNotificationUI(true);
-                const token = sub.endpoint;
-                const driverId = getDriverId();
-                if (driverId) {
-                    // ✅ التحقق: هل هذا التوكن مسجل مسبقاً؟
-                    const savedToken = localStorage.getItem('fcmToken');
-                    if (savedToken !== token) {
-                        await sendTokenToServer(token, driverId);
-                        localStorage.setItem('fcmToken', token);
-                        console.log('✅ تم تسجيل التوكن الجديد');
+            try {
+                swRegistration = await registerServiceWorker();
+                if (!swRegistration) {
+                    console.warn('Service Worker غير متاح');
+                    return;
+                }
+                setupSWMessageListener();
+                const pushEnabled = localStorage.getItem('pushEnabled') === 'true';
+                if (pushEnabled) {
+                    const sub = await swRegistration.pushManager.getSubscription();
+                    if (sub) {
+                        pushSubscription = sub;
+                        isPushEnabled = true;
+                        updateNotificationUI(true);
+                        const token = sub.endpoint;
+                        const driverId = getDriverId();
+                        if (driverId) {
+                            const savedToken = localStorage.getItem('fcmToken');
+                            if (savedToken !== token) {
+                                await sendTokenToServer(token, driverId);
+                                localStorage.setItem('fcmToken', token);
+                                console.log('✅ تم تسجيل التوكن الجديد');
+                            } else {
+                                console.log('✅ التوكن مسجل مسبقاً، تخطي التسجيل');
+                            }
+                        }
                     } else {
-                        console.log('✅ التوكن مسجل مسبقاً، تخطي التسجيل');
+                        updateNotificationUI(false);
+                        if (Notification.permission === 'granted') {
+                            await registerForPushNotifications();
+                        }
                     }
+                } else {
+                    updateNotificationUI(false);
                 }
-            } else {
+            } catch (err) {
+                console.error('خطأ في تهيئة الإشعارات:', err);
                 updateNotificationUI(false);
-                if (Notification.permission === 'granted') {
-                    await registerForPushNotifications();
-                }
             }
-        } else {
-            updateNotificationUI(false);
         }
-    } catch (err) {
-        console.error('خطأ في تهيئة الإشعارات:', err);
-        updateNotificationUI(false);
-    }
-}
 
         // =============================================================
         // 5. دوال API
@@ -852,17 +765,6 @@
             });
         }
 
-        // دالة حساب الرصيد محلياً (احتياطي فقط، لا تُستخدم للعرض الرئيسي)
-        function calculateBalanceFromOrders(orders) {
-            let balance = 0;
-            orders.forEach(order => {
-                if (order.status === 'تم التسليم') {
-                    balance += parseFloat(order.delivery_fee) || 0;
-                }
-            });
-            return balance;
-        }
-
         function updateBalanceDisplay() {
             const balanceCard = document.querySelector('.balance-amount');
             if (balanceCard) {
@@ -872,10 +774,61 @@
             }
         }
 
+        // ============ دوال التحديث الفوري للقائمة ============
+        async function refreshOrders() {
+            const driverId = getDriverId();
+            if (!driverId) return;
+
+            if (navigator.onLine) {
+                try {
+                    const filteredData = await fetchDriverOrders(driverId, 1, currentStatusFilter, currentPeriod, 5000);
+                    const newOrders = filteredData.orders || [];
+                    const account = filteredData.account || {};
+
+                    currentOrders = newOrders;
+                    if (account.balance !== undefined) {
+                        totalBalance = account.balance;
+                        localStorage.setItem('driverBalance', totalBalance.toString());
+                        updateBalanceDisplay();
+                    }
+
+                    const filteredFinal = filterOrdersByPeriod(currentOrders, currentPeriod)
+                        .filter(o => currentStatusFilter ? o.status === currentStatusFilter : true);
+                    renderOrders(filteredFinal);
+
+                    // تحديث الملخص إن وجد
+                    const summaryValue = document.getElementById('periodSummaryValue');
+                    const ordersCount = document.getElementById('periodOrdersCount');
+                    if (summaryValue) {
+                        const summaryData = await fetchDriverSummary(driverId, currentPeriod === 'all' ? 'week' : currentPeriod);
+                        summaryValue.textContent = summaryData.total_fees.toFixed(2) + ' ريال';
+                        if (ordersCount) ordersCount.textContent = `(${summaryData.orders_count || 0} طلب)`;
+                    }
+                    hideOfflineNotice();
+                } catch (err) {
+                    console.warn('فشل تحديث الطلبات، نعرض المخزون المحلي', err);
+                    useLocalOrders();
+                }
+            } else {
+                useLocalOrders();
+            }
+        }
+
+        function useLocalOrders() {
+            const driverId = getDriverId();
+            if (!driverId) return;
+            getAll(STORES.ORDERS).then(localOrders => {
+                currentOrders = localOrders.filter(o => o.driver_id == driverId);
+                const filteredFinal = filterOrdersByPeriod(currentOrders, currentPeriod)
+                    .filter(o => currentStatusFilter ? o.status === currentStatusFilter : true);
+                renderOrders(filteredFinal);
+                showOfflineNotice();
+            });
+        }
+
         function renderDashboard(account, balance, orders, totalItems) {
             const balanceClass = balance >= 0 ? 'positive' : 'negative';
             const periodLabel = getPeriodLabel(currentPeriod);
-            // حفظ بيانات الحساب لعرضها في أماكن أخرى
             lastAccountData = account;
             const html = `
                 <div id="syncStatus" class="sync-status hidden">
@@ -939,10 +892,10 @@
             const container = document.getElementById('ordersList');
             if (!container) return;
 
-             const driverId = getDriverId();
-    if (driverId) {
-        orders = orders.filter(o => o.driver_id == driverId);
-    }
+            const driverId = getDriverId();
+            if (driverId) {
+                orders = orders.filter(o => o.driver_id == driverId);
+            }
 
             if (!orders || orders.length === 0) {
                 container.innerHTML = `<div class="empty-state"><span class="empty-icon">📭</span><span>لا توجد طلبات تطابق الفلتر</span></div>`;
@@ -1113,6 +1066,50 @@
             document.getElementById('invoiceOverlay').classList.remove('active');
         }
 
+        // ============ نافذة منبثقة عند تحديث الطلب ============
+        function showOrderUpdateDialog(orderId) {
+            const overlay = document.getElementById('modalOverlay');
+            const sheet = document.getElementById('modalSheet');
+            const content = document.getElementById('modalContent');
+            if (!overlay || !sheet || !content) return;
+
+            content.innerHTML = `
+                <h3>🔄 تم تحديث طلب</h3>
+                <p>تم تحديث الطلب #${orderId}، هل تريد عرضه؟</p>
+                <div style="display:flex; gap:10px; margin-top:20px;">
+                    <button class="btn btn-primary" onclick="viewOrder(${orderId}); closeModalSheet();">🔍 عرض الطلب</button>
+                    <button class="btn btn-outline" onclick="closeModalSheet();">⏳ لاحقاً</button>
+                </div>
+            `;
+            sheet.classList.add('active');
+            overlay.classList.add('active');
+        }
+
+        function viewOrder(orderId) {
+            const order = currentOrders.find(o => o.id === orderId);
+            if (order) {
+                showInvoice(orderId);
+            } else {
+                loadOrderDetails(orderId);
+            }
+        }
+
+        async function loadOrderDetails(orderId) {
+            try {
+                const data = await apiCall(`/orders/${orderId}`, 'GET');
+                if (data.order) {
+                    const existing = currentOrders.find(o => o.id === data.order.id);
+                    if (existing) Object.assign(existing, data.order);
+                    else currentOrders.push(data.order);
+                    showInvoice(data.order.id);
+                } else {
+                    showToast('❌ لم نجد الطلب');
+                }
+            } catch (e) {
+                showToast('❌ خطأ في تحميل الطلب');
+            }
+        }
+
         function renderReturnRequests(requests) {
             const container = document.getElementById('mainContent');
             if (!requests || requests.length === 0) {
@@ -1202,7 +1199,7 @@
         }
 
         // =============================================================
-        // 7. تحميل البيانات الأساسي (معتمد على رصيد الخادم)
+        // 7. تحميل البيانات الأساسي
         // =============================================================
         async function loadInitialData() {
             try {
@@ -1214,85 +1211,75 @@
         }
 
         async function loadDashboard() {
-    const driverId = getDriverId();
-    if (!driverId) {
-        showLoginScreen();
-        return;
-    }
+            const driverId = getDriverId();
+            if (!driverId) { showLoginScreen(); return; }
 
-    // إذا كان هناك اتصال، اجلب البيانات من الخادم
-    if (navigator.onLine) {
-        try {
-            await loadInitialData();
-            const filteredData = await fetchDriverOrders(driverId, 1, currentStatusFilter, currentPeriod, 5000);
-            const newOrders = filteredData.orders || [];
-            const account = filteredData.account || {};
+            showLoading();
 
-            // --- الرصيد الفعلي من الخادم ---
-            const serverBalance = account.balance ?? 0;
-            totalBalance = serverBalance;
-            localStorage.setItem('driverBalance', serverBalance.toString());
+            if (navigator.onLine) {
+                try {
+                    await loadInitialData();
+                    const filteredData = await fetchDriverOrders(driverId, 1, currentStatusFilter, currentPeriod, 5000);
+                    const newOrders = filteredData.orders || [];
+                    const account = filteredData.account || {};
 
-            // --- مسح جميع الطلبات القديمة من IndexedDB ---
-            const db = await openDB();
-            let tx = db.transaction(STORES.ORDERS, 'readwrite');
-            let store = tx.objectStore(STORES.ORDERS);
-            await store.clear();
-            await tx.done;
+                    // تحديث IndexedDB
+                    const db = await openDB();
+                    let tx = db.transaction(STORES.ORDERS, 'readwrite');
+                    let store = tx.objectStore(STORES.ORDERS);
+                    await store.clear();
+                    for (const order of newOrders) {
+                        if (!order.driver_id) order.driver_id = parseInt(driverId);
+                        await store.put(order);
+                    }
+                    await tx.done;
 
-            // --- إضافة الطلبات الجديدة مع تعيين driver_id ---
-            for (const order of newOrders) {
-                if (!order.driver_id) order.driver_id = parseInt(driverId);
-                await put(STORES.ORDERS, order);
+                    currentOrders = newOrders;
+                    totalBalance = account.balance ?? 0;
+                    localStorage.setItem('driverBalance', totalBalance.toString());
+                    lastAccountData = account;
+
+                    const filteredFinal = filterOrdersByPeriod(currentOrders, currentPeriod)
+                        .filter(o => currentStatusFilter ? o.status === currentStatusFilter : true);
+                    renderDashboard(account, totalBalance, filteredFinal, filteredFinal.length);
+                    await loadPeriodSummary(driverId, currentPeriod);
+                    hideOfflineNotice();
+                } catch (err) {
+                    console.warn('فشل جلب البيانات، نعرض المخزون المحلي', err);
+                    useLocalOrdersForDashboard();
+                }
+            } else {
+                useLocalOrdersForDashboard();
             }
 
-            // --- تحديث المتغيرات والعرض ---
-            currentOrders = newOrders;
-            const filteredFinal = filterOrdersByPeriod(currentOrders, currentPeriod)
-                .filter(o => currentStatusFilter ? o.status === currentStatusFilter : true);
-            renderDashboard(account, totalBalance, filteredFinal, filteredFinal.length);
-            await loadPeriodSummary(driverId, currentPeriod);
-            hideOfflineNotice();
-
-        } catch (err) {
-            console.warn('فشل جلب البيانات من الخادم، نعرض المخزون المحلي', err);
-            // في حالة فشل الاتصال، استخدم المخزون المحلي مع التصفية حسب driver_id
-            const localOrders = await getAll(STORES.ORDERS);
-            const filteredLocal = localOrders.filter(o => o.driver_id == driverId);
-            currentOrders = filteredLocal;
-            const savedBalance = parseFloat(localStorage.getItem('driverBalance')) || 0;
-            totalBalance = savedBalance;
-            const periodFiltered = filterOrdersByPeriod(currentOrders, currentPeriod)
-                .filter(o => currentStatusFilter ? o.status === currentStatusFilter : true);
-            renderDashboard({}, savedBalance, periodFiltered, periodFiltered.length);
-            showOfflineNotice();
+            const name = getDriverName();
+            if (name) document.getElementById('driverNameDisplay').textContent = name;
+            await updateSyncCounter();
         }
-    } else {
-        // وضع غير متصل
-        const localOrders = await getAll(STORES.ORDERS);
-        const filteredLocal = localOrders.filter(o => o.driver_id == driverId);
-        currentOrders = filteredLocal;
-        const savedBalance = parseFloat(localStorage.getItem('driverBalance')) || 0;
-        totalBalance = savedBalance;
-        const periodFiltered = filterOrdersByPeriod(currentOrders, currentPeriod)
-            .filter(o => currentStatusFilter ? o.status === currentStatusFilter : true);
-        renderDashboard({}, savedBalance, periodFiltered, periodFiltered.length);
-        showOfflineNotice();
-    }
 
-    const name = getDriverName();
-    if (name) document.getElementById('driverNameDisplay').textContent = name;
-    await updateSyncCounter();
-}
+        function useLocalOrdersForDashboard() {
+            const driverId = getDriverId();
+            if (!driverId) return;
+            getAll(STORES.ORDERS).then(localOrders => {
+                currentOrders = localOrders.filter(o => o.driver_id == driverId);
+                const savedBalance = parseFloat(localStorage.getItem('driverBalance')) || 0;
+                totalBalance = savedBalance;
+                const filteredFinal = filterOrdersByPeriod(currentOrders, currentPeriod)
+                    .filter(o => currentStatusFilter ? o.status === currentStatusFilter : true);
+                renderDashboard({}, savedBalance, filteredFinal, filteredFinal.length);
+                showOfflineNotice();
+            });
+        }
 
         async function loadPeriodSummary(driverId, period) {
             try {
                 const data = await fetchDriverSummary(driverId, period === 'all' ? 'week' : period);
-                document.getElementById('periodSummaryValue').textContent = data.total_fees.toFixed(2) + ' ريال';
-                document.getElementById('periodOrdersCount').textContent = `(${data.orders_count || 0} طلب)`;
+                const summaryValue = document.getElementById('periodSummaryValue');
+                const ordersCount = document.getElementById('periodOrdersCount');
+                if (summaryValue) summaryValue.textContent = data.total_fees.toFixed(2) + ' ريال';
+                if (ordersCount) ordersCount.textContent = `(${data.orders_count || 0} طلب)`;
             } catch (e) {
-                document.getElementById('periodSummaryValue').textContent = '--';
-                document.getElementById('periodOrdersCount').textContent = '';
+                // تجاهل
             }
         }
 
@@ -1348,7 +1335,7 @@
                     showToast('✅ تم تأكيد الإرجاع بنجاح');
                     returnRequests = returnRequests.filter(r => (r.return_id || r.id) !== returnId);
                     renderReturnRequests(returnRequests);
-                    loadDashboard();
+                    refreshOrders();
                 } else {
                     showToast('❌ فشل تأكيد الإرجاع: ' + (result.error || 'خطأ غير معروف'));
                 }
@@ -1364,7 +1351,7 @@
             currentStatusFilter = document.getElementById('statusFilter').value;
             currentPeriod = document.getElementById('periodFilter').value;
             saveFilterSettings();
-            loadDashboard();
+            refreshOrders();
         }
 
         function resetFilters() {
@@ -1621,7 +1608,7 @@
         }
 
         // =============================================================
-        // 11. مودال تحديث التسليم (مع تحديث الرصيد بعد المزامنة)
+        // 11. مودال تحديث التسليم
         // =============================================================
         function toggleModalPaymentSection() {
             const status = document.getElementById('modalStatus').value;
@@ -1770,6 +1757,9 @@
             }
         }
 
+        // =============================================================
+        // 12. تحديث التسليم (مع التحديث الفوري والنافذة المنبثقة)
+        // =============================================================
         async function submitDeliveryUpdate(orderId) {
             if (isSubmitting) {
                 showToast('⚠️ جاري معالجة طلب سابق، انتظر قليلاً');
@@ -1867,135 +1857,80 @@
             if (status === 'فشل') newStatus = 'فشل التسليم';
             else if (status === 'تم التوصيل') newStatus = 'تم التسليم';
 
+            // 1. تحديث محلي فوري
             const updatedOrder = { ...order, status: newStatus, notes };
             if (paymentData) {
                 updatedOrder.payment_method = paymentData.payment_method;
                 updatedOrder.cash_collected = paymentData.cash_collected;
                 updatedOrder.wallet_collected = paymentData.wallet_collected;
             }
-
-            const submitBtn = document.querySelector('.submit-btn');
-            if (submitBtn) {
-                submitBtn.disabled = true;
-                submitBtn.textContent = '⏳ جاري التحديث...';
+            const index = currentOrders.findIndex(o => o.id === orderId);
+            if (index !== -1) {
+                currentOrders[index] = updatedOrder;
+            } else {
+                currentOrders.push(updatedOrder);
             }
-            isSubmitting = true;
+            await updateOrderLocally(updatedOrder);
 
-            try {
-                const index = currentOrders.findIndex(o => o.id === orderId);
-                if (index !== -1) {
-                    currentOrders[index] = updatedOrder;
-                } else {
-                    currentOrders.push(updatedOrder);
-                }
-                await updateOrderLocally(updatedOrder);
+            // عرض التحديث فوراً
+            renderOrders(currentOrders);
+            closeModalSheet();
+            showToast(`✅ تم تعديل الطلب #${orderId} محلياً`);
 
-                // لا نحدث الرصيد محلياً هنا، سنعتمد على الخادم
+            // إظهار النافذة المنبثقة
+            showOrderUpdateDialog(orderId);
 
-                if (currentView === 'orders') {
-                    renderOrders(currentOrders);
-                }
-                updateBalanceDisplay();
+            // 2. المزامنة مع الخادم
+            if (navigator.onLine) {
+                try {
+                    const response = await apiCall('/driver/update-delivery', 'POST', {
+                        order_id: orderId,
+                        delivery_status: status,
+                        ...(paymentData || {}),
+                        notes: notes
+                    });
 
-                closeModalSheet();
-                showToast(`✅ تم تعديل الطلب #${orderId} بنجاح (محلياً)`);
-
-                if (navigator.onLine) {
-                    try {
-                        const response = await apiCall('/driver/update-delivery', 'POST', {
-                            order_id: orderId,
-                            delivery_status: status,
-                            ...(paymentData || {}),
-                            notes: notes
-                        });
-                        showToast(`✅ تمت المزامنة مع الخادم للطلب #${orderId}`);
-
-                        // --- جلب الرصيد الجديد من الخادم ---
-                        const driverId = getDriverId();
-                        if (driverId) {
-                            // نجلب بيانات الحساب المحدثة
-                            const ordersData = await fetchDriverOrders(driverId, 1, '', 'all', 1);
-                            if (ordersData.account && ordersData.account.balance !== undefined) {
-                                const newBalance = ordersData.account.balance;
-                                totalBalance = newBalance;
-                                localStorage.setItem('driverBalance', newBalance.toString());
-                                updateBalanceDisplay();
-                            }
-                        }
-
-                        setTimeout(() => {
-                            if (currentView === 'orders') loadDashboard();
-                            else if (currentView === 'returns') loadReturnRequests();
-                        }, 3000);
-                    } catch (err) {
-                        await addOperation({
-                            store: STORES.ORDERS,
-                            type: 'update',
-                            data: {
-                                order_id: orderId,
-                                delivery_status: status,
-                                notes: notes || '',
-                                payment_method: paymentData?.payment_method || null,
-                                cash_collected: paymentData?.cash_collected || 0,
-                                wallet_collected: paymentData?.wallet_collected || 0,
-                                wallet_id: paymentData?.wallet_id || null,
-                                cash_currency_id: paymentData?.cash_currency_id || null,
-                                wallet_currency_id: paymentData?.wallet_currency_id || null
-                            }
-                        });
-                        markOrderAsPending(orderId);
-                        await updateSyncCounter();
-                        showToast('⚠️ فشلت المزامنة، سيتم المحاولة لاحقاً');
+                    if (response.order) {
+                        const serverOrder = response.order;
+                        const idx = currentOrders.findIndex(o => o.id === orderId);
+                        if (idx !== -1) currentOrders[idx] = serverOrder;
+                        else currentOrders.push(serverOrder);
                     }
-                } else {
+                    if (response.balance !== undefined) {
+                        totalBalance = response.balance;
+                        localStorage.setItem('driverBalance', totalBalance.toString());
+                        updateBalanceDisplay();
+                    }
+
+                    renderOrders(currentOrders);
+                    showToast(`✅ تمت المزامنة مع الخادم للطلب #${orderId}`);
+                } catch (err) {
                     await addOperation({
                         store: STORES.ORDERS,
                         type: 'update',
-                        data: {
-                            order_id: orderId,
-                            delivery_status: status,
-                            notes: notes || '',
-                            payment_method: paymentData?.payment_method || null,
-                            cash_collected: paymentData?.cash_collected || 0,
-                            wallet_collected: paymentData?.wallet_collected || 0,
-                            wallet_id: paymentData?.wallet_id || null,
-                            cash_currency_id: paymentData?.cash_currency_id || null,
-                            wallet_currency_id: paymentData?.wallet_currency_id || null
-                        }
+                        data: { order_id: orderId, delivery_status: status, notes: notes || '', ...(paymentData || {}) }
                     });
                     markOrderAsPending(orderId);
                     await updateSyncCounter();
-                    showToast('📴 تم الحفظ محلياً، سيتم المزامنة عند الاتصال');
+                    showToast('⚠️ فشلت المزامنة، سيتم المحاولة لاحقاً');
                 }
-            } catch (err) {
-                const errorEl = document.getElementById('modalPaymentError');
-                if (errorEl) errorEl.textContent = '❌ ' + err.message;
-                showToast('❌ فشل التحديث: ' + err.message);
-                if (submitBtn) {
-                    submitBtn.disabled = false;
-                    submitBtn.textContent = '✅ تأكيد التحديث';
-                }
-                isSubmitting = false;
-                document.querySelectorAll('.action-buttons .btn').forEach(btn => {
-                    btn.disabled = false;
-                    btn.style.opacity = '1';
-                    btn.style.cursor = 'pointer';
+            } else {
+                await addOperation({
+                    store: STORES.ORDERS,
+                    type: 'update',
+                    data: { order_id: orderId, delivery_status: status, notes: notes || '', ...(paymentData || {}) }
                 });
-                return;
-            } finally {
-                isSubmitting = false;
-                if (document.getElementById('modalSheet').classList.contains('active')) {
-                    if (submitBtn) {
-                        submitBtn.disabled = false;
-                        submitBtn.textContent = '✅ تأكيد التحديث';
-                    }
-                }
-                document.querySelectorAll('.action-buttons .btn').forEach(btn => {
-                    btn.disabled = false;
-                    btn.style.opacity = '1';
-                    btn.style.cursor = 'pointer';
-                });
+                markOrderAsPending(orderId);
+                await updateSyncCounter();
+                showToast('📴 تم الحفظ محلياً، سيتم المزامنة عند الاتصال');
             }
+
+            document.querySelectorAll('.action-buttons .btn').forEach(btn => {
+                btn.disabled = false;
+                btn.style.opacity = '1';
+                btn.style.cursor = 'pointer';
+            });
+            isSubmitting = false;
         }
 
         function closeModalSheet() {
@@ -2010,7 +1945,7 @@
         }
 
         // =============================================================
-        // 12. تسجيل الدخول والخروج
+        // 13. تسجيل الدخول والخروج
         // =============================================================
         function showLoginScreen() {
             document.getElementById('pageTitle').textContent = '🚚 تسجيل الدخول';
@@ -2075,29 +2010,26 @@
             }
         }
 
-       function logout() {
-    // إيقاف أي مؤقتات إن وجدت (تم إزالة stopPolling)
-    // stopPolling && stopPolling();  // <-- تم حذف هذا السطر
+        function logout() {
+            // حذف استدعاء stopPolling نهائياً
+            clearToken();
+            clearDriverId();
+            clearDriverName();
+            currentOrders = [];
+            returnRequests = [];
+            totalBalance = 0;
+            localStorage.removeItem('driverBalance');
 
-    clearToken();
-    clearDriverId();
-    clearDriverName();
-    currentOrders = [];
-    returnRequests = [];
-    totalBalance = 0;
-    localStorage.removeItem('driverBalance');
+            openDB().then(db => {
+                db.transaction(STORES.ORDERS, 'readwrite').objectStore(STORES.ORDERS).clear();
+                db.transaction(STORES.OPERATIONS, 'readwrite').objectStore(STORES.OPERATIONS).clear();
+            }).catch(console.warn);
 
-    // مسح IndexedDB بالكامل (الطلبات والعمليات)
-    openDB().then(db => {
-        let tx1 = db.transaction(STORES.ORDERS, 'readwrite');
-        tx1.objectStore(STORES.ORDERS).clear();
-        let tx2 = db.transaction(STORES.OPERATIONS, 'readwrite');
-        tx2.objectStore(STORES.OPERATIONS).clear();
-    }).catch(console.warn);
+            showLoginScreen();
+            showToast('👋 تم تسجيل الخروج');
+        }
 
-    showLoginScreen();
-    showToast('👋 تم تسجيل الخروج');
-}        function toggleSideMenu() { showToast('📱 القائمة قيد التطوير'); }
+        function toggleSideMenu() { showToast('📱 القائمة قيد التطوير'); }
 
         function showToast(message) {
             const toast = document.createElement('div');
@@ -2117,7 +2049,7 @@
         }
 
         // =============================================================
-        // 13. المزامنة التلقائية
+        // 14. المزامنة التلقائية
         // =============================================================
         function updateConnectionStatus() {
             const statusEl = document.getElementById('connectionStatus');
@@ -2205,13 +2137,8 @@
 
             await updateSyncCounter();
 
-            if (currentView === 'orders') {
-                await loadDashboard();
-            } else if (currentView === 'returns') {
-                await loadReturnRequests();
-            } else {
-                await loadDashboard();
-            }
+            // تحديث القائمة فقط بعد المزامنة
+            await refreshOrders();
 
             if (syncedCount > 0) {
                 showToast(`✅ تمت مزامنة ${syncedCount} عملية`);
@@ -2224,45 +2151,41 @@
         }
 
         // =============================================================
-        // 14. تهيئة التطبيق
+        // 15. تهيئة التطبيق
         // =============================================================
-       // =============================================================
-// 14. تهيئة التطبيق
-// =============================================================
-window.addEventListener('load', async () => {
-    updateConnectionStatus();
+        window.addEventListener('load', async () => {
+            updateConnectionStatus();
 
-    if ('serviceWorker' in navigator) {
-        await initializePushNotifications();
+            if ('serviceWorker' in navigator) {
+                await initializePushNotifications();
 
-        // 👇 أضف هذا الكود هنا لاستقبال رسالة إعادة التحميل
-        navigator.serviceWorker.addEventListener('message', event => {
-            if (event.data && event.data.action === 'reload') {
-                console.log('🔄 إعادة تحميل الصفحة بأمر من Service Worker');
-                window.location.reload(true);
+                navigator.serviceWorker.addEventListener('message', event => {
+                    if (event.data && event.data.action === 'reload') {
+                        console.log('🔄 إعادة تحميل الصفحة بأمر من Service Worker');
+                        window.location.reload(true);
+                    }
+                });
             }
-        });
-    }
 
-    const token = getToken();
-    const driverId = getDriverId();
-    if (token && driverId) {
-        loadFilterSettings();
-        loadDashboard();
-        if (navigator.onLine) syncAllOperations();
-    } else {
-        showLoginScreen();
-    }
-    updateSyncCounter();
-});
+            const token = getToken();
+            const driverId = getDriverId();
+            if (token && driverId) {
+                loadFilterSettings();
+                loadDashboard();
+                if (navigator.onLine) syncAllOperations();
+            } else {
+                showLoginScreen();
+            }
+            updateSyncCounter();
+        });
 
         window.addEventListener('online', () => {
             updateConnectionStatus();
             const token = getToken();
             if (token) {
                 syncAllOperations().then(() => {
-                    if (currentView === 'returns') loadReturnRequests();
-                    else loadDashboard();
+                    if (currentView === 'orders') refreshOrders();
+                    else if (currentView === 'returns') loadReturnRequests();
                 });
                 showToast('🔄 تم العودة للاتصال، جاري المزامنة...');
             }
@@ -2295,6 +2218,9 @@ window.addEventListener('load', async () => {
         window.confirmReturnAction = confirmReturnAction;
         window.updateSyncCounter = updateSyncCounter;
         window.togglePushSubscription = togglePushSubscription;
+        window.refreshOrders = refreshOrders;
+        window.viewOrder = viewOrder;
+        window.showOrderUpdateDialog = showOrderUpdateDialog;
 
         const styleEl = document.createElement('style');
         styleEl.textContent = `
@@ -2303,6 +2229,5 @@ window.addEventListener('load', async () => {
         `;
         document.head.appendChild(styleEl);
     </script>
-    
 </body>
 </html>
