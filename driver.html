@@ -2293,5 +2293,13 @@
         `;
         document.head.appendChild(styleEl);
     </script>
+    if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('message', event => {
+        if (event.data && event.data.action === 'reload') {
+            console.log('🔄 إعادة تحميل الصفحة بأمر من Service Worker');
+            window.location.reload(true);
+        }
+    });
+}
 </body>
 </html>
