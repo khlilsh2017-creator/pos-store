@@ -399,7 +399,10 @@
 
         async function registerServiceWorker() {
             try {
-                const registration = await navigator.serviceWorker.register('./firebase-messaging-sw.js', { scope: '/' });
+               // بدلاً من { scope: '/' } استخدم مسار التطبيق
+const registration = await navigator.serviceWorker.register('./firebase-messaging-sw.js', { scope: '/driver' });
+
+
                 console.log('✅ تم تسجيل Firebase Service Worker');
                 if (registration.waiting) {
                     registration.waiting.postMessage({ type: 'SKIP_WAITING' });
@@ -412,7 +415,7 @@
             } catch (err) {
                 console.warn('⚠️ فشل تسجيل Firebase SW:', err);
                 try {
-                    const registration = await navigator.serviceWorker.register('./sw.js', { scope: '/' });
+                    const registration = await navigator.serviceWorker.register('./sw.js', { scope: '/driver' });
                     return registration;
                 } catch (e2) {
                     console.error('فشل كلا السيرفس ووركر', e2);

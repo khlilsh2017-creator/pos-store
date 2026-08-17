@@ -9,7 +9,7 @@
     <meta name="theme-color" content="#1a56db" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <link rel="manifest" href="manifest.json" />
+    
     <title>طلب إنترنت - الجوال</title>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
@@ -4406,7 +4406,7 @@ function deleteDraft(draftId) {
 
             if ('serviceWorker' in navigator) {
                 try {
-                    const registration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+                    navigator.serviceWorker.register('./sw.js', { scope: '/add_order_ph' });
                     console.log('Service Worker registered:', registration);
                 } catch (error) {
                     console.log('Service Worker registration failed:', error);
