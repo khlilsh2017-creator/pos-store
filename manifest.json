@@ -3,14 +3,14 @@
   "name": "دفتر المحاسبة",
   "short_name": "النظام المحاسبي",
   "description": "النظام المحاسبي المتكامل لابن المختار: إدارة الميزانيات، تقارير المبيعات، المشتريات، وأرصدة المخزون بدقة واحترافية.",
-  "start_url": "/index",
+  "start_url": "/index.html",
   "display": "standalone",
   "background_color": "#e8eaf6",
   "theme_color": "#1A237E",
   "orientation": "landscape",
   "dir": "rtl",
   "lang": "ar",
-  "scope": "/index",
+  "scope": "/index.html",
   "icons": [
     {
       "src": "/icon-192x192.png",
