@@ -1512,6 +1512,12 @@
                 <textarea id="notes" class="input-field input-field-sm" rows="2"></textarea>
             </div>
 
+            <!-- تاريخ ووقت الطلب -->
+            <div style="margin-top:6px;">
+                <label style="font-size:0.65rem;font-weight:600;">تاريخ ووقت الطلب (اختياري)</label>
+                <input type="datetime-local" id="order_date" class="input-field input-field-sm" />
+            </div>
+
             <!-- المندوب -->
             <div style="margin-top:6px;">
                 <label style="font-size:0.65rem;font-weight:600;">المندوب (اختياري)</label>
@@ -3383,6 +3389,7 @@ function resetOrderForm() {
     setElementValue('paid-amount', 0);
     setElementValue('deliveryFee', 0);
     setElementValue('notes', '');
+    setElementValue('order_date', '');
     setElementValue('payment-method', 'عند الاستلام');
     setElementText('page-subtitle', 'جديد');
     
@@ -3499,7 +3506,16 @@ function resetOrderForm() {
         
         document.getElementById('deliveryFee').value = order.delivery_fee || 0;
         document.getElementById('deliveryFeePayment').value = order.delivery_fee_payment || 'مع الطلب';
-        document.getElementById('notes').value = order.notes || '';
+                document.getElementById('notes').value = order.notes || '';
+        if (order.order_date) {
+            try {
+                const d = new Date(order.order_date);
+                const tzoffset = d.getTimezoneOffset() * 60000;
+                const localISOTime = (new Date(d - tzoffset)).toISOString().slice(0, 16);
+                const orderDateInput = document.getElementById('order_date');
+                if (orderDateInput) orderDateInput.value = localISOTime;
+            } catch (e) {}
+        }
         
         // --- 1. تحميل المحافظ والعملات أولاً لضمان عدم مسح البيانات لاحقاً ---
         if (currenciesCache.length === 0) { await loadCurrencies(); populateCurrencySelects(); }
@@ -3757,6 +3773,10 @@ function resetOrderForm() {
         discount: discount,
         discount_amount: discountAmount ,
         discount_type: discountType, // <--- أضف هذا السطر
+        order_date: (() => {
+            const value = document.getElementById('order_date')?.value;
+            return value ? new Date(value).toISOString().slice(0, 19).replace('T', ' ') : undefined;
+        })(),
     };
 
     const btn = document.querySelector('.bottom-actions .btn-success');
