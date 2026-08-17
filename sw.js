@@ -208,6 +208,9 @@ self.addEventListener('fetch', event => {
 // --------------------------------------------
 // 4️⃣ استقبال الإشعارات (Push) - النسخة المحسنة
 // --------------------------------------------
+// --------------------------------------------
+// 4️⃣ استقبال الإشعارات (Push) - النسخة المحسنة
+// --------------------------------------------
 self.addEventListener('push', event => {
     console.log('📩 تم استقبال حدث push!');
 
@@ -228,11 +231,13 @@ self.addEventListener('push', event => {
         data: { link: '/driver.html' }
     };
 
+    let orderId = null;
+
     try {
         const payload = event.data.json();
         console.log('📨 البيانات الخام:', payload);
 
-        // ===== 1. قراءة من payload.notification (التنسيق القياسي) =====
+        // ---- استخراج البيانات من الحقول المختلفة ----
         if (payload.notification) {
             notificationData.title = payload.notification.title || notificationData.title;
             notificationData.body = payload.notification.body || notificationData.body;
@@ -240,43 +245,40 @@ self.addEventListener('push', event => {
             if (payload.notification.badge) notificationData.badge = payload.notification.badge;
         }
 
-        // ===== 2. قراءة من payload.data (إذا لم يكن هناك notification) =====
+        // بيانات مخصصة
         if (payload.data) {
             if (payload.data.title) notificationData.title = payload.data.title;
             if (payload.data.body) notificationData.body = payload.data.body;
             if (payload.data.link) notificationData.link = payload.data.link;
-            if (payload.data.order_id) notificationData.data.order_id = payload.data.order_id;
-            // تخزين جميع بيانات payload.data في data.notification_data
+            if (payload.data.order_id) {
+                orderId = payload.data.order_id;
+                notificationData.data.order_id = orderId;
+            }
+            // تخزين جميع البيانات المخصصة
             notificationData.data.notification_data = payload.data;
         }
 
-        // ===== 3. قراءة مباشرة من الجذر (حالة payload.title / payload.body) =====
+        // قراءة مباشرة من الجذر
         if (payload.title) notificationData.title = payload.title;
         if (payload.body) notificationData.body = payload.body;
         if (payload.link) notificationData.link = payload.link;
         if (payload.click_action) notificationData.link = payload.click_action;
+        if (payload.fcmOptions?.link) notificationData.link = payload.fcmOptions.link;
 
-        // ===== 4. قراءة fcm_options.link إن وجد =====
-        if (payload.fcmOptions && payload.fcmOptions.link) {
-            notificationData.link = payload.fcmOptions.link;
+        // استخراج order_id من أي مكان
+        if (!orderId) {
+            if (payload.order_id) orderId = payload.order_id;
+            else if (payload.data?.order_id) orderId = payload.data.order_id;
         }
 
-        // ===== 5. التأكد من وجود order_id =====
-        let orderId = null;
-        if (payload.data && payload.data.order_id) orderId = payload.data.order_id;
-        else if (payload.order_id) orderId = payload.order_id;
         if (orderId) {
             notificationData.data.order_id = orderId;
-            // إذا كان link لا يحتوي على order_id، نضيفه
+            // تحديث الرابط ليشمل order_id
             if (!notificationData.link.includes('order_id=')) {
                 notificationData.link += (notificationData.link.includes('?') ? '&' : '?') + 'order_id=' + orderId;
             }
         }
 
-        // ===== 6. تحديث link النهائي =====
-        notificationData.data.link = notificationData.link;
-
-        // ===== 7. منع الإشعارات الفارغة =====
         if (!notificationData.body || notificationData.body.trim() === '') {
             console.log('🚫 تم إلغاء الإشعار لعدم وجود نص (body).');
             return;
@@ -285,9 +287,7 @@ self.addEventListener('push', event => {
     } catch (error) {
         console.warn('⚠️ فشل تحليل JSON، محاولة القراءة كنص عادي:', error);
         const text = event.data.text();
-        if (text) {
-            notificationData.body = text;
-        }
+        if (text) notificationData.body = text;
     }
 
     const options = {
@@ -304,13 +304,11 @@ self.addEventListener('push', event => {
         ]
     };
 
-    // عرض الإشعار
     event.waitUntil(
         self.registration.showNotification(notificationData.title, options)
             .then(() => {
                 console.log('✅ تم عرض الإشعار بنجاح');
-
-                // ===== إرسال رسالة للصفحات المفتوحة لتحديث الواجهة =====
+                // إرسال رسالة للصفحات المفتوحة
                 return self.clients.matchAll({ type: 'window', includeUncontrolled: true });
             })
             .then(clients => {
@@ -333,15 +331,25 @@ self.addEventListener('push', event => {
 // --------------------------------------------
 // 5️⃣ التعامل مع النقر على الإشعار
 // --------------------------------------------
+// --------------------------------------------
+// 5️⃣ التعامل مع النقر على الإشعار
+// --------------------------------------------
 self.addEventListener('notificationclick', event => {
     console.log('🖱️ تم النقر على الإشعار:', event.notification);
     event.notification.close();
 
-    let link = '/';
-    if (event.notification.data && event.notification.data.link) {
-        link = event.notification.data.link;
-    } else if (event.notification.data && event.notification.data.url) {
-        link = event.notification.data.url;
+    let link = '/driver.html';
+    let orderId = null;
+
+    // استخراج الرابط و order_id من بيانات الإشعار
+    if (event.notification.data) {
+        link = event.notification.data.link || link;
+        orderId = event.notification.data.order_id || null;
+    }
+
+    // إذا كان هناك order_id، نضيفه للرابط إذا لم يكن موجوداً
+    if (orderId && !link.includes('order_id=')) {
+        link += (link.includes('?') ? '&' : '?') + 'order_id=' + orderId;
     }
 
     if (event.action === 'open' || !event.action) {
@@ -351,16 +359,36 @@ self.addEventListener('notificationclick', event => {
                 includeUncontrolled: true 
             })
             .then(clientList => {
+                // حاول العثور على نافذة مفتوحة بنفس الرابط
                 for (const client of clientList) {
                     if (client.url === link && 'focus' in client) {
+                        // أرسل رسالة لفتح الطلب المحدد
+                        if (orderId) {
+                            client.postMessage({
+                                type: 'OPEN_ORDER',
+                                order_id: orderId
+                            });
+                        }
                         return client.focus();
                     }
                 }
+                // إذا لم توجد نافذة، افتح صفحة جديدة
                 if (clients.openWindow) {
-                    return clients.openWindow(link);
+                    return clients.openWindow(link)
+                        .then(newClient => {
+                            // بعد فتح الصفحة، أرسل رسالة لفتح الطلب بعد تحميلها
+                            if (newClient && orderId) {
+                                newClient.postMessage({
+                                    type: 'OPEN_ORDER',
+                                    order_id: orderId
+                                });
+                            }
+                            return newClient;
+                        });
                 }
             })
             .catch(() => {
+                // فتح النافذة بشكل مباشر في حال فشل البحث
                 clients.openWindow(link).catch(() => {});
             })
         );
