@@ -205,71 +205,89 @@ self.addEventListener('fetch', event => {
 // --------------------------------------------
 // 4️⃣ استقبال الإشعارات (Push)
 // --------------------------------------------
+// --------------------------------------------
+// 4️⃣ استقبال الإشعارات (Push) - النسخة المحسنة
+// --------------------------------------------
 self.addEventListener('push', event => {
     console.log('📩 تم استقبال حدث push!');
 
-    // التحقق من وجود بيانات مرسلة من السيرفر
     if (!event.data) {
         console.log('⚠️ لا توجد بيانات في الإشعار.');
-        return; 
+        return;
     }
 
-    // إعدادات افتراضية أساسية (بدون نصوص تجريبية ثابتة)
     let notificationData = {
-        title: 'إشعار جديد',
-        body: '',
-        link: '/',
+        title: '📦 ابن مختار',
+        body: 'لديك إشعار جديد',
+        link: '/driver.html',
         icon: '/icon-192x192.png',
         badge: '/icon-192x192.png',
         vibrate: [200, 100, 200],
         tag: 'default',
         requireInteraction: true,
-        data: { link: '/' }
+        data: { link: '/driver.html' }
     };
 
     try {
         const payload = event.data.json();
-        console.log('📨 بيانات الإشعار الخام:', payload);
-        
+        console.log('📨 البيانات الخام:', payload);
+
+        // ===== 1. قراءة من payload.notification (التنسيق القياسي) =====
         if (payload.notification) {
             notificationData.title = payload.notification.title || notificationData.title;
             notificationData.body = payload.notification.body || notificationData.body;
-            notificationData.icon = payload.notification.icon || notificationData.icon;
-            notificationData.badge = payload.notification.badge || notificationData.badge;
-            
-            if (payload.data) {
-                notificationData.link = payload.data.link || payload.data.click_action || '/';
-                notificationData.data.link = notificationData.link;
-            }
-            if (payload.fcmOptions) {
-                notificationData.link = payload.fcmOptions.link || notificationData.link;
-                notificationData.data.link = notificationData.link;
-            }
-        } 
-        else if (payload.title || payload.body) {
-            notificationData.title = payload.title || notificationData.title;
-            notificationData.body = payload.body || notificationData.body;
-            notificationData.link = payload.link || payload.click_action || '/';
-            notificationData.data.link = notificationData.link;
-            notificationData.tag = payload.tag || notificationData.tag;
-            notificationData.requireInteraction = payload.requireInteraction !== undefined ? payload.requireInteraction : true;
+            if (payload.notification.icon) notificationData.icon = payload.notification.icon;
+            if (payload.notification.badge) notificationData.badge = payload.notification.badge;
         }
-        
+
+        // ===== 2. قراءة من payload.data (إذا لم يكن هناك notification) =====
         if (payload.data) {
-            notificationData.data = { ...notificationData.data, ...payload.data };
+            if (payload.data.title) notificationData.title = payload.data.title;
+            if (payload.data.body) notificationData.body = payload.data.body;
+            if (payload.data.link) notificationData.link = payload.data.link;
+            if (payload.data.order_id) notificationData.data.order_id = payload.data.order_id;
+            // تخزين جميع بيانات payload.data في data.notification_data
+            notificationData.data.notification_data = payload.data;
         }
+
+        // ===== 3. قراءة مباشرة من الجذر (حالة payload.title / payload.body) =====
+        if (payload.title) notificationData.title = payload.title;
+        if (payload.body) notificationData.body = payload.body;
+        if (payload.link) notificationData.link = payload.link;
+        if (payload.click_action) notificationData.link = payload.click_action;
+
+        // ===== 4. قراءة fcm_options.link إن وجد =====
+        if (payload.fcmOptions && payload.fcmOptions.link) {
+            notificationData.link = payload.fcmOptions.link;
+        }
+
+        // ===== 5. التأكد من وجود order_id =====
+        let orderId = null;
+        if (payload.data && payload.data.order_id) orderId = payload.data.order_id;
+        else if (payload.order_id) orderId = payload.order_id;
+        if (orderId) {
+            notificationData.data.order_id = orderId;
+            // إذا كان link لا يحتوي على order_id، نضيفه
+            if (!notificationData.link.includes('order_id=')) {
+                notificationData.link += (notificationData.link.includes('?') ? '&' : '?') + 'order_id=' + orderId;
+            }
+        }
+
+        // ===== 6. تحديث link النهائي =====
+        notificationData.data.link = notificationData.link;
+
+        // ===== 7. منع الإشعارات الفارغة =====
+        if (!notificationData.body || notificationData.body.trim() === '') {
+            console.log('🚫 تم إلغاء الإشعار لعدم وجود نص (body).');
+            return;
+        }
+
     } catch (error) {
-        console.warn('⚠️ فشل تحليل JSON، محاولة القراءة كنص عادي...');
+        console.warn('⚠️ فشل تحليل JSON، محاولة القراءة كنص عادي:', error);
         const text = event.data.text();
         if (text) {
             notificationData.body = text;
         }
-    }
-
-    // منع ظهور إشعارات فارغة مزعجة للمستخدم إذا لم يكن هناك نص (Body)
-    if (!notificationData.body) {
-        console.log('🚫 تم إلغاء عرض الإشعار لعدم وجود محتوى (Body).');
-        return;
     }
 
     const options = {
@@ -283,13 +301,31 @@ self.addEventListener('push', event => {
         actions: [
             { action: 'open', title: '📂 فتح التطبيق' },
             { action: 'close', title: '❌ إغلاق' }
-        ],
-        image: notificationData.image || null
+        ]
     };
 
+    // عرض الإشعار
     event.waitUntil(
         self.registration.showNotification(notificationData.title, options)
-            .then(() => console.log('✅ تم عرض الإشعار بنجاح'))
+            .then(() => {
+                console.log('✅ تم عرض الإشعار بنجاح');
+
+                // ===== إرسال رسالة للصفحات المفتوحة لتحديث الواجهة =====
+                return self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+            })
+            .then(clients => {
+                clients.forEach(client => {
+                    client.postMessage({
+                        type: 'NEW_NOTIFICATION',
+                        payload: {
+                            title: notificationData.title,
+                            body: notificationData.body,
+                            order_id: notificationData.data.order_id || null,
+                            link: notificationData.link
+                        }
+                    });
+                });
+            })
             .catch(err => console.error('❌ فشل عرض الإشعار:', err))
     );
 });
