@@ -228,7 +228,7 @@
         let currentOrders = [];
         let totalBalance = 0;
         let currentStatusFilter = '';
-        let currentPeriod = 'today';
+        let currentPeriod = 'all';
         let currentView = 'orders';
         let currencies = [];
         let wallets = [];
@@ -255,7 +255,7 @@
         // 2. IndexedDB
         // =============================================================
         const DB_NAME = 'DriverOrdersDB';
-        const DB_VERSION = 2;
+        const DB_VERSION = 3;
         const STORES = {
             ORDERS: 'orders',
             OPERATIONS: 'operations'
@@ -272,9 +272,15 @@
                         const store = db.createObjectStore(STORES.ORDERS, { keyPath: 'id' });
                         store.createIndex('status', 'status', { unique: false });
                     }
+                    let opStore;
                     if (!db.objectStoreNames.contains(STORES.OPERATIONS)) {
-                        const opStore = db.createObjectStore(STORES.OPERATIONS, { keyPath: 'id', autoIncrement: true });
+                        opStore = db.createObjectStore(STORES.OPERATIONS, { keyPath: 'id', autoIncrement: true });
                         opStore.createIndex('synced', 'synced', { unique: false });
+                    } else {
+                        opStore = event.target.transaction.objectStore(STORES.OPERATIONS);
+                    }
+                    if (!opStore.indexNames.contains('operation_id')) {
+                        opStore.createIndex('operation_id', 'operation_id', { unique: false });
                     }
                 };
                 request.onsuccess = (event) => { db = event.target.result; resolve(db); };
@@ -308,14 +314,40 @@
             await put(STORES.ORDERS, order);
         }
 
+        function generateOperationId() {
+            if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+                return window.crypto.randomUUID();
+            }
+            return `op_${Date.now()}_${Math.random().toString(36).slice(2)}_${cryptoRandomPart()}`;
+        }
+
+        function cryptoRandomPart() {
+            return Math.floor(Math.random() * 1e12).toString(36);
+        }
+
+        async function getOperationByOperationId(operationId) {
+            if (!operationId) return null;
+            const operations = await getAll(STORES.OPERATIONS);
+            return operations.find(op => op.operation_id === operationId) || null;
+        }
+
         async function addOperation(operation) {
+            const operationId = operation.operation_id || generateOperationId();
+            const existing = await getOperationByOperationId(operationId);
+            if (existing) return existing;
+
             const db = await openDB();
             return new Promise((resolve, reject) => {
                 const tx = db.transaction(STORES.OPERATIONS, 'readwrite');
                 const store = tx.objectStore(STORES.OPERATIONS);
-                const entry = { ...operation, synced: false, created_at: new Date().toISOString() };
+                const entry = {
+                    ...operation,
+                    operation_id: operationId,
+                    synced: false,
+                    created_at: new Date().toISOString()
+                };
                 const request = store.add(entry);
-                request.onsuccess = () => resolve(request.result);
+                request.onsuccess = () => resolve({ ...entry, id: request.result });
                 request.onerror = () => reject(request.error);
             });
         }
@@ -673,7 +705,17 @@ const registration = await navigator.serviceWorker.register('./sw.js', { scope: 
 
         function loadFilterSettings() {
             currentStatusFilter = localStorage.getItem('driverStatusFilter') || '';
-            currentPeriod = localStorage.getItem('driverPeriod') || 'today';
+            const filterVersion = localStorage.getItem('driverFilterVersion');
+            const savedPeriod = localStorage.getItem('driverPeriod');
+
+            // ترقية الإعدادات القديمة: أول دخول بعد هذا الإصلاح يعرض كل الطلبات.
+            if (!filterVersion) {
+                currentPeriod = 'all';
+                localStorage.setItem('driverFilterVersion', '2');
+                localStorage.setItem('driverPeriod', 'all');
+            } else {
+                currentPeriod = savedPeriod || 'all';
+            }
         }
 
         function getPeriodLabel(period) {
@@ -919,7 +961,7 @@ const registration = await navigator.serviceWorker.register('./sw.js', { scope: 
                     <div class="filter-row"><label>📅 الفترة:</label>
                         <select id="periodFilter" onchange="applyFilters()">
                             <option value="all">الكل</option>
-                            <option value="today" selected>اليوم</option>
+                            <option value="today">اليوم</option>
                             <option value="last2days">آخر يومين</option>
                             <option value="week">آخر 7 أيام</option>
                             <option value="month">آخر 30 يوم</option>
@@ -1429,7 +1471,7 @@ function useLocalOrdersForDashboard() {
 
         function resetFilters() {
             document.getElementById('statusFilter').value = '';
-            document.getElementById('periodFilter').value = 'today';
+            document.getElementById('periodFilter').value = 'all';
             applyFilters();
         }
 
@@ -1838,6 +1880,7 @@ function useLocalOrdersForDashboard() {
                 showToast('⚠️ جاري معالجة طلب سابق، انتظر قليلاً');
                 return;
             }
+            isSubmitting = true;
 
             const status = document.getElementById('modalStatus').value;
             const notes = document.getElementById('modalNotes').value.trim();
@@ -1954,14 +1997,18 @@ function useLocalOrdersForDashboard() {
             showOrderUpdateDialog(orderId);
 
             // 2. المزامنة مع الخادم
+            const operationId = generateOperationId();
+            const operationData = {
+                operation_id: operationId,
+                order_id: orderId,
+                delivery_status: status,
+                ...(paymentData || {}),
+                notes: notes || ''
+            };
+
             if (navigator.onLine) {
                 try {
-                    const response = await apiCall('/driver/update-delivery', 'POST', {
-                        order_id: orderId,
-                        delivery_status: status,
-                        ...(paymentData || {}),
-                        notes: notes
-                    });
+                    const response = await apiCall('/driver/update-delivery', 'POST', operationData);
 
                     if (response.order) {
                         const serverOrder = response.order;
@@ -1983,9 +2030,10 @@ function useLocalOrdersForDashboard() {
                     await addOperation({
                         store: STORES.ORDERS,
                         type: 'update',
-                        data: { order_id: orderId, delivery_status: status, notes: notes || '', ...(paymentData || {}) }
+                        data: operationData
                     });
                     markOrderAsPending(orderId);
+            console.info(`تم حفظ العملية ${operationId} للمزامنة الآمنة`);
                     await updateSyncCounter();
                     showToast('⚠️ فشلت المزامنة، سيتم المحاولة لاحقاً');
                 }
@@ -1996,6 +2044,7 @@ function useLocalOrdersForDashboard() {
                     data: { order_id: orderId, delivery_status: status, notes: notes || '', ...(paymentData || {}) }
                 });
                 markOrderAsPending(orderId);
+            console.info(`تم حفظ العملية ${operationId} للمزامنة الآمنة`);
                 await updateSyncCounter();
                 showToast('📴 تم الحفظ محلياً، سيتم المزامنة عند الاتصال');
             }
@@ -2171,7 +2220,7 @@ function useLocalOrdersForDashboard() {
                             const response = await fetch(`${API_BASE}/driver/update-delivery`, {
                                 method: 'POST',
                                 headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                                body: JSON.stringify(data)
+                                body: JSON.stringify({ ...data, operation_id: data.operation_id || op.operation_id })
                             });
 
                             if (response.ok) {
