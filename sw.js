@@ -2,10 +2,10 @@
 // 🏢 Service Worker - نظام ابن مختار (الإصدار النهائي v19)
 // ============================================================
 
-const CACHE_NAME = 'ibn-mukhtar-pos-v21';
-const STATIC_CACHE = 'ibn-mukhtar-static-v21';
-const DYNAMIC_CACHE = 'ibn-mukhtar-dynamic-v21';
-const VERSION = '2025-02-17-004';
+const CACHE_NAME = 'ibn-mukhtar-pos-v22';
+const STATIC_CACHE = 'ibn-mukhtar-static-v22';
+const DYNAMIC_CACHE = 'ibn-mukhtar-dynamic-v22';
+const VERSION = '2025-02-17-005';
 
 const STATIC_ASSETS = [
     '/',
@@ -97,51 +97,57 @@ self.addEventListener('activate', event => {
 // --------------------------------------------
 // 3️⃣ استراتيجية الجلب (Fetch)
 // --------------------------------------------
-// --------------------------------------------
-// 3️⃣ استراتيجية الجلب (Fetch)
-// --------------------------------------------
 self.addEventListener('fetch', event => {
     const { request } = event;
     const url = new URL(request.url);
+    
+    // تحسين التعرف على صفحات التنقل بشكل أدق
     const isHtmlPage = request.headers.get('Accept')?.includes('text/html') || 
                        url.pathname.endsWith('.html') || 
-                       url.pathname === '/';
+                       request.mode === 'navigate'; // 👈 التقاط جميع طلبات التنقل بين الصفحات
+
     const isStaticAsset = STATIC_ASSETS.some(asset => url.pathname === asset || url.pathname + '/' === asset);
     const isExternalLib = url.origin !== self.location.origin && 
                           (url.pathname.includes('fonts.googleapis.com') || 
                            url.pathname.includes('cdnjs.cloudflare.com') ||
                            url.pathname.includes('cdn.jsdelivr.net'));
 
-    // تجاهل طلبات API والتحليلات تماماً ليتعامل معها المتصفح مباشرة
+    // تجاهل طلبات API والتحليلات ليتعامل معها المتصفح مباشرة
     if (url.pathname.includes('/api/') ||
         url.pathname.includes('analytics') ||
         url.pathname.includes('google-analytics') ||
         url.pathname.includes('doubleclick.net')) {
-        return; // ترك الطلب للمتصفح (إزالة fetch(request) لتجنب تكرار الطلبات)
+        return; 
     }
 
-    // ===== استراتيجية صفحات HTML (Network First مع تجاوز الكاش) =====
+    // ===== استراتيجية صفحات HTML (Network First) =====
     if (isHtmlPage) {
         event.respondWith(
-            fetch(request) // تم الإصلاح: إزالة { cache: 'no-store' } التي تكسر طلبات الـ navigate
+            fetch(request)
                 .then(response => {
+                    // 🟢 الحل الجذري: إرجاع الاستجابة دائماً للمتصفح سواء كانت 200 أو 304 (لم تتغير) أو 301
                     if (response && response.status === 200) {
                         const clone = response.clone();
                         caches.open(DYNAMIC_CACHE)
                             .then(cache => cache.put(request, clone))
                             .catch(() => {});
-                        return response;
                     }
-                    return caches.match(request, { ignoreSearch: true })
-                        .then(cached => cached || new Response(OFFLINE_PAGE, {
-                            status: 503,
-                            headers: { 'Content-Type': 'text/html; charset=utf-8' }
-                        }));
+                    return response; // إرجاع الصفحة وعدم قطع الاتصال أبداً
                 })
                 .catch(() => {
-                    // في حالة انقطاع الإنترنت، جلب الصفحة من الكاش (مع تجاهل الروابط الفرعية Parameter)
+                    // 🔴 لا ندخل هنا إلا في حالة انقطاع الإنترنت (Offline)
                     return caches.match(request, { ignoreSearch: true })
-                        .then(cached => cached || new Response(OFFLINE_PAGE, {
+                        .then(cached => {
+                            if (cached) return cached;
+                            
+                            // محاولة ذكية: إذا طلب صفحة بصيغة html ولم يجدها، يجرب بدونها والعكس
+                            const fallbackUrl = url.pathname.endsWith('.html') 
+                                ? url.pathname.replace('.html', '') 
+                                : url.pathname + '.html';
+                                
+                            return caches.match(fallbackUrl, { ignoreSearch: true });
+                        })
+                        .then(finalCached => finalCached || new Response(OFFLINE_PAGE, {
                             status: 503,
                             headers: { 'Content-Type': 'text/html; charset=utf-8' }
                         }));
@@ -156,7 +162,6 @@ self.addEventListener('fetch', event => {
             caches.match(request, { ignoreSearch: true })
                 .then(cached => {
                     if (cached) {
-                        // تحديث الكاش في الخلفية بدون تعطيل عرض الصفحة
                         fetch(request).then(response => {
                             if(response && response.status === 200) {
                                 caches.open(STATIC_CACHE).then(cache => cache.put(request, response));
@@ -168,9 +173,7 @@ self.addEventListener('fetch', event => {
                         .then(response => {
                             if (response && response.status === 200) {
                                 const clone = response.clone();
-                                caches.open(STATIC_CACHE)
-                                    .then(cache => cache.put(request, clone))
-                                    .catch(() => {});
+                                caches.open(STATIC_CACHE).then(cache => cache.put(request, clone));
                             }
                             return response;
                         });
@@ -179,7 +182,7 @@ self.addEventListener('fetch', event => {
         return;
     }
 
-    // ===== للطلبات الأخرى (صور، خطوط غير مدرجة، إلخ) =====
+    // ===== للطلبات الأخرى (صور، ملفات غير مدرجة، إلخ) =====
     event.respondWith(
         caches.match(request, { ignoreSearch: true })
             .then(cached => {
@@ -188,20 +191,14 @@ self.addEventListener('fetch', event => {
                     .then(response => {
                         if (response && response.status === 200 && request.method === 'GET') {
                             const clone = response.clone();
-                            caches.open(DYNAMIC_CACHE)
-                                .then(cache => cache.put(request, clone))
-                                .catch(() => {});
+                            caches.open(DYNAMIC_CACHE).then(cache => cache.put(request, clone));
                         }
                         return response;
                     })
-                    .catch(() => {
-                        // تفادي تعطل النظام في حال فقدان الصور أو الموارد
-                        return new Response('', { status: 404, statusText: 'Not Found' });
-                    });
+                    .catch(() => new Response('', { status: 404, statusText: 'Not Found' }));
             })
     );
 });
-
 // --------------------------------------------
 // 4️⃣ استقبال الإشعارات (Push)
 // --------------------------------------------
