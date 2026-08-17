@@ -341,6 +341,32 @@
             });
         }
 
+        async function applyPendingOperationsToOrders(orders) {
+            const result = (orders || []).map(order => ({ ...order }));
+            const pending = await getPendingOperations();
+
+            for (const op of pending) {
+                if (op.store !== STORES.ORDERS || op.type !== 'update') continue;
+                const orderId = Number(op.data.order_id);
+                const order = result.find(item => Number(item.id) === orderId);
+                if (!order) continue;
+
+                if (op.data.delivery_status) {
+                    order.status = op.data.delivery_status === 'فشل'
+                        ? 'فشل التسليم'
+                        : op.data.delivery_status === 'تم التوصيل'
+                            ? 'تم التسليم'
+                            : op.data.delivery_status;
+                }
+                if (op.data.notes !== undefined) order.notes = op.data.notes;
+                if (op.data.payment_method !== undefined) order.payment_method = op.data.payment_method;
+                if (op.data.cash_collected !== undefined) order.cash_collected = op.data.cash_collected;
+                if (op.data.wallet_collected !== undefined) order.wallet_collected = op.data.wallet_collected;
+                order._pendingSync = true;
+            }
+            return result;
+        }
+
         async function markOperationSynced(opId) {
             const db = await openDB();
             return new Promise((resolve, reject) => {
@@ -562,7 +588,15 @@ const registration = await navigator.serviceWorker.register('./sw.js', { scope: 
         if (event.data && event.data.type === 'NEW_NOTIFICATION') {
             const payload = event.data.payload || {};
             showToast(`📩 ${payload.title || 'إشعار'}: ${payload.body || ''}`);
-            refreshOrders(); // تحديث القائمة فوراً
+            getPendingOperations().then(pending => {
+                const affected = payload.order_id && pending.some(op =>
+                    op.store === STORES.ORDERS &&
+                    op.type === 'update' &&
+                    Number(op.data.order_id) === Number(payload.order_id)
+                );
+                if (!affected) refreshOrders();
+                else updateSyncCounter();
+            });
             if (payload.order_id) {
                 showOrderUpdateDialog(payload.order_id);
             }
@@ -787,37 +821,50 @@ const registration = await navigator.serviceWorker.register('./sw.js', { scope: 
             const driverId = getDriverId();
             if (!driverId) return;
 
-            if (navigator.onLine) {
-                try {
-                    const filteredData = await fetchDriverOrders(driverId, 1, currentStatusFilter, currentPeriod, 5000);
-                    const newOrders = filteredData.orders || [];
-                    const account = filteredData.account || {};
+            if (!navigator.onLine) {
+                useLocalOrders();
+                return;
+            }
 
-                    currentOrders = newOrders;
-                    if (account.balance !== undefined) {
-                        totalBalance = account.balance;
-                        localStorage.setItem('driverBalance', totalBalance.toString());
-                        updateBalanceDisplay();
-                    }
+            try {
+                const filteredData = await fetchDriverOrders(
+                    driverId, 1, currentStatusFilter, currentPeriod, 5000
+                );
+                const serverOrders = filteredData.orders || [];
+                const account = filteredData.account || {};
+                const mergedOrders = await applyPendingOperationsToOrders(serverOrders);
 
-                    const filteredFinal = filterOrdersByPeriod(currentOrders, currentPeriod)
-                        .filter(o => currentStatusFilter ? o.status === currentStatusFilter : true);
-                    renderOrders(filteredFinal);
+                currentOrders = mergedOrders;
 
-                    // تحديث الملخص إن وجد
-                    const summaryValue = document.getElementById('periodSummaryValue');
-                    const ordersCount = document.getElementById('periodOrdersCount');
-                    if (summaryValue) {
-                        const summaryData = await fetchDriverSummary(driverId, currentPeriod === 'all' ? 'week' : currentPeriod);
-                        summaryValue.textContent = summaryData.total_fees.toFixed(2) + ' ريال';
-                        if (ordersCount) ordersCount.textContent = `(${summaryData.orders_count || 0} طلب)`;
-                    }
-                    hideOfflineNotice();
-                } catch (err) {
-                    console.warn('فشل تحديث الطلبات، نعرض المخزون المحلي', err);
-                    useLocalOrders();
+                const db = await openDB();
+                const tx = db.transaction(STORES.ORDERS, 'readwrite');
+                const store = tx.objectStore(STORES.ORDERS);
+                for (const order of mergedOrders) {
+                    if (!order.driver_id) order.driver_id = Number(driverId);
+                    await new Promise((resolve, reject) => {
+                        const request = store.put(order);
+                        request.onsuccess = resolve;
+                        request.onerror = () => reject(request.error);
+                    });
                 }
-            } else {
+                await new Promise((resolve, reject) => {
+                    tx.oncomplete = resolve;
+                    tx.onerror = () => reject(tx.error);
+                    tx.onabort = () => reject(tx.error);
+                });
+
+                if (account.balance !== undefined) {
+                    totalBalance = account.balance;
+                    localStorage.setItem('driverBalance', String(totalBalance));
+                    updateBalanceDisplay();
+                }
+
+                const filteredFinal = filterOrdersByPeriod(currentOrders, currentPeriod)
+                    .filter(order => currentStatusFilter ? order.status === currentStatusFilter : true);
+                renderOrders(filteredFinal);
+                hideOfflineNotice();
+            } catch (err) {
+                console.warn('فشل تحديث الطلبات، سيتم عرض البيانات المحلية:', err);
                 useLocalOrders();
             }
         }
@@ -1228,14 +1275,13 @@ const registration = await navigator.serviceWorker.register('./sw.js', { scope: 
                 try {
                     await loadInitialData();
                     const filteredData = await fetchDriverOrders(driverId, 1, currentStatusFilter, currentPeriod, 5000);
-                    const newOrders = filteredData.orders || [];
+                    const newOrders = await applyPendingOperationsToOrders(filteredData.orders || []);
                     const account = filteredData.account || {};
 
                     // تحديث IndexedDB
                     const db = await openDB();
                     let tx = db.transaction(STORES.ORDERS, 'readwrite');
                     let store = tx.objectStore(STORES.ORDERS);
-                    await store.clear();
                     for (const order of newOrders) {
                         if (!order.driver_id) order.driver_id = parseInt(driverId);
                         await store.put(order);
@@ -1920,8 +1966,10 @@ function useLocalOrdersForDashboard() {
                     if (response.order) {
                         const serverOrder = response.order;
                         const idx = currentOrders.findIndex(o => o.id === orderId);
-                        if (idx !== -1) currentOrders[idx] = serverOrder;
-                        else currentOrders.push(serverOrder);
+                        const confirmedOrder = { ...serverOrder, _pendingSync: false };
+                        if (idx !== -1) currentOrders[idx] = confirmedOrder;
+                        else currentOrders.push(confirmedOrder);
+                        await updateOrderLocally(confirmedOrder);
                     }
                     if (response.balance !== undefined) {
                         totalBalance = response.balance;
@@ -2149,10 +2197,9 @@ function useLocalOrdersForDashboard() {
                     }
 
                     if (!success) {
-                        await deleteOperation(op.id);
-                        cancelledCount++;
-                        console.warn(`تم إلغاء العملية ${op.id} بعد فشل محاولتين`);
-                        showToast(`⚠️ تم إلغاء مزامنة الطلب #${data.order_id} بعد فشل محاولتين`);
+                        failedCount++;
+                        console.warn(`تعذرت مزامنة العملية ${op.id}، ستتم إعادة المحاولة لاحقاً`);
+                        showToast(`⚠️ تعذرت مزامنة الطلب #${data.order_id}، تم الاحتفاظ بالتحديث محلياً`);
                     }
                 }
 
