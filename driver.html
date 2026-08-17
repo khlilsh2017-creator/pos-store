@@ -556,21 +556,26 @@ const registration = await navigator.serviceWorker.register('./sw.js', { scope: 
         }
 
         function setupSWMessageListener() {
-            if (!navigator.serviceWorker) return;
-            navigator.serviceWorker.addEventListener('message', event => {
-                if (event.data && event.data.type === 'NEW_NOTIFICATION') {
-                    const payload = event.data.payload || {};
-                    showToast(`📩 ${payload.title || 'إشعار'}: ${payload.body || ''}`);
-                    // تحديث القائمة فوراً
-                    refreshOrders();
-                    // إذا تضمن الإشعار order_id، نعرض النافذة المنبثقة
-                    if (payload.order_id) {
-                        const orderId = parseInt(payload.order_id);
-                        showOrderUpdateDialog(orderId);
-                    }
-                }
-            });
+    if (!navigator.serviceWorker) return;
+    navigator.serviceWorker.addEventListener('message', event => {
+        // معالجة الإشعارات الجديدة
+        if (event.data && event.data.type === 'NEW_NOTIFICATION') {
+            const payload = event.data.payload || {};
+            showToast(`📩 ${payload.title || 'إشعار'}: ${payload.body || ''}`);
+            refreshOrders(); // تحديث القائمة فوراً
+            if (payload.order_id) {
+                showOrderUpdateDialog(payload.order_id);
+            }
         }
+        // معالجة فتح طلب محدد من الإشعار
+        if (event.data && event.data.type === 'OPEN_ORDER') {
+            const orderId = parseInt(event.data.order_id);
+            if (orderId) {
+                showOrderUpdateDialog(orderId); // أو يمكنك استدعاء viewOrder(orderId) مباشرة
+            }
+        }
+    });
+}
 
         async function initializePushNotifications() {
             try {
@@ -1260,20 +1265,39 @@ const registration = await navigator.serviceWorker.register('./sw.js', { scope: 
             await updateSyncCounter();
         }
 
-        function useLocalOrdersForDashboard() {
-            const driverId = getDriverId();
-            if (!driverId) return;
-            getAll(STORES.ORDERS).then(localOrders => {
-                currentOrders = localOrders.filter(o => o.driver_id == driverId);
-                const savedBalance = parseFloat(localStorage.getItem('driverBalance')) || 0;
-                totalBalance = savedBalance;
-                const filteredFinal = filterOrdersByPeriod(currentOrders, currentPeriod)
-                    .filter(o => currentStatusFilter ? o.status === currentStatusFilter : true);
-                renderDashboard({}, savedBalance, filteredFinal, filteredFinal.length);
-                showOfflineNotice();
-            });
+function useLocalOrdersForDashboard() {
+    const driverId = getDriverId();
+    if (!driverId) return;
+    getAll(STORES.ORDERS).then(localOrders => {
+        const driverOrders = localOrders.filter(o => o.driver_id == driverId);
+        if (driverOrders.length === 0) {
+            // لا توجد بيانات محلية، اعرض رسالة واضحة
+            document.getElementById('mainContent').innerHTML = `
+                <div id="syncStatus" class="sync-status hidden">
+                    <span>🔄 جاري المزامنة...</span>
+                    <span class="sync-count" id="syncCount">0</span>
+                    <span>عملية معلقة</span>
+                </div>
+                <div class="empty-state">
+                    <span class="empty-icon">📴</span>
+                    <span>لا توجد طلبات مخزنة محلياً. يرجى الاتصال بالإنترنت لتحميل الطلبات.</span>
+                    <br><br>
+                    <button class="btn btn-primary" onclick="loadDashboard()">🔄 إعادة المحاولة</button>
+                </div>
+            `;
+            document.getElementById('pageTitle').textContent = '📦 طلباتي';
+            updateSyncCounter();
+            return;
         }
-
+        currentOrders = driverOrders;
+        const savedBalance = parseFloat(localStorage.getItem('driverBalance')) || 0;
+        totalBalance = savedBalance;
+        const filteredFinal = filterOrdersByPeriod(currentOrders, currentPeriod)
+            .filter(o => currentStatusFilter ? o.status === currentStatusFilter : true);
+        renderDashboard({}, savedBalance, filteredFinal, filteredFinal.length);
+        showOfflineNotice();
+    });
+}
         async function loadPeriodSummary(driverId, period) {
             try {
                 const data = await fetchDriverSummary(driverId, period === 'all' ? 'week' : period);
