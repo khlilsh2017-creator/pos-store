@@ -400,7 +400,7 @@
         async function registerServiceWorker() {
             try {
                // بدلاً من { scope: '/' } استخدم مسار التطبيق
-const registration = await navigator.serviceWorker.register('./firebase-messaging-sw.js', { scope: '/driver' });
+const registration = await navigator.serviceWorker.register('./sw.js', { scope: '/driver' });
 
 
                 console.log('✅ تم تسجيل Firebase Service Worker');
