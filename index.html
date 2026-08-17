@@ -1524,21 +1524,5 @@ messaging.onMessage((payload) => {
         window.toggleTheme = toggleTheme;
         window.registerAdminNotifications = registerAdminNotifications;
     </script>
-<script>
-if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.getRegistrations().then(function(registrations) {
-        for (let registration of registrations) {
-            // أمر إجباري بحذف أي Service Worker قديم ومسح الكاش
-            registration.unregister().then(function(isUnregistered) {
-                if (isUnregistered) {
-                    console.log('🧹 تم تنظيف الـ Service Worker القديم بنجاح!');
-                    // إعادة تحميل الصفحة لتعمل بشكل طبيعي
-                    window.location.reload(true);
-                }
-            });
-        }
-    });
-}
-</script>
 </body>
 </html>
