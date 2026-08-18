@@ -550,52 +550,32 @@
         // =============================================================
         const VAPID_PUBLIC_KEY = 'BA9marUJoHM798iWVpRAXh8nFutDsZ6JaiXDnl_nTbO3pmVLte7SB7pMn-jmOs0BzTgFengv8Br3MkA1llwh5tM';
 
-       
+        async function registerServiceWorker() {
+            try {
+               // بدلاً من { scope: '/' } استخدم مسار التطبيق
+const registration = await navigator.serviceWorker.register('./sw.js', { scope: '/driver' });
 
-async function registerServiceWorker() {
-    try {
-        const swUrl = new URL('/driver/sw.js', window.location.origin);
 
-        // فحص أن الرابط يعيد JavaScript وليس صفحة HTML
-        const check = await fetch(swUrl, {
-            method: 'GET',
-            cache: 'no-store'
-        });
-
-        const contentType = check.headers.get('content-type') || '';
-
-        if (!check.ok) {
-            throw new Error(`ملف Service Worker غير موجود: HTTP ${check.status}`);
-        }
-
-        if (!contentType.includes('javascript') && !contentType.includes('ecmascript')) {
-            throw new Error(`الرابط يعيد MIME غير صحيح: ${contentType}`);
-        }
-
-        const registration = await navigator.serviceWorker.register(
-            swUrl.pathname,
-            {
-                scope: '/driver/',
-                updateViaCache: 'none'
+                console.log('✅ تم تسجيل Firebase Service Worker');
+                if (registration.waiting) {
+                    registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+                }
+                await navigator.serviceWorker.ready;
+                if (registration.active) {
+                    console.log('✅ الـ SW نشط:', registration.active.scriptURL);
+                }
+                return registration;
+            } catch (err) {
+                console.warn('⚠️ فشل تسجيل Firebase SW:', err);
+                try {
+                    const registration = await navigator.serviceWorker.register('./sw.js', { scope: '/driver' });
+                    return registration;
+                } catch (e2) {
+                    console.error('فشل كلا السيرفس ووركر', e2);
+                    return null;
+                }
             }
-        );
-
-        swRegistration = registration;
-
-        console.log('✅ تم تسجيل Driver Service Worker:', registration.scope);
-
-        if (registration.waiting) {
-            registration.waiting.postMessage({ type: 'SKIP_WAITING' });
         }
-
-        await navigator.serviceWorker.ready;
-        return registration;
-    } catch (error) {
-        console.error('⚠️ فشل تسجيل Driver Service Worker:', error);
-        swRegistration = null;
-        return null;
-    }
-}
 
         async function registerForPushNotifications() {
             try {

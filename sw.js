@@ -5,7 +5,7 @@
 const CACHE_NAME = 'ibn-mukhtar-pos-v23';
 const STATIC_CACHE = 'ibn-mukhtar-static-v23';
 const DYNAMIC_CACHE = 'ibn-mukhtar-dynamic-v23';
-const VERSION = '2025-02-17-006';
+const VERSION = '2025-02-17-009';
 
 const STATIC_ASSETS = [
     '/',
