@@ -350,9 +350,12 @@ async function syncAllOperations(apiUrl, token) {
 function initOfflineSystem(apiUrl, token) {
   // تسجيل Service Worker
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js')
-      .then(reg => console.log('✅ Service Worker مسجل'))
-      .catch(err => console.warn('❌ فشل تسجيل SW', err));
+    navigator.serviceWorker.register('/driver/sw_driver.js', {
+      scope: '/driver/',
+      updateViaCache: 'none'
+    })
+      .then(reg => console.log('✅ Driver Service Worker مسجل:', reg.scope))
+      .catch(err => console.warn('❌ فشل تسجيل Driver SW', err));
   }
 
   // مزامنة فورية عند الاتصال
