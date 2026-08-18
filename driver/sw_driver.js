@@ -493,13 +493,13 @@ self.addEventListener('push', event => {
   let notificationData = {
     title: '📦 ابن مختار – المندوب',
     body: 'لديك إشعار جديد',
-    link: '/driver.html',
-    icon: '/icon-192x192.png',
-    badge: '/icon-192x192.png',
+    link: '/driver/driver.html',
+    icon: '/driver/icon-192x192.png',
+    badge: '/driver/icon-192x192.png',
     vibrate: [200, 100, 200],
     tag: 'default',
     requireInteraction: true,
-    data: { link: '/driver.html' }
+    data: { link: '/driver/driver.html' }
   };
   let orderId = null;
 
@@ -605,7 +605,7 @@ self.addEventListener('notificationclick', event => {
   const notification = event.notification;
   notification.close();
 
-  let link = '/driver.html';
+  let link = '/driver/driver.html';
   let orderId = null;
 
   if (notification.data) {
