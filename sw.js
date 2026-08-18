@@ -2,10 +2,10 @@
 // 🏢 Service Worker - نظام ابن مختار (الإصدار النهائي v19)
 // ============================================================
 
-const CACHE_NAME = 'ibn-mukhtar-pos-v24';
-const STATIC_CACHE = 'ibn-mukhtar-static-v24';
-const DYNAMIC_CACHE = 'ibn-mukhtar-dynamic-v24';
-const VERSION = '2025-02-18-015';
+const CACHE_NAME = 'ibn-mukhtar-pos-v25';
+const STATIC_CACHE = 'ibn-mukhtar-static-v25';
+const DYNAMIC_CACHE = 'ibn-mukhtar-dynamic-v25';
+const VERSION = '2025-02-18-016';
 
 const STATIC_ASSETS = [
     '/',
