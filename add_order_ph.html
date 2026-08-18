@@ -9,7 +9,7 @@
     <meta name="theme-color" content="#1a56db" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    
+    <link rel="manifest" href="manifest.json" />
     <title>طلب إنترنت - الجوال</title>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
@@ -1512,12 +1512,6 @@
                 <textarea id="notes" class="input-field input-field-sm" rows="2"></textarea>
             </div>
 
-            <!-- تاريخ ووقت الطلب -->
-            <div style="margin-top:6px;">
-                <label style="font-size:0.65rem;font-weight:600;">تاريخ ووقت الطلب (اختياري)</label>
-                <input type="datetime-local" id="order_date" class="input-field input-field-sm" />
-            </div>
-
             <!-- المندوب -->
             <div style="margin-top:6px;">
                 <label style="font-size:0.65rem;font-weight:600;">المندوب (اختياري)</label>
@@ -1949,7 +1943,7 @@
         //  INDEXEDDB
         // ================================================================
         const DB_NAME = 'IbnMukhtarPOS';
-        const DB_VERSION = 10;
+        const DB_VERSION = 8;
 
         function openDB() {
             return new Promise((resolve, reject) => {
@@ -2340,163 +2334,138 @@
         function applyFilters() {
             // تم دمجها مع triggerSearch
         }
-// أضف هذا المتغير في بداية قسم الـ script (أو قبل الدالة مباشرة)
-// تأكد من وجود هذا المتغير خارج الدالة (في أعلى السكربت)
-let fetchAbortController = null;
 
-async function fetchProducts(search = '', categoryId = null) {
-    setProgress(20);
-    if (search !== undefined) currentSearch = search;
-    if (categoryId !== undefined) selectedCategoryId = categoryId;
-    saveFilterState();
+        async function fetchProducts(search = '', categoryId = null) {
+            setProgress(20);
+            if (search !== undefined) currentSearch = search;
+            if (categoryId !== undefined) selectedCategoryId = categoryId;
+            saveFilterState();
 
-    const grid = document.getElementById('products-grid');
-    const countLabel = document.getElementById('products-count-label');
-    const dropdown = document.getElementById('search-dropdown');
+            const grid = document.getElementById('products-grid');
+            const countLabel = document.getElementById('products-count-label');
+            const dropdown = document.getElementById('search-dropdown');
 
-    // 1. إلغاء أي طلب بحث سابق ما زال قيد التنفيذ (لمنع التداخل)
-    if (fetchAbortController) {
-        fetchAbortController.abort();
-    }
-    fetchAbortController = new AbortController();
-    const signal = fetchAbortController.signal;
-
-    // --- حالة البحث أقل من 4 أحرف ---
-    if (currentSearch.length > 0 && currentSearch.length < 4) {
-        if (dropdown) dropdown.style.display = 'none';
-        if (grid) {
-            grid.innerHTML = `
-                <div class="empty-state" style="grid-column:1/-1;">
-                    <i class="fas fa-info-circle"></i>
-                    <p>اكتب 4 أحرف على الأقل لبدء البحث</p>
-                </div>
-            `;
-        }
-        if (countLabel) countLabel.textContent = 'اكتب 4 أحرف للبحث';
-        setProgress(100);
-        setTimeout(() => setProgress(0), 500);
-        return;
-    }
-
-    // --- حالة عرض كل المنتجات (لا يوجد بحث) ---
-    if (currentSearch.length === 0) {
-        if (dropdown) dropdown.style.display = 'none';
-        
-        // استرجاع المنتجات من الذاكرة المحلية لتجنب إرهاق السيرفر
-        const localProducts = await getLocalProducts();
-        
-        // إذا كان هناك منتجات محفوظة محلياً، اعرضها فوراً ولا تتصل بالسيرفر (سرعة خيالية وتخفيف للضغط)
-        if (localProducts.length > 0) {
-            productsCache = localProducts;
-            let filtered = localProducts;
-            if (selectedCategoryId) {
-                filtered = filtered.filter(p => p.category_id == selectedCategoryId);
+            // إذا كان البحث أقل من 4 أحرف، نخفي القائمة ونعرض رسالة في الشبكة
+            if (currentSearch.length > 0 && currentSearch.length < 4) {
+                if (dropdown) dropdown.style.display = 'none';
+                if (grid) {
+                    grid.innerHTML = `
+                        <div class="empty-state" style="grid-column:1/-1;">
+                            <i class="fas fa-info-circle"></i>
+                            <p>اكتب 4 أحرف على الأقل لبدء البحث</p>
+                        </div>
+                    `;
+                }
+                if (countLabel) countLabel.textContent = 'اكتب 4 أحرف للبحث';
+                setProgress(100);
+                setTimeout(() => setProgress(0), 500);
+                return;
             }
-            renderProductsGrid(filtered);
-            if (countLabel) countLabel.textContent = `عدد المنتجات: ${filtered.length}`;
-            
-            setProgress(100);
-            setTimeout(() => setProgress(0), 500);
-            return; // إنهاء الدالة هنا لمنع الاتصال بالسيرفر
-        }
 
-        // إذا لم تكن موجودة محلياً (أول مرة يفتح التطبيق أو بعد الضغط على تحديث)
-        if (!navigator.onLine) {
-            if (countLabel) countLabel.textContent = `عدد المنتجات: 0`;
-        } else {
+            // إذا كان هناك بحث نشط، نعرض النتائج في dropdown ولا نغير الشبكة (نتركها كما هي أو نخفيها)
+            // لكن نترك الشبكة كما هي (مع الحفاظ على حالة الإخفاء) ونعرض نتائج البحث في dropdown فقط.
+            // إذا لم يكن هناك بحث، نعرض الشبكة بشكل طبيعي ونخفي dropdown.
+
+            if (currentSearch.length === 0) {
+                // لا يوجد بحث: نخفي dropdown ونعرض الشبكة
+                if (dropdown) dropdown.style.display = 'none';
+                // نعيد تحميل الشبكة بالمنتجات الكاملة (حسب التصنيف)
+                if (!navigator.onLine) {
+                    const localProducts = await getLocalProducts();
+                    productsCache = localProducts;
+                    let filtered = localProducts;
+                    if (selectedCategoryId) {
+                        filtered = filtered.filter(p => p.category_id == selectedCategoryId);
+                    }
+                    renderProductsGrid(filtered);
+                    if (countLabel) countLabel.textContent = `عدد المنتجات: ${filtered.length}`;
+                } else {
+                    try {
+                        let url = `${API}/products?limit=3000`;
+                        if (selectedCategoryId) url += `&category_id=${selectedCategoryId}`;
+                        if (currentSort) url += `&sort=${encodeURIComponent(currentSort)}`;
+                        const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
+                        const data = await res.json();
+                        productsCache = data.products || [];
+                        await saveProductsToLocal(productsCache);
+                        renderProductsGrid(productsCache);
+                        if (countLabel) countLabel.textContent = `عدد المنتجات: ${productsCache.length}`;
+                    } catch (err) {
+                        const localProducts = await getLocalProducts();
+                        productsCache = localProducts;
+                        renderProductsGrid(localProducts);
+                        if (countLabel) countLabel.textContent = `عدد المنتجات: ${localProducts.length} (محلي)`;
+                        showToast('فشل تحميل المنتجات، عرض محلي', 'warning');
+                    }
+                }
+                setProgress(100);
+                setTimeout(() => setProgress(0), 500);
+                return;
+            }
+
+            // هنا لدينا بحث (أكثر من 4 أحرف)
+            // نعرض النتائج في dropdown ونخفي الشبكة إذا كانت ظاهرة (أو نبقيها كما هي حسب رغبة المستخدم)
+            // لكننا لا نخفي الشبكة بالقوة، نتركها كما هي (قد تكون مخفية بواسطة زر الإخفاء)
+            // نعرض dropdown مع النتائج
+
+            if (!navigator.onLine) {
+                const localProducts = await getLocalProducts();
+                productsCache = localProducts;
+                let filtered = localProducts;
+                if (currentSearch) {
+                    filtered = filtered.filter(p =>
+                        (p.name && p.name.toLowerCase().includes(currentSearch.toLowerCase())) ||
+                        (p.barcode && p.barcode.includes(currentSearch))
+                    );
+                }
+                if (selectedCategoryId) {
+                    filtered = filtered.filter(p => p.category_id == selectedCategoryId);
+                }
+                renderSearchDropdown(filtered);
+                // لا نغير الشبكة
+                if (countLabel) countLabel.textContent = `عدد المنتجات: ${filtered.length} (نتائج البحث)`;
+                setProgress(100);
+                setTimeout(() => setProgress(0), 500);
+                return;
+            }
+
             try {
                 let url = `${API}/products?limit=3000`;
+                if (currentSearch) url += `&search=${encodeURIComponent(currentSearch)}`;
                 if (selectedCategoryId) url += `&category_id=${selectedCategoryId}`;
                 if (currentSort) url += `&sort=${encodeURIComponent(currentSort)}`;
-                url += `&_t=${new Date().getTime()}`; // كسر الكاش
-
-                const res = await fetch(url, { 
-                    headers: { 'Authorization': `Bearer ${token}` },
-                    signal: signal 
-                });
+                const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
                 const data = await res.json();
                 productsCache = data.products || [];
-                
-                // حفظ البيانات محلياً لاستخدامها لاحقاً
                 await saveProductsToLocal(productsCache);
-                
-                renderProductsGrid(productsCache);
-                if (countLabel) countLabel.textContent = `عدد المنتجات: ${productsCache.length}`;
+                // عرض النتائج في dropdown
+                renderSearchDropdown(productsCache);
+                // تحديث عدد المنتجات في التسمية (اختياري)
+                if (countLabel) countLabel.textContent = `عدد المنتجات: ${productsCache.length} (نتائج البحث)`;
+                setProgress(100);
+                setTimeout(() => setProgress(0), 500);
             } catch (err) {
-                if (err.name === 'AbortError') return; 
-                renderProductsGrid(localProducts);
-                showToast('فشل تحميل المنتجات', 'warning');
+                const localProducts = await getLocalProducts();
+                productsCache = localProducts;
+                let filtered = localProducts;
+                if (currentSearch) {
+                    filtered = filtered.filter(p =>
+                        (p.name && p.name.toLowerCase().includes(currentSearch.toLowerCase())) ||
+                        (p.barcode && p.barcode.includes(currentSearch))
+                    );
+                }
+                if (selectedCategoryId) {
+                    filtered = filtered.filter(p => p.category_id == selectedCategoryId);
+                }
+                renderSearchDropdown(filtered);
+                if (countLabel) countLabel.textContent = `عدد المنتجات: ${filtered.length} (محلي - نتائج البحث)`;
+                showToast('فشل تحميل المنتجات، عرض محلي', 'warning');
+                setProgress(100);
+                setTimeout(() => setProgress(0), 500);
             }
         }
-        setProgress(100);
-        setTimeout(() => setProgress(0), 500);
-        return;
-    }
 
-    // --- حالة وجود بحث (4 أحرف أو أكثر) ---
-    if (!navigator.onLine) {
-        const localProducts = await getLocalProducts();
-        productsCache = localProducts;
-        let filtered = localProducts;
-        if (currentSearch) {
-            filtered = filtered.filter(p =>
-                (p.name && p.name.toLowerCase().includes(currentSearch.toLowerCase())) ||
-                (p.barcode && p.barcode.includes(currentSearch))
-            );
-        }
-        if (selectedCategoryId) {
-            filtered = filtered.filter(p => p.category_id == selectedCategoryId);
-        }
-        renderSearchDropdown(filtered);
-        if (countLabel) countLabel.textContent = `عدد المنتجات: ${filtered.length} (نتائج البحث)`;
-        setProgress(100);
-        setTimeout(() => setProgress(0), 500);
-        return;
-    }
-
-    try {
-        let url = `${API}/products?limit=3000`;
-        if (currentSearch) url += `&search=${encodeURIComponent(currentSearch)}`;
-        if (selectedCategoryId) url += `&category_id=${selectedCategoryId}`;
-        if (currentSort) url += `&sort=${encodeURIComponent(currentSort)}`;
-        url += `&_t=${new Date().getTime()}`; // كسر الكاش
-
-        const res = await fetch(url, { 
-            headers: { 'Authorization': `Bearer ${token}` },
-            signal: signal
-        });
-        const data = await res.json();
-        productsCache = data.products || [];
-        
-        // لا نستخدم saveProductsToLocal هنا لمنع تسمم قاعدة البيانات المحلية بنتائج البحث
-        
-        renderSearchDropdown(productsCache);
-        if (countLabel) countLabel.textContent = `عدد المنتجات: ${productsCache.length} (نتائج البحث)`;
-        setProgress(100);
-        setTimeout(() => setProgress(0), 500);
-    } catch (err) {
-        if (err.name === 'AbortError') return; // تجاهل خطأ الإلغاء المتعمد
-
-        // العمل من التخزين المحلي في حالة فشل الاتصال أثناء البحث
-        const localProducts = await getLocalProducts();
-        productsCache = localProducts;
-        let filtered = localProducts;
-        if (currentSearch) {
-            filtered = filtered.filter(p =>
-                (p.name && p.name.toLowerCase().includes(currentSearch.toLowerCase())) ||
-                (p.barcode && p.barcode.includes(currentSearch))
-            );
-        }
-        if (selectedCategoryId) {
-            filtered = filtered.filter(p => p.category_id == selectedCategoryId);
-        }
-        renderSearchDropdown(filtered);
-        if (countLabel) countLabel.textContent = `عدد المنتجات: ${filtered.length} (محلي - نتائج البحث)`;
-        showToast('فشل تحميل المنتجات، عرض محلي', 'warning');
-        setProgress(100);
-        setTimeout(() => setProgress(0), 500);
-    }
-}
+        // دالة لعرض نتائج البحث في القائمة المنسدلة
         function renderSearchDropdown(products) {
             const dropdown = document.getElementById('search-dropdown');
             if (!dropdown) return;
@@ -3414,7 +3383,6 @@ function resetOrderForm() {
     setElementValue('paid-amount', 0);
     setElementValue('deliveryFee', 0);
     setElementValue('notes', '');
-    setElementValue('order_date', '');
     setElementValue('payment-method', 'عند الاستلام');
     setElementText('page-subtitle', 'جديد');
     
@@ -3531,16 +3499,7 @@ function resetOrderForm() {
         
         document.getElementById('deliveryFee').value = order.delivery_fee || 0;
         document.getElementById('deliveryFeePayment').value = order.delivery_fee_payment || 'مع الطلب';
-                document.getElementById('notes').value = order.notes || '';
-        if (order.order_date) {
-            try {
-                const d = new Date(order.order_date);
-                const tzoffset = d.getTimezoneOffset() * 60000;
-                const localISOTime = (new Date(d - tzoffset)).toISOString().slice(0, 16);
-                const orderDateInput = document.getElementById('order_date');
-                if (orderDateInput) orderDateInput.value = localISOTime;
-            } catch (e) {}
-        }
+        document.getElementById('notes').value = order.notes || '';
         
         // --- 1. تحميل المحافظ والعملات أولاً لضمان عدم مسح البيانات لاحقاً ---
         if (currenciesCache.length === 0) { await loadCurrencies(); populateCurrencySelects(); }
@@ -3798,10 +3757,6 @@ function resetOrderForm() {
         discount: discount,
         discount_amount: discountAmount ,
         discount_type: discountType, // <--- أضف هذا السطر
-        order_date: (() => {
-            const value = document.getElementById('order_date')?.value;
-            return value ? new Date(value).toISOString().slice(0, 19).replace('T', ' ') : undefined;
-        })(),
     };
 
     const btn = document.querySelector('.bottom-actions .btn-success');
@@ -3836,7 +3791,10 @@ function resetOrderForm() {
             showToast(`✅ ${editingOrderId ? 'تم تحديث' : 'تم حفظ'} الطلب ${orderId || ''}`, 'success');
             playSuccessSound();
 
-            // === 1. مسح المسودة من القائمة بعد إتمام الطلب بنجاح ===
+            // === مسح المسودة المحفوظة محلياً بعد إتمام الطلب بنجاح ===
+            
+
+            // === مسح المسودة من القائمة بعد إتمام الطلب بنجاح ===
             if (currentDraftId) {
                 let drafts = JSON.parse(localStorage.getItem('pos_drafts_list') || '[]');
                 drafts = drafts.filter(d => d.id !== currentDraftId);
@@ -3844,15 +3802,8 @@ function resetOrderForm() {
                 currentDraftId = null; // تصفير الـ ID
             }
 
-            // === 2. إنشاء الفاتورة التلقائي (يجب أن يكون قبل تفريغ الفورم) ===
-            if (generateInvoice) {
-                await printOrderSummary(false); // الانتظار حتى يكتمل إنشاء الـ PDF
-            }
-
-            // === 3. إعادة تعيين النموذج وتحديث المنتجات ===
             resetOrderForm();
             fetchProducts(currentSearch, selectedCategoryId);
-            
         } else { 
             showToast(data.error || 'فشل حفظ الطلب', 'error');
             playErrorSound(); 
@@ -3878,29 +3829,16 @@ function resetOrderForm() {
             return resolve();
         }
         
-        // --- 1. جلب عملة الطلب وسعر الصرف ---
-        const orderCurrencyId = parseInt(document.getElementById('order-currency-select')?.value);
-        const currencyCode = orderCurrencyId ? getCurrencyCode(orderCurrencyId) : 'ريال';
-        const rate = orderCurrencyId ? getCurrencyRate(orderCurrencyId) : 1;
-
         const shopName = localStorage.getItem('shop_name') || 'ابن المختار للأدوات المنزلية';
         const shopPhone = localStorage.getItem('shop_phone') || '773266534';
-        
-        // --- 2. حساب المبالغ بالعملة الأساسية (ريال) ---
-        const rawSubtotal = cart.reduce((s, i) => s + ((i.price || 0) - (i.discount || 0)) * i.quantity, 0);
-        const rawDiscount = parseFloat(document.getElementById('cart-discount')?.value) || 0;
+        const subtotal = cart.reduce((s, i) => s + ((i.price || 0) - (i.discount || 0)) * i.quantity, 0);
+        const discount = parseFloat(document.getElementById('cart-discount')?.value) || 0;
         const discountType = document.getElementById('discount-type')?.value || 'fixed';
-        let rawDiscountAmount = discountType === 'percentage' ? rawSubtotal * (rawDiscount / 100) : rawDiscount;
-        const rawFee = parseFloat(document.getElementById('deliveryFee')?.value) || 0;
+        let discountAmount = discountType === 'percentage' ? subtotal * (discount / 100) : discount;
+        const fee = parseFloat(document.getElementById('deliveryFee')?.value) || 0;
         const feePaidWithOrder = document.getElementById('deliveryFeePayment')?.value === 'مع الطلب';
-        const rawTotal = Math.max(0, rawSubtotal - rawDiscountAmount + (feePaidWithOrder ? rawFee : 0));
+        const total = Math.max(0, subtotal - discountAmount + (feePaidWithOrder ? fee : 0));
         
-        // --- 3. تحويل المبالغ لعملة الطلب المحددة ---
-        const subtotal = rawSubtotal / rate;
-        const discountAmount = rawDiscountAmount / rate;
-        const fee = rawFee / rate;
-        const total = rawTotal / rate;
-
         const customerName = selectedCustomerData ? (selectedCustomerData.name || selectedCustomerData.mainPhone) : 'غير محدد';
         const customerPhone = selectedCustomerData ? [selectedCustomerData.mainPhone, ...(selectedCustomerData.extraPhones || [])].filter(Boolean).join(' - ') : '';
         const customerAddress = selectedCustomerData ? selectedCustomerData.address : '';
@@ -3909,7 +3847,9 @@ function resetOrderForm() {
         let paymentDetailsHtml = '';
 
         if (paymentMethod === 'عند الاستلام') {
-            paymentDetailsHtml = `عملة الطلب: ${currencyCode}`;
+            const orderCurrencyId = parseInt(document.getElementById('order-currency-select')?.value);
+            const orderCurrencyCode = orderCurrencyId ? getCurrencyCode(orderCurrencyId) : 'ريال';
+            paymentDetailsHtml = `عملة الطلب: ${orderCurrencyCode}`;
         } else if (paymentMethod === 'مدفوع مسبقاً (محفظة)') {
             const walletCurrencyId = parseInt(document.getElementById('wallet-currency-select')?.value);
             const walletCurrencyCode = walletCurrencyId ? getCurrencyCode(walletCurrencyId) : 'ريال';
@@ -3926,8 +3866,9 @@ function resetOrderForm() {
             paymentDetailsHtml = detailsArr.length > 0 ? detailsArr.join(' | ') : 'لم يتم تحديد المبلغ';
         }
 
-        // تحديد العنوان واسم الملف بناءً على ما إذا كانت مسودة أم لا
-        const titleText = isDraft ? "فاتورة مبدئية (مسودة)" : escapeHTML(shopName);
+        
+        const titleText = isDraft ? " ابن المختار للادوات المنزليه " : escapeHTML(shopName);
+        
         const orderIdRaw = document.getElementById('display-order-id')?.innerText;
         const orderIdForName = (orderIdRaw && orderIdRaw !== '--') ? orderIdRaw : 'جديد';
         const fileName = isDraft ? `مسودة_طلب_${new Date().getTime()}.pdf` : `فاتورة_رقم_${orderIdForName}.pdf`;
@@ -3966,15 +3907,14 @@ function resetOrderForm() {
                             <th style="padding:12px 5px; text-align:right; width:5%;">#</th>
                             <th style="padding:12px 5px; text-align:right; width:45%;">الصنف</th>
                             <th style="padding:12px 5px; text-align:center; width:15%;">الكمية</th>
-                            <th style="padding:12px 5px; text-align:center; width:15%;">السعر (${currencyCode})</th>
-                            <th style="padding:12px 5px; text-align:center; width:20%;">الإجمالي (${currencyCode})</th>
+                            <th style="padding:12px 5px; text-align:center; width:15%;">السعر</th>
+                            <th style="padding:12px 5px; text-align:center; width:20%;">الإجمالي</th>
                         </tr>
                     </thead>
                     <tbody>
                         ${cart.map((item, i) => {
-                            // تحويل سعر المنتج وخصمه إلى عملة الطلب
-                            const itemPrice = (item.price || 0) / rate;
-                            const itemDiscount = (item.discount || 0) / rate;
+                            const itemPrice = item.price || 0;
+                            const itemDiscount = item.discount || 0;
                             const effectivePrice = itemPrice - itemDiscount;
                             const itemTotal = effectivePrice * item.quantity;
                             const discountHtml = itemDiscount > 0 ? `<br><span style="font-size:0.8rem; color:#dc2626;">(خصم: ${itemDiscount.toFixed(2)})</span>` : '';
@@ -3998,28 +3938,24 @@ function resetOrderForm() {
                             <table style="width:100%; border-collapse:collapse; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; font-size:1rem;">
                                 <tr>
                                     <td style="padding:10px; text-align:right; border-bottom:1px solid #e2e8f0;">المجموع:</td>
-                                    <td style="padding:10px; text-align:left; border-bottom:1px solid #e2e8f0;" dir="ltr">${subtotal.toFixed(2)} ${currencyCode}</td>
+                                    <td style="padding:10px; text-align:left; border-bottom:1px solid #e2e8f0;" dir="ltr">${subtotal.toFixed(2)} ريال</td>
                                 </tr>
                                 <tr>
                                     <td style="padding:10px; text-align:right; border-bottom:1px solid #e2e8f0; color:#dc2626;">الخصم الكلي:</td>
-                                    <td style="padding:10px; text-align:left; border-bottom:1px solid #e2e8f0; color:#dc2626;" dir="ltr">${discountAmount.toFixed(2)} ${currencyCode}</td>
+                                    <td style="padding:10px; text-align:left; border-bottom:1px solid #e2e8f0; color:#dc2626;" dir="ltr">${discountAmount.toFixed(2)} ريال</td>
                                 </tr>
                                 <tr>
                                     <td style="padding:10px; text-align:right; border-bottom:1px solid #e2e8f0;">رسوم التوصيل:</td>
-                                    <td style="padding:10px; text-align:left; border-bottom:1px solid #e2e8f0;" dir="ltr">${fee.toFixed(2)} ${currencyCode}</td>
+                                    <td style="padding:10px; text-align:left; border-bottom:1px solid #e2e8f0;" dir="ltr">${fee.toFixed(2)} ريال</td>
                                 </tr>
                                 <tr>
                                     <td style="padding:15px 10px; text-align:right; font-weight:bold; font-size:1.2rem; color:#1a56db;">الإجمالي:</td>
-                                    <td style="padding:15px 10px; text-align:left; font-weight:bold; font-size:1.2rem; color:#1a56db;" dir="ltr">${total.toFixed(2)} ${currencyCode}</td>
+                                    <td style="padding:15px 10px; text-align:left; font-weight:bold; font-size:1.2rem; color:#1a56db;" dir="ltr">${total.toFixed(2)} ريال</td>
                                 </tr>
                             </table>
                         </td>
                     </tr>
                 </table>
-                
-                <div style="text-align:center; font-size:1rem; color:#475569; margin-top:30px; border-top:1px solid #e2e8f0; padding-top:15px;">
-                    شكراً لتعاملكم معنا
-                </div>
             </div>
         `;
 
@@ -4449,19 +4385,15 @@ function deleteDraft(draftId) {
             const orderId = params.get('order_id');
             if (orderId) { setTimeout(() => { loadOrderForEdit(parseInt(orderId)); }, 500); }
 
-           if ('serviceWorker' in navigator) {
-    // إلغاء أي Service Worker قديم يسبب تعليق البيانات
-    navigator.serviceWorker.getRegistrations().then(function(registrations) {
-        for(let registration of registrations) {
-            registration.unregister();
-        }
-    });
-    
-    // تسجيله من جديد بعد تحديث الصفحة (اختياري)
-    try {
-        navigator.serviceWorker.register('./sw.js?v=' + new Date().getTime(), { scope: '/add_order_ph' });
-    } catch (error) {}
-}
+            if ('serviceWorker' in navigator) {
+                try {
+                    const registration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+                    console.log('Service Worker registered:', registration);
+                } catch (error) {
+                    console.log('Service Worker registration failed:', error);
+                }
+            }
+
             if ('Notification' in window && Notification.permission === 'default') {
                 Notification.requestPermission();
             }
