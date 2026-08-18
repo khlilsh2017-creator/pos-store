@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-   
-    <script src="html2canvas.min.js"></script>
+    <!-- مكتبة تحويل الفاتورة إلى صورة، يجب تحميلها قبل html2pdf -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <!-- استدعاء مكتبة PDF من جهازك / سيرفرك مباشرة -->
     <script src="html2pdf.bundle.min.js"></script>
     <link rel="manifest" href="manifest_pos_s.json" />
     <meta charset="UTF-8" />
@@ -1076,10 +1077,59 @@
             margin-top: 14px;
             flex-wrap: wrap;
         }
-        .modal-actions .btn {
+                .modal-actions .btn {
             flex: 1;
             min-width: 80px;
         }
+        .invoice-choice-box {
+            max-width: 460px;
+            padding: 18px;
+        }
+        .invoice-choice-intro {
+            text-align: center;
+            margin: 8px 0 16px;
+            color: var(--text-secondary);
+            line-height: 1.7;
+        }
+        .invoice-choice-actions {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+        }
+        .invoice-choice-actions .btn {
+            min-height: 48px;
+            width: 100%;
+            font-size: 0.95rem;
+        }
+        .invoice-generating-state {
+            display: none;
+            text-align: center;
+            padding: 18px 8px 6px;
+            color: var(--primary);
+            line-height: 1.8;
+        }
+        .invoice-generating-state.active {
+            display: block;
+        }
+        .invoice-generating-state i {
+            display: block;
+            font-size: 1.8rem;
+            margin-bottom: 8px;
+        }
+        @media (max-width: 480px) {
+            .modal-overlay { align-items: flex-end; padding: 0; }
+            .invoice-choice-box {
+                max-width: none;
+                border-radius: 18px 18px 0 0;
+                padding: 18px 14px calc(18px + var(--safe-bottom));
+            }
+            .invoice-choice-actions { grid-template-columns: 1fr 1fr; gap: 8px; }
+            .invoice-choice-actions .btn { min-height: 50px; font-size: 0.88rem; padding: 10px 6px; }
+        }
+        @media (max-width: 360px) {
+            .invoice-choice-actions { grid-template-columns: 1fr; }
+        }
+
         .form-group {
             margin-bottom: 10px;
         }
@@ -1602,17 +1652,24 @@
 
         <!-- نافذة خيارات الفاتورة بعد الحفظ -->
         <div class="modal-overlay" id="invoice-choice-modal">
-            <div class="modal-box">
+            <div class="modal-box invoice-choice-box">
                 <div class="modal-header">
                     <h3><i class="fas fa-file-invoice text-primary"></i> الطلب محفوظ</h3>
-                    <button class="close-btn" onclick="chooseInvoiceAction('skip')">&times;</button>
+                    <button class="close-btn" id="invoice-choice-close" onclick="chooseInvoiceAction('skip')" aria-label="إغلاق">&times;</button>
                 </div>
-                <p style="text-align:center; margin:10px 0 18px; color:var(--text-secondary);">هل تريد تحميل أو حفظ أو طباعة الفاتورة؟</p>
-                <div class="modal-actions" style="display:flex; gap:8px; flex-wrap:wrap;">
-                    <button class="btn btn-primary" style="flex:1;" onclick="chooseInvoiceAction('download')"><i class="fas fa-file-pdf"></i> PDF</button>
-                    <button class="btn btn-success" style="flex:1;" onclick="chooseInvoiceAction('image')"><i class="fas fa-image"></i> صورة</button>
-                    <button class="btn btn-warning" style="flex:1;" onclick="chooseInvoiceAction('print')"><i class="fas fa-print"></i> طباعة</button>
-                    <button class="btn btn-outline" style="flex:1;" onclick="chooseInvoiceAction('skip')"><i class="fas fa-times"></i> تخطي</button>
+                <div id="invoice-choice-content">
+                    <p class="invoice-choice-intro">هل تريد تحميل أو حفظ أو طباعة الفاتورة؟</p>
+                    <div class="invoice-choice-actions">
+                        <button class="btn btn-primary" onclick="chooseInvoiceAction('download')"><i class="fas fa-file-pdf"></i> PDF</button>
+                        <button class="btn btn-success" onclick="chooseInvoiceAction('image')"><i class="fas fa-image"></i> صورة</button>
+                        <button class="btn btn-warning" onclick="chooseInvoiceAction('print')"><i class="fas fa-print"></i> طباعة</button>
+                        <button class="btn btn-outline" onclick="chooseInvoiceAction('skip')"><i class="fas fa-times"></i> تخطي</button>
+                    </div>
+                </div>
+                <div class="invoice-generating-state" id="invoice-generating-state" aria-live="polite">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <strong>جاري إنشاء الفاتورة…</strong>
+                    <div style="font-size:.82rem;color:var(--text-secondary);">يرجى الانتظار حتى يكتمل الملف</div>
                 </div>
             </div>
         </div>
@@ -3743,17 +3800,39 @@
             };
         }
 
+        let invoiceGenerationInProgress = false;
+
         function openInvoiceChoiceModal() {
             if (!pendingInvoiceSnapshot || !pendingInvoiceSnapshot.cart?.length) return;
+            setInvoiceModalLoading(false);
             openModal('invoice-choice-modal');
         }
 
+        function setInvoiceModalLoading(isLoading) {
+            invoiceGenerationInProgress = isLoading;
+            const content = document.getElementById('invoice-choice-content');
+            const state = document.getElementById('invoice-generating-state');
+            const closeButton = document.getElementById('invoice-choice-close');
+            if (content) content.style.display = isLoading ? 'none' : '';
+            if (state) state.classList.toggle('active', isLoading);
+            if (closeButton) {
+                closeButton.disabled = isLoading;
+                closeButton.style.opacity = isLoading ? '.45' : '';
+                closeButton.style.pointerEvents = isLoading ? 'none' : '';
+            }
+        }
+
         function chooseInvoiceAction(action) {
-            closeModal('invoice-choice-modal');
+            if (invoiceGenerationInProgress) return;
+            if (action === 'skip') {
+                pendingInvoiceSnapshot = null;
+                closeModal('invoice-choice-modal');
+                return;
+            }
             if (!pendingInvoiceSnapshot || !pendingInvoiceSnapshot.cart?.length) return;
             const snapshot = pendingInvoiceSnapshot;
             pendingInvoiceSnapshot = null;
-            if (action === 'skip') return;
+            setInvoiceModalLoading(true);
             queueInvoiceGeneration(false, snapshot, action);
         }
 
@@ -3775,6 +3854,8 @@
 
                 // لا يتم انتظار هذه العملية ولا تُبقي النموذج في حالة الحفظ.
                 void printOrderSummary(isDraft, action).catch(err => console.error('Invoice generation error:', err)).finally(() => {
+                    setInvoiceModalLoading(false);
+                    closeModal('invoice-choice-modal');
                     cart = previousCart;
                     selectedCustomerData = previousCustomer;
                     Object.entries(previousValues).forEach(([id, value]) => {
