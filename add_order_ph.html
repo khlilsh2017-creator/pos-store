@@ -4438,15 +4438,19 @@ function deleteDraft(draftId) {
             const orderId = params.get('order_id');
             if (orderId) { setTimeout(() => { loadOrderForEdit(parseInt(orderId)); }, 500); }
 
-            if ('serviceWorker' in navigator) {
-                try {
-                    navigator.serviceWorker.register('./sw.js', { scope: '/add_order_ph' });
-                    console.log('Service Worker registered:', registration);
-                } catch (error) {
-                    console.log('Service Worker registration failed:', error);
-                }
-            }
-
+           if ('serviceWorker' in navigator) {
+    // إلغاء أي Service Worker قديم يسبب تعليق البيانات
+    navigator.serviceWorker.getRegistrations().then(function(registrations) {
+        for(let registration of registrations) {
+            registration.unregister();
+        }
+    });
+    
+    // تسجيله من جديد بعد تحديث الصفحة (اختياري)
+    try {
+        navigator.serviceWorker.register('./sw.js?v=' + new Date().getTime(), { scope: '/add_order_ph' });
+    } catch (error) {}
+}
             if ('Notification' in window && Notification.permission === 'default') {
                 Notification.requestPermission();
             }
