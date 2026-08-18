@@ -1,11 +1,11 @@
 // ============================================================
-// 🏢 Service Worker - نظام ابن مختار (الإصدار النهائي v19)
+// 🏢 Service Worker - نظام ابن مختار (الإصدار v25) - تم حل مشكلة الكاش للبحث
 // ============================================================
 
 const CACHE_NAME = 'ibn-mukhtar-pos-v25';
 const STATIC_CACHE = 'ibn-mukhtar-static-v25';
 const DYNAMIC_CACHE = 'ibn-mukhtar-dynamic-v25';
-const VERSION = '2025-02-18-017';
+const VERSION = '2025-02-18-019';
 
 const STATIC_ASSETS = [
     '/',
@@ -104,7 +104,7 @@ self.addEventListener('fetch', event => {
     // تحسين التعرف على صفحات التنقل بشكل أدق
     const isHtmlPage = request.headers.get('Accept')?.includes('text/html') || 
                        url.pathname.endsWith('.html') || 
-                       request.mode === 'navigate'; // 👈 التقاط جميع طلبات التنقل بين الصفحات
+                       request.mode === 'navigate';
 
     const isStaticAsset = STATIC_ASSETS.some(asset => url.pathname === asset || url.pathname + '/' === asset);
     const isExternalLib = url.origin !== self.location.origin && 
@@ -112,8 +112,9 @@ self.addEventListener('fetch', event => {
                            url.pathname.includes('cdnjs.cloudflare.com') ||
                            url.pathname.includes('cdn.jsdelivr.net'));
 
-    // تجاهل طلبات API والتحليلات ليتعامل معها المتصفح مباشرة
-    if (url.pathname.includes('/api/') ||
+    // 🔴 الحل الجذري للبحث: استثناء دومين الـ API بالكامل ليتعامل معه المتصفح مباشرة
+    if (url.hostname.includes('api.ibnalmukhtar.com') ||
+        url.pathname.includes('/api/') ||
         url.pathname.includes('analytics') ||
         url.pathname.includes('google-analytics') ||
         url.pathname.includes('doubleclick.net')) {
@@ -125,22 +126,19 @@ self.addEventListener('fetch', event => {
         event.respondWith(
             fetch(request)
                 .then(response => {
-                    // 🟢 الحل الجذري: إرجاع الاستجابة دائماً للمتصفح سواء كانت 200 أو 304 (لم تتغير) أو 301
                     if (response && response.status === 200) {
                         const clone = response.clone();
                         caches.open(DYNAMIC_CACHE)
                             .then(cache => cache.put(request, clone))
                             .catch(() => {});
                     }
-                    return response; // إرجاع الصفحة وعدم قطع الاتصال أبداً
+                    return response;
                 })
                 .catch(() => {
-                    // 🔴 لا ندخل هنا إلا في حالة انقطاع الإنترنت (Offline)
                     return caches.match(request, { ignoreSearch: true })
                         .then(cached => {
                             if (cached) return cached;
                             
-                            // محاولة ذكية: إذا طلب صفحة بصيغة html ولم يجدها، يجرب بدونها والعكس
                             const fallbackUrl = url.pathname.endsWith('.html') 
                                 ? url.pathname.replace('.html', '') 
                                 : url.pathname + '.html';
@@ -199,15 +197,7 @@ self.addEventListener('fetch', event => {
             })
     );
 });
-// --------------------------------------------
-// 4️⃣ استقبال الإشعارات (Push)
-// --------------------------------------------
-// --------------------------------------------
-// 4️⃣ استقبال الإشعارات (Push)
-// --------------------------------------------
-// --------------------------------------------
-// 4️⃣ استقبال الإشعارات (Push) - النسخة المحسنة
-// --------------------------------------------
+
 // --------------------------------------------
 // 4️⃣ استقبال الإشعارات (Push) - النسخة المحسنة
 // --------------------------------------------
@@ -237,7 +227,6 @@ self.addEventListener('push', event => {
         const payload = event.data.json();
         console.log('📨 البيانات الخام:', payload);
 
-        // ---- استخراج البيانات من الحقول المختلفة ----
         if (payload.notification) {
             notificationData.title = payload.notification.title || notificationData.title;
             notificationData.body = payload.notification.body || notificationData.body;
@@ -245,7 +234,6 @@ self.addEventListener('push', event => {
             if (payload.notification.badge) notificationData.badge = payload.notification.badge;
         }
 
-        // بيانات مخصصة
         if (payload.data) {
             if (payload.data.title) notificationData.title = payload.data.title;
             if (payload.data.body) notificationData.body = payload.data.body;
@@ -254,18 +242,15 @@ self.addEventListener('push', event => {
                 orderId = payload.data.order_id;
                 notificationData.data.order_id = orderId;
             }
-            // تخزين جميع البيانات المخصصة
             notificationData.data.notification_data = payload.data;
         }
 
-        // قراءة مباشرة من الجذر
         if (payload.title) notificationData.title = payload.title;
         if (payload.body) notificationData.body = payload.body;
         if (payload.link) notificationData.link = payload.link;
         if (payload.click_action) notificationData.link = payload.click_action;
         if (payload.fcmOptions?.link) notificationData.link = payload.fcmOptions.link;
 
-        // استخراج order_id من أي مكان
         if (!orderId) {
             if (payload.order_id) orderId = payload.order_id;
             else if (payload.data?.order_id) orderId = payload.data.order_id;
@@ -273,7 +258,6 @@ self.addEventListener('push', event => {
 
         if (orderId) {
             notificationData.data.order_id = orderId;
-            // تحديث الرابط ليشمل order_id
             if (!notificationData.link.includes('order_id=')) {
                 notificationData.link += (notificationData.link.includes('?') ? '&' : '?') + 'order_id=' + orderId;
             }
@@ -308,7 +292,6 @@ self.addEventListener('push', event => {
         self.registration.showNotification(notificationData.title, options)
             .then(() => {
                 console.log('✅ تم عرض الإشعار بنجاح');
-                // إرسال رسالة للصفحات المفتوحة
                 return self.clients.matchAll({ type: 'window', includeUncontrolled: true });
             })
             .then(clients => {
@@ -331,9 +314,6 @@ self.addEventListener('push', event => {
 // --------------------------------------------
 // 5️⃣ التعامل مع النقر على الإشعار
 // --------------------------------------------
-// --------------------------------------------
-// 5️⃣ التعامل مع النقر على الإشعار
-// --------------------------------------------
 self.addEventListener('notificationclick', event => {
     console.log('🖱️ تم النقر على الإشعار:', event.notification);
     event.notification.close();
@@ -341,13 +321,11 @@ self.addEventListener('notificationclick', event => {
     let link = '/driver.html';
     let orderId = null;
 
-    // استخراج الرابط و order_id من بيانات الإشعار
     if (event.notification.data) {
         link = event.notification.data.link || link;
         orderId = event.notification.data.order_id || null;
     }
 
-    // إذا كان هناك order_id، نضيفه للرابط إذا لم يكن موجوداً
     if (orderId && !link.includes('order_id=')) {
         link += (link.includes('?') ? '&' : '?') + 'order_id=' + orderId;
     }
@@ -359,10 +337,8 @@ self.addEventListener('notificationclick', event => {
                 includeUncontrolled: true 
             })
             .then(clientList => {
-                // حاول العثور على نافذة مفتوحة بنفس الرابط
                 for (const client of clientList) {
                     if (client.url === link && 'focus' in client) {
-                        // أرسل رسالة لفتح الطلب المحدد
                         if (orderId) {
                             client.postMessage({
                                 type: 'OPEN_ORDER',
@@ -372,11 +348,9 @@ self.addEventListener('notificationclick', event => {
                         return client.focus();
                     }
                 }
-                // إذا لم توجد نافذة، افتح صفحة جديدة
                 if (clients.openWindow) {
                     return clients.openWindow(link)
                         .then(newClient => {
-                            // بعد فتح الصفحة، أرسل رسالة لفتح الطلب بعد تحميلها
                             if (newClient && orderId) {
                                 newClient.postMessage({
                                     type: 'OPEN_ORDER',
@@ -388,7 +362,6 @@ self.addEventListener('notificationclick', event => {
                 }
             })
             .catch(() => {
-                // فتح النافذة بشكل مباشر في حال فشل البحث
                 clients.openWindow(link).catch(() => {});
             })
         );
