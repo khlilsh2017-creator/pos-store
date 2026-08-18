@@ -1,7 +1,7 @@
 // db.js - إدارة IndexedDB لجميع الكيانات مع دعم المزامنة
 
 const DB_NAME = 'IbnMukhtarDB';
-const DB_VERSION = 3; // رفع الإصدار لإضافة مكاتب جديدة
+const DB_VERSION = 9; // رفع الإصدار لإضافة مكاتب جديدة
 
 const STORES = {
   PRODUCTS: 'products',
