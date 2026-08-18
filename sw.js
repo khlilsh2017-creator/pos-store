@@ -2,10 +2,10 @@
 // 🏢 Service Worker - نظام ابن مختار (الإصدار v25) - تم حل مشكلة الكاش للبحث
 // ============================================================
 
-const CACHE_NAME = 'ibn-mukhtar-pos-v25';
-const STATIC_CACHE = 'ibn-mukhtar-static-v25';
-const DYNAMIC_CACHE = 'ibn-mukhtar-dynamic-v25';
-const VERSION = '2025-02-19-021';
+const CACHE_NAME = 'ibn-mukhtar-pos-v26';
+const STATIC_CACHE = 'ibn-mukhtar-static-v26';
+const DYNAMIC_CACHE = 'ibn-mukhtar-dynamic-v26';
+const VERSION = '2025-02-19-022';
 
 const STATIC_ASSETS = [
     '/',
