@@ -3,7 +3,7 @@
 // يجمع بين ميزات المندوب (المزامنة، العمليات) وتحسينات النظام العام
 // ============================================================
 
-const VERSION = 'driver-2026-08-19-009';
+const VERSION = 'driver-2026-08-19-010';
 const CACHE_PREFIX = 'ibn-mukhtar-driver-';
 const CACHE_NAME = `${CACHE_PREFIX}pos-${VERSION}`;
 const STATIC_CACHE = `${CACHE_PREFIX}static-${VERSION}`;
@@ -15,6 +15,72 @@ const OPERATIONS_STORE = 'operations';
 const SYNC_META_DB = 'DriverSyncMetaDB';
 const SYNC_META_STORE = 'auth';
 const SYNC_TAG = 'driver-orders-pending-v1';
+
+// ------------------------------------------------------------
+// 🔥 تهيئة Firebase داخل Service Worker (ضرورية للإشعارات الخلفية)
+// ------------------------------------------------------------
+importScripts('https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging-compat.js');
+
+if (!firebase.apps.length) {
+  firebase.initializeApp({
+    apiKey: 'AIzaSyDjMiUhBOF9h1arbea4ZAorD-GdtATQ3Fs',
+    authDomain: 'ibn-al-mukhtar-pos.firebaseapp.com',
+    projectId: 'ibn-al-mukhtar-pos',
+    storageBucket: 'ibn-al-mukhtar-pos.firebasestorage.app',
+    messagingSenderId: '953096430757',
+    appId: '1:953096430757:web:7c2b60bd719aa70964994c'
+  });
+} else {
+  firebase.app();
+}
+
+firebase.messaging().onTokenRefresh(async () => {
+  console.log('[SW-Firebase] ⚡ التوكن تجدد في الخلفية - سيحدّثه التطبيق عند الفتح');
+});
+
+// ✅ معالج رسائل الخلفية من Firebase (يعمل حتى لو التطبيق مغلق)
+// هذا المعالج يلتقط الرسائل التي يبعثها الخادم عبر FCM بنوع notification + data
+// حيث يُعرض الإشعار تلقائياً من طرف نظام أندرويد (عبر Google Play Services)
+// حتى لو كان التطبيق مغلقاً بالكامل، وهذا يحل مشكلة الإشعارات المفقودة
+firebase.messaging().onBackgroundMessage(async payload => {
+  console.log('[SW-Firebase] 📩 رسالة خلفية:', payload);
+
+  // ⚠️ ملاحظة: هذه الدالة تُستدعى من Firebase SDK داخلياً ولا تظهر تلقائياً
+  // مع إصدارات SDK الأحدث (v9+ وcompat)، لذا نعرض الإشعار يدوياً هنا
+  try {
+    let title = '📦 ابن مختار – المندوب';
+    let body = payload.data?.body || payload.notification?.body || '';
+    let link = payload.notification?.click_action || payload.fcmOptions?.link || '/driver/';
+    const orderId = payload.data?.order_id || payload.data?.orderId || null;
+
+    if (payload.notification?.title) title = payload.notification.title;
+    if (payload.data?.title) title = payload.data.title;
+    if (orderId) link += (link.includes('?') ? '&' : '?') + 'order_id=' + orderId;
+
+    if (!body) body = payload.data?.description || 'لديك إشعار جديد';
+
+    const options = {
+      body,
+      icon: payload.data?.icon || '/driver/icon-192x192.png',
+      badge: '/driver/icon-192x192.png',
+      vibrate: [200, 100, 200],
+      tag: orderId ? 'order-' + orderId : 'driver-notification',
+      requireInteraction: true,
+      data: { link, order_id: orderId },
+      actions: [
+        { action: 'open', title: '📂 فتح التطبيق' },
+        { action: 'close', title: '❌ إغلاق' },
+        { action: 'done', title: '✅ تم التوصيل' }
+      ]
+    };
+
+    await self.registration.showNotification(title, options);
+    console.log('[SW-Firebase] ✅ تم عرض إشعار الخلفية');
+  } catch (err) {
+    console.error('[SW-Firebase] ❌ فشل عرض إشعار الخلفية:', err);
+  }
+});
 
 // --------------------------------------------
 //  قائمة الأصول الثابتة (خاصة بالمندوب)
@@ -519,8 +585,8 @@ self.addEventListener('push', event => {
       if (payload.data.title) notificationData.title = payload.data.title;
       if (payload.data.body) notificationData.body = payload.data.body;
       if (payload.data.link) notificationData.link = payload.data.link;
-      if (payload.data.order_id) {
-        orderId = payload.data.order_id;
+      if (payload.data.order_id || payload.data.orderId) {
+        orderId = payload.data.order_id || payload.data.orderId;
         notificationData.data.order_id = orderId;
       }
       // تخزين جميع البيانات المخصصة
@@ -537,7 +603,7 @@ self.addEventListener('push', event => {
     // استخراج order_id من أي مكان
     if (!orderId) {
       if (payload.order_id) orderId = payload.order_id;
-      else if (payload.data?.order_id) orderId = payload.data.order_id;
+      else if (payload.data?.order_id || payload.data?.orderId) orderId = payload.data?.order_id || payload.data?.orderId;
     }
 
     if (orderId) {
@@ -549,8 +615,16 @@ self.addEventListener('push', event => {
     }
 
     if (!notificationData.body || notificationData.body.trim() === '') {
-      console.log('[SW] تم إلغاء الإشعار لعدم وجود نص');
-      return;
+      console.warn('[SW] تم إلغاء الإشعار لعدم وجود نص');
+      // ⚠️ إصلاح مهم: لا تُلغِ الإشعار إذا كان فارغاً - اعرض عنواناً افتراضياً
+      // حتى لا تضيع رسائل الطلبات على المندوب
+      if (notificationData.title !== '📦 ابن مختار – المندوب') {
+        notificationData.body = notificationData.title;
+        notificationData.title = '📦 ابن مختار – المندوب';
+      } else {
+        console.log('[SW] الإشعار فارغ بالكامل، لن يتم عرضه');
+        return;
+      }
     }
 
   } catch (error) {
@@ -573,6 +647,11 @@ self.addEventListener('push', event => {
       { action: 'done', title: '✅ تم التوصيل' } // إجراء خاص بالمندوب
     ]
   };
+
+  // 🔧 تحسين مهم: استخدم tag مميزاً لكل طلب حتى لا تُستبدل الإشعارات ببعضها
+  if (orderId && notificationData.tag === 'default') {
+    notificationData.tag = 'order-' + orderId;
+  }
 
   event.waitUntil(
     self.registration.showNotification(notificationData.title, options)
@@ -674,3 +753,44 @@ self.addEventListener('notificationclick', event => {
 //  9️⃣ تسجيل الإصدار للتشخيص
 // ============================================================
 console.log(`[SW] النسخة النشطة: ${VERSION}`);
+
+/*
+ * ═══════════════════════════════════════════════════════════
+ * 📋 ملاحظة مهمة لفريق الخادم (api.ibnalmukhtar.com)
+ * ═══════════════════════════════════════════════════════════
+ * حتى تصل الإشعارات للمندوبين حتى لو كان التطبيق مغلقاً،
+ * يجب إرسال الرسائل عبر FCM HTTP v1 API بهذا الشكل:
+ *
+ * POST https://fcm.googleapis.com/v1/projects/ibn-al-mukhtar-pos/messages:send
+ * {
+ *   "message": {
+ *     "token": "<fcm_token>",
+ *     "notification": {
+ *       "title": "طلب جديد رقم #123",
+ *       "body": "عميل جديد بانتظارك - حي السلام"
+ *     },
+ *     "data": {
+ *       "order_id": "123",
+ *       "title": "طلب جديد رقم #123",
+ *       "body": "عميل جديد بانتظارك - حي السلام"
+ *     },
+ *     "webpush": {
+ *       "fcm_options": {
+ *         "link": "https://www.ibnalmukhtar.com/driver/?order_id=123"
+ *       },
+ *       "headers": {
+ *         "TTL": "86400"
+ *       }
+ *     },
+ *     "android": {
+ *       "priority": "high",
+ *       "ttl": "86400s"
+ *     }
+ *   }
+ * }
+ *
+ * ⚠️ لا تستخدم data-only messages (بدون حقل notification)
+ *    لأنها لا تُعرض تلقائياً من النظام عندما يكون التطبيق مغلقاً
+ *    على أجهزة أندرويد.
+ * ═══════════════════════════════════════════════════════════
+ */
