@@ -2340,138 +2340,152 @@
         function applyFilters() {
             // تم دمجها مع triggerSearch
         }
+// أضف هذا المتغير في بداية قسم الـ script (أو قبل الدالة مباشرة)
+let fetchAbortController = null;
 
-        async function fetchProducts(search = '', categoryId = null) {
-            setProgress(20);
-            if (search !== undefined) currentSearch = search;
-            if (categoryId !== undefined) selectedCategoryId = categoryId;
-            saveFilterState();
+async function fetchProducts(search = '', categoryId = null) {
+    setProgress(20);
+    if (search !== undefined) currentSearch = search;
+    if (categoryId !== undefined) selectedCategoryId = categoryId;
+    saveFilterState();
 
-            const grid = document.getElementById('products-grid');
-            const countLabel = document.getElementById('products-count-label');
-            const dropdown = document.getElementById('search-dropdown');
+    const grid = document.getElementById('products-grid');
+    const countLabel = document.getElementById('products-count-label');
+    const dropdown = document.getElementById('search-dropdown');
 
-            // إذا كان البحث أقل من 4 أحرف، نخفي القائمة ونعرض رسالة في الشبكة
-            if (currentSearch.length > 0 && currentSearch.length < 4) {
-                if (dropdown) dropdown.style.display = 'none';
-                if (grid) {
-                    grid.innerHTML = `
-                        <div class="empty-state" style="grid-column:1/-1;">
-                            <i class="fas fa-info-circle"></i>
-                            <p>اكتب 4 أحرف على الأقل لبدء البحث</p>
-                        </div>
-                    `;
-                }
-                if (countLabel) countLabel.textContent = 'اكتب 4 أحرف للبحث';
-                setProgress(100);
-                setTimeout(() => setProgress(0), 500);
-                return;
+    // 1. إلغاء أي طلب بحث سابق ما زال قيد التنفيذ
+    if (fetchAbortController) {
+        fetchAbortController.abort();
+    }
+    fetchAbortController = new AbortController();
+    const signal = fetchAbortController.signal;
+
+    // إذا كان البحث أقل من 4 أحرف
+    if (currentSearch.length > 0 && currentSearch.length < 4) {
+        if (dropdown) dropdown.style.display = 'none';
+        if (grid) {
+            grid.innerHTML = `
+                <div class="empty-state" style="grid-column:1/-1;">
+                    <i class="fas fa-info-circle"></i>
+                    <p>اكتب 4 أحرف على الأقل لبدء البحث</p>
+                </div>
+            `;
+        }
+        if (countLabel) countLabel.textContent = 'اكتب 4 أحرف للبحث';
+        setProgress(100);
+        setTimeout(() => setProgress(0), 500);
+        return;
+    }
+
+    // --- حالة عرض كل المنتجات (لا يوجد بحث) ---
+    if (currentSearch.length === 0) {
+        if (dropdown) dropdown.style.display = 'none';
+        if (!navigator.onLine) {
+            const localProducts = await getLocalProducts();
+            productsCache = localProducts;
+            let filtered = localProducts;
+            if (selectedCategoryId) {
+                filtered = filtered.filter(p => p.category_id == selectedCategoryId);
             }
-
-            // إذا كان هناك بحث نشط، نعرض النتائج في dropdown ولا نغير الشبكة (نتركها كما هي أو نخفيها)
-            // لكن نترك الشبكة كما هي (مع الحفاظ على حالة الإخفاء) ونعرض نتائج البحث في dropdown فقط.
-            // إذا لم يكن هناك بحث، نعرض الشبكة بشكل طبيعي ونخفي dropdown.
-
-            if (currentSearch.length === 0) {
-                // لا يوجد بحث: نخفي dropdown ونعرض الشبكة
-                if (dropdown) dropdown.style.display = 'none';
-                // نعيد تحميل الشبكة بالمنتجات الكاملة (حسب التصنيف)
-                if (!navigator.onLine) {
-                    const localProducts = await getLocalProducts();
-                    productsCache = localProducts;
-                    let filtered = localProducts;
-                    if (selectedCategoryId) {
-                        filtered = filtered.filter(p => p.category_id == selectedCategoryId);
-                    }
-                    renderProductsGrid(filtered);
-                    if (countLabel) countLabel.textContent = `عدد المنتجات: ${filtered.length}`;
-                } else {
-                    try {
-                        let url = `${API}/products?limit=3000`;
-                        if (selectedCategoryId) url += `&category_id=${selectedCategoryId}`;
-                        if (currentSort) url += `&sort=${encodeURIComponent(currentSort)}`;
-                        const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
-                        const data = await res.json();
-                        productsCache = data.products || [];
-                        await saveProductsToLocal(productsCache);
-                        renderProductsGrid(productsCache);
-                        if (countLabel) countLabel.textContent = `عدد المنتجات: ${productsCache.length}`;
-                    } catch (err) {
-                        const localProducts = await getLocalProducts();
-                        productsCache = localProducts;
-                        renderProductsGrid(localProducts);
-                        if (countLabel) countLabel.textContent = `عدد المنتجات: ${localProducts.length} (محلي)`;
-                        showToast('فشل تحميل المنتجات، عرض محلي', 'warning');
-                    }
-                }
-                setProgress(100);
-                setTimeout(() => setProgress(0), 500);
-                return;
-            }
-
-            // هنا لدينا بحث (أكثر من 4 أحرف)
-            // نعرض النتائج في dropdown ونخفي الشبكة إذا كانت ظاهرة (أو نبقيها كما هي حسب رغبة المستخدم)
-            // لكننا لا نخفي الشبكة بالقوة، نتركها كما هي (قد تكون مخفية بواسطة زر الإخفاء)
-            // نعرض dropdown مع النتائج
-
-            if (!navigator.onLine) {
-                const localProducts = await getLocalProducts();
-                productsCache = localProducts;
-                let filtered = localProducts;
-                if (currentSearch) {
-                    filtered = filtered.filter(p =>
-                        (p.name && p.name.toLowerCase().includes(currentSearch.toLowerCase())) ||
-                        (p.barcode && p.barcode.includes(currentSearch))
-                    );
-                }
-                if (selectedCategoryId) {
-                    filtered = filtered.filter(p => p.category_id == selectedCategoryId);
-                }
-                renderSearchDropdown(filtered);
-                // لا نغير الشبكة
-                if (countLabel) countLabel.textContent = `عدد المنتجات: ${filtered.length} (نتائج البحث)`;
-                setProgress(100);
-                setTimeout(() => setProgress(0), 500);
-                return;
-            }
-
+            renderProductsGrid(filtered);
+            if (countLabel) countLabel.textContent = `عدد المنتجات: ${filtered.length}`;
+        } else {
             try {
                 let url = `${API}/products?limit=3000`;
-                if (currentSearch) url += `&search=${encodeURIComponent(currentSearch)}`;
                 if (selectedCategoryId) url += `&category_id=${selectedCategoryId}`;
                 if (currentSort) url += `&sort=${encodeURIComponent(currentSort)}`;
-                const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
+                
+                // 2. ربط الـ signal بالطلب
+                const res = await fetch(url, { 
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    signal: signal 
+                });
                 const data = await res.json();
                 productsCache = data.products || [];
+                
+                // 3. نحفظ المنتجات محلياً هنا فقط (لأننا جلبنا كل البيانات وليس بحثاً محدوداً)
                 await saveProductsToLocal(productsCache);
-                // عرض النتائج في dropdown
-                renderSearchDropdown(productsCache);
-                // تحديث عدد المنتجات في التسمية (اختياري)
-                if (countLabel) countLabel.textContent = `عدد المنتجات: ${productsCache.length} (نتائج البحث)`;
-                setProgress(100);
-                setTimeout(() => setProgress(0), 500);
+                
+                renderProductsGrid(productsCache);
+                if (countLabel) countLabel.textContent = `عدد المنتجات: ${productsCache.length}`;
             } catch (err) {
+                if (err.name === 'AbortError') return; // تجاهل خطأ الإلغاء المتعمد
+                
                 const localProducts = await getLocalProducts();
                 productsCache = localProducts;
-                let filtered = localProducts;
-                if (currentSearch) {
-                    filtered = filtered.filter(p =>
-                        (p.name && p.name.toLowerCase().includes(currentSearch.toLowerCase())) ||
-                        (p.barcode && p.barcode.includes(currentSearch))
-                    );
-                }
-                if (selectedCategoryId) {
-                    filtered = filtered.filter(p => p.category_id == selectedCategoryId);
-                }
-                renderSearchDropdown(filtered);
-                if (countLabel) countLabel.textContent = `عدد المنتجات: ${filtered.length} (محلي - نتائج البحث)`;
+                renderProductsGrid(localProducts);
+                if (countLabel) countLabel.textContent = `عدد المنتجات: ${localProducts.length} (محلي)`;
                 showToast('فشل تحميل المنتجات، عرض محلي', 'warning');
-                setProgress(100);
-                setTimeout(() => setProgress(0), 500);
             }
         }
+        setProgress(100);
+        setTimeout(() => setProgress(0), 500);
+        return;
+    }
 
-        // دالة لعرض نتائج البحث في القائمة المنسدلة
+    // --- حالة وجود بحث (4 أحرف أو أكثر) ---
+    if (!navigator.onLine) {
+        const localProducts = await getLocalProducts();
+        productsCache = localProducts;
+        let filtered = localProducts;
+        if (currentSearch) {
+            filtered = filtered.filter(p =>
+                (p.name && p.name.toLowerCase().includes(currentSearch.toLowerCase())) ||
+                (p.barcode && p.barcode.includes(currentSearch))
+            );
+        }
+        if (selectedCategoryId) {
+            filtered = filtered.filter(p => p.category_id == selectedCategoryId);
+        }
+        renderSearchDropdown(filtered);
+        if (countLabel) countLabel.textContent = `عدد المنتجات: ${filtered.length} (نتائج البحث)`;
+        setProgress(100);
+        setTimeout(() => setProgress(0), 500);
+        return;
+    }
+
+    try {
+        let url = `${API}/products?limit=3000`;
+        if (currentSearch) url += `&search=${encodeURIComponent(currentSearch)}`;
+        if (selectedCategoryId) url += `&category_id=${selectedCategoryId}`;
+        if (currentSort) url += `&sort=${encodeURIComponent(currentSort)}`;
+        
+        // 4. ربط الـ signal بالطلب
+        const res = await fetch(url, { 
+            headers: { 'Authorization': `Bearer ${token}` },
+            signal: signal
+        });
+        const data = await res.json();
+        productsCache = data.products || [];
+        
+        // 5. تم إزالة (saveProductsToLocal) من هنا لمنع تدمير قاعدة البيانات المحلية بنتائج البحث الجزئية
+        
+        renderSearchDropdown(productsCache);
+        if (countLabel) countLabel.textContent = `عدد المنتجات: ${productsCache.length} (نتائج البحث)`;
+        setProgress(100);
+        setTimeout(() => setProgress(0), 500);
+    } catch (err) {
+        if (err.name === 'AbortError') return; // تجاهل خطأ الإلغاء المتعمد
+
+        const localProducts = await getLocalProducts();
+        productsCache = localProducts;
+        let filtered = localProducts;
+        if (currentSearch) {
+            filtered = filtered.filter(p =>
+                (p.name && p.name.toLowerCase().includes(currentSearch.toLowerCase())) ||
+                (p.barcode && p.barcode.includes(currentSearch))
+            );
+        }
+        if (selectedCategoryId) {
+            filtered = filtered.filter(p => p.category_id == selectedCategoryId);
+        }
+        renderSearchDropdown(filtered);
+        if (countLabel) countLabel.textContent = `عدد المنتجات: ${filtered.length} (محلي - نتائج البحث)`;
+        showToast('فشل تحميل المنتجات، عرض محلي', 'warning');
+        setProgress(100);
+        setTimeout(() => setProgress(0), 500);
+    }
+}
         function renderSearchDropdown(products) {
             const dropdown = document.getElementById('search-dropdown');
             if (!dropdown) return;
