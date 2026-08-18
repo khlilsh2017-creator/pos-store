@@ -554,7 +554,7 @@
 
 async function registerServiceWorker() {
     try {
-        const swUrl = new URL('/driver/sw_driver.js', window.location.origin);
+        const swUrl = new URL('/driver/sw.js', window.location.origin);
 
         // فحص أن الرابط يعيد JavaScript وليس صفحة HTML
         const check = await fetch(swUrl, {
