@@ -87,7 +87,7 @@ firebase.messaging().onBackgroundMessage(async payload => {
 // --------------------------------------------
 const STATIC_ASSETS = [
   
-  '/driver/',
+  '/index/',
   '/driver/manifest_pos.json',
   '/driver/icon-192x192.png',
   '/driver/icon-512x512.png',
