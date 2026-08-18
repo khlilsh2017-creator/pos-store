@@ -3709,7 +3709,7 @@
                 const currencyCode = orderCurrencyId ? getCurrencyCode(orderCurrencyId) : 'ريال';
                 const rate = orderCurrencyId ? getCurrencyRate(orderCurrencyId) : 1;
 
-                const shopName = localStorage.getItem('shop_name') || 'ابن المختار للأدوات المنزلية';
+                const shopName = localStorage.getItem('shop_name') || 'لمسات منزليه ابن المختار';
                 const shopPhone = localStorage.getItem('shop_phone') || '773266534';
                 
                 const rawSubtotal = cart.reduce((s, i) => s + ((i.price || 0) - (i.discount || 0)) * i.quantity, 0);
