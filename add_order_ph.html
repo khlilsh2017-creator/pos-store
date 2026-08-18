@@ -4426,10 +4426,7 @@ function deleteDraft(draftId) {
 
             if ('serviceWorker' in navigator) {
                 try {
-                   navigator.serviceWorker.register('/driver/sw_driver.js', {
-    scope: '/driver/'
-});
-
+                    navigator.serviceWorker.register('./sw.js', { scope: '/add_order_ph' });
                     console.log('Service Worker registered:', registration);
                 } catch (error) {
                     console.log('Service Worker registration failed:', error);
