@@ -2288,6 +2288,9 @@
         // ================================================================
         //  FETCH PRODUCTS LOGIC (التعديل النهائي باستخدام العداد والمخزن الذكي)
         // ================================================================
+       // ================================================================
+        //  FETCH PRODUCTS LOGIC (مع حل مشكلة "المنتج غير موجود")
+        // ================================================================
         async function fetchProducts(search = '', categoryId = null) {
             setProgress(20);
             if (search !== undefined) currentSearch = search;
@@ -2324,6 +2327,7 @@
                 }
 
                 if (!navigator.onLine) {
+                    productsCache = [];
                     renderProductsGrid([]);
                     if (countLabel) countLabel.textContent = `عدد المنتجات: 0`;
                     setProgress(100); setTimeout(() => setProgress(0), 500);
@@ -2351,6 +2355,7 @@
                     if (countLabel) countLabel.textContent = `عدد المنتجات: ${productsCache.length}`;
                 } catch (err) {
                     if (fetchId !== currentFetchId) return;
+                    productsCache = localProducts;
                     renderProductsGrid(localProducts);
                 }
                 setProgress(100); setTimeout(() => setProgress(0), 500);
@@ -2366,6 +2371,7 @@
                 );
                 if (selectedCategoryId) filtered = filtered.filter(p => p.category_id == selectedCategoryId);
                 
+                productsCache = filtered; // 👈 التعديل: تحديث الذاكرة هنا
                 renderSearchDropdown(filtered);
                 if (countLabel) countLabel.textContent = `عدد المنتجات: ${filtered.length} (بحث محلي)`;
                 setProgress(100); setTimeout(() => setProgress(0), 500);
@@ -2386,7 +2392,9 @@
                 const data = await res.json();
                 const searchResults = data.products || [];
                 
+                productsCache = searchResults; // 👈 التعديل: تحديث الذاكرة هنا لكي تعمل دالة الإضافة بنجاح
                 renderSearchDropdown(searchResults);
+                
                 if (countLabel) countLabel.textContent = `نتائج البحث: ${searchResults.length}`;
                 setProgress(100); setTimeout(() => setProgress(0), 500);
             } catch (err) {
@@ -2397,6 +2405,8 @@
                     (p.name && p.name.toLowerCase().includes(currentSearch.toLowerCase())) ||
                     (p.barcode && p.barcode.includes(currentSearch))
                 );
+                
+                productsCache = filtered; // 👈 التعديل: تحديث الذاكرة هنا أيضاً
                 renderSearchDropdown(filtered);
                 setProgress(100); setTimeout(() => setProgress(0), 500);
             }
