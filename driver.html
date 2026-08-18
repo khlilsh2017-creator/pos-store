@@ -178,9 +178,7 @@
         .return-status-badge { background:#fef3c7; color:#b45309; padding:3px 12px; border-radius:20px; font-size:0.7rem; font-weight:600; }
         .notification-status-text { font-size:0.7rem; color:var(--text-secondary); margin-right:4px; }
         @media (max-width:380px) { .balance-amount { font-size:1.6rem; } .stat-value { font-size:1rem; } .btn { font-size:0.7rem; padding:7px 8px; } }
-    
-.connection-panel{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 12px;margin:8px 12px;border-radius:12px;font-size:.78rem;transition:.25s ease}.connection-panel.online{background:#ecfdf5;color:#166534;border:1px solid #bbf7d0}.connection-panel.offline{background:#fff7ed;color:#9a3412;border:1px solid #fed7aa}.sync-status.sync-running{background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe}.sync-status.sync-success{background:#ecfdf5;color:#166534;border:1px solid #bbf7d0}.sync-status.sync-error{background:#fff7ed;color:#9a3412;border:1px solid #fed7aa}.sync-spinner{display:inline-block;width:14px;height:14px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:syncSpin .8s linear infinite}@keyframes syncSpin{to{transform:rotate(360deg)}}
-</style>
+    </style>
 </head>
 <body>
     <div class="app-container" id="app">
@@ -192,13 +190,14 @@
                     🔔 <span class="badge-dot"></span>
                 </button>
                 <div class="driver-info">
+                    <span id="connectionStatus" class="online-status online"></span>
                     <span class="connection-label" id="connectionLabel">متصل</span>
                     <span class="driver-badge" id="driverNameDisplay">مندوب</span>
                     <button class="logout-btn" onclick="logout()">خروج</button>
                 </div>
             </div>
         </div>
-        <div id="connectionPanel" class="connection-panel online"><span><span id="connectionStatus" class="online-status online"></span> <span id="connectionLabel">متصل — جاهز للمزامنة</span></span><span id="connectionHint">تتم مزامنة العمليات المعلقة تلقائياً</span></div><div class="main-content" id="mainContent"></div>
+        <div class="main-content" id="mainContent"></div>
         <div class="bottom-nav">
             <div class="nav-item active" data-page="orders" onclick="navigateTo('orders',this)"><span class="nav-icon">📦</span><span>الطلبات</span></div>
             <div class="nav-item" data-page="returns" onclick="navigateTo('returns',this)"><span class="nav-icon">🔄</span><span>الإرجاع</span></div>
@@ -463,89 +462,6 @@
         }
 
         // =============================================================
-
-        // =============================================================
-        // Background Sync + ترقية IndexedDB الآمنة + مؤشرات الحالة
-        // =============================================================
-        const BACKGROUND_SYNC_TAG = 'driver-orders-pending-v1';
-
-        async function sendTokenToServiceWorker() {
-            const token = getToken();
-            if (!token || !('serviceWorker' in navigator)) return;
-            const registration = await navigator.serviceWorker.ready;
-            registration.active?.postMessage({ type: 'SET_SYNC_TOKEN', token });
-        }
-
-        async function registerBackgroundSync() {
-            if (!('serviceWorker' in navigator)) return false;
-            const registration = await navigator.serviceWorker.ready;
-            if (!registration.sync) return false;
-            await registration.sync.register(BACKGROUND_SYNC_TAG);
-            return true;
-        }
-
-        function updateEnhancedConnectionStatus() {
-            const online = navigator.onLine;
-            const dot = document.getElementById('connectionStatus');
-            const label = document.getElementById('connectionLabel');
-            const panel = document.getElementById('connectionPanel');
-            const hint = document.getElementById('connectionHint');
-            if (dot) dot.className = 'online-status ' + (online ? 'online' : 'offline');
-            if (label) label.textContent = online ? 'متصل — جاهز للمزامنة' : 'غير متصل — سيتم الحفظ محلياً';
-            if (hint) hint.textContent = online ? 'تتم مزامنة العمليات المعلقة تلقائياً' : 'ستُرسل العمليات عند عودة الاتصال';
-            if (panel) panel.className = 'connection-panel ' + (online ? 'online' : 'offline');
-        }
-
-        function updateEnhancedSyncIndicator(status, pending = 0, synced = 0) {
-            const el = document.getElementById('syncStatus');
-            const count = document.getElementById('syncCount');
-            const text = document.getElementById('syncStatusText');
-            if (!el) return;
-            el.classList.remove('sync-running','sync-success','sync-error','hidden');
-            el.classList.add(status === 'syncing' ? 'sync-running' : status === 'failed' ? 'sync-error' : 'sync-success');
-            if (count) count.textContent = String(pending);
-            if (text) text.textContent = status === 'syncing' ? 'جاري مزامنة الطلبات...' : status === 'failed' ? 'توجد عمليات بانتظار المزامنة' : 'تمت مزامنة ' + synced + ' عملية';
-            if (status === 'completed' && pending === 0) setTimeout(() => el.classList.add('hidden'), 2500);
-        }
-
-        function openCurrentDbForMigration() {
-            return new Promise((resolve, reject) => {
-                const request = indexedDB.open(DB_NAME);
-                let newDb = false;
-                request.onupgradeneeded = () => { newDb = true; };
-                request.onsuccess = () => { const oldDb = request.result; if (newDb) { oldDb.close(); resolve(null); } else { oldDb.onversionchange = () => oldDb.close(); resolve(oldDb); } };
-                request.onerror = () => reject(request.error);
-                request.onblocked = () => reject(new Error('قاعدة البيانات مشغولة في تبويب آخر'));
-            });
-        }
-
-        async function prepareDatabaseUpgradeSafely() {
-            let oldDb = null;
-            try { oldDb = await openCurrentDbForMigration(); } catch (e) { console.warn('تعذر فتح قاعدة البيانات القديمة:', e); return; }
-            if (!oldDb || !oldDb.objectStoreNames.contains(STORES.OPERATIONS) || !navigator.onLine || !getToken()) { oldDb?.close(); return; }
-            try {
-                const pending = await new Promise((resolve, reject) => { const r = oldDb.transaction(STORES.OPERATIONS).objectStore(STORES.OPERATIONS).getAll(); r.onsuccess = () => resolve((r.result || []).filter(x => !x.synced)); r.onerror = () => reject(r.error); });
-                for (const op of pending) {
-                    try {
-                        const response = await fetch(API_BASE + '/driver/update-delivery', { method:'POST', headers:{'Authorization':'Bearer '+getToken(),'Content-Type':'application/json'}, body:JSON.stringify({...op.data, operation_id:op.data?.operation_id || op.operation_id}) });
-                        if (response.ok || response.status === 409) await new Promise((resolve,reject) => { const tx=oldDb.transaction(STORES.OPERATIONS,'readwrite'); const store=tx.objectStore(STORES.OPERATIONS); const r=store.get(op.id); r.onsuccess=()=>{if(r.result){r.result.synced=true;r.result.synced_at=new Date().toISOString();store.put(r.result)}}; tx.oncomplete=resolve; tx.onerror=()=>reject(tx.error); });
-                    } catch (e) { console.warn('ستبقى العملية للمزامنة اللاحقة:', op.operation_id); }
-                }
-            } finally { oldDb.close(); }
-        }
-
-        async function syncBeforeDashboardLoad() {
-            if (!navigator.onLine || !getToken()) return;
-            await sendTokenToServiceWorker();
-            await registerBackgroundSync();
-            await syncAllOperations();
-        }
-
-        function installEnhancedSyncIntegration() {
-            updateEnhancedConnectionStatus();
-            navigator.serviceWorker?.addEventListener('message', event => { const d=event.data||{}; if(d.type==='SYNC_STATUS'){ updateEnhancedSyncIndicator(d.status,d.pending||0,d.synced||0); if(d.status==='completed') refreshOrders(); } });
-        }
-
         // 4. Service Worker والإشعارات (FCM)
         // =============================================================
         const VAPID_PUBLIC_KEY = 'BA9marUJoHM798iWVpRAXh8nFutDsZ6JaiXDnl_nTbO3pmVLte7SB7pMn-jmOs0BzTgFengv8Br3MkA1llwh5tM';
@@ -1307,7 +1223,7 @@ const registration = await navigator.serviceWorker.register('./sw.js', { scope: 
             if (!requests || requests.length === 0) {
                 container.innerHTML = `
                     <div id="syncStatus" class="sync-status hidden">
-                        <span class="sync-spinner"></span><span id="syncStatusText">جاري المزامنة...</span>
+                        <span>🔄 جاري المزامنة...</span>
                         <span class="sync-count" id="syncCount">0</span>
                         <span>عملية معلقة</span>
                     </div>
@@ -1499,7 +1415,7 @@ function useLocalOrdersForDashboard() {
             if (!navigator.onLine) {
                 document.getElementById('mainContent').innerHTML = `
                     <div id="syncStatus" class="sync-status hidden">
-                        <span class="sync-spinner"></span><span id="syncStatusText">جاري المزامنة...</span>
+                        <span>🔄 جاري المزامنة...</span>
                         <span class="sync-count" id="syncCount">0</span>
                         <span>عملية معلقة</span>
                     </div>
@@ -1523,7 +1439,7 @@ function useLocalOrdersForDashboard() {
             } catch (err) {
                 document.getElementById('mainContent').innerHTML = `
                     <div id="syncStatus" class="sync-status hidden">
-                        <span class="sync-spinner"></span><span id="syncStatusText">جاري المزامنة...</span>
+                        <span>🔄 جاري المزامنة...</span>
                         <span class="sync-count" id="syncCount">0</span>
                         <span>عملية معلقة</span>
                     </div>
@@ -2136,7 +2052,7 @@ function useLocalOrdersForDashboard() {
                 await addOperation({
                     store: STORES.ORDERS,
                     type: 'update',
-                    data: operationData
+                    data: { order_id: orderId, delivery_status: status, notes: notes || '', ...(paymentData || {}) }
                 });
                 markOrderAsPending(orderId);
             console.info(`تم حفظ العملية ${operationId} للمزامنة الآمنة`);
@@ -2385,29 +2301,27 @@ function useLocalOrdersForDashboard() {
                 });
             }
 
-            installEnhancedSyncIntegration();
             const token = getToken();
             const driverId = getDriverId();
             if (token && driverId) {
                 loadFilterSettings();
-                await prepareDatabaseUpgradeSafely();
-                await syncBeforeDashboardLoad();
-                await loadDashboard();
+                loadDashboard();
+                if (navigator.onLine) syncAllOperations();
             } else {
                 showLoginScreen();
             }
-            await updateSyncCounter();
+            updateSyncCounter();
         });
 
-        window.addEventListener('online', async () => {
-            updateEnhancedConnectionStatus();
-            if (getToken()) {
+        window.addEventListener('online', () => {
+            updateConnectionStatus();
+            const token = getToken();
+            if (token) {
+                syncAllOperations().then(() => {
+                    if (currentView === 'orders') refreshOrders();
+                    else if (currentView === 'returns') loadReturnRequests();
+                });
                 showToast('🔄 تم العودة للاتصال، جاري المزامنة...');
-                await sendTokenToServiceWorker();
-                await registerBackgroundSync();
-                await syncAllOperations();
-                if (currentView === 'orders') await refreshOrders();
-                else if (currentView === 'returns') await loadReturnRequests();
             }
         });
 
