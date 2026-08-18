@@ -735,21 +735,33 @@ const registration = await navigator.serviceWorker.register('./sw.js', { scope: 
         }
 
         async function apiCall(endpoint, method = 'GET', body = null) {
-            const token = getToken();
-            const headers = { 'Content-Type': 'application/json' };
-            if (token) headers['Authorization'] = `Bearer ${token}`;
-            const options = { method, headers };
-            if (body) options.body = JSON.stringify(body);
-            try {
-                const res = await fetch(`${API_BASE}${endpoint}`, options);
-                if (res.status === 401) { logout(); throw new Error('انتهت صلاحية الجلسة'); }
-                if (!res.ok) { const txt = await res.text(); throw new Error(txt || 'خطأ'); }
-                return res.json();
-            } catch (err) {
-                if (err.message === 'Failed to fetch') throw new Error('تعذر الاتصال بالخادم');
-                throw err;
-            }
-        }
+    const token = getToken();
+    
+    // 👈 إضافة ترويسات تمنع الكاش
+    const headers = { 
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+    };
+    
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    
+    // 👈 إضافة خاصية cache: 'no-store' لدالة fetch
+    const options = { method, headers, cache: 'no-store' }; 
+    
+    if (body) options.body = JSON.stringify(body);
+    
+    try {
+        const res = await fetch(`${API_BASE}${endpoint}`, options);
+        if (res.status === 401) { logout(); throw new Error('انتهت صلاحية الجلسة'); }
+        if (!res.ok) { const txt = await res.text(); throw new Error(txt || 'خطأ'); }
+        return res.json();
+    } catch (err) {
+        if (err.message === 'Failed to fetch') throw new Error('تعذر الاتصال بالخادم');
+        throw err;
+    }
+}
 
         async function login(username, password) {
             const res = await fetch(`${API_BASE}/auth/login`, {
@@ -763,14 +775,18 @@ const registration = await navigator.serviceWorker.register('./sw.js', { scope: 
         }
 
         async function fetchDriverOrders(driverId, page = 1, status = '', period = 'all', limit = 10000) {
-            const params = new URLSearchParams();
-            params.append('driver_id', driverId);
-            if (status) params.append('status', status);
-            if (period && period !== 'all') params.append('period', period);
-            params.append('page', page);
-            params.append('limit', limit);
-            return apiCall(`/driver/orders?${params.toString()}`);
-        }
+    const params = new URLSearchParams();
+    params.append('driver_id', driverId);
+    if (status) params.append('status', status);
+    if (period && period !== 'all') params.append('period', period);
+    params.append('page', page);
+    params.append('limit', limit);
+    
+    // 👈 السطر السحري: إضافة طابع زمني عشوائي لمنع الكاش نهائياً
+    params.append('_t', new Date().getTime()); 
+    
+    return apiCall(`/driver/orders?${params.toString()}`);
+}
 
         async function fetchDriverSummary(driverId, period) {
             return apiCall(`/driver/summary?driver_id=${driverId}&period=${period}`);
