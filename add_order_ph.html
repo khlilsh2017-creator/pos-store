@@ -8,6 +8,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <meta name="theme-color" content="#1a56db" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     
     <title>طلب إنترنت - الجوال</title>
@@ -3999,8 +4000,172 @@
             updateOnlineStatus();
             showToast('📴 غير متصل، وضع محلي', 'warning');
         });
+// ================================================================
+        //  CATEGORY MANAGEMENT, ADD PRODUCT & DRIVERS (الدوال المفقودة)
+        // ================================================================
+        async function loadAllCategories() {
+            if (!navigator.onLine) {
+                showToast('غير متصل، لا يمكن تحميل التصنيفات', 'warning');
+                return;
+            }
+            try {
+                const res = await fetch(`${API}/categories?flat=1`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                allCategories = data.categories || [];
+                populateMainCategories();
+                populateNewProductCategories();
+            } catch (err) {
+                showToast('فشل تحميل التصنيفات', 'error');
+                console.error(err);
+            }
+        }
 
+        function populateMainCategories() {
+            const mainSelect = document.getElementById('main-category');
+            if (!mainSelect) return;
+            const mainCats = allCategories.filter(c => c.parent_id === null);
+            mainSelect.innerHTML = '<option value="">📂 جميع الأقسام</option>';
+            mainCats.forEach(cat => {
+                mainSelect.innerHTML += `<option value="${cat.id}">${escapeHTML(cat.name)}</option>`;
+            });
+            if (selectedCategoryId) {
+                const exists = mainCats.some(c => c.id == selectedCategoryId);
+                if (exists) mainSelect.value = selectedCategoryId;
+                else mainSelect.value = '';
+            }
+            onMainCategoryChange();
+        }
+
+        function onMainCategoryChange() {
+            const mainSelect = document.getElementById('main-category');
+            const subSelect = document.getElementById('sub-category');
+            if (!mainSelect) return;
+            const mainId = mainSelect.value ? parseInt(mainSelect.value) : null;
+
+            if (subSelect) {
+                subSelect.style.display = 'none';
+                subSelect.innerHTML = '<option value="">📂 اختر الفرع</option>';
+            }
+
+            if (!mainId) {
+                selectedCategoryId = null;
+                fetchProducts(currentSearch, null);
+                return;
+            }
+
+            const subCats = allCategories.filter(c => c.parent_id === mainId);
+            if (subCats.length > 0 && subSelect) {
+                subSelect.style.display = 'block';
+                subCats.forEach(cat => {
+                    subSelect.innerHTML += `<option value="${cat.id}">${escapeHTML(cat.name)}</option>`;
+                });
+                if (selectedCategoryId && subCats.some(c => c.id == selectedCategoryId)) {
+                    subSelect.value = selectedCategoryId;
+                } else {
+                    subSelect.value = '';
+                }
+                selectedCategoryId = mainId;
+                fetchProducts(currentSearch, selectedCategoryId);
+            } else {
+                selectedCategoryId = mainId;
+                fetchProducts(currentSearch, mainId);
+            }
+        }
+
+        function onSubCategoryChange() {
+            const subSelect = document.getElementById('sub-category');
+            if (!subSelect) return;
+            const subId = subSelect.value ? parseInt(subSelect.value) : null;
+            if (subId) {
+                selectedCategoryId = subId;
+                fetchProducts(currentSearch, subId);
+            } else {
+                const mainSelect = document.getElementById('main-category');
+                const mainId = mainSelect?.value ? parseInt(mainSelect.value) : null;
+                if (mainId) {
+                    selectedCategoryId = mainId;
+                    fetchProducts(currentSearch, mainId);
+                } else {
+                    selectedCategoryId = null;
+                    fetchProducts(currentSearch, null);
+                }
+            }
+        }
+
+        function populateNewProductCategories() {
+            const sel = document.getElementById('new-product-category');
+            if (!sel) return;
+            sel.innerHTML = '<option value="">بدون تصنيف</option>';
+            allCategories.forEach(cat => {
+                sel.innerHTML += `<option value="${cat.id}">${escapeHTML(cat.name)}</option>`;
+            });
+        }
+
+        function openAddProductModal() {
+            openModal('add-product-modal');
+            document.getElementById('new-product-name').focus();
+        }
+
+        async function confirmAddProduct() {
+            const name = document.getElementById('new-product-name').value.trim();
+            const price = parseFloat(document.getElementById('new-product-price').value);
+            const cost = parseFloat(document.getElementById('new-product-cost').value) || 0;
+            const barcode = document.getElementById('new-product-barcode').value.trim() || undefined;
+            const stock = parseInt(document.getElementById('new-product-stock').value) || 0;
+            const category_id = document.getElementById('new-product-category').value || null;
+
+            if (!name) return showToast('اسم المنتج مطلوب', 'warning');
+            if (isNaN(price) || price < 0) return showToast('سعر البيع غير صالح', 'warning');
+
+            try {
+                const res = await fetch(`${API}/products`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, price, cost, barcode, stock_quantity: stock, category_id })
+                });
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    showToast(`✅ تم إضافة المنتج "${name}"`, 'success');
+                    closeModal('add-product-modal');
+                    const newProduct = { id: data.id, name, price, cost, stock_quantity: stock };
+                    productsCache.push(newProduct);
+                    renderProductsGrid(productsCache);
+                    addToCart(data.id, name, price, cost, 1);
+                    document.getElementById('new-product-name').value = '';
+                    document.getElementById('new-product-price').value = '';
+                    document.getElementById('new-product-cost').value = '';
+                    document.getElementById('new-product-barcode').value = '';
+                    document.getElementById('new-product-stock').value = '0';
+                    document.getElementById('new-product-category').value = '';
+                } else {
+                    showToast(data.error || 'فشل إضافة المنتج', 'error');
+                }
+            } catch (err) {
+                showToast(err.message || 'خطأ في الاتصال', 'error');
+            }
+        }
+
+        async function loadDrivers() {
+            try {
+                const res = await fetch(`${API}/drivers`, { headers: { 'Authorization': `Bearer ${token}` } });
+                const data = await res.json();
+                const sel = document.getElementById('driverSelect');
+                if (!sel) return;
+                sel.innerHTML = '<option value="">بدون مندوب</option>';
+                if (data && data.drivers) {
+                    const activeDrivers = data.drivers.filter(d => d.is_active == 1 || d.is_active === true);
+                    activeDrivers.forEach(d => {
+                        sel.innerHTML += `<option value="${d.id}">${d.name}</option>`;
+                    });
+                }
+            } catch (e) {
+                console.warn('فشل تحميل المندوبين', e);
+            }
+        }
         window.onload = async function() {
+
             loadDarkModePreference();
             loadCurrentUser();
             updateOnlineStatus();
