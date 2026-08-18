@@ -631,6 +631,7 @@
                         isPushEnabled = true;
                         updateNotificationUI(true);
                         localStorage.setItem('fcmToken', token);
+                        await sendTokenToServiceWorker();
                         showToast('✅ تم تفعيل الإشعارات');
                         return true;
                     } else {
@@ -761,31 +762,14 @@
                 }
                 setupSWMessageListener();
                 const pushEnabled = localStorage.getItem('pushEnabled') === 'true';
-                if (pushEnabled) {
-                    const sub = await swRegistration.pushManager.getSubscription();
-                    if (sub) {
-                        pushSubscription = sub;
-                        isPushEnabled = true;
-                        updateNotificationUI(true);
-                        const token = sub.endpoint;
-                        const driverId = getDriverId();
-                        if (driverId) {
-                            const savedToken = localStorage.getItem('fcmToken');
-                            if (savedToken !== token) {
-                                await sendTokenToServer(token, driverId);
-                                localStorage.setItem('fcmToken', token);
-                                console.log('✅ تم تسجيل التوكن الجديد');
-                            } else {
-                                console.log('✅ التوكن مسجل مسبقاً، تخطي التسجيل');
-                            }
-                        }
-                    } else {
-                        updateNotificationUI(false);
-                        if (Notification.permission === 'granted') {
-                            await registerForPushNotifications();
-                        }
-                    }
+                if (pushEnabled && Notification.permission === 'granted') {
+                    // لا تستخدم sub.endpoint؛ فهو ليس FCM token.
+                    // أعد استخراج Firebase token مع نفس sw_driver.js.
+                    const enabled = await registerForPushNotifications();
+                    isPushEnabled = enabled === true;
+                    updateNotificationUI(isPushEnabled);
                 } else {
+                    isPushEnabled = false;
                     updateNotificationUI(false);
                 }
             } catch (err) {
