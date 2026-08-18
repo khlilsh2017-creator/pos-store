@@ -31,6 +31,8 @@ const STATIC_ASSETS = [
     '/orders.html',
     '/sales.html',
     '/db.js',
+    '/html2canvas.min.js',
+    '/html2pdf.bundle.min.js',
     '/sidebar-config.js',
     '/sidebar.css',
     '/manifest.json',

@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-    <!-- استدعاء المكتبة من جهازك / سيرفرك مباشرة -->
+   
+    <script src="html2canvas.min.js"></script>
     <script src="html2pdf.bundle.min.js"></script>
     <link rel="manifest" href="manifest_pos_s.json" />
     <meta charset="UTF-8" />
@@ -1562,7 +1563,8 @@
 
         <!-- ===== BOTTOM ACTIONS ===== -->
         <div class="bottom-actions">
-            <button class="btn btn-success" onclick="submitOrder(true)" style="padding: 10px 4px;"><i class="fas fa-save"></i> حفظ</button>
+            <button class="btn btn-success" onclick="submitOrder(false)" style="padding: 10px 4px;"><i class="fas fa-save"></i> حفظ</button>
+            
             <button class="btn btn-warning" onclick="submitOrder(false)" style="padding: 10px 4px;"><i class="fas fa-bolt"></i> سريع</button>
             <button class="btn btn-outline" onclick="saveDraft()" style="padding: 10px 4px;"><i class="fas fa-download"></i> مسودة</button>
             <button class="btn btn-outline" onclick="openDraftsModal()" style="padding: 10px 4px;"><i class="fas fa-folder-open"></i></button>
@@ -1595,6 +1597,23 @@
             <div class="scanner-line"></div>
             <div style="position:absolute;bottom:100px;color:white;font-size:0.9rem;text-align:center;">
                 <i class="fas fa-camera"></i> ضع الباركود أمام الكاميرا
+            </div>
+        </div>
+
+        <!-- نافذة خيارات الفاتورة بعد الحفظ -->
+        <div class="modal-overlay" id="invoice-choice-modal">
+            <div class="modal-box">
+                <div class="modal-header">
+                    <h3><i class="fas fa-file-invoice text-primary"></i> الطلب محفوظ</h3>
+                    <button class="close-btn" onclick="chooseInvoiceAction('skip')">&times;</button>
+                </div>
+                <p style="text-align:center; margin:10px 0 18px; color:var(--text-secondary);">هل تريد تحميل أو حفظ أو طباعة الفاتورة؟</p>
+                <div class="modal-actions" style="display:flex; gap:8px; flex-wrap:wrap;">
+                    <button class="btn btn-primary" style="flex:1;" onclick="chooseInvoiceAction('download')"><i class="fas fa-file-pdf"></i> PDF</button>
+                    <button class="btn btn-success" style="flex:1;" onclick="chooseInvoiceAction('image')"><i class="fas fa-image"></i> صورة</button>
+                    <button class="btn btn-warning" style="flex:1;" onclick="chooseInvoiceAction('print')"><i class="fas fa-print"></i> طباعة</button>
+                    <button class="btn btn-outline" style="flex:1;" onclick="chooseInvoiceAction('skip')"><i class="fas fa-times"></i> تخطي</button>
+                </div>
             </div>
         </div>
 
@@ -1738,6 +1757,8 @@
         let editingCartIndex = -1;
         let editingOrderId = null;
         let editingOrderStatus = null;
+        let isSubmittingOrder = false;
+        let pendingInvoiceSnapshot = null;
         let updatingMixedFromCash = false;
         let updatingMixedFromWallet = false;
         let updatingDiscountFromPaid = false;
@@ -1834,7 +1855,7 @@
         // ================================================================
         //  TOAST
         // ================================================================
-        function showToast(msg, type = 'info') {
+        function showToast(msg, type = 'info', options = {}) {
             const c = document.getElementById('toast-container');
             if (!c) return;
             const t = document.createElement('div');
@@ -1843,8 +1864,11 @@
             t.innerHTML = `<i class="fas ${icons[type] || icons.info}"></i> ${msg}`;
             c.appendChild(t);
             setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateX(20px)'; setTimeout(() => t.remove(), 300); }, 3500);
-            if (type === 'success') playSuccessSound();
-            else if (type === 'error') playErrorSound();
+            // يمكن تعطيل الصوت في العمليات الخلفية حتى لا يتكرر أو يستمر أثناء إنشاء PDF.
+            if (options.sound !== false) {
+                if (type === 'success') playSuccessSound();
+                else if (type === 'error') playErrorSound();
+            }
         }
 
         function escapeHTML(str) { const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
@@ -3535,6 +3559,7 @@
         }
 
         async function submitOrder(generateInvoice = false) {
+            if (isSubmittingOrder) return showToast('⏳ جارٍ حفظ الطلب، يرجى الانتظار', 'info');
             if (cart.length === 0) return showToast('⚠️ السلة فارغة', 'warning');
             if (!selectedCustomerData) { showToast('⚠️ يرجى إدخال بيانات العميل', 'warning'); openCustomerModal(); return; }
             
@@ -3639,11 +3664,13 @@
 
             const btn = document.querySelector('.bottom-actions .btn-success');
             let originalHTML = '';
+            isSubmittingOrder = true;
             if (btn) {
                 originalHTML = btn.innerHTML;
                 btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> حفظ...`;
                 btn.disabled = true;
             }
+            // تعطيل زر الحفظ فقط؛ تبقى بقية الشاشة قابلة للاستخدام أثناء العملية.
             setProgress(50);
 
             try {
@@ -3666,8 +3693,10 @@
                     if (orderId) document.getElementById('display-order-id').innerText = orderId;
                     if (invoiceNum) document.getElementById('display-invoice-number').innerText = invoiceNum;
                     
-                    showToast(`✅ ${editingOrderId ? 'تم تحديث' : 'تم حفظ'} الطلب ${orderId || ''}`, 'success');
-                    playSuccessSound();
+                    showToast(`✅ ${editingOrderId ? 'تم تحديث' : 'تم حفظ'} الطلب ${orderId || ''}`, 'success', { sound: false });
+                    // تم كتم صوت إشعار الحفظ لتجنب التصفير المتكرر أثناء عمليات الخلفية.
+
+                    pendingInvoiceSnapshot = captureInvoiceSnapshot(orderId);
 
                     if (currentDraftId) {
                         let drafts = JSON.parse(localStorage.getItem('pos_drafts_list') || '[]');
@@ -3676,29 +3705,88 @@
                         currentDraftId = null;
                     }
 
-                    if (generateInvoice) {
-                        await printOrderSummary(false); 
-                    }
-
+                    // إنهاء دورة الحفظ وإعادة ضبط الواجهة أولاً، ثم إنشاء الفاتورة في مهمة مؤجلة مستقلة.
                     resetOrderForm();
                     fetchProducts('', selectedCategoryId);
+                    setTimeout(() => openInvoiceChoiceModal(), 0);
                     
                 } else { 
-                    showToast(data.error || 'فشل حفظ الطلب', 'error');
-                    playErrorSound(); 
+                    showToast(data.error || 'فشل حفظ الطلب', 'error', { sound: false });
                 }
             } catch (err) { 
-                showToast(err.message || 'خطأ في الاتصال', 'error');
-                playErrorSound(); 
+                showToast(err.message || 'خطأ في الاتصال', 'error', { sound: false });
             } finally { 
                 if (btn) {
                     btn.innerHTML = originalHTML;
-                    btn.disabled = false; 
+                    btn.disabled = false;
                 }
+                isSubmittingOrder = false;
             }
         }
 
-        function printOrderSummary(isDraft = false) {
+        function captureInvoiceSnapshot(orderId = null) {
+            const fieldIds = [
+                'order-currency-select', 'cart-discount', 'discount-type', 'deliveryFee',
+                'deliveryFeePayment', 'payment-method', 'wallet-currency-select', 'paid-amount',
+                'mixed-cash-currency', 'mixed-wallet-currency', 'cash-paid', 'wallet-paid'
+            ];
+            const fields = {};
+            fieldIds.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) fields[id] = el.value;
+            });
+            return {
+                orderId: orderId || document.getElementById('display-order-id')?.innerText || 'جديد',
+                cart: JSON.parse(JSON.stringify(cart)),
+                customer: selectedCustomerData ? JSON.parse(JSON.stringify(selectedCustomerData)) : null,
+                fields
+            };
+        }
+
+        function openInvoiceChoiceModal() {
+            if (!pendingInvoiceSnapshot || !pendingInvoiceSnapshot.cart?.length) return;
+            openModal('invoice-choice-modal');
+        }
+
+        function chooseInvoiceAction(action) {
+            closeModal('invoice-choice-modal');
+            if (!pendingInvoiceSnapshot || !pendingInvoiceSnapshot.cart?.length) return;
+            const snapshot = pendingInvoiceSnapshot;
+            pendingInvoiceSnapshot = null;
+            if (action === 'skip') return;
+            queueInvoiceGeneration(false, snapshot, action);
+        }
+
+        function queueInvoiceGeneration(isDraft, snapshot, action = 'download') {
+            if (!snapshot || !snapshot.cart || snapshot.cart.length === 0) return;
+            setTimeout(() => {
+                const previousCart = cart;
+                const previousCustomer = selectedCustomerData;
+                const previousValues = {};
+                cart = snapshot.cart;
+                selectedCustomerData = snapshot.customer;
+                Object.entries(snapshot.fields || {}).forEach(([id, value]) => {
+                    const el = document.getElementById(id);
+                    if (el) { previousValues[id] = el.value; el.value = value; }
+                });
+                const orderIdEl = document.getElementById('display-order-id');
+                const previousOrderId = orderIdEl?.innerText;
+                if (orderIdEl) orderIdEl.innerText = snapshot.orderId || 'جديد';
+
+                // لا يتم انتظار هذه العملية ولا تُبقي النموذج في حالة الحفظ.
+                void printOrderSummary(isDraft, action).catch(err => console.error('Invoice generation error:', err)).finally(() => {
+                    cart = previousCart;
+                    selectedCustomerData = previousCustomer;
+                    Object.entries(previousValues).forEach(([id, value]) => {
+                        const el = document.getElementById(id);
+                        if (el) el.value = value;
+                    });
+                    if (orderIdEl && previousOrderId !== undefined) orderIdEl.innerText = previousOrderId;
+                });
+            }, 0);
+        }
+
+        function printOrderSummary(isDraft = false, action = 'download') {
             return new Promise((resolve) => {
                 if (cart.length === 0) {
                     showToast('لا توجد بيانات للطباعة', 'warning');
@@ -3855,12 +3943,52 @@
 
                 showToast('⏳ جاري تجهيز الفاتورة كملف PDF...', 'info');
                 
-                html2pdf().set(opt).from(invoiceHtml).save().then(() => {
-                    showToast('✅ تم تحميل الفاتورة بنجاح', 'success');
+                const imageTask = action === 'image' ? new Promise((resolve, reject) => {
+                    const container = document.createElement('div');
+                    container.innerHTML = invoiceHtml;
+                    container.style.position = 'fixed';
+                    container.style.left = '-100000px';
+                    container.style.top = '0';
+                    container.style.width = '720px';
+                    container.style.background = '#ffffff';
+                    container.style.zIndex = '-1';
+                    document.body.appendChild(container);
+                    const invoiceElement = container.firstElementChild;
+                    if (typeof html2canvas !== 'function') {
+                        container.remove();
+                        return reject(new Error('مكتبة تحويل الصورة غير متاحة'));
+                    }
+                    html2canvas(invoiceElement, { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false })
+                        .then(canvas => {
+                            const link = document.createElement('a');
+                            link.download = fileName.replace(/\.pdf$/i, '.png');
+                            link.href = canvas.toDataURL('image/png');
+                            link.click();
+                            resolve();
+                        })
+                        .catch(reject)
+                        .finally(() => container.remove());
+                }) : null;
+
+                const pdfTask = action === 'print'
+                    ? html2pdf().set(opt).from(invoiceHtml).toPdf().get('pdf').then(pdf => {
+                        pdf.autoPrint();
+                        const printWindow = window.open(pdf.output('bloburl'), '_blank');
+                        if (!printWindow) throw new Error('تعذر فتح نافذة الطباعة');
+                    })
+                    : action === 'image'
+                        ? imageTask
+                        : html2pdf().set(opt).from(invoiceHtml).save();
+
+                pdfTask.then(() => {
+                    const successMessage = action === 'print' ? '✅ تم تجهيز الفاتورة للطباعة'
+                        : action === 'image' ? '✅ تم حفظ الفاتورة كصورة'
+                        : '✅ تم تحميل الفاتورة بنجاح';
+                    showToast(successMessage, 'success', { sound: false });
                     resolve();
                 }).catch(err => {
                     console.error('PDF Error:', err);
-                    showToast('❌ حدث خطأ أثناء إنشاء الـ PDF', 'error');
+                    showToast(action === 'image' ? '❌ حدث خطأ أثناء حفظ الفاتورة كصورة' : '❌ حدث خطأ أثناء إنشاء الفاتورة', 'error', { sound: false });
                     resolve();
                 });
             });
@@ -3908,9 +4036,9 @@
             currentDraftId = draftId;
             showToast('✅ تم حفظ المسودة في الجهاز بنجاح', 'success');
 
-            if (confirm('تم حفظ بيانات المسودة بنجاح. هل تريد تحميل الفاتورة (كـ مسودة) الآن؟')) {
-                printOrderSummary(true); 
-            }
+            // لا يتم توليد PDF تلقائياً؛ تبقى الشاشة متاحة ويُنشأ عند ضغط زر الفاتورة.
+            pendingInvoiceSnapshot = captureInvoiceSnapshot(`مسودة_${draftId}`);
+            setTimeout(() => openInvoiceChoiceModal(), 0);
         }
 
         function openDraftsModal() {
