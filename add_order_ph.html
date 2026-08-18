@@ -2341,6 +2341,7 @@
             // تم دمجها مع triggerSearch
         }
 // أضف هذا المتغير في بداية قسم الـ script (أو قبل الدالة مباشرة)
+// تأكد من وجود هذا المتغير خارج الدالة (في أعلى السكربت)
 let fetchAbortController = null;
 
 async function fetchProducts(search = '', categoryId = null) {
@@ -2353,14 +2354,14 @@ async function fetchProducts(search = '', categoryId = null) {
     const countLabel = document.getElementById('products-count-label');
     const dropdown = document.getElementById('search-dropdown');
 
-    // 1. إلغاء أي طلب بحث سابق ما زال قيد التنفيذ
+    // 1. إلغاء أي طلب بحث سابق ما زال قيد التنفيذ (لمنع التداخل)
     if (fetchAbortController) {
         fetchAbortController.abort();
     }
     fetchAbortController = new AbortController();
     const signal = fetchAbortController.signal;
 
-    // إذا كان البحث أقل من 4 أحرف
+    // --- حالة البحث أقل من 4 أحرف ---
     if (currentSearch.length > 0 && currentSearch.length < 4) {
         if (dropdown) dropdown.style.display = 'none';
         if (grid) {
@@ -2380,8 +2381,12 @@ async function fetchProducts(search = '', categoryId = null) {
     // --- حالة عرض كل المنتجات (لا يوجد بحث) ---
     if (currentSearch.length === 0) {
         if (dropdown) dropdown.style.display = 'none';
-        if (!navigator.onLine) {
-            const localProducts = await getLocalProducts();
+        
+        // استرجاع المنتجات من الذاكرة المحلية لتجنب إرهاق السيرفر
+        const localProducts = await getLocalProducts();
+        
+        // إذا كان هناك منتجات محفوظة محلياً، اعرضها فوراً ولا تتصل بالسيرفر (سرعة خيالية وتخفيف للضغط)
+        if (localProducts.length > 0) {
             productsCache = localProducts;
             let filtered = localProducts;
             if (selectedCategoryId) {
@@ -2389,13 +2394,22 @@ async function fetchProducts(search = '', categoryId = null) {
             }
             renderProductsGrid(filtered);
             if (countLabel) countLabel.textContent = `عدد المنتجات: ${filtered.length}`;
+            
+            setProgress(100);
+            setTimeout(() => setProgress(0), 500);
+            return; // إنهاء الدالة هنا لمنع الاتصال بالسيرفر
+        }
+
+        // إذا لم تكن موجودة محلياً (أول مرة يفتح التطبيق أو بعد الضغط على تحديث)
+        if (!navigator.onLine) {
+            if (countLabel) countLabel.textContent = `عدد المنتجات: 0`;
         } else {
             try {
                 let url = `${API}/products?limit=3000`;
                 if (selectedCategoryId) url += `&category_id=${selectedCategoryId}`;
                 if (currentSort) url += `&sort=${encodeURIComponent(currentSort)}`;
-                
-                // 2. ربط الـ signal بالطلب
+                url += `&_t=${new Date().getTime()}`; // كسر الكاش
+
                 const res = await fetch(url, { 
                     headers: { 'Authorization': `Bearer ${token}` },
                     signal: signal 
@@ -2403,19 +2417,15 @@ async function fetchProducts(search = '', categoryId = null) {
                 const data = await res.json();
                 productsCache = data.products || [];
                 
-                // 3. نحفظ المنتجات محلياً هنا فقط (لأننا جلبنا كل البيانات وليس بحثاً محدوداً)
+                // حفظ البيانات محلياً لاستخدامها لاحقاً
                 await saveProductsToLocal(productsCache);
                 
                 renderProductsGrid(productsCache);
                 if (countLabel) countLabel.textContent = `عدد المنتجات: ${productsCache.length}`;
             } catch (err) {
-                if (err.name === 'AbortError') return; // تجاهل خطأ الإلغاء المتعمد
-                
-                const localProducts = await getLocalProducts();
-                productsCache = localProducts;
+                if (err.name === 'AbortError') return; 
                 renderProductsGrid(localProducts);
-                if (countLabel) countLabel.textContent = `عدد المنتجات: ${localProducts.length} (محلي)`;
-                showToast('فشل تحميل المنتجات، عرض محلي', 'warning');
+                showToast('فشل تحميل المنتجات', 'warning');
             }
         }
         setProgress(100);
@@ -2449,8 +2459,8 @@ async function fetchProducts(search = '', categoryId = null) {
         if (currentSearch) url += `&search=${encodeURIComponent(currentSearch)}`;
         if (selectedCategoryId) url += `&category_id=${selectedCategoryId}`;
         if (currentSort) url += `&sort=${encodeURIComponent(currentSort)}`;
-        
-        // 4. ربط الـ signal بالطلب
+        url += `&_t=${new Date().getTime()}`; // كسر الكاش
+
         const res = await fetch(url, { 
             headers: { 'Authorization': `Bearer ${token}` },
             signal: signal
@@ -2458,7 +2468,7 @@ async function fetchProducts(search = '', categoryId = null) {
         const data = await res.json();
         productsCache = data.products || [];
         
-        // 5. تم إزالة (saveProductsToLocal) من هنا لمنع تدمير قاعدة البيانات المحلية بنتائج البحث الجزئية
+        // لا نستخدم saveProductsToLocal هنا لمنع تسمم قاعدة البيانات المحلية بنتائج البحث
         
         renderSearchDropdown(productsCache);
         if (countLabel) countLabel.textContent = `عدد المنتجات: ${productsCache.length} (نتائج البحث)`;
@@ -2467,6 +2477,7 @@ async function fetchProducts(search = '', categoryId = null) {
     } catch (err) {
         if (err.name === 'AbortError') return; // تجاهل خطأ الإلغاء المتعمد
 
+        // العمل من التخزين المحلي في حالة فشل الاتصال أثناء البحث
         const localProducts = await getLocalProducts();
         productsCache = localProducts;
         let filtered = localProducts;
