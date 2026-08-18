@@ -3,7 +3,7 @@
 // يجمع بين ميزات المندوب (المزامنة، العمليات) وتحسينات النظام العام
 // ============================================================
 
-const VERSION = '2026-08-18-007';
+const VERSION = '2026-08-19-008';
 const CACHE_NAME = `ibn-mukhtar-pos-${VERSION}`;
 const STATIC_CACHE = `ibn-mukhtar-static-${VERSION}`;
 const DYNAMIC_CACHE = `ibn-mukhtar-dynamic-${VERSION}`;
@@ -13,21 +13,19 @@ const OPERATIONS_STORE = 'operations';
 const SYNC_META_DB = 'DriverSyncMetaDB';
 const SYNC_META_STORE = 'auth';
 const SYNC_TAG = 'driver-orders-pending-v1';
-const DB_VERSION = 2;
+;
 
 // --------------------------------------------
 //  قائمة الأصول الثابتة (خاصة بالمندوب)
 // --------------------------------------------
 const STATIC_ASSETS = [
-  '/',
-  '/index.html',
+  
   '/driver.html',
   '/manifest_pos.json',
   '/icon-192x192.png',
   '/icon-512x512.png',
   '/db.js',
-  '/sidebar-config.js',
-  '/sidebar.css'
+  
   // يمكن إضافة ملفات أخرى خاصة بالمندوب هنا
 ];
 
