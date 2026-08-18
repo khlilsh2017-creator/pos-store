@@ -4122,12 +4122,20 @@
             const name = document.getElementById('new-product-name').value.trim();
             const price = parseFloat(document.getElementById('new-product-price').value);
             const cost = parseFloat(document.getElementById('new-product-cost').value) || 0;
-            const barcode = document.getElementById('new-product-barcode').value.trim() || undefined;
+            let barcode = document.getElementById('new-product-barcode').value.trim(); // 👈 التعديل الأول هنا
             const stock = parseInt(document.getElementById('new-product-stock').value) || 0;
             const category_id = document.getElementById('new-product-category').value || null;
 
             if (!name) return showToast('اسم المنتج مطلوب', 'warning');
             if (isNaN(price) || price < 0) return showToast('سعر البيع غير صالح', 'warning');
+
+            // 🌟 التعديل الجذري: توليد باركود تلقائي إذا كان الحقل فارغاً لتجنب التعارض (409 Conflict)
+            if (barcode === '') {
+                // أخذ آخر 12 رقم من الوقت الحالي لضمان إنتاج باركود فريد لا يتكرر أبداً
+                barcode = new Date().getTime().toString().slice(-12);
+            }
+
+            setProgress(30);
 
             try {
                 const res = await fetch(`${API}/products`, {
@@ -4136,13 +4144,27 @@
                     body: JSON.stringify({ name, price, cost, barcode, stock_quantity: stock, category_id })
                 });
                 const data = await res.json();
+                
+                setProgress(100);
+                setTimeout(() => setProgress(0), 500);
+
                 if (res.ok && data.success) {
-                    showToast(`✅ تم إضافة المنتج "${name}"`, 'success');
+                    showToast(`✅ تم إضافة "${name}"`, 'success');
+                    if (typeof playSuccessSound === "function") playSuccessSound(); // لدعم شاشة الجوال
+                    
                     closeModal('add-product-modal');
-                    const newProduct = { id: data.id, name, price, cost, stock_quantity: stock };
+                    
+                    // تحديث واجهة المستخدم
+                    const newProduct = { id: data.id, name, price, cost, stock_quantity: stock, barcode: barcode };
                     productsCache.push(newProduct);
-                    renderProductsGrid(productsCache);
+                    
+                    // استدعاء دالة العرض حسب الشاشة (للكمبيوتر أو الجوال)
+                    if (typeof renderProductsTable === "function") renderProductsTable(productsCache);
+                    if (typeof renderProductsGrid === "function") renderProductsGrid(productsCache);
+                    
                     addToCart(data.id, name, price, cost, 1);
+                    
+                    // تصفير الحقول
                     document.getElementById('new-product-name').value = '';
                     document.getElementById('new-product-price').value = '';
                     document.getElementById('new-product-cost').value = '';
@@ -4150,10 +4172,12 @@
                     document.getElementById('new-product-stock').value = '0';
                     document.getElementById('new-product-category').value = '';
                 } else {
-                    showToast(data.error || 'فشل إضافة المنتج', 'error');
+                    showToast(data.error || 'فشل الإضافة', 'error');
+                    if (typeof playErrorSound === "function") playErrorSound();
                 }
             } catch (err) {
                 showToast(err.message || 'خطأ في الاتصال', 'error');
+                if (typeof playErrorSound === "function") playErrorSound();
             }
         }
 
