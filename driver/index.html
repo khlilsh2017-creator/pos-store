@@ -753,30 +753,39 @@
     });
 }
 
-        async function initializePushNotifications() {
-            try {
-                swRegistration = await registerServiceWorker();
-                if (!swRegistration) {
-                    console.warn('Service Worker غير متاح');
-                    return;
-                }
-                setupSWMessageListener();
-                const pushEnabled = localStorage.getItem('pushEnabled') === 'true';
-                if (pushEnabled && Notification.permission === 'granted') {
-                    // لا تستخدم sub.endpoint؛ فهو ليس FCM token.
-                    // أعد استخراج Firebase token مع نفس sw_driver.js.
-                    const enabled = await registerForPushNotifications();
-                    isPushEnabled = enabled === true;
-                    updateNotificationUI(isPushEnabled);
-                } else {
-                    isPushEnabled = false;
-                    updateNotificationUI(false);
-                }
-            } catch (err) {
-                console.error('خطأ في تهيئة الإشعارات:', err);
-                updateNotificationUI(false);
-            }
+       async function initializePushNotifications() {
+    try {
+        swRegistration = await registerServiceWorker();
+        if (!swRegistration) {
+            console.warn('Service Worker غير متاح');
+            return;
         }
+        setupSWMessageListener();
+        const pushEnabled = localStorage.getItem('pushEnabled') === 'true';
+        
+        if (pushEnabled && Notification.permission === 'granted') {
+            // 1. التحقق من وجود التوكن المسبق في التخزين المحلي
+            const existingToken = localStorage.getItem('fcmToken');
+            
+            if (existingToken) {
+                // 2. إذا كان موجوداً، نكتفي بتفعيل الواجهة دون إرسال طلب جديد للسيرفر
+                isPushEnabled = true;
+                updateNotificationUI(true);
+            } else {
+                // 3. إذا لم يكن موجوداً، نقوم بتسجيله من جديد
+                const enabled = await registerForPushNotifications();
+                isPushEnabled = enabled === true;
+                updateNotificationUI(isPushEnabled);
+            }
+        } else {
+            isPushEnabled = false;
+            updateNotificationUI(false);
+        }
+    } catch (err) {
+        console.error('خطأ في تهيئة الإشعارات:', err);
+        updateNotificationUI(false);
+    }
+}
 
         // =============================================================
         // 5. دوال API

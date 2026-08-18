@@ -21,7 +21,7 @@ const SYNC_TAG = 'driver-orders-pending-v1';
 // --------------------------------------------
 const STATIC_ASSETS = [
   
-  '/driver/driver.html',
+  '/driver/',
   '/driver/manifest_pos.json',
   '/driver/icon-192x192.png',
   '/driver/icon-512x512.png',
@@ -493,13 +493,13 @@ self.addEventListener('push', event => {
   let notificationData = {
     title: '📦 ابن مختار – المندوب',
     body: 'لديك إشعار جديد',
-    link: '/driver/driver.html',
+    link: '/driver/',
     icon: '/driver/icon-192x192.png',
     badge: '/driver/icon-192x192.png',
     vibrate: [200, 100, 200],
     tag: 'default',
     requireInteraction: true,
-    data: { link: '/driver/driver.html' }
+    data: { link: '/driver/' }
   };
   let orderId = null;
 
@@ -605,7 +605,7 @@ self.addEventListener('notificationclick', event => {
   const notification = event.notification;
   notification.close();
 
-  let link = '/driver/driver.html';
+  let link = '/driver/';
   let orderId = null;
 
   if (notification.data) {
