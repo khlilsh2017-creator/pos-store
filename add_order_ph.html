@@ -1943,7 +1943,7 @@
         //  INDEXEDDB
         // ================================================================
         const DB_NAME = 'IbnMukhtarPOS';
-        const DB_VERSION = 10;
+        const DB_VERSION = 8;
 
         function openDB() {
             return new Promise((resolve, reject) => {
@@ -3459,7 +3459,6 @@ function resetOrderForm() {
         const data = await res.json();
         const order = data.order;
         if (!order) { showToast('الطلب غير موجود', 'error'); return; }
-        
         const allowedStatuses = ['جديد', 'قيد التوصيل', 'مُسند لمندوب'];
         if (!allowedStatuses.includes(order.status)) {
             showToast(`لا يمكن تعديل طلب بحالة "${order.status}"`, 'warning');
@@ -3467,7 +3466,6 @@ function resetOrderForm() {
         }
         
         resetOrderForm();
-        
         editingOrderId = orderId;
         editingOrderStatus = order.status;
         document.getElementById('page-subtitle').innerText = `تعديل #${orderId}`;
@@ -3475,17 +3473,12 @@ function resetOrderForm() {
         document.getElementById('display-invoice-number').innerText = order.invoice_number || 'غير محدد';
 
         const statusBar = document.getElementById('order-status-bar');
-        if (statusBar) statusBar.style.display = 'flex';
+        statusBar.style.display = 'flex';
         const statusBadge = document.getElementById('order-status-badge');
-        if (statusBadge) {
-            statusBadge.textContent = order.status;
-            statusBadge.className = 'status-badge ' + ({ 'جديد': 'new', 'مُسند لمندوب': 'assigned', 'قيد التوصيل': 'delivering' } [order.status] || 'new');
-        }
-        const orderPaymentDisplay = document.getElementById('order-payment-method-display');
-        if (orderPaymentDisplay) orderPaymentDisplay.textContent = `💳 ${order.payment_method}`;
-        
-        const cancelBtn = document.getElementById('cancel-order-btn');
-        if (cancelBtn) cancelBtn.style.display = 'inline-flex';
+        statusBadge.textContent = order.status;
+        statusBadge.className = 'status-badge ' + ({ 'جديد': 'new', 'مُسند لمندوب': 'assigned', 'قيد التوصيل': 'delivering' } [order.status] || 'new');
+        document.getElementById('order-payment-method-display').textContent = `💳 ${order.payment_method}`;
+        document.getElementById('cancel-order-btn').style.display = 'inline-flex';
 
         selectedCustomerData = {
             mainPhone: order.customer_phone || '',
@@ -3500,18 +3493,12 @@ function resetOrderForm() {
         document.getElementById('deliveryFee').value = order.delivery_fee || 0;
         document.getElementById('deliveryFeePayment').value = order.delivery_fee_payment || 'مع الطلب';
         document.getElementById('notes').value = order.notes || '';
+        document.getElementById('payment-method').value = order.payment_method || 'عند الاستلام';
         
-        // --- 1. تحميل المحافظ والعملات أولاً لضمان عدم مسح البيانات لاحقاً ---
-        if (currenciesCache.length === 0) { await loadCurrencies(); populateCurrencySelects(); }
-        if (walletsCache.length === 0) { await loadWalletsFromServer(); populateWalletSelects(); }
-
-        // --- 2. جلب الخصم الإجمالي للطلب ---
-        const discountInput = document.getElementById('cart-discount');
-        if (discountInput) discountInput.value = parseFloat(order.discount) || parseFloat(order.discount_amount) || 0;
-        const discountTypeSelect = document.getElementById('discount-type');
-        if (discountTypeSelect) discountTypeSelect.value = order.discount_type || 'fixed';
-
-        // --- 3. تحديد العملة الأساسية للفاتورة ---
+        // --- الجديد 1: جلب الخصم الإجمالي للطلب ---
+        document.getElementById('cart-discount').value = parseFloat(order.discount) || parseFloat(order.discount_amount) || 0;
+        
+        // --- الجديد 2: تحديد العملة الأساسية للفاتورة ---
         if (order.currency_id) {
             const orderCurSel = document.getElementById('order-currency-select');
             if (orderCurSel) {
@@ -3522,18 +3509,7 @@ function resetOrderForm() {
             }
         }
 
-        // --- 4. ضبط طريقة الدفع بطريقة ذكية لضمان تفعيل الحقول الصحيحة ---
-        const paymentMethod = order.payment_method || 'عند الاستلام';
-        let normalizedPaymentMethod = 'عند الاستلام';
-        if (paymentMethod.includes('مدفوع مسبقاً') || paymentMethod.includes('prepaid')) {
-            if (paymentMethod.includes('مختلط') || paymentMethod.includes('mixed')) {
-                normalizedPaymentMethod = 'مدفوع مسبقاً (مختلط)';
-            } else {
-                normalizedPaymentMethod = 'مدفوع مسبقاً (محفظة)';
-            }
-        }
-        document.getElementById('payment-method').value = normalizedPaymentMethod;
-        handlePaymentMethodChange(); // هذا سيفعل إظهار الحقول المخصصة
+        handlePaymentMethodChange();
 
         if (order.assigned_driver_id) {
             const driverSel = document.getElementById('driverSelect');
@@ -3543,7 +3519,6 @@ function resetOrderForm() {
             }
         }
 
-        // --- 5. تعبئة السلة والمنتجات مع الخصم الخاص بها ---
         if (order.items && order.items.length > 0) {
             cart = order.items.map(item => ({
                 id: item.product_id,
@@ -3551,6 +3526,7 @@ function resetOrderForm() {
                 price: parseFloat(item.unit_price) || 0,
                 cost: 0,
                 quantity: parseInt(item.quantity) || 1,
+                // --- الجديد 3: التأكد من قراءة خصم الصنف كرقم ---
                 discount: parseFloat(item.discount) || parseFloat(item.discount_amount) || 0,
                 notes: item.note || item.notes || ''
             }));
@@ -3565,8 +3541,25 @@ function resetOrderForm() {
             renderCart();
         }
 
-        // --- 6. استرجاع تفاصيل الدفع والعملة المحددة مسبقاً ---
-        const isPrepaid = normalizedPaymentMethod.includes('مدفوع مسبقاً');
+        // --- الجديد 4: استرجاع تفاصيل الدفع والعملة المحددة مسبقاً بطريقة أذكى ---
+        const isPrepaid = order.payment_method && order.payment_method.includes('مدفوع مسبقاً');
+        
+        if (currenciesCache.length === 0) { await loadCurrencies(); populateCurrencySelects(); }
+        if (walletsCache.length === 0) { await loadWalletsFromServer(); populateWalletSelects(); }
+
+        const ensureSelectOption = (selectId, value, text) => {
+            const sel = document.getElementById(selectId);
+            if (!sel || !value) return;
+            if (!sel.querySelector(`option[value="${value}"]`)) {
+                const opt = document.createElement('option');
+                opt.value = value;
+                opt.textContent = text || `ID: ${value}`;
+                sel.appendChild(opt);
+            }
+            sel.value = value;
+        };
+
+        // استخراج تفاصيل الدفع سواء كانت محفوظة في مصفوفة فرعية أو في الجذر
         let details = {};
         if (order.actual_payment_details) {
             details = typeof order.actual_payment_details === 'string' ? JSON.parse(order.actual_payment_details) : order.actual_payment_details;
@@ -3575,58 +3568,42 @@ function resetOrderForm() {
         }
 
         if (isPrepaid) {
-            const ensureSelectOption = (selectId, value, text) => {
-                const sel = document.getElementById(selectId);
-                if (!sel || !value) return;
-                if (!sel.querySelector(`option[value="${value}"]`)) {
-                    const opt = document.createElement('option');
-                    opt.value = value;
-                    opt.textContent = text || `ID: ${value}`;
-                    sel.appendChild(opt);
-                }
-                sel.value = value;
-            };
-
-            // نؤخر التنفيذ بجزء من الثانية لضمان تهيئة القوائم المنسدلة في المتصفح أولاً
-            setTimeout(() => {
-                if (details.prepaid_method === 'wallet' || normalizedPaymentMethod === 'مدفوع مسبقاً (محفظة)') {
-                    const wId = details.wallet_id || order.prepaid_wallet_id;
-                    const wCur = details.currency_id || order.wallet_currency_id || order.currency_id;
-                    const wAmt = details.wallet_amount || order.prepaid_wallet_amount || order.paid_amount || 0;
-                    
-                    ensureSelectOption('wallet-select', wId, `محفظة #${wId}`);
-                    ensureSelectOption('wallet-currency-select', wCur, `عملة #${wCur}`);
-                    document.getElementById('paid-amount').value = wAmt;
-                    
-                    onWalletSelectChange();
-                    updateTotalsFromPaid(); // استرجاع الخصم تلقائياً للبيانات القديمة
-                    
-                } else if (details.prepaid_method === 'mixed' || normalizedPaymentMethod === 'مدفوع مسبقاً (مختلط)') {
-                    const wId = details.wallet_id || order.prepaid_wallet_id;
-                    const cashCur = details.cash_currency_id || order.cash_currency_id;
-                    const wCur = details.wallet_currency_id || order.wallet_currency_id;
-                    const cashAmt = details.cash_amount || order.prepaid_cash_amount || 0;
-                    const wAmt = details.wallet_amount || order.prepaid_wallet_amount || 0;
-
-                    document.getElementById('cash-paid').value = cashAmt;
-                    document.getElementById('wallet-paid').value = wAmt;
-                    
-                    ensureSelectOption('mixed-cash-currency', cashCur, `عملة #${cashCur}`);
-                    ensureSelectOption('mixed-wallet-currency', wCur, `عملة #${wCur}`);
-                    ensureSelectOption('mixed-wallet', wId, `محفظة #${wId}`);
-                    
-                    onMixedWalletChange();
-                    updateTotalsFromPaidMixed(); // استرجاع الخصم تلقائياً للبيانات القديمة
-                }
+            if (order.payment_method === 'مدفوع مسبقاً (محفظة)') {
+                const wId = details.wallet_id || order.prepaid_wallet_id;
+                const wCur = details.currency_id || order.wallet_currency_id || order.currency_id;
+                const wAmt = details.wallet_amount || order.prepaid_wallet_amount || order.paid_amount || 0;
                 
-                // تحديث المجاميع مرة واحدة بالنهاية لتعكس كل شيء بدقة
-                updateTotals();
-            }, 250);
-            
-        } else {
-            // للفواتير غير المدفوعة مسبقاً (مثل: عند الاستلام)
-            setTimeout(() => { updateTotals(); }, 150);
+                ensureSelectOption('wallet-select', wId, `محفظة #${wId}`);
+                ensureSelectOption('wallet-currency-select', wCur, `عملة #${wCur}`);
+                document.getElementById('paid-amount').value = wAmt;
+                
+                onWalletSelectChange();
+                
+            } else if (order.payment_method === 'مدفوع مسبقاً (مختلط)') {
+                const wId = details.wallet_id || order.prepaid_wallet_id;
+                const cashCur = details.cash_currency_id || order.cash_currency_id;
+                const wCur = details.wallet_currency_id || order.wallet_currency_id;
+                const cashAmt = details.cash_amount || order.prepaid_cash_amount || 0;
+                const wAmt = details.wallet_amount || order.prepaid_wallet_amount || 0;
+
+                document.getElementById('cash-paid').value = cashAmt;
+                document.getElementById('wallet-paid').value = wAmt;
+                
+                ensureSelectOption('mixed-cash-currency', cashCur, `عملة #${cashCur}`);
+                ensureSelectOption('mixed-wallet-currency', wCur, `عملة #${wCur}`);
+                ensureSelectOption('mixed-wallet', wId, `محفظة #${wId}`);
+                
+                onMixedWalletChange();
+            }
         }
+
+        // تحديث إجمالي الفاتورة ليعكس البيانات المحملة
+        setTimeout(() => {
+            updateTotals();
+            if (isPrepaid && order.payment_method === 'مدفوع مسبقاً (مختلط)') {
+                updateTotalsFromPaidMixed();
+            }
+        }, 100);
         
         setProgress(100);
         setTimeout(() => setProgress(0), 500);
@@ -3755,8 +3732,7 @@ function resetOrderForm() {
         driver_id: document.getElementById('driverSelect')?.value ? parseInt(document.getElementById('driverSelect').value) : undefined,
         total_amount: total,
         discount: discount,
-        discount_amount: discountAmount ,
-        discount_type: discountType, // <--- أضف هذا السطر
+        discount_amount: discountAmount 
     };
 
     const btn = document.querySelector('.bottom-actions .btn-success');
@@ -3868,7 +3844,6 @@ function resetOrderForm() {
 
         
         const titleText = isDraft ? " ابن المختار للادوات المنزليه " : escapeHTML(shopName);
-        
         const orderIdRaw = document.getElementById('display-order-id')?.innerText;
         const orderIdForName = (orderIdRaw && orderIdRaw !== '--') ? orderIdRaw : 'جديد';
         const fileName = isDraft ? `مسودة_طلب_${new Date().getTime()}.pdf` : `فاتورة_رقم_${orderIdForName}.pdf`;
