@@ -1088,136 +1088,144 @@
         }
 
         function renderOrders(orders) {
-            const container = document.getElementById('ordersList');
-            if (!container) return;
+    const container = document.getElementById('ordersList');
+    if (!container) return;
 
-            const driverId = getDriverId();
-            if (driverId) {
-                orders = orders.filter(o => o.driver_id == driverId);
+    const driverId = getDriverId();
+    if (driverId) {
+        orders = orders.filter(o => o.driver_id == driverId);
+    }
+
+    if (!orders || orders.length === 0) {
+        container.innerHTML = `<div class="empty-state"><span class="empty-icon">📭</span><span>لا توجد طلبات تطابق الفلتر</span></div>`;
+        return;
+    }
+    const sortedOrders = [...orders].sort((a, b) => (b.id || 0) - (a.id || 0));
+    let html = '';
+    sortedOrders.forEach(order => {
+        const isPrepaid = order.payment_method && order.payment_method.includes('مدفوع مسبقاً');
+        const deliveryFeePayment = order.delivery_fee_payment || 'مع الطلب';
+        const isCompleted = order.status === 'تم التسليم';
+        const isFailed = order.status === 'فشل التسليم';
+        const isReturned = order.status === 'مرتجع جزئي' || order.status === 'مرتجع كلي';
+        const isCancelled = order.status === 'ملغي';
+        const cardClass = isCompleted ? 'completed' : (isFailed ? 'failed' : (isReturned ? 'returned' : ''));
+        const statusText = order.status || 'جديد';
+        let items = order.items || [];
+        items = items.sort((a, b) => (b.id || 0) - (a.id || 0));
+        
+        // ===== التعديل: استخدام expected_cash من الخادم =====
+        let dueAmount = 0;
+        if (order.expected_cash !== undefined && order.expected_cash !== null) {
+            dueAmount = order.expected_cash;
+        } else {
+            // الطريقة القديمة للتوافق مع الطلبات القديمة
+            if (!isPrepaid) {
+                dueAmount = order.total_amount || 0;
+                if (deliveryFeePayment === 'عند الاستلام' && order.delivery_fee) dueAmount += order.delivery_fee;
+            } else {
+                if (deliveryFeePayment === 'عند الاستلام' && order.delivery_fee) dueAmount = order.delivery_fee;
             }
-
-            if (!orders || orders.length === 0) {
-                container.innerHTML = `<div class="empty-state"><span class="empty-icon">📭</span><span>لا توجد طلبات تطابق الفلتر</span></div>`;
-                return;
-            }
-            const sortedOrders = [...orders].sort((a, b) => (b.id || 0) - (a.id || 0));
-            let html = '';
-            sortedOrders.forEach(order => {
-                const isPrepaid = order.payment_method && order.payment_method.includes('مدفوع مسبقاً');
-                const deliveryFeePayment = order.delivery_fee_payment || 'مع الطلب';
-                const isCompleted = order.status === 'تم التسليم';
-                const isFailed = order.status === 'فشل التسليم';
-                const isReturned = order.status === 'مرتجع جزئي' || order.status === 'مرتجع كلي';
-                const isCancelled = order.status === 'ملغي';
-                const cardClass = isCompleted ? 'completed' : (isFailed ? 'failed' : (isReturned ? 'returned' : ''));
-                const statusText = order.status || 'جديد';
-                let items = order.items || [];
-                items = items.sort((a, b) => (b.id || 0) - (a.id || 0));
-                let dueAmount = 0;
-                if (!isPrepaid) {
-                    dueAmount = order.total_amount || 0;
-                    if (deliveryFeePayment === 'عند الاستلام' && order.delivery_fee) dueAmount += order.delivery_fee;
-                } else {
-                    if (deliveryFeePayment === 'عند الاستلام' && order.delivery_fee) dueAmount = order.delivery_fee;
-                }
-                const orderNote = order.notes || order.note || '';
-                const noteHtml = orderNote ? `<div class="order-note">📝 ${orderNote}</div>` : '';
-                const addressText = order.customer_address || '';
-                const combinedText = addressText + ' ' + (orderNote || '');
-                const mapUrl = detectMapLink(combinedText);
-                let mapButtonHtml = '';
-                if (mapUrl) mapButtonHtml = `<a href="${mapUrl}" target="_blank" class="map-link">🗺️ خرائط</a>`;
-                let statusBadgeClass = 'badge-new';
-                switch (order.status) {
-                    case 'تم التسليم':
-                        statusBadgeClass = 'badge-delivered';
-                        break;
-                    case 'فشل التسليم':
-                        statusBadgeClass = 'badge-failed';
-                        break;
-                    case 'قيد التوصيل':
-                        statusBadgeClass = 'badge-progress';
-                        break;
-                    case 'مرتجع جزئي':
-                    case 'مرتجع كلي':
-                        statusBadgeClass = 'badge-returned';
-                        break;
-                    case 'ملغي':
-                        statusBadgeClass = 'badge-failed';
-                        break;
-                }
-                const isFinished = ['تم التسليم', 'فشل التسليم', 'ملغي', 'مرتجع جزئي', 'مرتجع كلي'].includes(statusText);
-                let itemsHtml = '';
-                const showAll = items.length <= 3;
-                const displayedItems = showAll ? items : items.slice(0, 3);
-                displayedItems.forEach(item => {
-                    const itemNote = item.note || item.notes || item.product_note || '';
-                    const noteCell = itemNote ? `<span class="item-note">📌 ${itemNote}</span>` : '';
-                    itemsHtml += `<tr><td>${item.product_name || item.product_id}</td><td>${item.quantity}</td><td>${item.unit_price}</td><td>${item.line_total}</td><td>${noteCell}</td></tr>`;
-                });
-
-                let actionButtonsHtml = '';
-                if (isReturned || isCancelled) {
-                    actionButtonsHtml = `<div style="text-align:center; color:var(--text-muted); font-size:0.75rem; padding:6px;">🔁 طلب مرتجع/ملغي</div>`;
-                } else if (isFinished) {
-                    actionButtonsHtml = `<div style="text-align:center; color:var(--text-muted); font-size:0.75rem; padding:6px;">✔️ تم الانتهاء</div>`;
-                } else {
-                    actionButtonsHtml = `
-                        <div class="action-buttons">
-                            <button class="btn btn-success" onclick="openDeliveryModal(${order.id}, 'تم التوصيل')">✅ تم</button>
-                            <button class="btn btn-danger" onclick="openDeliveryModal(${order.id}, 'فشل')">❌ فشل</button>
-                        </div>
-                    `;
-                }
-
-                let returnInfoHtml = '';
-                if (isReturned) {
-                    const refundAmount = parseFloat(order.total_refund || 0);
-                    const deliveryFeeReturn = parseFloat(order.return_fee || 0);
-                    const feeType = order.return_fee_type || 'shop';
-                    let customerRefund = refundAmount;
-                    if (feeType === 'customer') {
-                        customerRefund = Math.max(0, refundAmount - deliveryFeeReturn);
-                    }
-                    returnInfoHtml = `
-                        <div style="background:#fef3c7; padding:6px 12px; border-radius:var(--radius-xs); margin:6px 0; font-size:0.78rem; display:flex; justify-content:space-between; flex-wrap:wrap; gap:4px;">
-                            <span>🔄 مرتجع: ${refundAmount.toFixed(2)} ريال</span>
-                            ${deliveryFeeReturn > 0 ? `<span>🚚 رسوم التوصيل: ${deliveryFeeReturn.toFixed(2)} ريال (${feeType === 'customer' ? 'تخصم من العميل' : 'يتحملها المحل'})</span>` : ''}
-                            <span>💵 صافي المسترد: ${customerRefund.toFixed(2)} ريال</span>
-                        </div>
-                    `;
-                }
-
-                html += `
-                    <div class="order-card ${cardClass}" data-order-id="${order.id}">
-                        <div class="order-header"><span class="order-id">📦 طلب #${order.id}</span><span class="order-status-badge ${statusBadgeClass}">${statusText}</span></div>
-                        <div class="customer-info">
-                            <div class="info-row"><span class="info-icon">👤</span> ${order.customer_name}</div>
-                            <div class="info-row"><span class="info-icon">📍</span> ${order.customer_address || 'لا يوجد عنوان'}</div>
-                            <div class="info-row"><span class="info-icon">📞</span> ${order.customer_phone || ''}</div>
-                            <div class="phone-actions">
-                                ${order.customer_phone ? `<a href="tel:${order.customer_phone}" class="call">📞 اتصال</a><a href="https://wa.me/${order.customer_phone.replace(/\D/g,'')}" target="_blank" class="whatsapp">💬 واتساب</a>` : ''}
-                                ${mapButtonHtml}
-                            </div>
-                        </div>
-                        ${noteHtml}
-                        <div class="order-items-preview">
-                            <table><thead><tr><th>المنتج</th><th>الكمية</th><th>السعر</th><th>الإجمالي</th><th>ملاحظة</th></tr></thead>
-                            <tbody>${itemsHtml}${!showAll ? `<tr><td colspan="5" style="text-align:center;"><button class="invoice-btn" onclick="showInvoice(${order.id})">📄 عرض الفاتورة الكاملة (${items.length} منتج)</button></td></tr>` : ''}</tbody></table>
-                        </div>
-                        <div class="amount-info">
-                            <span>💰 ${order.total_amount} ريال</span>
-                            ${order.delivery_fee ? `<span>🚚 ${order.delivery_fee}</span>` : ''}
-                            <span>${isPrepaid ? '💳 مدفوع مسبقاً' : '💵 عند الاستلام'}</span>
-                            ${dueAmount > 0 ? `<span class="due">المستحق: ${dueAmount.toFixed(2)} ريال</span>` : ''}
-                        </div>
-                        ${returnInfoHtml}
-                        ${actionButtonsHtml}
-                    </div>`;
-            });
-            container.innerHTML = html;
-            updateSyncCounter();
         }
+
+        const orderNote = order.notes || order.note || '';
+        const noteHtml = orderNote ? `<div class="order-note">📝 ${orderNote}</div>` : '';
+        const addressText = order.customer_address || '';
+        const combinedText = addressText + ' ' + (orderNote || '');
+        const mapUrl = detectMapLink(combinedText);
+        let mapButtonHtml = '';
+        if (mapUrl) mapButtonHtml = `<a href="${mapUrl}" target="_blank" class="map-link">🗺️ خرائط</a>`;
+        let statusBadgeClass = 'badge-new';
+        switch (order.status) {
+            case 'تم التسليم':
+                statusBadgeClass = 'badge-delivered';
+                break;
+            case 'فشل التسليم':
+                statusBadgeClass = 'badge-failed';
+                break;
+            case 'قيد التوصيل':
+                statusBadgeClass = 'badge-progress';
+                break;
+            case 'مرتجع جزئي':
+            case 'مرتجع كلي':
+                statusBadgeClass = 'badge-returned';
+                break;
+            case 'ملغي':
+                statusBadgeClass = 'badge-failed';
+                break;
+        }
+        const isFinished = ['تم التسليم', 'فشل التسليم', 'ملغي', 'مرتجع جزئي', 'مرتجع كلي'].includes(statusText);
+        let itemsHtml = '';
+        const showAll = items.length <= 3;
+        const displayedItems = showAll ? items : items.slice(0, 3);
+        displayedItems.forEach(item => {
+            const itemNote = item.note || item.notes || item.product_note || '';
+            const noteCell = itemNote ? `<span class="item-note">📌 ${itemNote}</span>` : '';
+            itemsHtml += `<tr><td>${item.product_name || item.product_id}</td><td>${item.quantity}</td><td>${item.unit_price}</td><td>${item.line_total}</td><td>${noteCell}</td></tr>`;
+        });
+
+        let actionButtonsHtml = '';
+        if (isReturned || isCancelled) {
+            actionButtonsHtml = `<div style="text-align:center; color:var(--text-muted); font-size:0.75rem; padding:6px;">🔁 طلب مرتجع/ملغي</div>`;
+        } else if (isFinished) {
+            actionButtonsHtml = `<div style="text-align:center; color:var(--text-muted); font-size:0.75rem; padding:6px;">✔️ تم الانتهاء</div>`;
+        } else {
+            actionButtonsHtml = `
+                <div class="action-buttons">
+                    <button class="btn btn-success" onclick="openDeliveryModal(${order.id}, 'تم التوصيل')">✅ تم</button>
+                    <button class="btn btn-danger" onclick="openDeliveryModal(${order.id}, 'فشل')">❌ فشل</button>
+                </div>
+            `;
+        }
+
+        let returnInfoHtml = '';
+        if (isReturned) {
+            const refundAmount = parseFloat(order.total_refund || 0);
+            const deliveryFeeReturn = parseFloat(order.return_fee || 0);
+            const feeType = order.return_fee_type || 'shop';
+            let customerRefund = refundAmount;
+            if (feeType === 'customer') {
+                customerRefund = Math.max(0, refundAmount - deliveryFeeReturn);
+            }
+            returnInfoHtml = `
+                <div style="background:#fef3c7; padding:6px 12px; border-radius:var(--radius-xs); margin:6px 0; font-size:0.78rem; display:flex; justify-content:space-between; flex-wrap:wrap; gap:4px;">
+                    <span>🔄 مرتجع: ${refundAmount.toFixed(2)} ريال</span>
+                    ${deliveryFeeReturn > 0 ? `<span>🚚 رسوم التوصيل: ${deliveryFeeReturn.toFixed(2)} ريال (${feeType === 'customer' ? 'تخصم من العميل' : 'يتحملها المحل'})</span>` : ''}
+                    <span>💵 صافي المسترد: ${customerRefund.toFixed(2)} ريال</span>
+                </div>
+            `;
+        }
+
+        html += `
+            <div class="order-card ${cardClass}" data-order-id="${order.id}">
+                <div class="order-header"><span class="order-id">📦 طلب #${order.id}</span><span class="order-status-badge ${statusBadgeClass}">${statusText}</span></div>
+                <div class="customer-info">
+                    <div class="info-row"><span class="info-icon">👤</span> ${order.customer_name}</div>
+                    <div class="info-row"><span class="info-icon">📍</span> ${order.customer_address || 'لا يوجد عنوان'}</div>
+                    <div class="info-row"><span class="info-icon">📞</span> ${order.customer_phone || ''}</div>
+                    <div class="phone-actions">
+                        ${order.customer_phone ? `<a href="tel:${order.customer_phone}" class="call">📞 اتصال</a><a href="https://wa.me/${order.customer_phone.replace(/\D/g,'')}" target="_blank" class="whatsapp">💬 واتساب</a>` : ''}
+                        ${mapButtonHtml}
+                    </div>
+                </div>
+                ${noteHtml}
+                <div class="order-items-preview">
+                    <table><thead><tr><th>المنتج</th><th>الكمية</th><th>السعر</th><th>الإجمالي</th><th>ملاحظة</th></tr></thead>
+                    <tbody>${itemsHtml}${!showAll ? `<tr><td colspan="5" style="text-align:center;"><button class="invoice-btn" onclick="showInvoice(${order.id})">📄 عرض الفاتورة الكاملة (${items.length} منتج)</button></td></tr>` : ''}</tbody></table>
+                </div>
+                <div class="amount-info">
+                    <span>💰 ${order.total_amount} ريال</span>
+                    ${order.delivery_fee ? `<span>🚚 ${order.delivery_fee}</span>` : ''}
+                    <span>${isPrepaid ? '💳 مدفوع مسبقاً' : '💵 عند الاستلام'}</span>
+                    ${dueAmount > 0 ? `<span class="due">المستحق: ${dueAmount.toFixed(2)} ريال</span>` : ''}
+                </div>
+                ${returnInfoHtml}
+                ${actionButtonsHtml}
+            </div>`;
+    });
+    container.innerHTML = html;
+    updateSyncCounter();
+}
 
         function detectMapLink(text) {
             if (!text) return null;
@@ -1858,121 +1866,136 @@ function useLocalOrdersForDashboard() {
         }
 
         function updateModalAmounts() {
-            const dueEl = document.getElementById('modalTotalDue');
-            if (!dueEl) return;
-            const dueText = dueEl.innerText.match(/[\d.]+/);
-            if (!dueText) return;
-            const due = parseFloat(dueText[0]) || 0;
-            if (due <= 0) return;
+    const dueEl = document.getElementById('modalTotalDue');
+    if (!dueEl) return;
+    const dueText = dueEl.innerText.match(/[\d.]+/);
+    if (!dueText) return;
+    const due = parseFloat(dueText[0]) || 0;
+    if (due <= 0) return;
 
-            const method = document.getElementById('modalPaymentMethod')?.value || 'نقدي';
-            const cashInput = document.getElementById('modalCashCollected');
-            const walletInput = document.getElementById('modalWalletCollected');
-            if (!cashInput || !walletInput) return;
+    const method = document.getElementById('modalPaymentMethod')?.value || 'نقدي';
+    const cashInput = document.getElementById('modalCashCollected');
+    const walletInput = document.getElementById('modalWalletCollected');
+    if (!cashInput || !walletInput) return;
 
-            if (method === 'نقدي') {
-                cashInput.value = due.toFixed(2);
-                walletInput.value = '0';
-            } else if (method === 'محفظة') {
-                cashInput.value = '0';
-                walletInput.value = due.toFixed(2);
-            } else if (method === 'مختلط') {
-                cashInput.value = (due / 2).toFixed(2);
-                walletInput.value = (due / 2).toFixed(2);
-            }
+    // ===== التعديل: الطلب المختلط - النقد هو المبلغ المستحق بالكامل =====
+    // (لأن المحفظة دفعت مسبقاً، والمندوب يتحصل على النقد فقط)
+    // بالنسبة للطلبات الأخرى، نوزع كالمعتاد
+    if (method === 'نقدي') {
+        cashInput.value = due.toFixed(2);
+        walletInput.value = '0';
+    } else if (method === 'محفظة') {
+        cashInput.value = '0';
+        walletInput.value = due.toFixed(2);
+    } else if (method === 'مختلط') {
+        // في حالة الدفع المختلط المسبق، المبلغ المستحق هو النقد فقط (المحفظة دفعت مسبقاً)
+        // لذلك نضع كل المبلغ في حقل النقد
+        cashInput.value = due.toFixed(2);
+        walletInput.value = '0';
+        // تذكير للمندوب بأن المحفظة مدفوعة مسبقاً
+        const walletField = document.getElementById('modalWalletField');
+        if (walletField) {
+            const hint = walletField.querySelector('.currency-hint');
+            if (hint) hint.innerHTML = '💳 المبلغ المدفوع عبر المحفظة مسبقاً (0)';
         }
+    }
+}
 
         async function openDeliveryModal(orderId, status) {
-            const order = currentOrders.find(o => o.id === orderId);
-            if (!order) { showToast('الطلب غير موجود'); return; }
+    const order = currentOrders.find(o => o.id === orderId);
+    if (!order) { showToast('الطلب غير موجود'); return; }
 
-            const finalStatuses = ['تم التسليم', 'فشل التسليم', 'مرتجع جزئي', 'مرتجع كلي', 'ملغي'];
-            if (finalStatuses.includes(order.status)) {
-                showToast('❌ هذا الطلب قد انتهى، لا يمكن تعديله');
-                return;
-            }
+    const finalStatuses = ['تم التسليم', 'فشل التسليم', 'مرتجع جزئي', 'مرتجع كلي', 'ملغي'];
+    if (finalStatuses.includes(order.status)) {
+        showToast('❌ هذا الطلب قد انتهى، لا يمكن تعديله');
+        return;
+    }
 
-            if (currencies.length === 0) { try { const data = await fetchCurrencies();
-                    currencies = data.currencies || []; } catch (e) {} }
-            if (wallets.length === 0) { try { const data = await fetchWallets();
-                    wallets = data.wallets || []; } catch (e) {} }
+    if (currencies.length === 0) { try { const data = await fetchCurrencies(); currencies = data.currencies || []; } catch (e) {} }
+    if (wallets.length === 0) { try { const data = await fetchWallets(); wallets = data.wallets || []; } catch (e) {} }
 
-            const isPrepaid = order.payment_method && order.payment_method.includes('مدفوع مسبقاً');
-            const deliveryFeePayment = order.delivery_fee_payment || 'مع الطلب';
-            let due = 0;
-            if (!isPrepaid) {
-                due = order.total_amount || 0;
-                if (deliveryFeePayment === 'عند الاستلام' && order.delivery_fee) due += order.delivery_fee;
-            } else {
-                if (deliveryFeePayment === 'عند الاستلام' && order.delivery_fee) due = order.delivery_fee;
-            }
-
-            document.querySelectorAll('.action-buttons .btn').forEach(btn => {
-                btn.disabled = true;
-                btn.style.opacity = '0.6';
-                btn.style.cursor = 'not-allowed';
-            });
-
-            let modalHtml = `
-                <h3>🔄 تحديث الطلب #${orderId}</h3>
-                <div style="background:var(--surface-secondary); border-radius:var(--radius-xs); padding:12px; margin-bottom:16px;">
-                    <p style="margin:0; font-size:0.82rem;"><strong>👤 العميل:</strong> ${order.customer_name}</p>
-                    <p style="margin:4px 0 0; font-size:0.82rem;"><strong>💰 الإجمالي:</strong> ${order.total_amount} ريال</p>
-                </div>
-
-                <label>🏷️ حالة التوصيل</label>
-                <select id="modalStatus" onchange="toggleModalPaymentSection()">
-                    <option value="قيد التوصيل" ${status==='قيد التوصيل'?'selected':''}>🚚 قيد التوصيل</option>
-                    <option value="تم التوصيل" ${status==='تم التوصيل'?'selected':''}>✅ تم التوصيل</option>
-                    <option value="فشل" ${status==='فشل'?'selected':''}>❌ فشل</option>
-                </select>
-
-                <div id="modalTotalDue" class="total-due-display ${due===0?'zero':''}" style="display:${due>0?'flex':'none'}">
-                    <span>💵 المبلغ المستحق تحصيله:</span><span>${due.toFixed(2)} ريال</span>
-                </div>
-                <div id="modalPaymentInfo" class="info-msg" style="display:${due===0?'block':'none'}">✅ الطلب مدفوع مسبقاً بالكامل</div>
-
-                <div id="modalPaymentGroup" style="display:${status==='تم التوصيل'&&due>0?'block':'none'}">
-                    <label>💳 طريقة الدفع</label>
-                    <select id="modalPaymentMethod" onchange="toggleModalPaymentFields()">
-                        <option value="نقدي">💵 نقدي</option>
-                        <option value="محفظة">📱 محفظة</option>
-                        <option value="مختلط">🔄 مختلط</option>
-                    </select>
-                    <div class="form-row" id="modalPaymentFields">
-                        <div class="field" id="modalCashField">
-                            <label>المبلغ النقدي</label>
-                            <input type="number" id="modalCashCollected" step="0.01" min="0" value="0">
-                            <select id="modalCashCurrency" style="margin-top:4px;">${currencies.map(c => `<option value="${c.id}" ${c.is_base?'selected':''}>${c.code} - ${c.name}</option>`).join('')}</select>
-                            <div class="currency-hint" id="modalCashDueHint">💵 المستحق: <span class="highlight">${due.toFixed(2)}</span></div>
-                        </div>
-                        <div class="field" id="modalWalletField">
-                            <label>المبلغ عبر المحفظة</label>
-                            <input type="number" id="modalWalletCollected" step="0.01" min="0" value="0">
-                            <select id="modalWalletCurrency" style="margin-top:4px;">${currencies.map(c => `<option value="${c.id}" ${c.is_base?'selected':''}>${c.code} - ${c.name}</option>`).join('')}</select>
-                            <div class="currency-hint" id="modalWalletDueHint">💳 المستحق: <span class="highlight">${due.toFixed(2)}</span></div>
-                        </div>
-                    </div>
-                    <div id="modalWalletSelectGroup" style="display:none;">
-                        <label>🏦 المحفظة</label>
-                        <select id="modalWalletSelect"><option value="">اختر المحفظة</option>${wallets.map(w => `<option value="${w.id}">${w.name}</option>`).join('')}</select>
-                    </div>
-                    <div class="error-msg" id="modalPaymentError"></div>
-                </div>
-
-                <label>📝 ملاحظات</label>
-                <input type="text" id="modalNotes" placeholder="أي ملاحظات إضافية">
-
-                <button class="submit-btn" onclick="submitDeliveryUpdate(${orderId})">✅ تأكيد التحديث</button>
-            `;
-            document.getElementById('modalContent').innerHTML = modalHtml;
-            document.getElementById('modalSheet').classList.add('active');
-            document.getElementById('modalOverlay').classList.add('active');
-            if (status === 'تم التوصيل') {
-                toggleModalPaymentFields();
-                updateModalAmounts();
-            }
+    const isPrepaid = order.payment_method && order.payment_method.includes('مدفوع مسبقاً');
+    const deliveryFeePayment = order.delivery_fee_payment || 'مع الطلب';
+    
+    // ===== التعديل: استخدام expected_cash من الخادم =====
+    let due = 0;
+    if (order.expected_cash !== undefined && order.expected_cash !== null) {
+        due = order.expected_cash;
+    } else {
+        if (!isPrepaid) {
+            due = order.total_amount || 0;
+            if (deliveryFeePayment === 'عند الاستلام' && order.delivery_fee) due += order.delivery_fee;
+        } else {
+            if (deliveryFeePayment === 'عند الاستلام' && order.delivery_fee) due = order.delivery_fee;
         }
+    }
+
+    document.querySelectorAll('.action-buttons .btn').forEach(btn => {
+        btn.disabled = true;
+        btn.style.opacity = '0.6';
+        btn.style.cursor = 'not-allowed';
+    });
+
+    let modalHtml = `
+        <h3>🔄 تحديث الطلب #${orderId}</h3>
+        <div style="background:var(--surface-secondary); border-radius:var(--radius-xs); padding:12px; margin-bottom:16px;">
+            <p style="margin:0; font-size:0.82rem;"><strong>👤 العميل:</strong> ${order.customer_name}</p>
+            <p style="margin:4px 0 0; font-size:0.82rem;"><strong>💰 الإجمالي:</strong> ${order.total_amount} ريال</p>
+        </div>
+
+        <label>🏷️ حالة التوصيل</label>
+        <select id="modalStatus" onchange="toggleModalPaymentSection()">
+            <option value="قيد التوصيل" ${status==='قيد التوصيل'?'selected':''}>🚚 قيد التوصيل</option>
+            <option value="تم التوصيل" ${status==='تم التوصيل'?'selected':''}>✅ تم التوصيل</option>
+            <option value="فشل" ${status==='فشل'?'selected':''}>❌ فشل</option>
+        </select>
+
+        <div id="modalTotalDue" class="total-due-display ${due===0?'zero':''}" style="display:${due>0?'flex':'none'}">
+            <span>💵 المبلغ المستحق تحصيله:</span><span>${due.toFixed(2)} ريال</span>
+        </div>
+        <div id="modalPaymentInfo" class="info-msg" style="display:${due===0?'block':'none'}">✅ الطلب مدفوع مسبقاً بالكامل</div>
+
+        <div id="modalPaymentGroup" style="display:${status==='تم التوصيل'&&due>0?'block':'none'}">
+            <label>💳 طريقة الدفع</label>
+            <select id="modalPaymentMethod" onchange="toggleModalPaymentFields()">
+                <option value="نقدي">💵 نقدي</option>
+                <option value="محفظة">📱 محفظة</option>
+                <option value="مختلط">🔄 مختلط</option>
+            </select>
+            <div class="form-row" id="modalPaymentFields">
+                <div class="field" id="modalCashField">
+                    <label>المبلغ النقدي</label>
+                    <input type="number" id="modalCashCollected" step="0.01" min="0" value="0">
+                    <select id="modalCashCurrency" style="margin-top:4px;">${currencies.map(c => `<option value="${c.id}" ${c.is_base?'selected':''}>${c.code} - ${c.name}</option>`).join('')}</select>
+                    <div class="currency-hint" id="modalCashDueHint">💵 المستحق: <span class="highlight">${due.toFixed(2)}</span></div>
+                </div>
+                <div class="field" id="modalWalletField">
+                    <label>المبلغ عبر المحفظة</label>
+                    <input type="number" id="modalWalletCollected" step="0.01" min="0" value="0">
+                    <select id="modalWalletCurrency" style="margin-top:4px;">${currencies.map(c => `<option value="${c.id}" ${c.is_base?'selected':''}>${c.code} - ${c.name}</option>`).join('')}</select>
+                    <div class="currency-hint" id="modalWalletDueHint">💳 المستحق: <span class="highlight">${due.toFixed(2)}</span></div>
+                </div>
+            </div>
+            <div id="modalWalletSelectGroup" style="display:none;">
+                <label>🏦 المحفظة</label>
+                <select id="modalWalletSelect"><option value="">اختر المحفظة</option>${wallets.map(w => `<option value="${w.id}">${w.name}</option>`).join('')}</select>
+            </div>
+            <div class="error-msg" id="modalPaymentError"></div>
+        </div>
+
+        <label>📝 ملاحظات</label>
+        <input type="text" id="modalNotes" placeholder="أي ملاحظات إضافية">
+
+        <button class="submit-btn" onclick="submitDeliveryUpdate(${orderId})">✅ تأكيد التحديث</button>
+    `;
+    document.getElementById('modalContent').innerHTML = modalHtml;
+    document.getElementById('modalSheet').classList.add('active');
+    document.getElementById('modalOverlay').classList.add('active');
+    if (status === 'تم التوصيل') {
+        toggleModalPaymentFields();
+        updateModalAmounts();
+    }
+}
 
         // =============================================================
         // 12. تحديث التسليم (مع التحديث الفوري والنافذة المنبثقة)
