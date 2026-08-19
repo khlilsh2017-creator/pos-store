@@ -395,10 +395,10 @@
                 const order = result.find(item => Number(item.id) === orderId);
                 if (!order) continue;
 
-                if (op.data.delivery_status) {
-                    order.status = op.data.delivery_status === 'فشل'
+                if (op.data.يtus) {
+                    order.status = op.data.يtus === 'فشل'
                         ? 'فشل التسليم'
-                        : op.data.delivery_status === 'تم التوصيل'
+                        : op.data.يtus === 'تم التوصيل'
                             ? 'تم التسليم'
                             : op.data.delivery_status;
                 }
@@ -1923,7 +1923,7 @@ function useLocalOrdersForDashboard() {
         due = order.expected_cash;
     } else {
         if (!isPrepaid) {
-            due = order.total_amount || 0;
+            due = order.total_amount || 0
             if (deliveryFeePayment === 'عند الاستلام' && order.delivery_fee) due += order.delivery_fee;
         } else {
             if (deliveryFeePayment === 'عند الاستلام' && order.delivery_fee) due = order.delivery_fee;
@@ -2022,15 +2022,22 @@ function useLocalOrdersForDashboard() {
                 return;
             }
 
-            const isPrepaid = order.payment_method?.includes('مدفوع مسبقاً');
-            const deliveryFeePayment = order.delivery_fee_payment || 'مع الطلب';
-            let due = 0;
-            if (!isPrepaid) {
-                due = order.total_amount || 0;
-                if (deliveryFeePayment === 'عند الاستلام' && order.delivery_fee) due += order.delivery_fee;
-            } else {
-                if (deliveryFeePayment === 'عند الاستلام' && order.delivery_fee) due = order.delivery_fee;
-            }
+            // ===== حساب المبلغ المستحق (due) بشكل صحيح للطلب المختلط =====
+const isPrepaid = order.payment_method?.includes('مدفوع مسبقاً');
+const deliveryFeePayment = order.delivery_fee_payment || 'مع الطلب';
+let due = 0;
+if (order.expected_cash !== undefined && order.expected_cash !== null) {
+    due = order.expected_cash;
+} else {
+    // الحساب القديم للتوافق مع الطلبات القديمة
+    if (!isPrepaid) {
+        due = order.total_amount || 0;
+        if (deliveryFeePayment === 'عند الاستلام' && order.delivery_fee) due += order.delivery_fee;
+    } else {
+        if (deliveryFeePayment === 'عند الاستلام' && order.delivery_fee) due = order.delivery_fee;
+    }
+}
+console.log('💰 due (المبلغ النقدي المطلوب):', due);
 
             let paymentData = null;
             if (status === 'تم التوصيل') {
@@ -2126,7 +2133,7 @@ function useLocalOrdersForDashboard() {
             const operationData = {
   operation_id: operationId,
   order_id: orderId,
-  delivery_status: status,
+  يtus: status,
   ...(paymentData || {}),
   notes: notes || ''
 };
