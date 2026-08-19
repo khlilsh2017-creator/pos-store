@@ -398,7 +398,7 @@
                 if (op.data.يtus) {
                     order.status = op.data.يtus === 'فشل'
                         ? 'فشل التسليم'
-                        : op.data.يtus === 'تم التوصيل'
+                        : op.data.delivery_status === 'تم التوصيل'
                             ? 'تم التسليم'
                             : op.data.delivery_status;
                 }
@@ -2132,14 +2132,13 @@ function useLocalOrdersForDashboard() {
 
             // 2. المزامنة مع الخادم
             const operationId = generateOperationId();
-            const operationData = {
+   const operationData = {
   operation_id: operationId,
   order_id: orderId,
-  يtus: status,
+  delivery_status: status, // ✅ تم التعديل
   ...(paymentData || {}),
   notes: notes || ''
 };
-
 // إضافة سجل للتصحيح
 console.log('📦 Payload المرسل للتوصيل:', JSON.stringify(operationData, null, 2));
 
