@@ -1871,6 +1871,7 @@ function useLocalOrdersForDashboard() {
     const dueText = dueEl.innerText.match(/[\d.]+/);
     if (!dueText) return;
     const due = parseFloat(dueText[0]) || 0;
+    console.log('💰 due في updateModalAmounts:', due);
     if (due <= 0) return;
 
     const method = document.getElementById('modalPaymentMethod')?.value || 'نقدي';
