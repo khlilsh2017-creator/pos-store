@@ -776,21 +776,9 @@
         setupSWMessageListener();
         const pushEnabled = localStorage.getItem('pushEnabled') === 'true';
         
-        // 🆕 مراقبة تحديث التوكن من Firebase (التوكن قد يتغير - يجب تحديث السيرفر)
-        messaging.onTokenRefresh(async () => {
-            console.log('[FCM] ⚡ تم تحديث التوكن من Firebase');
-            if (pushEnabled && Notification.permission === 'granted' && getToken()) {
-                const newToken = await messaging.getToken({
-                    vapidKey: VAPID_PUBLIC_KEY,
-                    serviceWorkerRegistration: swRegistration
-                });
-                if (newToken) {
-                    localStorage.setItem('fcmToken', newToken);
-                    await sendTokenToServer(newToken, getDriverId());
-                    console.log('[FCM] ✅ تم تحديث التوكن في السيرفر');
-                }
-            }
-        });
+        // ملاحظة: onTokenRefresh غير موجودة في Firebase SDK v10+ (كانت v8 فقط).
+        // التجديد يُدار تلقائيًا: getToken() يعيد التوكن الحالي الصالح، ونحدّثه
+        // في السيرفر عند الفتح ودوريًا كل 12 ساعة (انظر أدناه).
         
         if (pushEnabled && Notification.permission === 'granted') {
             // 🆕 تجديد التوكن عند فتح التطبيق للتأكد من أنه صالح،
