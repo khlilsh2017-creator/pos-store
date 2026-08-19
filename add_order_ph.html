@@ -1781,7 +1781,8 @@
                     <span style="font-size:0.8rem;">أحدث 10 طلبات:</span>
                     <button class="btn btn-sm btn-outline" onclick="fetchRecentOrders()"><i class="fas fa-sync-alt"></i></button>
                 </div>
-                <div id="orders-list-container"><div class="text-center"><i class="fas fa-spinner fa-spin"></i> جاري...</div></div>
+                                <div id="orders-list-container"><div class="text-center"><i class="fas fa-spinner fa-spin"></i> جاري...</div></div>
+                <div id="orders-pagination" class="modal-actions" style="display:flex;justify-content:center;gap:8px;align-items:center;flex-wrap:wrap;"></div>
                 <div class="modal-actions"><button class="btn btn-outline" onclick="closeModal('edit-orders-modal')">إلغاء</button></div>
             </div>
         </div>
@@ -1824,6 +1825,11 @@
         let isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
         let searchTimeout = null;
         let productsVisible = true;
+        let productRefreshRequested = false;
+        const STATIC_CACHE_TTL = 10 * 60 * 1000;
+        let ordersPage = 1;
+        const ordersPageSize = 10;
+        let ordersTotalPages = 1;
 
         let appSettings = {
             allow_negative_stock: false,
@@ -1933,7 +1939,27 @@
         // ================================================================
         //  SETTINGS
         // ================================================================
+        function readStaticCache(key) {
+            try {
+                const raw = localStorage.getItem(`pos_static_${key}`);
+                if (!raw) return null;
+                const item = JSON.parse(raw);
+                if (!item || Date.now() - item.time > STATIC_CACHE_TTL) return null;
+                return item.value;
+            } catch (e) { return null; }
+        }
+
+        function writeStaticCache(key, value) {
+            try { localStorage.setItem(`pos_static_${key}`, JSON.stringify({ time: Date.now(), value })); } catch (e) {}
+        }
+
         async function loadSettings() {
+            const cached = readStaticCache('settings');
+            if (cached) {
+                appSettings.allow_negative_stock = cached.allow_negative_stock === true;
+                appSettings.allow_below_cost = cached.allow_below_cost === true;
+                return;
+            }
             try {
                 const res = await fetch(`${API}/settings`, {
                     headers: { 'Authorization': `Bearer ${token}` }
@@ -1942,6 +1968,7 @@
                 if (data.settings) {
                     appSettings.allow_negative_stock = data.settings.allow_negative_stock === '1';
                     appSettings.allow_below_cost = data.settings.allow_below_cost === '1';
+                    writeStaticCache('settings', { allow_negative_stock: appSettings.allow_negative_stock, allow_below_cost: appSettings.allow_below_cost });
                 }
                 const infoEl = document.getElementById('settings-info');
                 if (infoEl) {
@@ -1960,6 +1987,7 @@
         //  REFRESH DATA (تنظيف القاعدة وجلب بيانات جديدة)
         // ================================================================
         async function refreshData() {
+            productRefreshRequested = true;
             setProgress(30);
             showToast('🔄 جاري تنظيف التخزين وتحديث البيانات...', 'info');
             
@@ -1990,6 +2018,7 @@
             
             setProgress(100);
             setTimeout(() => setProgress(0), 500);
+            productRefreshRequested = false;
             showToast('✅ تم تنظيف التخزين وتحديث المنتجات بنجاح', 'success');
         }
 
@@ -2115,11 +2144,14 @@
         //  CURRENCIES & WALLETS
         // ================================================================
         async function loadCurrencies() {
+            const cached = readStaticCache('currencies');
+            if (cached && cached.length) { currenciesCache = cached; return; }
             if (navigator.onLine) {
                 try {
                     const res = await fetch(`${API}/currencies`, { headers: { 'Authorization': `Bearer ${token}` } });
                     const data = await res.json();
                     currenciesCache = data.currencies || [];
+                    writeStaticCache('currencies', currenciesCache);
                     const db = await openDB();
                     const tx = db.transaction('currencies', 'readwrite');
                     const store = tx.objectStore('currencies');
@@ -2140,6 +2172,8 @@
         }
 
         async function loadWalletsFromServer() {
+            const cached = readStaticCache('wallets');
+            if (cached && cached.length) { walletsCache = cached; return; }
             if (!navigator.onLine) {
                 const db = await openDB();
                 const tx = db.transaction('wallets', 'readonly');
@@ -2154,6 +2188,7 @@
                 const res = await fetch(`${API}/wallets`, { headers: { 'Authorization': `Bearer ${token}` } });
                 const data = await res.json();
                 walletsCache = data.wallets || [];
+                writeStaticCache('wallets', walletsCache);
                 const db = await openDB();
                 const tx = db.transaction('wallets', 'readwrite');
                 const store = tx.objectStore('wallets');
@@ -2268,11 +2303,12 @@
         }
 
         function triggerSearch() {
+            clearTimeout(searchTimeout);
             const input = document.getElementById('top-search-input');
             const searchTerm = input.value.trim();
             currentSearch = searchTerm;
             saveFilterState();
-            fetchProducts(currentSearch, selectedCategoryId); 
+                        searchTimeout = setTimeout(() => fetchProducts(currentSearch, selectedCategoryId), 350);
             const hint = document.getElementById('search-hint');
             if (searchTerm.length >= 4) {
                 hint.textContent = `(بحث عن: "${searchTerm}")`;
@@ -2299,7 +2335,7 @@
                 saveFilterState();
                 const dropdown = document.getElementById('search-dropdown');
                 if (dropdown) dropdown.style.display = 'none';
-                fetchProducts('', selectedCategoryId);
+                searchTimeout = setTimeout(() => fetchProducts('', selectedCategoryId), 350);
                 input.focus();
             }
         }
@@ -2329,7 +2365,7 @@
                 if (term.length === 0) {
                     currentSearch = '';
                     saveFilterState();
-                    fetchProducts('', selectedCategoryId);
+                                        searchTimeout = setTimeout(() => fetchProducts('', selectedCategoryId), 350);
                     const dropdown = document.getElementById('search-dropdown');
                     if (dropdown) dropdown.style.display = 'none';
                 }
@@ -2373,6 +2409,13 @@
         //  FETCH PRODUCTS LOGIC (مع حل مشكلة "المنتج غير موجود")
         // ================================================================
         async function fetchProducts(search = '', categoryId = null) {
+            if (!productRefreshRequested && productsCache.length === 0) {
+                const grid = document.getElementById('products-grid');
+                const countLabel = document.getElementById('products-count-label');
+                if (grid) grid.innerHTML = '<div class="empty-state"><i class="fas fa-sync-alt"></i><p>اضغط زر التحديث لتحميل المنتجات</p></div>';
+                if (countLabel) countLabel.textContent = 'اضغط زر التحديث لتحميل المنتجات';
+                return;
+            }
             setProgress(20);
             if (search !== undefined) currentSearch = search;
             if (categoryId !== undefined) selectedCategoryId = categoryId;
@@ -2444,7 +2487,7 @@
             }
 
             // --- 3. حالة وجود بحث فعلي ---
-            if (!navigator.onLine) {
+            if (!navigator.onLine || !productRefreshRequested) {
                 const localProducts = await getLocalProducts();
                 let filtered = localProducts.filter(p =>
                     (p.name && p.name.toLowerCase().includes(currentSearch.toLowerCase())) ||
@@ -3374,13 +3417,16 @@
             playClickSound();
         }
 
-        async function fetchRecentOrders() {
+        async function fetchRecentOrders(page = ordersPage) {
+            ordersPage = Math.max(1, Number(page) || 1);
             const container = document.getElementById('orders-list-container');
             if (!container) return;
             container.innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin"></i> جاري...</div>';
             try {
-                const res = await fetch(`${API}/online-orders?limit=10`, { headers: { 'Authorization': `Bearer ${token}` } });
+                const res = await fetch(`${API}/online-orders?page=${ordersPage}&limit=${ordersPageSize}`, { headers: { 'Authorization': `Bearer ${token}` } });
                 const data = await res.json();
+                const total = Number(data.total ?? data.pagination?.total ?? data.meta?.total ?? 0);
+                ordersTotalPages = Math.max(1, Number(data.pages ?? data.pagination?.pages ?? data.meta?.pages ?? (total ? Math.ceil(total / ordersPageSize) : (data.orders?.length === ordersPageSize ? ordersPage + 1 : ordersPage))));
                 if (data.orders && data.orders.length > 0) {
                     let html = `<table class="orders-list-table"><thead><tr><th>#</th><th>العميل</th><th>التاريخ</th><th>المبلغ</th><th>الحالة</th><th>الإجراء</th></tr></thead><tbody>`;
                     data.orders.forEach(order => {
@@ -3401,13 +3447,17 @@
                 } else {
                     container.innerHTML = '<div class="empty-state"><i class="fas fa-inbox"></i><p>لا توجد طلبات</p></div>';
                 }
+                const pagination = document.getElementById('orders-pagination');
+                if (pagination) {
+                    pagination.innerHTML = `<button class="btn btn-sm btn-outline" ${ordersPage <= 1 ? 'disabled' : ''} onclick="fetchRecentOrders(${ordersPage - 1})">السابق</button><span>صفحة ${ordersPage} من ${ordersTotalPages}</span><button class="btn btn-sm btn-outline" ${ordersPage >= ordersTotalPages ? 'disabled' : ''} onclick="fetchRecentOrders(${ordersPage + 1})">التالي</button>`;
+                }
             } catch (err) {
                 container.innerHTML = `<p class="text-danger">فشل التحميل</p>`;
                 showToast('فشل تحميل قائمة الطلبات', 'error');
             }
         }
 
-        function openEditOrdersModal() { openModal('edit-orders-modal'); fetchRecentOrders(); }
+        function openEditOrdersModal() { ordersPage = 1; openModal('edit-orders-modal'); fetchRecentOrders(1); }
 
         async function loadOrderForEdit(orderId) {
             closeModal('edit-orders-modal');
@@ -4210,7 +4260,7 @@
             populateWalletSelects();
             await loadAllCategories();
             await loadSettings();
-            fetchProducts('', selectedCategoryId);
+            // لا يتم جلب المنتجات عند فتح الصفحة؛ يتم تحميلها فقط من زر تحديث البيانات.
             loadDrivers();
             await fetchCustomersList();
         });
@@ -4442,12 +4492,10 @@
             await fetchCustomersList();
             await loadSettings();
 
-            const hasLocal = await getLocalProducts();
-            if (navigator.onLine) {
-                await fetchProducts('', selectedCategoryId);
-            } else if (hasLocal.length === 0) {
-                showToast('⚠️ لا توجد بيانات محلية، يرجى الاتصال بالإنترنت', 'warning');
-            }
+            const initialGrid = document.getElementById('products-grid');
+            const initialCount = document.getElementById('products-count-label');
+            if (initialGrid) initialGrid.innerHTML = '<div class="empty-state"><i class="fas fa-sync-alt"></i><p>اضغط زر التحديث لتحميل المنتجات</p></div>';
+            if (initialCount) initialCount.textContent = 'اضغط زر التحديث لتحميل المنتجات';
             setProgress(100);
             setTimeout(() => setProgress(0), 500);
 
