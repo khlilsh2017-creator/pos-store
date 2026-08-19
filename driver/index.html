@@ -1936,6 +1936,12 @@ function useLocalOrdersForDashboard() {
         btn.style.opacity = '0.6';
         btn.style.cursor = 'not-allowed';
     });
+    let defaultMethod = 'نقدي';
+    if (order.payment_method && order.payment_method.includes('مختلط')) {
+        defaultMethod = 'مختلط';
+    } else if (order.payment_method && order.payment_method.includes('محفظة')) {
+        defaultMethod = 'محفظة';
+    }
 
     let modalHtml = `
     <h3>🔄 تحديث الطلب #${orderId}</h3>
@@ -1959,12 +1965,12 @@ function useLocalOrdersForDashboard() {
         <div id="modalPaymentInfo" class="info-msg" style="display:${due===0?'block':'none'}">✅ الطلب مدفوع مسبقاً بالكامل</div>
 
         <div id="modalPaymentGroup" style="display:${status==='تم التوصيل'&&due>0?'block':'none'}">
-            <label>💳 طريقة الدفع</label>
-            <select id="modalPaymentMethod" onchange="toggleModalPaymentFields()">
-                <option value="نقدي">💵 نقدي</option>
-                <option value="محفظة">📱 محفظة</option>
-                <option value="مختلط">🔄 مختلط</option>
-            </select>
+           <label>💳 طريقة الدفع</label>
+        <select id="modalPaymentMethod" onchange="toggleModalPaymentFields()">
+            <option value="نقدي" ${defaultMethod === 'نقدي' ? 'selected' : ''}>💵 نقدي</option>
+            <option value="محفظة" ${defaultMethod === 'محفظة' ? 'selected' : ''}>📱 محفظة</option>
+            <option value="مختلط" ${defaultMethod === 'مختلط' ? 'selected' : ''}>🔄 مختلط</option>
+        </select>
             <div class="form-row" id="modalPaymentFields">
                 <div class="field" id="modalCashField">
                     <label>المبلغ النقدي</label>
