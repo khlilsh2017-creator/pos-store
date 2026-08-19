@@ -2075,13 +2075,13 @@ function useLocalOrdersForDashboard() {
                     }
 
                     paymentData = {
-                        payment_method: method,
-                        cash_collected: cashCollected,
-                        wallet_collected: walletCollected,
-                        wallet_id: walletSelect.value ? parseInt(walletSelect.value) : null,
-                        cash_currency_id: cashCurrencyId ? parseInt(cashCurrencyId) : null,
-                        wallet_currency_id: walletCurrencyId ? parseInt(walletCurrencyId) : null
-                    };
+  payment_method: method,
+  cash_collected: cashCollected,
+  wallet_collected: walletCollected,
+  wallet_id: walletSelect.value ? parseInt(walletSelect.value) : null,
+  cash_currency_id: cashCurrencyId ? parseInt(cashCurrencyId) : null,
+  wallet_currency_id: walletCurrencyId ? parseInt(walletCurrencyId) : null
+};
                 } else {
                     paymentData = {
                         payment_method: 'نقدي',
@@ -2124,12 +2124,15 @@ function useLocalOrdersForDashboard() {
             // 2. المزامنة مع الخادم
             const operationId = generateOperationId();
             const operationData = {
-                operation_id: operationId,
-                order_id: orderId,
-                delivery_status: status,
-                ...(paymentData || {}),
-                notes: notes || ''
-            };
+  operation_id: operationId,
+  order_id: orderId,
+  delivery_status: status,
+  ...(paymentData || {}),
+  notes: notes || ''
+};
+
+// إضافة سجل للتصحيح
+console.log('📦 Payload المرسل للتوصيل:', JSON.stringify(operationData, null, 2));
 
             if (navigator.onLine) {
                 try {
