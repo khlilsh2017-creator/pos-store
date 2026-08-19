@@ -1938,11 +1938,13 @@ function useLocalOrdersForDashboard() {
     });
 
     let modalHtml = `
-        <h3>🔄 تحديث الطلب #${orderId}</h3>
-        <div style="background:var(--surface-secondary); border-radius:var(--radius-xs); padding:12px; margin-bottom:16px;">
-            <p style="margin:0; font-size:0.82rem;"><strong>👤 العميل:</strong> ${order.customer_name}</p>
-            <p style="margin:4px 0 0; font-size:0.82rem;"><strong>💰 الإجمالي:</strong> ${order.total_amount} ريال</p>
-        </div>
+    <h3>🔄 تحديث الطلب #${orderId}</h3>
+    <div style="background:var(--surface-secondary); border-radius:var(--radius-xs); padding:12px; margin-bottom:16px;">
+        <p style="margin:0; font-size:0.82rem;"><strong>👤 العميل:</strong> ${order.customer_name}</p>
+        <p style="margin:4px 0 0; font-size:0.82rem;"><strong>💰 الإجمالي:</strong> ${order.total_amount} ريال</p>
+        <p style="margin:4px 0 0; font-size:0.82rem;"><strong>💳 طريقة الدفع الأصلية:</strong> ${order.payment_method || 'غير محدد'}</p>
+        ${order.expected_cash !== undefined ? `<p style="margin:4px 0 0; font-size:0.82rem; color:var(--success);"><strong>💵 المبلغ النقدي المتبقي:</strong> ${order.expected_cash} ريال</p>` : ''}
+    </div>
 
         <label>🏷️ حالة التوصيل</label>
         <select id="modalStatus" onchange="toggleModalPaymentSection()">
