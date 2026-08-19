@@ -591,10 +591,10 @@
             }
         }
 
-               async function registerForPushNotifications() {
+        async function registerForPushNotifications() {
             try {
                 if (!('Notification' in window)) {
-                    console.warn('⚠️ الإشعارات غير مدعومة في هذا المتصفح');
+                    showToast('⚠️ الإشعارات غير مدعومة');
                     return false;
                 }
                 let permission = Notification.permission;
@@ -602,7 +602,6 @@
                     permission = await Notification.requestPermission();
                 }
                 if (permission !== 'granted') {
-                    console.warn('⚠️ الإشعارات ممنوعة. الإذن الحالي:', permission);
                     showToast('⚠️ الإشعارات ممنوعة');
                     return false;
                 }
@@ -616,22 +615,10 @@
                 }
                 await navigator.serviceWorker.ready;
 
-                // 🆕 الحصول على التوكن الحالي (Firebase يعيد استخدام التوكن القديم أو يجددّه تلقائياً)
-                // هذا يضمن أن السيرفر لديه دائماً آخر توكن صالح
-                let token = await messaging.getToken({
+                const token = await messaging.getToken({
                     vapidKey: VAPID_PUBLIC_KEY,
                     serviceWorkerRegistration: swRegistration
                 });
-
-                if (!token) {
-                    // محاولة ثانية بعد انتظار قصير (قد يفشل getToken أول مرة بسبب التثبيت)
-                    await new Promise(r => setTimeout(r, 2000));
-                    token = await messaging.getToken({
-                        vapidKey: VAPID_PUBLIC_KEY,
-                        serviceWorkerRegistration: swRegistration
-                    });
-                    console.log('[FCM] محاولة ثانية للحصول على التوكن:', token ? 'نجاح' : 'فشل');
-                }
 
                 if (token) {
                     const driverId = getDriverId();
@@ -766,7 +753,7 @@
     });
 }
 
-        async function initializePushNotifications() {
+       async function initializePushNotifications() {
     try {
         swRegistration = await registerServiceWorker();
         if (!swRegistration) {
@@ -776,56 +763,20 @@
         setupSWMessageListener();
         const pushEnabled = localStorage.getItem('pushEnabled') === 'true';
         
-        // ملاحظة: onTokenRefresh غير موجودة في Firebase SDK v10+ (كانت v8 فقط).
-        // التجديد يُدار تلقائيًا: getToken() يعيد التوكن الحالي الصالح، ونحدّثه
-        // في السيرفر عند الفتح ودوريًا كل 12 ساعة (انظر أدناه).
-        
         if (pushEnabled && Notification.permission === 'granted') {
-            // 🆕 تجديد التوكن عند فتح التطبيق للتأكد من أنه صالح،
-            // لأنه قد يتغير أو ينتهي بينما التطبيق مغلق
-            try {
-                const freshToken = await messaging.getToken({
-                    vapidKey: VAPID_PUBLIC_KEY,
-                    serviceWorkerRegistration: swRegistration
-                });
-                if (freshToken) {
-                    const storedToken = localStorage.getItem('fcmToken');
-                    if (freshToken !== storedToken) {
-                        console.log('[FCM] التوكن تغير، جاري تحديثه في السيرفر');
-                        localStorage.setItem('fcmToken', freshToken);
-                        await sendTokenToServer(freshToken, getDriverId());
-                    }
-                    isPushEnabled = true;
-                    updateNotificationUI(true);
-                } else {
-                    // إذا فشل الحصول على التوكن، حاول التسجيل من جديد
-                    const enabled = await registerForPushNotifications();
-                    isPushEnabled = enabled === true;
-                    updateNotificationUI(isPushEnabled);
-                }
-            } catch (err) {
-                console.warn('[FCM] فشل تجديد التوكن:', err);
+            // 1. التحقق من وجود التوكن المسبق في التخزين المحلي
+            const existingToken = localStorage.getItem('fcmToken');
+            
+            if (existingToken) {
+                // 2. إذا كان موجوداً، نكتفي بتفعيل الواجهة دون إرسال طلب جديد للسيرفر
                 isPushEnabled = true;
                 updateNotificationUI(true);
+            } else {
+                // 3. إذا لم يكن موجوداً، نقوم بتسجيله من جديد
+                const enabled = await registerForPushNotifications();
+                isPushEnabled = enabled === true;
+                updateNotificationUI(isPushEnabled);
             }
-
-            // 🆕 إعادة تسجيل التوكن دورياً (كل 12 ساعة) لضمان بقائه صالحاً
-            // مع ملاحظة: Firebase SDK يجدد التوكن بنفسه عند الحاجة، هذا إجراء احتياطي
-            setInterval(async () => {
-                if (!pushEnabled || Notification.permission !== 'granted' || !getToken()) return;
-                try {
-                    const freshToken = await messaging.getToken({
-                        vapidKey: VAPID_PUBLIC_KEY,
-                        serviceWorkerRegistration: swRegistration
-                    });
-                    if (freshToken && freshToken !== localStorage.getItem('fcmToken')) {
-                        localStorage.setItem('fcmToken', freshToken);
-                        await sendTokenToServer(freshToken, getDriverId());
-                        console.log('[FCM] 🔁 تم تجديد التوكن الدوري');
-                    }
-                } catch (e) { console.warn('[FCM] فشل التجديد الدوري:', e); }
-            }, 12 * 60 * 60 * 1000);
-
         } else {
             isPushEnabled = false;
             updateNotificationUI(false);
