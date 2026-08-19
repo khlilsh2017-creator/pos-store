@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
     <!-- مكتبة تحويل الفاتورة إلى صورة، يجب تحميلها قبل html2pdf -->
-    <script src="html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <!-- استدعاء مكتبة PDF من جهازك / سيرفرك مباشرة -->
     <script src="html2pdf.bundle.min.js"></script>
     <link rel="manifest" href="manifest_pos_s.json" />
@@ -2014,11 +2014,10 @@
             await fetchCustomersList();
             await loadSettings();
             
-            await fetchProducts('', selectedCategoryId);
+            await fetchProducts('', selectedCategoryId, true);
             
             setProgress(100);
             setTimeout(() => setProgress(0), 500);
-            productRefreshRequested = false;
             showToast('✅ تم تنظيف التخزين وتحديث المنتجات بنجاح', 'success');
         }
 
@@ -2408,8 +2407,11 @@
        // ================================================================
         //  FETCH PRODUCTS LOGIC (مع حل مشكلة "المنتج غير موجود")
         // ================================================================
-        async function fetchProducts(search = '', categoryId = null) {
-            if (!productRefreshRequested && productsCache.length === 0) {
+        async function fetchProducts(search = '', categoryId = null, forceServer = false) {
+            if (!forceServer && productsCache.length === 0) {
+                productsCache = await getLocalProducts();
+            }
+            if (!forceServer && productsCache.length === 0) {
                 const grid = document.getElementById('products-grid');
                 const countLabel = document.getElementById('products-count-label');
                 if (grid) grid.innerHTML = '<div class="empty-state"><i class="fas fa-sync-alt"></i><p>اضغط زر التحديث لتحميل المنتجات</p></div>';
@@ -2438,9 +2440,9 @@
             if (currentSearch.length === 0) {
                 if (dropdown) dropdown.style.display = 'none';
                 
-                const localProducts = await getLocalProducts();
+                const localProducts = productsCache.length ? productsCache : await getLocalProducts();
                 
-                if (localProducts.length > 20) {
+                if (!forceServer && localProducts.length > 0) {
                     productsCache = localProducts;
                     let filtered = localProducts;
                     if (selectedCategoryId) filtered = filtered.filter(p => p.category_id == selectedCategoryId);
@@ -2486,16 +2488,16 @@
                 return;
             }
 
-            // --- 3. حالة وجود بحث فعلي ---
-            if (!navigator.onLine || !productRefreshRequested) {
-                const localProducts = await getLocalProducts();
+            // --- 3. حالة وجود بحث فعلي: البحث محلي بالكامل ---
+            {
+                const localProducts = productsCache.length ? productsCache : await getLocalProducts();
                 let filtered = localProducts.filter(p =>
                     (p.name && p.name.toLowerCase().includes(currentSearch.toLowerCase())) ||
                     (p.barcode && p.barcode.includes(currentSearch))
                 );
                 if (selectedCategoryId) filtered = filtered.filter(p => p.category_id == selectedCategoryId);
                 
-                productsCache = filtered; // 👈 التعديل: تحديث الذاكرة هنا
+                // نبقي productsCache كاملة؛ النتائج المفلترة للعرض فقط.
                 renderSearchDropdown(filtered);
                 if (countLabel) countLabel.textContent = `عدد المنتجات: ${filtered.length} (بحث محلي)`;
                 setProgress(100); setTimeout(() => setProgress(0), 500);
@@ -2504,7 +2506,6 @@
 
             try {
                 let url = `${API}/products?limit=3000`;
-                url += `&search=${encodeURIComponent(currentSearch)}`;
                 if (selectedCategoryId) url += `&category_id=${selectedCategoryId}`;
                 if (currentSort) url += `&sort=${encodeURIComponent(currentSort)}`;
                 url += `&_t=${new Date().getTime()}`;
@@ -2530,7 +2531,7 @@
                     (p.barcode && p.barcode.includes(currentSearch))
                 );
                 
-                productsCache = filtered; // 👈 التعديل: تحديث الذاكرة هنا أيضاً
+                // نبقي productsCache كاملة عند فشل أي طلب احتياطي.
                 renderSearchDropdown(filtered);
                 setProgress(100); setTimeout(() => setProgress(0), 500);
             }
@@ -4492,10 +4493,12 @@
             await fetchCustomersList();
             await loadSettings();
 
+            productRefreshRequested = true;
+            await fetchProducts('', selectedCategoryId, true);
             const initialGrid = document.getElementById('products-grid');
             const initialCount = document.getElementById('products-count-label');
-            if (initialGrid) initialGrid.innerHTML = '<div class="empty-state"><i class="fas fa-sync-alt"></i><p>اضغط زر التحديث لتحميل المنتجات</p></div>';
-            if (initialCount) initialCount.textContent = 'اضغط زر التحديث لتحميل المنتجات';
+            if (initialGrid && productsCache.length === 0) initialGrid.innerHTML = '<div class="empty-state"><i class="fas fa-sync-alt"></i><p>لا توجد منتجات</p></div>';
+            if (initialCount && productsCache.length === 0) initialCount.textContent = 'عدد المنتجات: 0';
             setProgress(100);
             setTimeout(() => setProgress(0), 500);
 
