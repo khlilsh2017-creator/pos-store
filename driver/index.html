@@ -1888,10 +1888,10 @@ function useLocalOrdersForDashboard() {
         cashInput.value = '0';
         walletInput.value = due.toFixed(2);
     } else if (method === 'مختلط') {
-        // في حالة الدفع المختلط المسبق، المبلغ المستحق هو النقد فقط (المحفظة دفعت مسبقاً)
-        // لذلك نضع كل المبلغ في حقل النقد
-        cashInput.value = due.toFixed(2);
-        walletInput.value = '0';
+    // في المختلط، المحفظة قد دفعت مسبقاً، لذا نضع النقد كامل المبلغ المستحق
+    cashInput.value = due.toFixed(2);
+    walletInput.value = '0';
+
         // تذكير للمندوب بأن المحفظة مدفوعة مسبقاً
         const walletField = document.getElementById('modalWalletField');
         if (walletField) {
