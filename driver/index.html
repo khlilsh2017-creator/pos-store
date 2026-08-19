@@ -1119,13 +1119,8 @@
         if (order.expected_cash !== undefined && order.expected_cash !== null) {
             dueAmount = order.expected_cash;
         } else {
-            // الطريقة القديمة للتوافق مع الطلبات القديمة
-            if (!isPrepaid) {
-                dueAmount = order.total_amount || 0;
-                if (deliveryFeePayment === 'عند الاستلام' && order.delivery_fee) dueAmount += order.delivery_fee;
-            } else {
-                if (deliveryFeePayment === 'عند الاستلام' && order.delivery_fee) dueAmount = order.delivery_fee;
-            }
+            // الطريقة القديمة (بدون جمع التوصيل مرتين)
+            dueAmount = order.total_amount || 0;
         }
 
         const orderNote = order.notes || order.note || '';
@@ -1923,12 +1918,8 @@ function useLocalOrdersForDashboard() {
     if (order.expected_cash !== undefined && order.expected_cash !== null) {
         due = order.expected_cash;
     } else {
-        if (!isPrepaid) {
-            due = order.total_amount || 0
-            if (deliveryFeePayment === 'عند الاستلام' && order.delivery_fee) due += order.delivery_fee;
-        } else {
-            if (deliveryFeePayment === 'عند الاستلام' && order.delivery_fee) due = order.delivery_fee;
-        }
+        // الطريقة القديمة (بدون جمع التوصيل مرتين)
+        due = order.total_amount || 0;
     }
 
     document.querySelectorAll('.action-buttons .btn').forEach(btn => {
@@ -2032,18 +2023,12 @@ function useLocalOrdersForDashboard() {
     }
 
     // ===== حساب المبلغ المستحق (due) باستخدام expected_cash =====
-    const isPrepaid = order.payment_method?.includes('مدفوع مسبقاً');
-    const deliveryFeePayment = order.delivery_fee_payment || 'مع الطلب';
     let due = 0;
     if (order.expected_cash !== undefined && order.expected_cash !== null) {
         due = order.expected_cash;
     } else {
-        if (!isPrepaid) {
-            due = order.total_amount || 0;
-            if (deliveryFeePayment === 'عند الاستلام' && order.delivery_fee) due += order.delivery_fee;
-        } else {
-            if (deliveryFeePayment === 'عند الاستلام' && order.delivery_fee) due = order.delivery_fee;
-        }
+        // الطريقة القديمة (بدون جمع التوصيل مرتين)
+        due = order.total_amount || 0;
     }
     console.log('💰 due (المبلغ النقدي المطلوب):', due);
 
