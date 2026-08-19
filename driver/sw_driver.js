@@ -3,7 +3,7 @@
 // يجمع بين ميزات المندوب (المزامنة، العمليات) وتحسينات النظام العام
 // ============================================================
 
-const VERSION = 'driver-2026-08-19-010';
+const VERSION = 'driver-2026-08-19-011';
 const CACHE_PREFIX = 'ibn-mukhtar-driver-';
 const CACHE_NAME = `${CACHE_PREFIX}pos-${VERSION}`;
 const STATIC_CACHE = `${CACHE_PREFIX}static-${VERSION}`;
@@ -87,7 +87,8 @@ firebase.messaging().onBackgroundMessage(async payload => {
 // --------------------------------------------
 const STATIC_ASSETS = [
   
-  '/index/',
+  '/driver/',
+  '/index.html',
   '/driver/manifest_pos.json',
   '/driver/icon-192x192.png',
   '/driver/icon-512x512.png',
