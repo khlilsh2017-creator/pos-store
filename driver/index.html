@@ -2002,106 +2002,105 @@ function useLocalOrdersForDashboard() {
         // 12. تحديث التسليم (مع التحديث الفوري والنافذة المنبثقة)
         // =============================================================
         async function submitDeliveryUpdate(orderId) {
-            if (isSubmitting) {
-                showToast('⚠️ جاري معالجة طلب سابق، انتظر قليلاً');
-                return;
-            }
-            isSubmitting = true;
-
-            const status = document.getElementById('modalStatus').value;
-            const notes = document.getElementById('modalNotes').value.trim();
-            const order = currentOrders.find(o => o.id === orderId);
-            if (!order) {
-                isSubmitting = false;
-                return;
-            }
-
-            const finalStatuses = ['تم التسليم', 'فشل التسليم', 'مرتجع جزئي', 'مرتجع كلي', 'ملغي'];
-            if (finalStatuses.includes(order.status)) {
-                showToast('❌ هذا الطلب قد انتهى، لا يمكن تعديله');
-                isSubmitting = false;
-                return;
-            }
-
-            // ===== حساب المبلغ المستحق (due) بشكل صحيح للطلب المختلط =====
-const isPrepaid = order.payment_method?.includes('مدفوع مسبقاً');
-const deliveryFeePayment = order.delivery_fee_payment || 'مع الطلب';
-let due = 0;
-if (order.expected_cash !== undefined && order.expected_cash !== null) {
-    due = order.expected_cash;
-} else {
-    // الحساب القديم للتوافق مع الطلبات القديمة
-    if (!isPrepaid) {
-        due = order.total_amount || 0;
-        if (deliveryFeePayment === 'عند الاستلام' && order.delivery_fee) due += order.delivery_fee;
-    } else {
-        if (deliveryFeePayment === 'عند الاستلام' && order.delivery_fee) due = order.delivery_fee;
+    if (isSubmitting) {
+        showToast('⚠️ جاري معالجة طلب سابق، انتظر قليلاً');
+        return;
     }
-}
-console.log('💰 due (المبلغ النقدي المطلوب):', due);
+    isSubmitting = true;
 
-            let paymentData = null;
-            if (status === 'تم التوصيل') {
-                const baseCurrency = currencies.find(c => c.is_base);
-                const baseCurrencyId = baseCurrency ? baseCurrency.id : null;
+    const status = document.getElementById('modalStatus').value;
+    const notes = document.getElementById('modalNotes').value.trim();
+    const order = currentOrders.find(o => o.id === orderId);
+    if (!order) {
+        isSubmitting = false;
+        return;
+    }
 
-                if (due > 0) {
-                    const method = document.getElementById('modalPaymentMethod').value;
-                    let cashCollected = parseFloat(document.getElementById('modalCashCollected').value) || 0;
-                    let walletCollected = parseFloat(document.getElementById('modalWalletCollected').value) || 0;
-                    const walletSelect = document.getElementById('modalWalletSelect');
-                    const cashCurrencyId = document.getElementById('modalCashCurrency').value;
-                    const walletCurrencyId = document.getElementById('modalWalletCurrency').value;
+    const finalStatuses = ['تم التسليم', 'فشل التسليم', 'مرتجع جزئي', 'مرتجع كلي', 'ملغي'];
+    if (finalStatuses.includes(order.status)) {
+        showToast('❌ هذا الطلب قد انتهى، لا يمكن تعديله');
+        isSubmitting = false;
+        return;
+    }
 
-                    const cashCurrency = currencies.find(c => c.id == cashCurrencyId);
-                    const walletCurrency = currencies.find(c => c.id == walletCurrencyId);
-                    const cashRate = cashCurrency ? parseFloat(cashCurrency.rate_to_base) : 1;
-                    const walletRate = walletCurrency ? parseFloat(walletCurrency.rate_to_base) : 1;
-                    const baseRate = baseCurrency ? parseFloat(baseCurrency.rate_to_base) : 1;
+    // ===== حساب المبلغ المستحق (due) باستخدام expected_cash =====
+    const isPrepaid = order.payment_method?.includes('مدفوع مسبقاً');
+    const deliveryFeePayment = order.delivery_fee_payment || 'مع الطلب';
+    let due = 0;
+    if (order.expected_cash !== undefined && order.expected_cash !== null) {
+        due = order.expected_cash;
+    } else {
+        if (!isPrepaid) {
+            due = order.total_amount || 0;
+            if (deliveryFeePayment === 'عند الاستلام' && order.delivery_fee) due += order.delivery_fee;
+        } else {
+            if (deliveryFeePayment === 'عند الاستلام' && order.delivery_fee) due = order.delivery_fee;
+        }
+    }
+    console.log('💰 due (المبلغ النقدي المطلوب):', due);
 
-                    const cashBase = cashCollected * cashRate;
-                    const walletBase = walletCollected * walletRate;
-                    const totalBaseCollected = cashBase + walletBase;
-                    const dueBase = due * baseRate;
+    let paymentData = null;
+    if (status === 'تم التوصيل') {
+        const baseCurrency = currencies.find(c => c.is_base);
+        const baseCurrencyId = baseCurrency ? baseCurrency.id : null;
 
-                    if (Math.abs(totalBaseCollected - dueBase) > 0.01) {
-                        if (totalBaseCollected === 0) {
-                            showToast('⚠️ يجب إدخال مبلغ');
-                            isSubmitting = false;
-                            return;
-                        }
-                        const ratio = dueBase / totalBaseCollected;
-                        cashCollected = cashCollected * ratio;
-                        walletCollected = walletCollected * ratio;
-                        showToast('⚠️ تم تعديل المبالغ تلقائياً');
-                    }
+        if (due > 0) {
+            const method = document.getElementById('modalPaymentMethod').value;
+            let cashCollected = parseFloat(document.getElementById('modalCashCollected').value) || 0;
+            let walletCollected = parseFloat(document.getElementById('modalWalletCollected').value) || 0;
+            const walletSelect = document.getElementById('modalWalletSelect');
+            const cashCurrencyId = document.getElementById('modalCashCurrency').value;
+            const walletCurrencyId = document.getElementById('modalWalletCurrency').value;
 
-                    if ((method === 'محفظة' || method === 'مختلط') && walletCollected > 0 && !walletSelect.value) {
-                        document.getElementById('modalPaymentError').textContent = 'يجب اختيار المحفظة';
-                        isSubmitting = false;
-                        return;
-                    }
+            // التحقق من تطابق المبلغ المحصل مع due (مع مراعاة العملات)
+            const cashCurrency = currencies.find(c => c.id == cashCurrencyId);
+            const walletCurrency = currencies.find(c => c.id == walletCurrencyId);
+            const cashRate = cashCurrency ? parseFloat(cashCurrency.rate_to_base) : 1;
+            const walletRate = walletCurrency ? parseFloat(walletCurrency.rate_to_base) : 1;
+            const baseRate = baseCurrency ? parseFloat(baseCurrency.rate_to_base) : 1;
 
-                    paymentData = {
-  payment_method: method,
-  cash_collected: cashCollected,
-  wallet_collected: walletCollected,
-  wallet_id: walletSelect.value ? parseInt(walletSelect.value) : null,
-  cash_currency_id: cashCurrencyId ? parseInt(cashCurrencyId) : null,
-  wallet_currency_id: walletCurrencyId ? parseInt(walletCurrencyId) : null
-};
-                } else {
-                    paymentData = {
-                        payment_method: 'نقدي',
-                        cash_collected: 0,
-                        wallet_collected: 0,
-                        wallet_id: null,
-                        cash_currency_id: baseCurrencyId,
-                        wallet_currency_id: baseCurrencyId
-                    };
+            const cashBase = cashCollected * cashRate;
+            const walletBase = walletCollected * walletRate;
+            const totalBaseCollected = cashBase + walletBase;
+            const dueBase = due * baseRate;
+
+            if (Math.abs(totalBaseCollected - dueBase) > 0.01) {
+                if (totalBaseCollected === 0) {
+                    showToast('⚠️ يجب إدخال مبلغ');
+                    isSubmitting = false;
+                    return;
                 }
+                const ratio = dueBase / totalBaseCollected;
+                cashCollected = cashCollected * ratio;
+                walletCollected = walletCollected * ratio;
+                showToast('⚠️ تم تعديل المبالغ تلقائياً');
             }
 
+            if ((method === 'محفظة' || method === 'مختلط') && walletCollected > 0 && !walletSelect.value) {
+                document.getElementById('modalPaymentError').textContent = 'يجب اختيار المحفظة';
+                isSubmitting = false;
+                return;
+            }
+
+            paymentData = {
+                payment_method: method,
+                cash_collected: cashCollected,
+                wallet_collected: walletCollected,
+                wallet_id: walletSelect.value ? parseInt(walletSelect.value) : null,
+                cash_currency_id: cashCurrencyId ? parseInt(cashCurrencyId) : null,
+                wallet_currency_id: walletCurrencyId ? parseInt(walletCurrencyId) : null
+            };
+        } else {
+            paymentData = {
+                payment_method: 'نقدي',
+                cash_collected: 0,
+                wallet_collected: 0,
+                wallet_id: null,
+                cash_currency_id: baseCurrencyId,
+                wallet_currency_id: baseCurrencyId
+            };
+        }
+    }
             let newStatus = status;
             if (status === 'فشل') newStatus = 'فشل التسليم';
             else if (status === 'تم التوصيل') newStatus = 'تم التسليم';
