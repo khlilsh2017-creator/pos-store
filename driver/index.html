@@ -395,8 +395,8 @@
                 const order = result.find(item => Number(item.id) === orderId);
                 if (!order) continue;
 
-                if (op.data.يtus) {
-                    order.status = op.data.يtus === 'فشل'
+                if (op.data.delivery_status) {
+                    order.status = op.data.delivery_status === 'فشل'
                         ? 'فشل التسليم'
                         : op.data.delivery_status === 'تم التوصيل'
                             ? 'تم التسليم'
