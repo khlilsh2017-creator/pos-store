@@ -631,7 +631,6 @@
                         isPushEnabled = true;
                         updateNotificationUI(true);
                         localStorage.setItem('fcmToken', token);
-                        await sendTokenToServiceWorker();
                         showToast('✅ تم تفعيل الإشعارات');
                         return true;
                     } else {
@@ -753,39 +752,47 @@
     });
 }
 
-       async function initializePushNotifications() {
-    try {
-        swRegistration = await registerServiceWorker();
-        if (!swRegistration) {
-            console.warn('Service Worker غير متاح');
-            return;
-        }
-        setupSWMessageListener();
-        const pushEnabled = localStorage.getItem('pushEnabled') === 'true';
-        
-        if (pushEnabled && Notification.permission === 'granted') {
-            // 1. التحقق من وجود التوكن المسبق في التخزين المحلي
-            const existingToken = localStorage.getItem('fcmToken');
-            
-            if (existingToken) {
-                // 2. إذا كان موجوداً، نكتفي بتفعيل الواجهة دون إرسال طلب جديد للسيرفر
-                isPushEnabled = true;
-                updateNotificationUI(true);
-            } else {
-                // 3. إذا لم يكن موجوداً، نقوم بتسجيله من جديد
-                const enabled = await registerForPushNotifications();
-                isPushEnabled = enabled === true;
-                updateNotificationUI(isPushEnabled);
+        async function initializePushNotifications() {
+            try {
+                swRegistration = await registerServiceWorker();
+                if (!swRegistration) {
+                    console.warn('Service Worker غير متاح');
+                    return;
+                }
+                setupSWMessageListener();
+                const pushEnabled = localStorage.getItem('pushEnabled') === 'true';
+                if (pushEnabled) {
+                    const sub = await swRegistration.pushManager.getSubscription();
+                    if (sub) {
+                        pushSubscription = sub;
+                        isPushEnabled = true;
+                        updateNotificationUI(true);
+                        const token = sub.endpoint;
+                        const driverId = getDriverId();
+                        if (driverId) {
+                            const savedToken = localStorage.getItem('fcmToken');
+                            if (savedToken !== token) {
+                                await sendTokenToServer(token, driverId);
+                                localStorage.setItem('fcmToken', token);
+                                console.log('✅ تم تسجيل التوكن الجديد');
+                            } else {
+                                console.log('✅ التوكن مسجل مسبقاً، تخطي التسجيل');
+                            }
+                        }
+                    } else {
+                        updateNotificationUI(false);
+                        if (Notification.permission === 'granted') {
+                            await registerForPushNotifications();
+                        }
+                    }
+                } else {
+                    updateNotificationUI(false);
+                }
+            } catch (err) {
+                console.error('خطأ في تهيئة الإشعارات:', err);
+                updateNotificationUI(false);
             }
-        } else {
-            isPushEnabled = false;
-            updateNotificationUI(false);
         }
-    } catch (err) {
-        console.error('خطأ في تهيئة الإشعارات:', err);
-        updateNotificationUI(false);
-    }
-}
 
         // =============================================================
         // 5. دوال API
@@ -1088,139 +1095,136 @@
         }
 
         function renderOrders(orders) {
-    const container = document.getElementById('ordersList');
-    if (!container) return;
+            const container = document.getElementById('ordersList');
+            if (!container) return;
 
-    const driverId = getDriverId();
-    if (driverId) {
-        orders = orders.filter(o => o.driver_id == driverId);
-    }
-
-    if (!orders || orders.length === 0) {
-        container.innerHTML = `<div class="empty-state"><span class="empty-icon">📭</span><span>لا توجد طلبات تطابق الفلتر</span></div>`;
-        return;
-    }
-    const sortedOrders = [...orders].sort((a, b) => (b.id || 0) - (a.id || 0));
-    let html = '';
-    sortedOrders.forEach(order => {
-        const isPrepaid = order.payment_method && order.payment_method.includes('مدفوع مسبقاً');
-        const deliveryFeePayment = order.delivery_fee_payment || 'مع الطلب';
-        const isCompleted = order.status === 'تم التسليم';
-        const isFailed = order.status === 'فشل التسليم';
-        const isReturned = order.status === 'مرتجع جزئي' || order.status === 'مرتجع كلي';
-        const isCancelled = order.status === 'ملغي';
-        const cardClass = isCompleted ? 'completed' : (isFailed ? 'failed' : (isReturned ? 'returned' : ''));
-        const statusText = order.status || 'جديد';
-        let items = order.items || [];
-        items = items.sort((a, b) => (b.id || 0) - (a.id || 0));
-        
-        // ===== التعديل: استخدام expected_cash من الخادم =====
-        let dueAmount = 0;
-        if (order.expected_cash !== undefined && order.expected_cash !== null) {
-            dueAmount = order.expected_cash;
-        } else {
-            // الطريقة القديمة (بدون جمع التوصيل مرتين)
-            dueAmount = order.total_amount || 0;
-        }
-
-        const orderNote = order.notes || order.note || '';
-        const noteHtml = orderNote ? `<div class="order-note">📝 ${orderNote}</div>` : '';
-        const addressText = order.customer_address || '';
-        const combinedText = addressText + ' ' + (orderNote || '');
-        const mapUrl = detectMapLink(combinedText);
-        let mapButtonHtml = '';
-        if (mapUrl) mapButtonHtml = `<a href="${mapUrl}" target="_blank" class="map-link">🗺️ خرائط</a>`;
-        let statusBadgeClass = 'badge-new';
-        switch (order.status) {
-            case 'تم التسليم':
-                statusBadgeClass = 'badge-delivered';
-                break;
-            case 'فشل التسليم':
-                statusBadgeClass = 'badge-failed';
-                break;
-            case 'قيد التوصيل':
-                statusBadgeClass = 'badge-progress';
-                break;
-            case 'مرتجع جزئي':
-            case 'مرتجع كلي':
-                statusBadgeClass = 'badge-returned';
-                break;
-            case 'ملغي':
-                statusBadgeClass = 'badge-failed';
-                break;
-        }
-        const isFinished = ['تم التسليم', 'فشل التسليم', 'ملغي', 'مرتجع جزئي', 'مرتجع كلي'].includes(statusText);
-        let itemsHtml = '';
-        const showAll = items.length <= 3;
-        const displayedItems = showAll ? items : items.slice(0, 3);
-        displayedItems.forEach(item => {
-            const itemNote = item.note || item.notes || item.product_note || '';
-            const noteCell = itemNote ? `<span class="item-note">📌 ${itemNote}</span>` : '';
-            itemsHtml += `<tr><td>${item.product_name || item.product_id}</td><td>${item.quantity}</td><td>${item.unit_price}</td><td>${item.line_total}</td><td>${noteCell}</td></tr>`;
-        });
-
-        let actionButtonsHtml = '';
-        if (isReturned || isCancelled) {
-            actionButtonsHtml = `<div style="text-align:center; color:var(--text-muted); font-size:0.75rem; padding:6px;">🔁 طلب مرتجع/ملغي</div>`;
-        } else if (isFinished) {
-            actionButtonsHtml = `<div style="text-align:center; color:var(--text-muted); font-size:0.75rem; padding:6px;">✔️ تم الانتهاء</div>`;
-        } else {
-            actionButtonsHtml = `
-                <div class="action-buttons">
-                    <button class="btn btn-success" onclick="openDeliveryModal(${order.id}, 'تم التوصيل')">✅ تم</button>
-                    <button class="btn btn-danger" onclick="openDeliveryModal(${order.id}, 'فشل')">❌ فشل</button>
-                </div>
-            `;
-        }
-
-        let returnInfoHtml = '';
-        if (isReturned) {
-            const refundAmount = parseFloat(order.total_refund || 0);
-            const deliveryFeeReturn = parseFloat(order.return_fee || 0);
-            const feeType = order.return_fee_type || 'shop';
-            let customerRefund = refundAmount;
-            if (feeType === 'customer') {
-                customerRefund = Math.max(0, refundAmount - deliveryFeeReturn);
+            const driverId = getDriverId();
+            if (driverId) {
+                orders = orders.filter(o => o.driver_id == driverId);
             }
-            returnInfoHtml = `
-                <div style="background:#fef3c7; padding:6px 12px; border-radius:var(--radius-xs); margin:6px 0; font-size:0.78rem; display:flex; justify-content:space-between; flex-wrap:wrap; gap:4px;">
-                    <span>🔄 مرتجع: ${refundAmount.toFixed(2)} ريال</span>
-                    ${deliveryFeeReturn > 0 ? `<span>🚚 رسوم التوصيل: ${deliveryFeeReturn.toFixed(2)} ريال (${feeType === 'customer' ? 'تخصم من العميل' : 'يتحملها المحل'})</span>` : ''}
-                    <span>💵 صافي المسترد: ${customerRefund.toFixed(2)} ريال</span>
-                </div>
-            `;
-        }
 
-        html += `
-            <div class="order-card ${cardClass}" data-order-id="${order.id}">
-                <div class="order-header"><span class="order-id">📦 طلب #${order.id}</span><span class="order-status-badge ${statusBadgeClass}">${statusText}</span></div>
-                <div class="customer-info">
-                    <div class="info-row"><span class="info-icon">👤</span> ${order.customer_name}</div>
-                    <div class="info-row"><span class="info-icon">📍</span> ${order.customer_address || 'لا يوجد عنوان'}</div>
-                    <div class="info-row"><span class="info-icon">📞</span> ${order.customer_phone || ''}</div>
-                    <div class="phone-actions">
-                        ${order.customer_phone ? `<a href="tel:${order.customer_phone}" class="call">📞 اتصال</a><a href="https://wa.me/${order.customer_phone.replace(/\D/g,'')}" target="_blank" class="whatsapp">💬 واتساب</a>` : ''}
-                        ${mapButtonHtml}
-                    </div>
-                </div>
-                ${noteHtml}
-                <div class="order-items-preview">
-                    <table><thead><tr><th>المنتج</th><th>الكمية</th><th>السعر</th><th>الإجمالي</th><th>ملاحظة</th></tr></thead>
-                    <tbody>${itemsHtml}${!showAll ? `<tr><td colspan="5" style="text-align:center;"><button class="invoice-btn" onclick="showInvoice(${order.id})">📄 عرض الفاتورة الكاملة (${items.length} منتج)</button></td></tr>` : ''}</tbody></table>
-                </div>
-                <div class="amount-info">
-                    <span>💰 ${order.total_amount} ريال</span>
-                    ${order.delivery_fee ? `<span>🚚 ${order.delivery_fee}</span>` : ''}
-                    <span>${isPrepaid ? '💳 مدفوع مسبقاً' : '💵 عند الاستلام'}</span>
-                    ${dueAmount > 0 ? `<span class="due">المستحق: ${dueAmount.toFixed(2)} ريال</span>` : ''}
-                </div>
-                ${returnInfoHtml}
-                ${actionButtonsHtml}
-            </div>`;
-    });
-    container.innerHTML = html;
-    updateSyncCounter();
-}
+            if (!orders || orders.length === 0) {
+                container.innerHTML = `<div class="empty-state"><span class="empty-icon">📭</span><span>لا توجد طلبات تطابق الفلتر</span></div>`;
+                return;
+            }
+            const sortedOrders = [...orders].sort((a, b) => (b.id || 0) - (a.id || 0));
+            let html = '';
+            sortedOrders.forEach(order => {
+                const isPrepaid = order.payment_method && order.payment_method.includes('مدفوع مسبقاً');
+                const deliveryFeePayment = order.delivery_fee_payment || 'مع الطلب';
+                const isCompleted = order.status === 'تم التسليم';
+                const isFailed = order.status === 'فشل التسليم';
+                const isReturned = order.status === 'مرتجع جزئي' || order.status === 'مرتجع كلي';
+                const isCancelled = order.status === 'ملغي';
+                const cardClass = isCompleted ? 'completed' : (isFailed ? 'failed' : (isReturned ? 'returned' : ''));
+                const statusText = order.status || 'جديد';
+                let items = order.items || [];
+                items = items.sort((a, b) => (b.id || 0) - (a.id || 0));
+                let dueAmount = 0;
+                if (!isPrepaid) {
+                    dueAmount = order.total_amount || 0;
+                    if (deliveryFeePayment === 'عند الاستلام' && order.delivery_fee) dueAmount += order.delivery_fee;
+                } else {
+                    if (deliveryFeePayment === 'عند الاستلام' && order.delivery_fee) dueAmount = order.delivery_fee;
+                }
+                const orderNote = order.notes || order.note || '';
+                const noteHtml = orderNote ? `<div class="order-note">📝 ${orderNote}</div>` : '';
+                const addressText = order.customer_address || '';
+                const combinedText = addressText + ' ' + (orderNote || '');
+                const mapUrl = detectMapLink(combinedText);
+                let mapButtonHtml = '';
+                if (mapUrl) mapButtonHtml = `<a href="${mapUrl}" target="_blank" class="map-link">🗺️ خرائط</a>`;
+                let statusBadgeClass = 'badge-new';
+                switch (order.status) {
+                    case 'تم التسليم':
+                        statusBadgeClass = 'badge-delivered';
+                        break;
+                    case 'فشل التسليم':
+                        statusBadgeClass = 'badge-failed';
+                        break;
+                    case 'قيد التوصيل':
+                        statusBadgeClass = 'badge-progress';
+                        break;
+                    case 'مرتجع جزئي':
+                    case 'مرتجع كلي':
+                        statusBadgeClass = 'badge-returned';
+                        break;
+                    case 'ملغي':
+                        statusBadgeClass = 'badge-failed';
+                        break;
+                }
+                const isFinished = ['تم التسليم', 'فشل التسليم', 'ملغي', 'مرتجع جزئي', 'مرتجع كلي'].includes(statusText);
+                let itemsHtml = '';
+                const showAll = items.length <= 3;
+                const displayedItems = showAll ? items : items.slice(0, 3);
+                displayedItems.forEach(item => {
+                    const itemNote = item.note || item.notes || item.product_note || '';
+                    const noteCell = itemNote ? `<span class="item-note">📌 ${itemNote}</span>` : '';
+                    itemsHtml += `<tr><td>${item.product_name || item.product_id}</td><td>${item.quantity}</td><td>${item.unit_price}</td><td>${item.line_total}</td><td>${noteCell}</td></tr>`;
+                });
+
+                let actionButtonsHtml = '';
+                if (isReturned || isCancelled) {
+                    actionButtonsHtml = `<div style="text-align:center; color:var(--text-muted); font-size:0.75rem; padding:6px;">🔁 طلب مرتجع/ملغي</div>`;
+                } else if (isFinished) {
+                    actionButtonsHtml = `<div style="text-align:center; color:var(--text-muted); font-size:0.75rem; padding:6px;">✔️ تم الانتهاء</div>`;
+                } else {
+                    actionButtonsHtml = `
+                        <div class="action-buttons">
+                            <button class="btn btn-success" onclick="openDeliveryModal(${order.id}, 'تم التوصيل')">✅ تم</button>
+                            <button class="btn btn-danger" onclick="openDeliveryModal(${order.id}, 'فشل')">❌ فشل</button>
+                        </div>
+                    `;
+                }
+
+                let returnInfoHtml = '';
+                if (isReturned) {
+                    const refundAmount = parseFloat(order.total_refund || 0);
+                    const deliveryFeeReturn = parseFloat(order.return_fee || 0);
+                    const feeType = order.return_fee_type || 'shop';
+                    let customerRefund = refundAmount;
+                    if (feeType === 'customer') {
+                        customerRefund = Math.max(0, refundAmount - deliveryFeeReturn);
+                    }
+                    returnInfoHtml = `
+                        <div style="background:#fef3c7; padding:6px 12px; border-radius:var(--radius-xs); margin:6px 0; font-size:0.78rem; display:flex; justify-content:space-between; flex-wrap:wrap; gap:4px;">
+                            <span>🔄 مرتجع: ${refundAmount.toFixed(2)} ريال</span>
+                            ${deliveryFeeReturn > 0 ? `<span>🚚 رسوم التوصيل: ${deliveryFeeReturn.toFixed(2)} ريال (${feeType === 'customer' ? 'تخصم من العميل' : 'يتحملها المحل'})</span>` : ''}
+                            <span>💵 صافي المسترد: ${customerRefund.toFixed(2)} ريال</span>
+                        </div>
+                    `;
+                }
+
+                html += `
+                    <div class="order-card ${cardClass}" data-order-id="${order.id}">
+                        <div class="order-header"><span class="order-id">📦 طلب #${order.id}</span><span class="order-status-badge ${statusBadgeClass}">${statusText}</span></div>
+                        <div class="customer-info">
+                            <div class="info-row"><span class="info-icon">👤</span> ${order.customer_name}</div>
+                            <div class="info-row"><span class="info-icon">📍</span> ${order.customer_address || 'لا يوجد عنوان'}</div>
+                            <div class="info-row"><span class="info-icon">📞</span> ${order.customer_phone || ''}</div>
+                            <div class="phone-actions">
+                                ${order.customer_phone ? `<a href="tel:${order.customer_phone}" class="call">📞 اتصال</a><a href="https://wa.me/${order.customer_phone.replace(/\D/g,'')}" target="_blank" class="whatsapp">💬 واتساب</a>` : ''}
+                                ${mapButtonHtml}
+                            </div>
+                        </div>
+                        ${noteHtml}
+                        <div class="order-items-preview">
+                            <table><thead><tr><th>المنتج</th><th>الكمية</th><th>السعر</th><th>الإجمالي</th><th>ملاحظة</th></tr></thead>
+                            <tbody>${itemsHtml}${!showAll ? `<tr><td colspan="5" style="text-align:center;"><button class="invoice-btn" onclick="showInvoice(${order.id})">📄 عرض الفاتورة الكاملة (${items.length} منتج)</button></td></tr>` : ''}</tbody></table>
+                        </div>
+                        <div class="amount-info">
+                            <span>💰 ${order.total_amount} ريال</span>
+                            ${order.delivery_fee ? `<span>🚚 ${order.delivery_fee}</span>` : ''}
+                            <span>${isPrepaid ? '💳 مدفوع مسبقاً' : '💵 عند الاستلام'}</span>
+                            ${dueAmount > 0 ? `<span class="due">المستحق: ${dueAmount.toFixed(2)} ريال</span>` : ''}
+                        </div>
+                        ${returnInfoHtml}
+                        ${actionButtonsHtml}
+                    </div>`;
+            });
+            container.innerHTML = html;
+            updateSyncCounter();
+        }
 
         function detectMapLink(text) {
             if (!text) return null;
@@ -1861,245 +1865,219 @@ function useLocalOrdersForDashboard() {
         }
 
         function updateModalAmounts() {
-    const dueEl = document.getElementById('modalTotalDue');
-    if (!dueEl) return;
-    const dueText = dueEl.innerText.match(/[\d.]+/);
-    if (!dueText) return;
-    const due = parseFloat(dueText[0]) || 0;
-    console.log('💰 due في updateModalAmounts:', due);
-    if (due <= 0) return;
+            const dueEl = document.getElementById('modalTotalDue');
+            if (!dueEl) return;
+            const dueText = dueEl.innerText.match(/[\d.]+/);
+            if (!dueText) return;
+            const due = parseFloat(dueText[0]) || 0;
+            if (due <= 0) return;
 
-    const method = document.getElementById('modalPaymentMethod')?.value || 'نقدي';
-    const cashInput = document.getElementById('modalCashCollected');
-    const walletInput = document.getElementById('modalWalletCollected');
-    if (!cashInput || !walletInput) return;
+            const method = document.getElementById('modalPaymentMethod')?.value || 'نقدي';
+            const cashInput = document.getElementById('modalCashCollected');
+            const walletInput = document.getElementById('modalWalletCollected');
+            if (!cashInput || !walletInput) return;
 
-    // ===== التعديل: الطلب المختلط - النقد هو المبلغ المستحق بالكامل =====
-    // (لأن المحفظة دفعت مسبقاً، والمندوب يتحصل على النقد فقط)
-    // بالنسبة للطلبات الأخرى، نوزع كالمعتاد
-    if (method === 'نقدي') {
-        cashInput.value = due.toFixed(2);
-        walletInput.value = '0';
-    } else if (method === 'محفظة') {
-        cashInput.value = '0';
-        walletInput.value = due.toFixed(2);
-    } else if (method === 'مختلط') {
-    // في المختلط، المحفظة قد دفعت مسبقاً، لذا نضع النقد كامل المبلغ المستحق
-    cashInput.value = due.toFixed(2);
-    walletInput.value = '0';
-
-        // تذكير للمندوب بأن المحفظة مدفوعة مسبقاً
-        const walletField = document.getElementById('modalWalletField');
-        if (walletField) {
-            const hint = walletField.querySelector('.currency-hint');
-            if (hint) hint.innerHTML = '💳 المبلغ المدفوع عبر المحفظة مسبقاً (0)';
+            if (method === 'نقدي') {
+                cashInput.value = due.toFixed(2);
+                walletInput.value = '0';
+            } else if (method === 'محفظة') {
+                cashInput.value = '0';
+                walletInput.value = due.toFixed(2);
+            } else if (method === 'مختلط') {
+                cashInput.value = (due / 2).toFixed(2);
+                walletInput.value = (due / 2).toFixed(2);
+            }
         }
-    }
-}
 
         async function openDeliveryModal(orderId, status) {
-    const order = currentOrders.find(o => o.id === orderId);
-    if (!order) { showToast('الطلب غير موجود'); return; }
+            const order = currentOrders.find(o => o.id === orderId);
+            if (!order) { showToast('الطلب غير موجود'); return; }
 
-    const finalStatuses = ['تم التسليم', 'فشل التسليم', 'مرتجع جزئي', 'مرتجع كلي', 'ملغي'];
-    if (finalStatuses.includes(order.status)) {
-        showToast('❌ هذا الطلب قد انتهى، لا يمكن تعديله');
-        return;
-    }
+            const finalStatuses = ['تم التسليم', 'فشل التسليم', 'مرتجع جزئي', 'مرتجع كلي', 'ملغي'];
+            if (finalStatuses.includes(order.status)) {
+                showToast('❌ هذا الطلب قد انتهى، لا يمكن تعديله');
+                return;
+            }
 
-    if (currencies.length === 0) { try { const data = await fetchCurrencies(); currencies = data.currencies || []; } catch (e) {} }
-    if (wallets.length === 0) { try { const data = await fetchWallets(); wallets = data.wallets || []; } catch (e) {} }
+            if (currencies.length === 0) { try { const data = await fetchCurrencies();
+                    currencies = data.currencies || []; } catch (e) {} }
+            if (wallets.length === 0) { try { const data = await fetchWallets();
+                    wallets = data.wallets || []; } catch (e) {} }
 
-    const isPrepaid = order.payment_method && order.payment_method.includes('مدفوع مسبقاً');
-    const deliveryFeePayment = order.delivery_fee_payment || 'مع الطلب';
-    
-    // ===== التعديل: استخدام expected_cash من الخادم =====
-    let due = 0;
-    if (order.expected_cash !== undefined && order.expected_cash !== null) {
-        due = order.expected_cash;
-    } else {
-        // الطريقة القديمة (بدون جمع التوصيل مرتين)
-        due = order.total_amount || 0;
-    }
+            const isPrepaid = order.payment_method && order.payment_method.includes('مدفوع مسبقاً');
+            const deliveryFeePayment = order.delivery_fee_payment || 'مع الطلب';
+            let due = 0;
+            if (!isPrepaid) {
+                due = order.total_amount || 0;
+                if (deliveryFeePayment === 'عند الاستلام' && order.delivery_fee) due += order.delivery_fee;
+            } else {
+                if (deliveryFeePayment === 'عند الاستلام' && order.delivery_fee) due = order.delivery_fee;
+            }
 
-    document.querySelectorAll('.action-buttons .btn').forEach(btn => {
-        btn.disabled = true;
-        btn.style.opacity = '0.6';
-        btn.style.cursor = 'not-allowed';
-    });
-    let defaultMethod = 'نقدي';
-    if (order.payment_method && order.payment_method.includes('مختلط')) {
-        defaultMethod = 'مختلط';
-    } else if (order.payment_method && order.payment_method.includes('محفظة')) {
-        defaultMethod = 'محفظة';
-    }
+            document.querySelectorAll('.action-buttons .btn').forEach(btn => {
+                btn.disabled = true;
+                btn.style.opacity = '0.6';
+                btn.style.cursor = 'not-allowed';
+            });
 
-    let modalHtml = `
-    <h3>🔄 تحديث الطلب #${orderId}</h3>
-    <div style="background:var(--surface-secondary); border-radius:var(--radius-xs); padding:12px; margin-bottom:16px;">
-        <p style="margin:0; font-size:0.82rem;"><strong>👤 العميل:</strong> ${order.customer_name}</p>
-        <p style="margin:4px 0 0; font-size:0.82rem;"><strong>💰 الإجمالي:</strong> ${order.total_amount} ريال</p>
-        <p style="margin:4px 0 0; font-size:0.82rem;"><strong>💳 طريقة الدفع الأصلية:</strong> ${order.payment_method || 'غير محدد'}</p>
-        ${order.expected_cash !== undefined ? `<p style="margin:4px 0 0; font-size:0.82rem; color:var(--success);"><strong>💵 المبلغ النقدي المتبقي:</strong> ${order.expected_cash} ريال</p>` : ''}
-    </div>
-
-        <label>🏷️ حالة التوصيل</label>
-        <select id="modalStatus" onchange="toggleModalPaymentSection()">
-            <option value="قيد التوصيل" ${status==='قيد التوصيل'?'selected':''}>🚚 قيد التوصيل</option>
-            <option value="تم التوصيل" ${status==='تم التوصيل'?'selected':''}>✅ تم التوصيل</option>
-            <option value="فشل" ${status==='فشل'?'selected':''}>❌ فشل</option>
-        </select>
-
-        <div id="modalTotalDue" class="total-due-display ${due===0?'zero':''}" style="display:${due>0?'flex':'none'}">
-            <span>💵 المبلغ المستحق تحصيله:</span><span>${due.toFixed(2)} ريال</span>
-        </div>
-        <div id="modalPaymentInfo" class="info-msg" style="display:${due===0?'block':'none'}">✅ الطلب مدفوع مسبقاً بالكامل</div>
-
-        <div id="modalPaymentGroup" style="display:${status==='تم التوصيل'&&due>0?'block':'none'}">
-           <label>💳 طريقة الدفع</label>
-        <select id="modalPaymentMethod" onchange="toggleModalPaymentFields()">
-            <option value="نقدي" ${defaultMethod === 'نقدي' ? 'selected' : ''}>💵 نقدي</option>
-            <option value="محفظة" ${defaultMethod === 'محفظة' ? 'selected' : ''}>📱 محفظة</option>
-            <option value="مختلط" ${defaultMethod === 'مختلط' ? 'selected' : ''}>🔄 مختلط</option>
-        </select>
-            <div class="form-row" id="modalPaymentFields">
-                <div class="field" id="modalCashField">
-                    <label>المبلغ النقدي</label>
-                    <input type="number" id="modalCashCollected" step="0.01" min="0" value="0">
-                    <select id="modalCashCurrency" style="margin-top:4px;">${currencies.map(c => `<option value="${c.id}" ${c.is_base?'selected':''}>${c.code} - ${c.name}</option>`).join('')}</select>
-                    <div class="currency-hint" id="modalCashDueHint">💵 المستحق: <span class="highlight">${due.toFixed(2)}</span></div>
+            let modalHtml = `
+                <h3>🔄 تحديث الطلب #${orderId}</h3>
+                <div style="background:var(--surface-secondary); border-radius:var(--radius-xs); padding:12px; margin-bottom:16px;">
+                    <p style="margin:0; font-size:0.82rem;"><strong>👤 العميل:</strong> ${order.customer_name}</p>
+                    <p style="margin:4px 0 0; font-size:0.82rem;"><strong>💰 الإجمالي:</strong> ${order.total_amount} ريال</p>
                 </div>
-                <div class="field" id="modalWalletField">
-                    <label>المبلغ عبر المحفظة</label>
-                    <input type="number" id="modalWalletCollected" step="0.01" min="0" value="0">
-                    <select id="modalWalletCurrency" style="margin-top:4px;">${currencies.map(c => `<option value="${c.id}" ${c.is_base?'selected':''}>${c.code} - ${c.name}</option>`).join('')}</select>
-                    <div class="currency-hint" id="modalWalletDueHint">💳 المستحق: <span class="highlight">${due.toFixed(2)}</span></div>
+
+                <label>🏷️ حالة التوصيل</label>
+                <select id="modalStatus" onchange="toggleModalPaymentSection()">
+                    <option value="قيد التوصيل" ${status==='قيد التوصيل'?'selected':''}>🚚 قيد التوصيل</option>
+                    <option value="تم التوصيل" ${status==='تم التوصيل'?'selected':''}>✅ تم التوصيل</option>
+                    <option value="فشل" ${status==='فشل'?'selected':''}>❌ فشل</option>
+                </select>
+
+                <div id="modalTotalDue" class="total-due-display ${due===0?'zero':''}" style="display:${due>0?'flex':'none'}">
+                    <span>💵 المبلغ المستحق تحصيله:</span><span>${due.toFixed(2)} ريال</span>
                 </div>
-            </div>
-            <div id="modalWalletSelectGroup" style="display:none;">
-                <label>🏦 المحفظة</label>
-                <select id="modalWalletSelect"><option value="">اختر المحفظة</option>${wallets.map(w => `<option value="${w.id}">${w.name}</option>`).join('')}</select>
-            </div>
-            <div class="error-msg" id="modalPaymentError"></div>
-        </div>
+                <div id="modalPaymentInfo" class="info-msg" style="display:${due===0?'block':'none'}">✅ الطلب مدفوع مسبقاً بالكامل</div>
 
-        <label>📝 ملاحظات</label>
-        <input type="text" id="modalNotes" placeholder="أي ملاحظات إضافية">
+                <div id="modalPaymentGroup" style="display:${status==='تم التوصيل'&&due>0?'block':'none'}">
+                    <label>💳 طريقة الدفع</label>
+                    <select id="modalPaymentMethod" onchange="toggleModalPaymentFields()">
+                        <option value="نقدي">💵 نقدي</option>
+                        <option value="محفظة">📱 محفظة</option>
+                        <option value="مختلط">🔄 مختلط</option>
+                    </select>
+                    <div class="form-row" id="modalPaymentFields">
+                        <div class="field" id="modalCashField">
+                            <label>المبلغ النقدي</label>
+                            <input type="number" id="modalCashCollected" step="0.01" min="0" value="0">
+                            <select id="modalCashCurrency" style="margin-top:4px;">${currencies.map(c => `<option value="${c.id}" ${c.is_base?'selected':''}>${c.code} - ${c.name}</option>`).join('')}</select>
+                            <div class="currency-hint" id="modalCashDueHint">💵 المستحق: <span class="highlight">${due.toFixed(2)}</span></div>
+                        </div>
+                        <div class="field" id="modalWalletField">
+                            <label>المبلغ عبر المحفظة</label>
+                            <input type="number" id="modalWalletCollected" step="0.01" min="0" value="0">
+                            <select id="modalWalletCurrency" style="margin-top:4px;">${currencies.map(c => `<option value="${c.id}" ${c.is_base?'selected':''}>${c.code} - ${c.name}</option>`).join('')}</select>
+                            <div class="currency-hint" id="modalWalletDueHint">💳 المستحق: <span class="highlight">${due.toFixed(2)}</span></div>
+                        </div>
+                    </div>
+                    <div id="modalWalletSelectGroup" style="display:none;">
+                        <label>🏦 المحفظة</label>
+                        <select id="modalWalletSelect"><option value="">اختر المحفظة</option>${wallets.map(w => `<option value="${w.id}">${w.name}</option>`).join('')}</select>
+                    </div>
+                    <div class="error-msg" id="modalPaymentError"></div>
+                </div>
 
-        <button class="submit-btn" onclick="submitDeliveryUpdate(${orderId})">✅ تأكيد التحديث</button>
-    `;
-    document.getElementById('modalContent').innerHTML = modalHtml;
-    document.getElementById('modalSheet').classList.add('active');
-    document.getElementById('modalOverlay').classList.add('active');
-    if (status === 'تم التوصيل') {
-        toggleModalPaymentFields();
-        updateModalAmounts();
-    }
-}
+                <label>📝 ملاحظات</label>
+                <input type="text" id="modalNotes" placeholder="أي ملاحظات إضافية">
+
+                <button class="submit-btn" onclick="submitDeliveryUpdate(${orderId})">✅ تأكيد التحديث</button>
+            `;
+            document.getElementById('modalContent').innerHTML = modalHtml;
+            document.getElementById('modalSheet').classList.add('active');
+            document.getElementById('modalOverlay').classList.add('active');
+            if (status === 'تم التوصيل') {
+                toggleModalPaymentFields();
+                updateModalAmounts();
+            }
+        }
 
         // =============================================================
         // 12. تحديث التسليم (مع التحديث الفوري والنافذة المنبثقة)
         // =============================================================
         async function submitDeliveryUpdate(orderId) {
-    if (isSubmitting) {
-        showToast('⚠️ جاري معالجة طلب سابق، انتظر قليلاً');
-        return;
-    }
-    isSubmitting = true;
-
-    const status = document.getElementById('modalStatus').value;
-    const notes = document.getElementById('modalNotes').value.trim();
-    const order = currentOrders.find(o => o.id === orderId);
-    if (!order) {
-        isSubmitting = false;
-        return;
-    }
-
-    const finalStatuses = ['تم التسليم', 'فشل التسليم', 'مرتجع جزئي', 'مرتجع كلي', 'ملغي'];
-    if (finalStatuses.includes(order.status)) {
-        showToast('❌ هذا الطلب قد انتهى، لا يمكن تعديله');
-        isSubmitting = false;
-        return;
-    }
-
-    // ===== حساب المبلغ المستحق (due) باستخدام expected_cash =====
-    let due = 0;
-    if (order.expected_cash !== undefined && order.expected_cash !== null) {
-        due = order.expected_cash;
-    } else {
-        // الطريقة القديمة (بدون جمع التوصيل مرتين)
-        due = order.total_amount || 0;
-    }
-    console.log('💰 due (المبلغ النقدي المطلوب):', due);
-
-    let paymentData = null;
-    if (status === 'تم التوصيل') {
-        const baseCurrency = currencies.find(c => c.is_base);
-        const baseCurrencyId = baseCurrency ? baseCurrency.id : null;
-
-        if (due > 0) {
-            const method = document.getElementById('modalPaymentMethod').value;
-            let cashCollected = parseFloat(document.getElementById('modalCashCollected').value) || 0;
-            let walletCollected = parseFloat(document.getElementById('modalWalletCollected').value) || 0;
-            const walletSelect = document.getElementById('modalWalletSelect');
-            const cashCurrencyId = document.getElementById('modalCashCurrency').value;
-            const walletCurrencyId = document.getElementById('modalWalletCurrency').value;
-
-            // التحقق من تطابق المبلغ المحصل مع due (مع مراعاة العملات)
-            const cashCurrency = currencies.find(c => c.id == cashCurrencyId);
-            const walletCurrency = currencies.find(c => c.id == walletCurrencyId);
-            const cashRate = cashCurrency ? parseFloat(cashCurrency.rate_to_base) : 1;
-            const walletRate = walletCurrency ? parseFloat(walletCurrency.rate_to_base) : 1;
-            const baseRate = baseCurrency ? parseFloat(baseCurrency.rate_to_base) : 1;
-
-            const cashBase = cashCollected * cashRate;
-            const walletBase = walletCollected * walletRate;
-            const totalBaseCollected = cashBase + walletBase;
-            const dueBase = due * baseRate;
-
-            if (Math.abs(totalBaseCollected - dueBase) > 0.01) {
-                if (totalBaseCollected === 0) {
-                    showToast('⚠️ يجب إدخال مبلغ');
-                    isSubmitting = false;
-                    return;
-                }
-                const ratio = dueBase / totalBaseCollected;
-                cashCollected = cashCollected * ratio;
-                walletCollected = walletCollected * ratio;
-                showToast('⚠️ تم تعديل المبالغ تلقائياً');
+            if (isSubmitting) {
+                showToast('⚠️ جاري معالجة طلب سابق، انتظر قليلاً');
+                return;
             }
+            isSubmitting = true;
 
-            if ((method === 'محفظة' || method === 'مختلط') && walletCollected > 0 && !walletSelect.value) {
-                document.getElementById('modalPaymentError').textContent = 'يجب اختيار المحفظة';
+            const status = document.getElementById('modalStatus').value;
+            const notes = document.getElementById('modalNotes').value.trim();
+            const order = currentOrders.find(o => o.id === orderId);
+            if (!order) {
                 isSubmitting = false;
                 return;
             }
 
-            paymentData = {
-                payment_method: method,
-                cash_collected: cashCollected,
-                wallet_collected: walletCollected,
-                wallet_id: walletSelect.value ? parseInt(walletSelect.value) : null,
-                cash_currency_id: cashCurrencyId ? parseInt(cashCurrencyId) : null,
-                wallet_currency_id: walletCurrencyId ? parseInt(walletCurrencyId) : null
-            };
-        } else {
-            // ✅ الحفاظ على طريقة الدفع الأصلية للطلب بدلاً من إجبارها لتكون "نقدي"
-            paymentData = {
-                payment_method: order.payment_method || 'نقدي',
-                cash_collected: 0,
-                wallet_collected: 0,
-                wallet_id: null,
-                cash_currency_id: baseCurrencyId,
-                wallet_currency_id: baseCurrencyId
-            };
-            // إن بقيت حقول المبلغ مليئة بالرغم من أن المبلغ صفر، نفرغها لكي لا يفشل تحقق الخادم
-            const cashInput = document.getElementById('modalCashCollected');
-            const walletInput = document.getElementById('modalWalletCollected');
-            if (cashInput) cashInput.value = 0;
-            if (walletInput) walletInput.value = 0;
-        }
-    }
+            const finalStatuses = ['تم التسليم', 'فشل التسليم', 'مرتجع جزئي', 'مرتجع كلي', 'ملغي'];
+            if (finalStatuses.includes(order.status)) {
+                showToast('❌ هذا الطلب قد انتهى، لا يمكن تعديله');
+                isSubmitting = false;
+                return;
+            }
+
+            const isPrepaid = order.payment_method?.includes('مدفوع مسبقاً');
+            const deliveryFeePayment = order.delivery_fee_payment || 'مع الطلب';
+            let due = 0;
+            if (!isPrepaid) {
+                due = order.total_amount || 0;
+                if (deliveryFeePayment === 'عند الاستلام' && order.delivery_fee) due += order.delivery_fee;
+            } else {
+                if (deliveryFeePayment === 'عند الاستلام' && order.delivery_fee) due = order.delivery_fee;
+            }
+
+            let paymentData = null;
+            if (status === 'تم التوصيل') {
+                const baseCurrency = currencies.find(c => c.is_base);
+                const baseCurrencyId = baseCurrency ? baseCurrency.id : null;
+
+                if (due > 0) {
+                    const method = document.getElementById('modalPaymentMethod').value;
+                    let cashCollected = parseFloat(document.getElementById('modalCashCollected').value) || 0;
+                    let walletCollected = parseFloat(document.getElementById('modalWalletCollected').value) || 0;
+                    const walletSelect = document.getElementById('modalWalletSelect');
+                    const cashCurrencyId = document.getElementById('modalCashCurrency').value;
+                    const walletCurrencyId = document.getElementById('modalWalletCurrency').value;
+
+                    const cashCurrency = currencies.find(c => c.id == cashCurrencyId);
+                    const walletCurrency = currencies.find(c => c.id == walletCurrencyId);
+                    const cashRate = cashCurrency ? parseFloat(cashCurrency.rate_to_base) : 1;
+                    const walletRate = walletCurrency ? parseFloat(walletCurrency.rate_to_base) : 1;
+                    const baseRate = baseCurrency ? parseFloat(baseCurrency.rate_to_base) : 1;
+
+                    const cashBase = cashCollected * cashRate;
+                    const walletBase = walletCollected * walletRate;
+                    const totalBaseCollected = cashBase + walletBase;
+                    const dueBase = due * baseRate;
+
+                    if (Math.abs(totalBaseCollected - dueBase) > 0.01) {
+                        if (totalBaseCollected === 0) {
+                            showToast('⚠️ يجب إدخال مبلغ');
+                            isSubmitting = false;
+                            return;
+                        }
+                        const ratio = dueBase / totalBaseCollected;
+                        cashCollected = cashCollected * ratio;
+                        walletCollected = walletCollected * ratio;
+                        showToast('⚠️ تم تعديل المبالغ تلقائياً');
+                    }
+
+                    if ((method === 'محفظة' || method === 'مختلط') && walletCollected > 0 && !walletSelect.value) {
+                        document.getElementById('modalPaymentError').textContent = 'يجب اختيار المحفظة';
+                        isSubmitting = false;
+                        return;
+                    }
+
+                    paymentData = {
+                        payment_method: method,
+                        cash_collected: cashCollected,
+                        wallet_collected: walletCollected,
+                        wallet_id: walletSelect.value ? parseInt(walletSelect.value) : null,
+                        cash_currency_id: cashCurrencyId ? parseInt(cashCurrencyId) : null,
+                        wallet_currency_id: walletCurrencyId ? parseInt(walletCurrencyId) : null
+                    };
+                } else {
+                    paymentData = {
+                        payment_method: 'نقدي',
+                        cash_collected: 0,
+                        wallet_collected: 0,
+                        wallet_id: null,
+                        cash_currency_id: baseCurrencyId,
+                        wallet_currency_id: baseCurrencyId
+                    };
+                }
+            }
+
             let newStatus = status;
             if (status === 'فشل') newStatus = 'فشل التسليم';
             else if (status === 'تم التوصيل') newStatus = 'تم التسليم';
@@ -2129,15 +2107,13 @@ function useLocalOrdersForDashboard() {
 
             // 2. المزامنة مع الخادم
             const operationId = generateOperationId();
-   const operationData = {
-  operation_id: operationId,
-  order_id: orderId,
-  delivery_status: status, // ✅ تم التعديل
-  ...(paymentData || {}),
-  notes: notes || ''
-};
-// إضافة سجل للتصحيح
-console.log('📦 Payload المرسل للتوصيل:', JSON.stringify(operationData, null, 2));
+            const operationData = {
+                operation_id: operationId,
+                order_id: orderId,
+                delivery_status: status,
+                ...(paymentData || {}),
+                notes: notes || ''
+            };
 
             if (navigator.onLine) {
                 try {
@@ -2166,15 +2142,9 @@ console.log('📦 Payload المرسل للتوصيل:', JSON.stringify(operatio
                         data: operationData
                     });
                     markOrderAsPending(orderId);
-    console.info(`تم حفظ العملية ${operationId} للمزامنة الآمنة`);
-    await updateSyncCounter();
-    // 🌟 يعرض الآن سبب الرفض الدقيق القادم من الخادم (مثال: المبلغ المحصّل لا يساوي المبلغ المطلوب)
-    let errorText = err.message || '';
-    try {
-        const errorObj = JSON.parse(err.message);
-        if (errorObj && errorObj.error) errorText = errorObj.error;
-    } catch (e) {}
-    showToast('⚠️ فشلت المزامنة' + (errorText ? ': ' + errorText : '، سيتم المحاولة لاحقاً'));
+            console.info(`تم حفظ العملية ${operationId} للمزامنة الآمنة`);
+                    await updateSyncCounter();
+                    showToast('⚠️ فشلت المزامنة، سيتم المحاولة لاحقاً');
                 }
             } else {
                 await addOperation({
@@ -2353,35 +2323,47 @@ console.log('📦 Payload المرسل للتوصيل:', JSON.stringify(operatio
             for (const op of operations) {
                 const { store, type, data, id } = op;
                 if (store === STORES.ORDERS && type === 'update') {
-                    try {
-                        const response = await fetch(`${API_BASE}/driver/update-delivery`, {
-                            method: 'POST',
-                            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ ...data, operation_id: data.operation_id || op.operation_id })
-                        });
+                    let success = false;
+                    for (let attempt = 1; attempt <= 2; attempt++) {
+                        try {
+                            const response = await fetch(`${API_BASE}/driver/update-delivery`, {
+                                method: 'POST',
+                                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ ...data, operation_id: data.operation_id || op.operation_id })
+                            });
 
-                        // ✅ الحذف الفوري: بمجرد أن يرد الخادم (بنجاح أو بخطأ 400/500)
-                        // نحذف العملية من طابور المزامنة نهائياً لكي لا تتكرر
-                        await deleteOperation(op.id);
-
-                        if (response.ok) {
-                            syncedCount++;
-                            const result = await response.json();
-                            if (result.order) await updateOrderLocally(result.order);
-                        } else {
-                            failedCount++;
-                            console.warn(`العملية ${op.id} اكتملت أو رُفضت من الخادم، وتم حذفها من المزامنة لمنع التكرار.`);
+                            if (response.ok) {
+                                await markOperationSynced(op.id);
+                                syncedCount++;
+                                success = true;
+                                const result = await response.json();
+                                if (result.order) await updateOrderLocally(result.order);
+                                break;
+                            } else {
+                                const errorText = await response.text();
+                                console.error(`محاولة ${attempt} فشلت للعملية ${op.id}: ${response.status} - ${errorText}`);
+                                if (attempt === 1) {
+                                    await new Promise(resolve => setTimeout(resolve, 2000));
+                                }
+                            }
+                        } catch (err) {
+                            console.error(`محاولة ${attempt} فشلت للعملية ${op.id}:`, err);
+                            if (attempt === 1) {
+                                await new Promise(resolve => setTimeout(resolve, 2000));
+                            }
                         }
-                    } catch (err) {
-                        // هنا يحدث الخطأ فقط إذا لم يكن هناك إنترنت تماماً
-                        console.error(`انقطاع اتصال للعملية ${op.id}:`, err);
+                    }
+
+                    if (!success) {
                         failedCount++;
+                        console.warn(`تعذرت مزامنة العملية ${op.id}، ستتم إعادة المحاولة لاحقاً`);
+                        showToast(`⚠️ تعذرت مزامنة الطلب #${data.order_id}، تم الاحتفاظ بالتحديث محلياً`);
                     }
                 }
 
-                const remaining = operations.length - syncedCount - failedCount;
+                const remaining = operations.length - syncedCount - failedCount - cancelledCount;
                 if (document.getElementById('syncCount')) {
-                    document.getElementById('syncCount').textContent = Math.max(0, remaining);
+                    document.getElementById('syncCount').textContent = remaining;
                 }
             }
 
