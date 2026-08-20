@@ -3666,171 +3666,182 @@
             } catch (err) { showToast(err.message || 'خطأ في الاتصال', 'error'); }
         }
 
-        async function submitOrder(generateInvoice = false) {
-            if (isSubmittingOrder) return showToast('⏳ جارٍ حفظ الطلب، يرجى الانتظار', 'info');
-            if (cart.length === 0) return showToast('⚠️ السلة فارغة', 'warning');
-            if (!selectedCustomerData) { showToast('⚠️ يرجى إدخال بيانات العميل', 'warning'); openCustomerModal(); return; }
-            
-            const mainPhone = selectedCustomerData.mainPhone;
-            const address = selectedCustomerData.address;
-            if (!mainPhone || !address) { showToast('رقم الهاتف والعنوان مطلوبان', 'warning'); openCustomerModal(); return; }
+       async function submitOrder(generateInvoice = false) {
+    if (isSubmittingOrder) return showToast('⏳ جارٍ حفظ الطلب، يرجى الانتظار', 'info');
+    if (cart.length === 0) return showToast('⚠️ السلة فارغة', 'warning');
+    if (!selectedCustomerData) { showToast('⚠️ يرجى إدخال بيانات العميل', 'warning'); openCustomerModal(); return; }
 
-            setProgress(20);
-            const extraPhones = selectedCustomerData.extraPhones || [];
-            const allPhones = [mainPhone, ...extraPhones];
-            const uniquePhones = [...new Set(allPhones)];
+    const mainPhone = selectedCustomerData.mainPhone;
+    const address = selectedCustomerData.address;
+    if (!mainPhone || !address) { showToast('رقم الهاتف والعنوان مطلوبان', 'warning'); openCustomerModal(); return; }
 
-            const subtotal = cart.reduce((s, i) => s + ((i.price || 0) - (i.discount || 0)) * i.quantity, 0);
-            const discount = parseFloat(document.getElementById('cart-discount')?.value) || 0;
-            const discountType = document.getElementById('discount-type')?.value || 'fixed';
-            let discountAmount = discountType === 'percentage' ? subtotal * (discount / 100) : discount;
-            const fee = parseFloat(document.getElementById('deliveryFee')?.value) || 0;
-            const paymentMethod = document.getElementById('payment-method')?.value || 'عند الاستلام';
-            const isCashOnDelivery = paymentMethod === 'عند الاستلام';
-            const feePaidWithOrder = document.getElementById('deliveryFeePayment')?.value === 'مع الطلب';
-            const total = Math.max(0, subtotal - discountAmount + (feePaidWithOrder ? fee : 0));
+    setProgress(20);
+    const extraPhones = selectedCustomerData.extraPhones || [];
+    const allPhones = [mainPhone, ...extraPhones];
+    const uniquePhones = [...new Set(allPhones)];
 
-            let prepaid_payment_method = null;
-            let prepaid_cash_amount = 0, prepaid_wallet_amount = 0, prepaid_wallet_id = null;
-            let cash_currency_id = null, wallet_currency_id = null, order_currency_id = null;
+    const subtotal = cart.reduce((s, i) => s + ((i.price || 0) - (i.discount || 0)) * i.quantity, 0);
+    const discount = parseFloat(document.getElementById('cart-discount')?.value) || 0;
+    const discountType = document.getElementById('discount-type')?.value || 'fixed';
+    let discountAmount = discountType === 'percentage' ? subtotal * (discount / 100) : discount;
+    const fee = parseFloat(document.getElementById('deliveryFee')?.value) || 0;
+    const paymentMethod = document.getElementById('payment-method')?.value || 'عند الاستلام';
+    const isCashOnDelivery = paymentMethod === 'عند الاستلام';
+    const feePaidWithOrder = document.getElementById('deliveryFeePayment')?.value === 'مع الطلب';
+    const total = Math.max(0, subtotal - discountAmount + (feePaidWithOrder ? fee : 0));
 
-            if (!isCashOnDelivery) {
-                if (paymentMethod === 'مدفوع مسبقاً (محفظة)') {
-                    prepaid_payment_method = 'wallet';
-                    prepaid_wallet_id = document.getElementById('wallet-select')?.value;
-                    if (!prepaid_wallet_id) return showToast('اختر المحفظة', 'warning');
-                    wallet_currency_id = parseInt(document.getElementById('wallet-currency-select')?.value);
-                    if (!wallet_currency_id) return showToast('اختر عملة المحفظة', 'warning');
-                    prepaid_wallet_amount = parseFloat(document.getElementById('paid-amount')?.value) || 0;
-                    if (prepaid_wallet_amount <= 0) return showToast('أدخل المبلغ المدفوع', 'warning');
-                    const walletRate = getCurrencyRate(wallet_currency_id);
-                    const paidInBase = prepaid_wallet_amount * walletRate;
-                    if (paidInBase < total - 0.5) {
-                        showToast(`⚠️ المبلغ المدفوع أقل من الإجمالي (${total.toFixed(2)} ريال)`, 'warning');
-                        return;
-                    }
-                    order_currency_id = wallet_currency_id;
-                } else if (paymentMethod === 'مدفوع مسبقاً (مختلط)') {
-                    prepaid_payment_method = 'mixed';
-                    prepaid_cash_amount = parseFloat(document.getElementById('cash-paid')?.value) || 0;
-                    prepaid_wallet_amount = parseFloat(document.getElementById('wallet-paid')?.value) || 0;
-                    prepaid_wallet_id = document.getElementById('mixed-wallet')?.value;
-                    cash_currency_id = parseInt(document.getElementById('mixed-cash-currency')?.value);
-                    wallet_currency_id = parseInt(document.getElementById('mixed-wallet-currency')?.value);
-                    if (prepaid_cash_amount <= 0 && prepaid_wallet_amount <= 0) return showToast('أدخل مبلغاً مدفوعاً', 'warning');
-                    if (prepaid_wallet_amount > 0 && !prepaid_wallet_id) return showToast('اختر المحفظة', 'warning');
-                    let totalPaidInBase = 0;
-                    if (cash_currency_id) totalPaidInBase += prepaid_cash_amount * getCurrencyRate(cash_currency_id);
-                    else totalPaidInBase += prepaid_cash_amount;
-                    if (wallet_currency_id) totalPaidInBase += prepaid_wallet_amount * getCurrencyRate(wallet_currency_id);
-                    else totalPaidInBase += prepaid_wallet_amount;
-                    if (totalPaidInBase < total - 0.5) {
-                        showToast(`⚠️ المبلغ المدفوع أقل من الإجمالي (${total.toFixed(2)} ريال)`, 'warning');
-                        return;
-                    }
-                    order_currency_id = cash_currency_id || wallet_currency_id || null;
-                }
+    let prepaid_payment_method = null;
+    let prepaid_cash_amount = 0, prepaid_wallet_amount = 0, prepaid_wallet_id = null;
+    let cash_currency_id = null, wallet_currency_id = null, order_currency_id = null;
+
+    // ========== التعديل الجوهري هنا ==========
+    if (!isCashOnDelivery) {
+        if (paymentMethod === 'مدفوع مسبقاً (محفظة)') {
+            // دفع مسبق كامل عبر المحفظة
+            prepaid_payment_method = 'wallet';
+            prepaid_wallet_id = document.getElementById('wallet-select')?.value;
+            if (!prepaid_wallet_id) return showToast('اختر المحفظة', 'warning');
+            wallet_currency_id = parseInt(document.getElementById('wallet-currency-select')?.value);
+            if (!wallet_currency_id) return showToast('اختر عملة المحفظة', 'warning');
+            prepaid_wallet_amount = parseFloat(document.getElementById('paid-amount')?.value) || 0;
+            if (prepaid_wallet_amount <= 0) return showToast('أدخل المبلغ المدفوع', 'warning');
+            const walletRate = getCurrencyRate(wallet_currency_id);
+            const paidInBase = prepaid_wallet_amount * walletRate;
+            if (paidInBase < total - 0.5) {
+                showToast(`⚠️ المبلغ المدفوع أقل من الإجمالي (${total.toFixed(2)} ريال)`, 'warning');
+                return;
             }
-
-            const items = cart.map(item => ({
-                product_id: item.id,
-                product_name: item.name,
-                quantity: item.quantity,
-                unit_price: item.price,
-                discount: item.discount || 0,
-                notes: item.notes || ''
-            }));
-
-            const payload = {
-                customer_name: selectedCustomerData.name || undefined,
-                customer_phones: uniquePhones,
-                customer_address: address,
-                governorate: selectedCustomerData.governorate || 'صنعاء',
-                delivery_type: selectedCustomerData.deliveryType || 'داخل صنعاء',
-                delivery_fee: fee,
-                delivery_fee_payment: feePaidWithOrder ? 'مع الطلب' : 'عند الاستلام',
-                payment_method: paymentMethod,
-                prepaid_payment_method: prepaid_payment_method,
-                prepaid_cash_amount: prepaid_cash_amount,
-                prepaid_wallet_amount: prepaid_wallet_amount,
-                prepaid_wallet_id: prepaid_wallet_id ? parseInt(prepaid_wallet_id) : null,
-                currency_id: order_currency_id ? parseInt(order_currency_id) : undefined,
-                cash_currency_id: cash_currency_id ? parseInt(cash_currency_id) : undefined,
-                wallet_currency_id: wallet_currency_id ? parseInt(wallet_currency_id) : undefined,
-                items: items,
-                notes: document.getElementById('notes')?.value.trim() || '',
-                driver_id: document.getElementById('driverSelect')?.value ? parseInt(document.getElementById('driverSelect').value) : undefined,
-                total_amount: total,
-                discount: discount,
-                discount_amount: discountAmount ,
-                discount_type: discountType,
-                order_date: (() => {
-                    const value = document.getElementById('order_date')?.value;
-                    return value ? new Date(value).toISOString().slice(0, 19).replace('T', ' ') : undefined;
-                })(),
-            };
-
-            const btn = document.querySelector('.bottom-actions .btn-success');
-            let originalHTML = '';
-            isSubmittingOrder = true;
-            if (btn) {
-                originalHTML = btn.innerHTML;
-                btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> حفظ...`;
-                btn.disabled = true;
+            order_currency_id = wallet_currency_id;
+        } else if (paymentMethod === 'مدفوع مسبقاً (مختلط)') {
+            // === الدفع المختلط (جزء محفظة مقدماً + باقي نقد عند الاستلام) ===
+            // لا نرسل prepaid_payment_method، ونغير payment_method إلى 'مختلط' في الـ payload
+            prepaid_payment_method = null;  // مهم: لا ترسل 'mixed' هنا، الخادم سيتعرف من payment_method
+            prepaid_cash_amount = parseFloat(document.getElementById('cash-paid')?.value) || 0;
+            prepaid_wallet_amount = parseFloat(document.getElementById('wallet-paid')?.value) || 0;
+            prepaid_wallet_id = document.getElementById('mixed-wallet')?.value;
+            cash_currency_id = parseInt(document.getElementById('mixed-cash-currency')?.value);
+            wallet_currency_id = parseInt(document.getElementById('mixed-wallet-currency')?.value);
+            if (prepaid_cash_amount <= 0 && prepaid_wallet_amount <= 0) return showToast('أدخل مبلغاً مدفوعاً', 'warning');
+            if (prepaid_wallet_amount > 0 && !prepaid_wallet_id) return showToast('اختر المحفظة', 'warning');
+            // تحقق من أن إجمالي المدفوع (بعد التحويل للعملة الأساسية) لا يقل عن الإجمالي المطلوب
+            let totalPaidInBase = 0;
+            if (cash_currency_id) totalPaidInBase += prepaid_cash_amount * getCurrencyRate(cash_currency_id);
+            else totalPaidInBase += prepaid_cash_amount;
+            if (wallet_currency_id) totalPaidInBase += prepaid_wallet_amount * getCurrencyRate(wallet_currency_id);
+            else totalPaidInBase += prepaid_wallet_amount;
+            if (totalPaidInBase < total - 0.5) {
+                showToast(`⚠️ المبلغ المدفوع أقل من الإجمالي (${total.toFixed(2)} ريال)`, 'warning');
+                return;
             }
-            // تعطيل زر الحفظ فقط؛ تبقى بقية الشاشة قابلة للاستخدام أثناء العملية.
-            setProgress(50);
-
-            try {
-                let url = `${API}/online-orders`;
-                let method = 'POST';
-                if (editingOrderId) { url = `${API}/online-orders/${editingOrderId}`; method = 'PUT'; }
-                
-                const res = await fetch(url, {
-                    method: method,
-                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                const data = await res.json();
-                setProgress(100);
-                setTimeout(() => setProgress(0), 500);
-                
-                if (res.ok && data.success) {
-                    const orderId = data.order_id || editingOrderId;
-                    const invoiceNum = data.invoice_number || (data.order ? data.order.invoice_number : '');
-                    if (orderId) document.getElementById('display-order-id').innerText = orderId;
-                    if (invoiceNum) document.getElementById('display-invoice-number').innerText = invoiceNum;
-                    
-                    showToast(`✅ ${editingOrderId ? 'تم تحديث' : 'تم حفظ'} الطلب ${orderId || ''}`, 'success', { sound: false });
-                    // تم كتم صوت إشعار الحفظ لتجنب التصفير المتكرر أثناء عمليات الخلفية.
-
-                    pendingInvoiceSnapshot = captureInvoiceSnapshot(orderId);
-
-                    if (currentDraftId) {
-                        let drafts = JSON.parse(localStorage.getItem('pos_drafts_list') || '[]');
-                        drafts = drafts.filter(d => d.id !== currentDraftId);
-                        localStorage.setItem('pos_drafts_list', JSON.stringify(drafts));
-                        currentDraftId = null;
-                    }
-
-                    // إنهاء دورة الحفظ وإعادة ضبط الواجهة أولاً، ثم إنشاء الفاتورة في مهمة مؤجلة مستقلة.
-                    resetOrderForm();
-                    fetchProducts('', selectedCategoryId);
-                    setTimeout(() => openInvoiceChoiceModal(), 0);
-                    
-                } else { 
-                    showToast(data.error || 'فشل حفظ الطلب', 'error', { sound: false });
-                }
-            } catch (err) { 
-                showToast(err.message || 'خطأ في الاتصال', 'error', { sound: false });
-            } finally { 
-                if (btn) {
-                    btn.innerHTML = originalHTML;
-                    btn.disabled = false;
-                }
-                isSubmittingOrder = false;
-            }
+            order_currency_id = cash_currency_id || wallet_currency_id || null;
         }
+    }
+
+    const items = cart.map(item => ({
+        product_id: item.id,
+        product_name: item.name,
+        quantity: item.quantity,
+        unit_price: item.price,
+        discount: item.discount || 0,
+        notes: item.notes || ''
+    }));
+
+    // ====== تحديد طريقة الدفع النهائية للـ payload ======
+    let finalPaymentMethod = paymentMethod;
+    if (paymentMethod === 'مدفوع مسبقاً (مختلط)') {
+        finalPaymentMethod = 'مختلط';  // أو 'mixed'، لكن الخادم يتعرف على 'mixed' أو 'مختلط'
+    }
+
+    const payload = {
+        customer_name: selectedCustomerData.name || undefined,
+        customer_phones: uniquePhones,
+        customer_address: address,
+        governorate: selectedCustomerData.governorate || 'صنعاء',
+        delivery_type: selectedCustomerData.deliveryType || 'داخل صنعاء',
+        delivery_fee: fee,
+        delivery_fee_payment: feePaidWithOrder ? 'مع الطلب' : 'عند الاستلام',
+        payment_method: finalPaymentMethod,   // الـ payment_method المعدل
+        prepaid_payment_method: prepaid_payment_method,  // null في حالة المختلط
+        prepaid_cash_amount: prepaid_cash_amount,
+        prepaid_wallet_amount: prepaid_wallet_amount,
+        prepaid_wallet_id: prepaid_wallet_id ? parseInt(prepaid_wallet_id) : null,
+        currency_id: order_currency_id ? parseInt(order_currency_id) : undefined,
+        cash_currency_id: cash_currency_id ? parseInt(cash_currency_id) : undefined,
+        wallet_currency_id: wallet_currency_id ? parseInt(wallet_currency_id) : undefined,
+        items: items,
+        notes: document.getElementById('notes')?.value.trim() || '',
+        driver_id: document.getElementById('driverSelect')?.value ? parseInt(document.getElementById('driverSelect').value) : undefined,
+        total_amount: total,
+        discount: discount,
+        discount_amount: discountAmount,
+        discount_type: discountType,
+        order_date: (() => {
+            const value = document.getElementById('order_date')?.value;
+            return value ? new Date(value).toISOString().slice(0, 19).replace('T', ' ') : undefined;
+        })(),
+    };
+
+    // يمكنك إضافة console.log هنا لفحص الـ payload
+    console.log('📦 Payload المرسل:', JSON.stringify(payload, null, 2));
+
+    const btn = document.querySelector('.bottom-actions .btn-success');
+    let originalHTML = '';
+    isSubmittingOrder = true;
+    if (btn) {
+        originalHTML = btn.innerHTML;
+        btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> حفظ...`;
+        btn.disabled = true;
+    }
+    setProgress(50);
+
+    try {
+        let url = `${API}/online-orders`;
+        let method = 'POST';
+        if (editingOrderId) { url = `${API}/online-orders/${editingOrderId}`; method = 'PUT'; }
+
+        const res = await fetch(url, {
+            method: method,
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        setProgress(100);
+        setTimeout(() => setProgress(0), 500);
+
+        if (res.ok && data.success) {
+            const orderId = data.order_id || editingOrderId;
+            const invoiceNum = data.invoice_number || (data.order ? data.order.invoice_number : '');
+            if (orderId) document.getElementById('display-order-id').innerText = orderId;
+            if (invoiceNum) document.getElementById('display-invoice-number').innerText = invoiceNum;
+
+            showToast(`✅ ${editingOrderId ? 'تم تحديث' : 'تم حفظ'} الطلب ${orderId || ''}`, 'success', { sound: false });
+
+            pendingInvoiceSnapshot = captureInvoiceSnapshot(orderId);
+
+            if (currentDraftId) {
+                let drafts = JSON.parse(localStorage.getItem('pos_drafts_list') || '[]');
+                drafts = drafts.filter(d => d.id !== currentDraftId);
+                localStorage.setItem('pos_drafts_list', JSON.stringify(drafts));
+                currentDraftId = null;
+            }
+
+            resetOrderForm();
+            fetchProducts('', selectedCategoryId);
+            setTimeout(() => openInvoiceChoiceModal(), 0);
+
+        } else {
+            showToast(data.error || 'فشل حفظ الطلب', 'error', { sound: false });
+        }
+    } catch (err) {
+        showToast(err.message || 'خطأ في الاتصال', 'error', { sound: false });
+    } finally {
+        if (btn) {
+            btn.innerHTML = originalHTML;
+            btn.disabled = false;
+        }
+        isSubmittingOrder = false;
+    }
+}
 
         function captureInvoiceSnapshot(orderId = null) {
             const fieldIds = [
