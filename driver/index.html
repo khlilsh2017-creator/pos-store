@@ -2093,6 +2093,11 @@ function useLocalOrdersForDashboard() {
                 cash_currency_id: baseCurrencyId,
                 wallet_currency_id: baseCurrencyId
             };
+            // إن بقيت حقول المبلغ مليئة بالرغم من أن المبلغ صفر، نفرغها لكي لا يفشل تحقق الخادم
+            const cashInput = document.getElementById('modalCashCollected');
+            const walletInput = document.getElementById('modalWalletCollected');
+            if (cashInput) cashInput.value = 0;
+            if (walletInput) walletInput.value = 0;
         }
     }
             let newStatus = status;
