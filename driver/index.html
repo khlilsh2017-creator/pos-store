@@ -2166,9 +2166,15 @@ console.log('📦 Payload المرسل للتوصيل:', JSON.stringify(operatio
                         data: operationData
                     });
                     markOrderAsPending(orderId);
-            console.info(`تم حفظ العملية ${operationId} للمزامنة الآمنة`);
-                    await updateSyncCounter();
-                    showToast('⚠️ فشلت المزامنة، سيتم المحاولة لاحقاً');
+    console.info(`تم حفظ العملية ${operationId} للمزامنة الآمنة`);
+    await updateSyncCounter();
+    // 🌟 يعرض الآن سبب الرفض الدقيق القادم من الخادم (مثال: المبلغ المحصّل لا يساوي المبلغ المطلوب)
+    let errorText = err.message || '';
+    try {
+        const errorObj = JSON.parse(err.message);
+        if (errorObj && errorObj.error) errorText = errorObj.error;
+    } catch (e) {}
+    showToast('⚠️ فشلت المزامنة' + (errorText ? ': ' + errorText : '، سيتم المحاولة لاحقاً'));
                 }
             } else {
                 await addOperation({
