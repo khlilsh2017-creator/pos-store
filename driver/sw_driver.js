@@ -3,12 +3,12 @@
 // يجمع بين ميزات المندوب (المزامنة، العمليات) وتحسينات النظام العام
 // ============================================================
 
-const VERSION = 'driver-2026-08-21-014';
+const VERSION = 'driver-2026-08-22-016';
 const CACHE_PREFIX = 'ibn-mukhtar-driver-';
 const CACHE_NAME = `${CACHE_PREFIX}pos-${VERSION}`;
 const STATIC_CACHE = `${CACHE_PREFIX}static-${VERSION}`;
 const DYNAMIC_CACHE = `${CACHE_PREFIX}dynamic-${VERSION}`;
-const DB_VERSION = 4;
+const DB_VERSION = 10;
 const API_BASE = 'https://api.ibnalmukhtar.com';
 const OPERATIONS_DB = 'DriverOrdersDB';
 const OPERATIONS_STORE = 'operations';
@@ -21,6 +21,7 @@ const SYNC_TAG = 'driver-orders-pending-v1';
 // --------------------------------------------
 const STATIC_ASSETS = [
   
+  '/driver/index.html',
   '/driver/',
   '/driver/manifest_pos.json',
   '/driver/icon-192x192.png',
