@@ -10,7 +10,7 @@
   "orientation": "portrait",
   "dir": "rtl",
   "lang": "ar",
-  "scope": "/driver/",
+  "scope": "/driver/index.html",
   "icons": [
     {
       "src": "/driver/icon-192x192.png",
