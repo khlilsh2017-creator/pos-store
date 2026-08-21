@@ -1174,18 +1174,12 @@ function renderOrders(orders) {
 
     // --- التعديل الذكي: إخفاء طلبات الأيام القادمة ---
     const now = new Date();
-    // نحدد نهاية اليوم الحالي بدقة (الساعة 11:59:59 مساءً)
     const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999).getTime();
 
     orders = orders.filter(o => {
         const rawDate = o.order_date || o.created_at;
-        if (!rawDate) return true; // نعرض الطلبات التي بدون تاريخ
-        
-        // تحويل وقت السيرفر إلى وقت محلي
+        if (!rawDate) return true;
         const orderTime = new Date(rawDate.replace(' ', 'T') + 'Z').getTime();
-        
-        // نعرض الطلب فقط إذا كان وقته يقع قبل أو يساوي نهاية هذا اليوم
-        // (وهذا يشمل طلبات اليوم، والطلبات القديمة التي لم تُسلم، ويخفي طلبات الغد)
         return orderTime <= endOfToday;
     });
     // ---------------------------------------------
@@ -1195,7 +1189,7 @@ function renderOrders(orders) {
         return;
     }
 
-    // 1. ترتيب الطلبات حسب التاريخ والوقت (الأحدث أولاً)
+    // ترتيب الطلبات حسب التاريخ والوقت (الأحدث أولاً)
     const sortedOrders = [...orders].sort((a, b) => {
         const dateA = new Date((a.order_date || a.created_at || '').replace(' ', 'T') + 'Z').getTime() || 0;
         const dateB = new Date((b.order_date || b.created_at || '').replace(' ', 'T') + 'Z').getTime() || 0;
@@ -1218,48 +1212,69 @@ function renderOrders(orders) {
         
         const dueAmount = getOrderDueAmount(order);
 
-        // 2. معالجة وتنسيق تاريخ الطلب لعرضه للمندوب
+        // معالجة وتنسيق تاريخ الطلب لعرضه للمندوب
         let formattedDate = 'تاريخ غير محدد';
         const rawDate = order.order_date || order.created_at;
         if (rawDate) {
             const dateObj = new Date(rawDate.replace(' ', 'T') + 'Z');
             formattedDate = dateObj.toLocaleString('ar-SA', {
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit',
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: true
+                year: 'numeric', month: '2-digit', day: '2-digit',
+                hour: '2-digit', minute: '2-digit', hour12: true
             });
         }
 
         const orderNote = order.notes || order.note || '';
-        const noteHtml = orderNote ? `<div class="order-note">📝 ${orderNote}</div>` : '';
         const addressText = order.customer_address || '';
-        const combinedText = addressText + ' ' + (orderNote || '');
+        const combinedText = addressText + ' ' + orderNote;
+        
+        // --- استخراج رابط الخريطة ---
         const mapUrl = detectMapLink(combinedText);
         let mapButtonHtml = '';
-        if (mapUrl) mapButtonHtml = `<a href="${mapUrl}" target="_blank" class="map-link">🗺️ خرائط</a>`;
+        if (mapUrl) {
+            mapButtonHtml = `<a href="${mapUrl}" target="_blank" class="map-link" style="flex:1; text-align:center;">🗺️ فتح الخريطة</a>`;
+        }
+
+        // --- معالجة الأرقام المتعددة ---
+        let phones = [];
+        if (Array.isArray(order.customer_phones) && order.customer_phones.length > 0) {
+            phones = order.customer_phones;
+        } else if (order.customer_phone) {
+            // التقسيم في حال كانت الأرقام مدمجة بفاصلة أو شرطة من السيرفر
+            phones = order.customer_phone.split(/[,-]/).map(p => p.trim()).filter(Boolean);
+        }
+
+        let phoneTextHtml = '';
+        let phoneButtonsHtml = '';
+        if (phones.length > 0) {
+            phoneTextHtml = `<div class="info-row"><span class="info-icon">📞</span> <span dir="ltr">${phones.join(' | ')}</span></div>`;
+            phones.forEach(p => {
+                const cleanPhone = p.replace(/\D/g,'');
+                if (cleanPhone) {
+                    // إضافة زر اتصال وواتس لكل رقم
+                    phoneButtonsHtml += `
+                        <a href="tel:${cleanPhone}" class="call" style="flex:1; text-align:center;">📞 ${p}</a>
+                        <a href="https://wa.me/${cleanPhone}" target="_blank" class="whatsapp" style="flex:1; text-align:center;">💬 واتس</a>
+                    `;
+                }
+            });
+        }
+        // -------------------------------
+
+        // إخفاء الرابط من الملاحظات حتى لا يظهر كنص طويل ومزعج إذا أردت
+        const cleanNote = mapUrl ? orderNote.replace(mapUrl, '').trim() : orderNote;
+        const noteHtml = cleanNote ? `<div class="order-note">📝 ${cleanNote}</div>` : '';
+
         let statusBadgeClass = 'badge-new';
         switch (order.status) {
-            case 'تم التسليم':
-                statusBadgeClass = 'badge-delivered';
-                break;
-            case 'فشل التسليم':
-                statusBadgeClass = 'badge-failed';
-                break;
-            case 'قيد التوصيل':
-                statusBadgeClass = 'badge-progress';
-                break;
+            case 'تم التسليم': statusBadgeClass = 'badge-delivered'; break;
+            case 'فشل التسليم': statusBadgeClass = 'badge-failed'; break;
+            case 'قيد التوصيل': statusBadgeClass = 'badge-progress'; break;
             case 'مرتجع جزئي':
-            case 'مرتجع كلي':
-                statusBadgeClass = 'badge-returned';
-                break;
-            case 'ملغي':
-                statusBadgeClass = 'badge-failed';
-                break;
+            case 'مرتجع كلي': statusBadgeClass = 'badge-returned'; break;
+            case 'ملغي': statusBadgeClass = 'badge-failed'; break;
         }
         const isFinished = ['تم التسليم', 'فشل التسليم', 'ملغي', 'مرتجع جزئي', 'مرتجع كلي'].includes(statusText);
+        
         let itemsHtml = '';
         const showAll = items.length <= 3;
         const displayedItems = showAll ? items : items.slice(0, 3);
@@ -1289,9 +1304,7 @@ function renderOrders(orders) {
             const deliveryFeeReturn = parseFloat(order.return_fee || 0);
             const feeType = order.return_fee_type || 'shop';
             let customerRefund = refundAmount;
-            if (feeType === 'customer') {
-                customerRefund = Math.max(0, refundAmount - deliveryFeeReturn);
-            }
+            if (feeType === 'customer') customerRefund = Math.max(0, refundAmount - deliveryFeeReturn);
             returnInfoHtml = `
                 <div style="background:#fef3c7; padding:6px 12px; border-radius:var(--radius-xs); margin:6px 0; font-size:0.78rem; display:flex; justify-content:space-between; flex-wrap:wrap; gap:4px;">
                     <span>🔄 مرتجع: ${refundAmount.toFixed(2)} ريال</span>
@@ -1310,10 +1323,10 @@ function renderOrders(orders) {
                 <div class="order-header"><span class="order-id">📦 طلب #${order.id}</span><span class="order-status-badge ${statusBadgeClass}">${statusText}</span></div>
                 <div class="customer-info">
                     <div class="info-row"><span class="info-icon">👤</span> ${order.customer_name}</div>
-                    <div class="info-row"><span class="info-icon">📍</span> ${order.customer_address || 'لا يوجد عنوان'}</div>
-                    <div class="info-row"><span class="info-icon">📞</span> ${order.customer_phone || ''}</div>
-                    <div class="phone-actions">
-                        ${order.customer_phone ? `<a href="tel:${order.customer_phone}" class="call">📞 اتصال</a><a href="https://wa.me/${order.customer_phone.replace(/\D/g,'')}" target="_blank" class="whatsapp">💬 واتساب</a>` : ''}
+                    <div class="info-row"><span class="info-icon">📍</span> ${addressText.replace(mapUrl||'', '').trim() || 'لا يوجد عنوان'}</div>
+                    ${phoneTextHtml}
+                    <div class="phone-actions" style="margin-top: 8px; display: flex; gap: 6px; flex-wrap: wrap;">
+                        ${phoneButtonsHtml}
                         ${mapButtonHtml}
                     </div>
                 </div>
@@ -1336,18 +1349,19 @@ function renderOrders(orders) {
     updateSyncCounter();
 }
         function detectMapLink(text) {
-            if (!text) return null;
-            const patterns = [
-                /https?:\/\/(?:www\.)?google\.com\/maps\/place\/[^\s]+/i,
-                /https?:\/\/(?:www\.)?google\.com\/maps\/@[^\s]+/i,
-                /https?:\/\/maps\.apple\.com\/\?q=[^\s]+/i,
-                /https?:\/\/waze\.com\/ul\?q=[^\s]+/i,
-                /https?:\/\/maps\.google\.com\/\?q=[^\s]+/i,
-                /https?:\/\/goo\.gl\/maps\/[^\s]+/i
-            ];
-            for (const pattern of patterns) { const match = text.match(pattern); if (match) return match[0]; }
-            return null;
-        }
+    if (!text) return null;
+    const patterns = [
+        /https?:\/\/(?:www\.)?google\.com\/maps\/place\/[^\s]+/i,
+        /https?:\/\/(?:www\.)?google\.com\/maps\/@[^\s]+/i,
+        /https?:\/\/maps\.apple\.com\/\?q=[^\s]+/i,
+        /https?:\/\/waze\.com\/ul\?q=[^\s]+/i,
+        /https?:\/\/maps\.google\.com\/\?q=[^\s]+/i,
+        /https?:\/\/goo\.gl\/maps\/[^\s]+/i,
+        /https?:\/\/maps\.app\.goo\.gl\/[^\s]+/i  // <--- تم إضافة دعم الروابط الحديثة لخرائط جوجل هنا
+    ];
+    for (const pattern of patterns) { const match = text.match(pattern); if (match) return match[0]; }
+    return null;
+}
 
         function showInvoice(orderId) {
             const order = currentOrders.find(o => o.id === orderId);
