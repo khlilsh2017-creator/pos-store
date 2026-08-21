@@ -3511,14 +3511,25 @@
                 document.getElementById('deliveryFeePayment').value = order.delivery_fee_payment || 'مع الطلب';
                 document.getElementById('notes').value = order.notes || '';
                 if (order.order_date) {
-                    try {
-                        const d = new Date(order.order_date);
-                        const tzoffset = d.getTimezoneOffset() * 60000;
-                        const localISOTime = (new Date(d - tzoffset)).toISOString().slice(0, 16);
-                        const orderDateInput = document.getElementById('order_date');
-                        if (orderDateInput) orderDateInput.value = localISOTime;
-                    } catch (e) {}
-                }
+    try {
+        // إضافة حرف Z لإخبار المتصفح أن هذا الوقت المحفوظ في السيرفر هو UTC
+        const dbDateStr = order.order_date.replace(' ', 'T') + 'Z';
+        const d = new Date(dbDateStr);
+        
+        // استخراج الوقت بالتوقيت المحلي لجهازك
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        const hours = String(d.getHours()).padStart(2, '0');
+        const minutes = String(d.getMinutes()).padStart(2, '0');
+        
+        const localISOTime = `${year}-${month}-${day}T${hours}:${minutes}`;
+        const orderDateInput = document.getElementById('order_date');
+        if (orderDateInput) orderDateInput.value = localISOTime;
+    } catch (e) {
+        console.error("خطأ في تنسيق التاريخ", e);
+    }
+}
                 
                 if (currenciesCache.length === 0) { await loadCurrencies(); populateCurrencySelects(); }
                 if (walletsCache.length === 0) { await loadWalletsFromServer(); populateWalletSelects(); }
@@ -3776,9 +3787,10 @@
         discount_amount: discountAmount,
         discount_type: discountType,
         order_date: (() => {
-            const value = document.getElementById('order_date')?.value;
-            return value ? new Date(value).toISOString().slice(0, 19).replace('T', ' ') : undefined;
-        })(),
+    const value = document.getElementById('order_date')?.value;
+    // نحول الوقت الذي اخترته إلى توقيت عالمي UTC قبل إرساله للسيرفر
+    return value ? new Date(value).toISOString().slice(0, 19).replace('T', ' ') : undefined;
+})(),
     };
 
     // يمكنك إضافة console.log هنا لفحص الـ payload

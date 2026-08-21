@@ -113,8 +113,14 @@
         .order-items-preview td { padding:4px 6px; border-bottom:1px solid var(--border-light); font-size:0.75rem; }
         .item-note { font-size:0.65rem; color:#7f8c8d; display:block; margin-top:2px; background:#fef9e7; padding:2px 8px; border-radius:10px; }
         .amount-info { display:flex; justify-content:space-between; align-items:center; padding:8px 12px; background:var(--surface-secondary); border-radius:var(--radius-xs); font-size:0.82rem; margin-bottom:10px; flex-wrap:wrap; gap:6px; }
-        .amount-info .due { font-weight:700; color:var(--text-primary); }
+.amount-info .due { font-weight:700; color:var(--text-primary); }
+        .amount-info .due-group { display:inline-flex; align-items:center; gap:6px; flex-wrap:wrap; }
         .amount-info .prepaid { background:#dcfce7; color:#166534; padding:3px 10px; border-radius:20px; font-size:0.7rem; font-weight:600; }
+        .refresh-due-btn { display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px; padding:0; border:1px solid #93c5fd; border-radius:50%; background:#eff6ff; color:#1d4ed8; font-size:0.78rem; cursor:pointer; transition:var(--transition); }
+        .refresh-due-btn:hover { background:#dbeafe; }
+        .refresh-due-btn:active { transform:scale(0.92); }
+        .refresh-due-btn:disabled { opacity:0.55; cursor:wait; }
+        .refresh-due-btn .sync-spinner { width:11px; height:11px; border-width:2px; }
         .action-buttons { display:flex; gap:6px; flex-wrap:wrap; }
         .btn { padding:9px 14px; border-radius:25px; font-size:0.75rem; font-weight:600; border:none; cursor:pointer; flex:1; text-align:center; transition:var(--transition); display:flex; align-items:center; justify-content:center; gap:4px; min-width:0; }
         .btn:active { transform:scale(0.96); }
@@ -1087,7 +1093,78 @@
             updateSyncCounter();
         }
 
+                function isPrepaidOrder(order) {
+            const method = String(order?.payment_method || '');
+            return method.includes('مدفوع مسبقاً') && !method.includes('مختلط');
+        }
+
+        function isMixedOrder(order) {
+            return String(order?.payment_method || '').includes('مختلط');
+        }
+
+        function getOrderDueAmount(order) {
+            // المدفوع مسبقاً بالكامل لا يُطلب من المندوب تحصيل أي مبلغ.
+            if (isPrepaidOrder(order)) return 0;
+            const rawDue = order?.expected_cash !== undefined && order?.expected_cash !== null
+                ? order.expected_cash
+                : (order?.total_amount || 0);
+            return Math.max(0, parseFloat(rawDue) || 0);
+        }
+
+        async function rollbackLocalOrderUpdate(orderId, originalOrder) {
+            document.getElementById('modalSheet')?.classList.remove('active');
+            document.getElementById('modalOverlay')?.classList.remove('active');
+            const index = currentOrders.findIndex(item => Number(item.id) === Number(orderId));
+            if (index !== -1) currentOrders[index] = { ...originalOrder };
+            await updateOrderLocally({ ...originalOrder });
+            renderOrders(currentOrders);
+            const card = document.querySelector(`.order-card[data-order-id="${orderId}"]`);
+            card?.querySelectorAll('.action-buttons .btn').forEach(btn => {
+                btn.disabled = false;
+                btn.style.opacity = '1';
+                btn.style.cursor = 'pointer';
+            });
+        }
+
+        async function refreshOrderDue(orderId, buttonEl) {
+            const order = currentOrders.find(o => Number(o.id) === Number(orderId));
+            if (!order) { showToast('❌ الطلب غير موجود'); return; }
+            if (!navigator.onLine) { showToast('📴 لا يمكن تحديث المستحق دون اتصال'); return; }
+            if (!isMixedOrder(order)) { showToast('ℹ️ تحديث المستحق متاح للطلبات المختلطة فقط'); return; }
+
+            const originalButtonHtml = buttonEl?.innerHTML || '🔄';
+            if (buttonEl) {
+                buttonEl.disabled = true;
+                buttonEl.innerHTML = '<span class="sync-spinner"></span>';
+                buttonEl.title = 'جاري تحديث المستحق';
+            }
+
+            try {
+                const driverId = getDriverId();
+                if (!driverId) throw new Error('لم يتم العثور على حساب المندوب');
+                const data = await fetchDriverOrders(driverId, 1, '', 'all', 5000);
+                const serverOrder = (data.orders || []).find(item => Number(item.id) === Number(orderId));
+                if (!serverOrder) throw new Error('تعذر العثور على الطلب في الخادم');
+                const merged = await applyPendingOperationsToOrders([serverOrder]);
+                const refreshedOrder = merged[0] || serverOrder;
+                const index = currentOrders.findIndex(item => Number(item.id) === Number(orderId));
+                if (index === -1) throw new Error('تعذر تحديث الطلب محلياً');
+                currentOrders[index] = refreshedOrder;
+                await updateOrderLocally(refreshedOrder);
+                renderOrders(currentOrders);
+                showToast(`✅ تم تحديث المستحق للطلب #${orderId}`);
+            } catch (err) {
+                if (buttonEl) {
+                    buttonEl.disabled = false;
+                    buttonEl.innerHTML = originalButtonHtml;
+                    buttonEl.title = 'تحديث المبلغ المستحق';
+                }
+                showToast('⚠️ تعذر تحديث المستحق: ' + (err.message || 'حاول مرة أخرى'));
+            }
+        }
+
         function renderOrders(orders) {
+
     const container = document.getElementById('ordersList');
     if (!container) return;
 
@@ -1103,7 +1180,8 @@
     const sortedOrders = [...orders].sort((a, b) => (b.id || 0) - (a.id || 0));
     let html = '';
     sortedOrders.forEach(order => {
-        const isPrepaid = order.payment_method && order.payment_method.includes('مدفوع مسبقاً');
+        const isPrepaid = isPrepaidOrder(order);
+        const isMixed = isMixedOrder(order);
         const deliveryFeePayment = order.delivery_fee_payment || 'مع الطلب';
         const isCompleted = order.status === 'تم التسليم';
         const isFailed = order.status === 'فشل التسليم';
@@ -1114,14 +1192,7 @@
         let items = order.items || [];
         items = items.sort((a, b) => (b.id || 0) - (a.id || 0));
         
-        // ===== التعديل: استخدام expected_cash من الخادم =====
-        let dueAmount = 0;
-        if (order.expected_cash !== undefined && order.expected_cash !== null) {
-            dueAmount = order.expected_cash;
-        } else {
-            // الطريقة القديمة (بدون جمع التوصيل مرتين)
-            dueAmount = order.total_amount || 0;
-        }
+        const dueAmount = getOrderDueAmount(order);
 
         const orderNote = order.notes || order.note || '';
         const noteHtml = orderNote ? `<div class="order-note">📝 ${orderNote}</div>` : '';
@@ -1212,7 +1283,7 @@
                     <span>💰 ${order.total_amount} ريال</span>
                     ${order.delivery_fee ? `<span>🚚 ${order.delivery_fee}</span>` : ''}
                     <span>${isPrepaid ? '💳 مدفوع مسبقاً' : '💵 عند الاستلام'}</span>
-                    ${dueAmount > 0 ? `<span class="due">المستحق: ${dueAmount.toFixed(2)} ريال</span>` : ''}
+                    ${dueAmount > 0 ? `<span class="due-group"><span class="due">المستحق: ${dueAmount.toFixed(2)} ريال</span>${isMixed && !isFinished ? `<button type="button" class="refresh-due-btn" title="تحديث المبلغ المستحق" aria-label="تحديث المبلغ المستحق" onclick="refreshOrderDue(${order.id}, this)">🔄</button>` : ''}</span>` : ''}
                 </div>
                 ${returnInfoHtml}
                 ${actionButtonsHtml}
@@ -1910,17 +1981,10 @@ function useLocalOrdersForDashboard() {
     if (currencies.length === 0) { try { const data = await fetchCurrencies(); currencies = data.currencies || []; } catch (e) {} }
     if (wallets.length === 0) { try { const data = await fetchWallets(); wallets = data.wallets || []; } catch (e) {} }
 
-    const isPrepaid = order.payment_method && order.payment_method.includes('مدفوع مسبقاً');
+    const isPrepaid = isPrepaidOrder(order);
     const deliveryFeePayment = order.delivery_fee_payment || 'مع الطلب';
     
-    // ===== التعديل: استخدام expected_cash من الخادم =====
-    let due = 0;
-    if (order.expected_cash !== undefined && order.expected_cash !== null) {
-        due = order.expected_cash;
-    } else {
-        // الطريقة القديمة (بدون جمع التوصيل مرتين)
-        due = order.total_amount || 0;
-    }
+    const due = getOrderDueAmount(order);
 
     document.querySelectorAll('.action-buttons .btn').forEach(btn => {
         btn.disabled = true;
@@ -2016,20 +2080,14 @@ function useLocalOrdersForDashboard() {
     }
 
     const finalStatuses = ['تم التسليم', 'فشل التسليم', 'مرتجع جزئي', 'مرتجع كلي', 'ملغي'];
+    const originalOrder = { ...order };
     if (finalStatuses.includes(order.status)) {
         showToast('❌ هذا الطلب قد انتهى، لا يمكن تعديله');
         isSubmitting = false;
         return;
     }
 
-    // ===== حساب المبلغ المستحق (due) باستخدام expected_cash =====
-    let due = 0;
-    if (order.expected_cash !== undefined && order.expected_cash !== null) {
-        due = order.expected_cash;
-    } else {
-        // الطريقة القديمة (بدون جمع التوصيل مرتين)
-        due = order.total_amount || 0;
-    }
+    const due = getOrderDueAmount(order);
     console.log('💰 due (المبلغ النقدي المطلوب):', due);
 
     let paymentData = null;
@@ -2160,32 +2218,17 @@ console.log('📦 Payload المرسل للتوصيل:', JSON.stringify(operatio
                     renderOrders(currentOrders);
                     showToast(`✅ تمت المزامنة مع الخادم للطلب #${orderId}`);
                 } catch (err) {
-                    await addOperation({
-                        store: STORES.ORDERS,
-                        type: 'update',
-                        data: operationData
-                    });
-                    markOrderAsPending(orderId);
-    console.info(`تم حفظ العملية ${operationId} للمزامنة الآمنة`);
-    await updateSyncCounter();
-    // 🌟 يعرض الآن سبب الرفض الدقيق القادم من الخادم (مثال: المبلغ المحصّل لا يساوي المبلغ المطلوب)
-    let errorText = err.message || '';
-    try {
-        const errorObj = JSON.parse(err.message);
-        if (errorObj && errorObj.error) errorText = errorObj.error;
-    } catch (e) {}
-    showToast('⚠️ فشلت المزامنة' + (errorText ? ': ' + errorText : '، سيتم المحاولة لاحقاً'));
+                    await rollbackLocalOrderUpdate(orderId, originalOrder);
+                    let errorText = err.message || '';
+                    try {
+                        const errorObj = JSON.parse(err.message);
+                        if (errorObj && errorObj.error) errorText = errorObj.error;
+                    } catch (e) {}
+                    showToast('⚠️ فشلت المزامنة، تم إلغاء التحديث وإرجاع أزرار الطلب' + (errorText ? ': ' + errorText : ''));
                 }
             } else {
-                await addOperation({
-                    store: STORES.ORDERS,
-                    type: 'update',
-                    data: operationData
-                });
-                markOrderAsPending(orderId);
-            console.info(`تم حفظ العملية ${operationId} للمزامنة الآمنة`);
-                await updateSyncCounter();
-                showToast('📴 تم الحفظ محلياً، سيتم المزامنة عند الاتصال');
+                await rollbackLocalOrderUpdate(orderId, originalOrder);
+                showToast('📴 تعذر الاتصال بالخادم، تم إلغاء التحديث وإرجاع أزرار الطلب');
             }
 
             document.querySelectorAll('.action-buttons .btn').forEach(btn => {

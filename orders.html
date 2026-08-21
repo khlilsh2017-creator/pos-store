@@ -3,11 +3,18 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>نظام ابن المختار – كشف الحساب المتطور</title>
+    <title>نظام ابن المختار – لوحة متطورة</title>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        /* ============================================================
+           RESET & GLOBAL (كامل الأنماط من الملفين)
+           ============================================================ */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
         :root {
             --primary: #4f46e5;
             --primary-light: #818cf8;
@@ -47,11 +54,17 @@
         input, select, textarea { font-family: inherit; }
         .container { max-width: 1400px; margin: 0 auto; }
 
+        /* ============================================================
+           SCROLLBAR
+           ============================================================ */
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: var(--gray-100); border-radius: 8px; }
         ::-webkit-scrollbar-thumb { background: var(--gray-300); border-radius: 8px; }
         ::-webkit-scrollbar-thumb:hover { background: var(--gray-400); }
 
+        /* ============================================================
+           TYPOGRAPHY
+           ============================================================ */
         .text-muted { color: var(--gray-500); }
         .text-center { text-align: center; }
         .text-sm { font-size: 0.875rem; }
@@ -65,6 +78,9 @@
         .hidden { display: none !important; }
         .w-full { width: 100%; }
 
+        /* ============================================================
+           BUTTONS
+           ============================================================ */
         .btn {
             display: inline-flex;
             align-items: center;
@@ -98,6 +114,9 @@
         .btn-outline { background: transparent; border: 1.5px solid var(--gray-300); color: var(--gray-700); }
         .btn-outline:hover { background: var(--gray-100); }
 
+        /* ============================================================
+           CARDS & BOXES
+           ============================================================ */
         .card {
             background: #fff;
             border-radius: var(--radius);
@@ -106,7 +125,16 @@
             transition: var(--transition);
         }
         .card:hover { box-shadow: var(--shadow-lg); }
+        .glass {
+            background: rgba(255,255,255,0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.3);
+        }
 
+        /* ============================================================
+           LOGIN
+           ============================================================ */
         .login-box {
             max-width: 420px;
             margin: 80px auto;
@@ -149,7 +177,7 @@
         .login-box input:focus {
             outline: none;
             border-color: var(--primary);
-            box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.15);
+            box-shadow: 0 0 0 4px rgba(79,70,229,0.15);
             background: #fff;
         }
         .login-box .btn {
@@ -158,7 +186,15 @@
             font-size: 1.05rem;
             margin-top: 8px;
         }
+        .login-box .demo-note {
+            margin-top: 20px;
+            font-size: 0.85rem;
+            color: var(--gray-400);
+        }
 
+        /* ============================================================
+           HEADER
+           ============================================================ */
         .header {
             display: flex;
             flex-wrap: wrap;
@@ -185,6 +221,9 @@
             flex-wrap: wrap;
         }
 
+        /* ============================================================
+           TABS
+           ============================================================ */
         .tabs {
             display: flex;
             gap: 4px;
@@ -218,6 +257,9 @@
         .tab-content { display: none; }
         .tab-content.active { display: block; }
 
+        /* ============================================================
+           STATS GRID
+           ============================================================ */
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
@@ -254,6 +296,9 @@
         .stat-card.purple { border-right-color: #8b5cf6; }
         .stat-card.purple .number { color: #8b5cf6; }
 
+        /* ============================================================
+           FILTERS
+           ============================================================ */
         .filters {
             display: flex;
             flex-wrap: wrap;
@@ -303,6 +348,9 @@
             flex-wrap: wrap;
         }
 
+        /* ============================================================
+           TABLE
+           ============================================================ */
         .table-wrap {
             overflow-x: auto;
             background: #fff;
@@ -374,6 +422,9 @@
             border-color: var(--primary);
         }
 
+        /* ============================================================
+           DRIVER ROW (Settlement Tab)
+           ============================================================ */
         .driver-row {
             display: flex;
             flex-wrap: wrap;
@@ -415,10 +466,13 @@
         .badge-warning { color: var(--warning); }
         .badge-neutral { color: var(--gray-500); }
 
+        /* ============================================================
+           MODALS
+           ============================================================ */
         .modal-overlay {
             position: fixed;
             inset: 0;
-            background: rgba(15, 23, 42, 0.5);
+            background: rgba(15,23,42,0.5);
             backdrop-filter: blur(6px);
             -webkit-backdrop-filter: blur(6px);
             display: none;
@@ -553,6 +607,9 @@
             margin-top: 4px;
         }
 
+        /* ============================================================
+           RETURN MODAL SPECIFIC
+           ============================================================ */
         .return-item-row {
             display: flex;
             flex-wrap: wrap;
@@ -581,15 +638,15 @@
 
         .return-fee-group { margin: 12px 0; }
         .return-fee-group label { font-weight: 700; display: block; margin-bottom: 4px; }
-        .return-fee-group select, .return-fee-group input { 
-            width: 100%; padding: 8px 12px; border: 1.5px solid var(--gray-200); 
-            border-radius: var(--radius-sm); background: var(--gray-50); 
+        .return-fee-group select, .return-fee-group input {
+            width: 100%; padding: 8px 12px; border: 1.5px solid var(--gray-200);
+            border-radius: var(--radius-sm); background: var(--gray-50);
         }
         .return-driver-group { margin: 12px 0; }
         .return-driver-group label { font-weight: 700; display: block; margin-bottom: 4px; }
-        .return-driver-group select { 
-            width: 100%; padding: 8px 12px; border: 1.5px solid var(--gray-200); 
-            border-radius: var(--radius-sm); background: var(--gray-50); 
+        .return-driver-group select {
+            width: 100%; padding: 8px 12px; border: 1.5px solid var(--gray-200);
+            border-radius: var(--radius-sm); background: var(--gray-50);
         }
 
         .refund-method-group { margin: 16px 0; }
@@ -605,9 +662,9 @@
         .refund-details .row { display: flex; gap: 16px; flex-wrap: wrap; }
         .refund-details .row .field { flex: 1 1 140px; }
         .refund-details .row .field label { font-weight: 600; display: block; margin-bottom: 4px; font-size: 0.85rem; }
-        .refund-details .row .field input, .refund-details .row .field select { 
-            width: 100%; padding: 8px 12px; border: 1.5px solid var(--gray-200); 
-            border-radius: var(--radius-sm); background: #fff; 
+        .refund-details .row .field input, .refund-details .row .field select {
+            width: 100%; padding: 8px 12px; border: 1.5px solid var(--gray-200);
+            border-radius: var(--radius-sm); background: #fff;
         }
 
         .return-summary {
@@ -619,6 +676,9 @@
         }
         .return-summary .total { font-size: 1.3rem; font-weight: 800; color: var(--success); }
 
+        /* ============================================================
+           ALERT / TOAST
+           ============================================================ */
         .alert {
             padding: 12px 18px;
             border-radius: var(--radius-sm);
@@ -633,6 +693,9 @@
         .alert-info { background: #dbeafe; color: #1e40af; border: 1px solid #bfdbfe; }
         .alert-warning { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
 
+        /* ============================================================
+           STATEMENT HEADER
+           ============================================================ */
         .statement-header {
             background: var(--gray-50);
             padding: 16px;
@@ -649,21 +712,9 @@
         .statement-header .balance-negative { color: var(--danger); font-weight: 700; }
         .statement-header .balance-neutral { color: var(--gray-500); font-weight: 700; }
 
-        @media print {
-            body { background: #fff; padding: 10px; }
-            .header-actions .btn, .tabs .tab-btn, .filters .filter-actions .btn,
-            .driver-row .actions .btn, .btn, .pagination, .modal-overlay,
-            #alertBox, .header-actions .btn, .tab-btn, .filter-actions {
-                display: none !important;
-            }
-            .filters .group { min-width: auto; flex: 1; }
-            .header h1 { font-size: 1.2rem; }
-            .driver-row { border: 1px solid #ddd; break-inside: avoid; }
-            .stats-grid { grid-template-columns: repeat(4, 1fr); }
-            .tab-content { display: block !important; }
-            .tab-content:not(.active) { display: block !important; }
-        }
-
+        /* ============================================================
+           RESPONSIVE
+           ============================================================ */
         @media (max-width: 768px) {
             .header { flex-direction: column; align-items: stretch; gap: 12px; }
             .header-actions { justify-content: space-between; flex-wrap: wrap; }
@@ -682,13 +733,27 @@
             .btn { padding: 6px 12px; font-size: 0.8rem; }
             .modal .detail-row label { min-width: 70px; }
         }
+        @media print {
+            body { background: #fff; padding: 10px; }
+            .header-actions .btn, .tabs .tab-btn, .filters .filter-actions .btn,
+            .driver-row .actions .btn, .btn, .pagination, .modal-overlay,
+            #alertBox, .header-actions .btn, .tab-btn, .filter-actions {
+                display: none !important;
+            }
+            .filters .group { min-width: auto; flex: 1; }
+            .header h1 { font-size: 1.2rem; }
+            .driver-row { border: 1px solid #ddd; break-inside: avoid; }
+            .stats-grid { grid-template-columns: repeat(4, 1fr); }
+            .tab-content { display: block !important; }
+            .tab-content:not(.active) { display: block !important; }
+        }
     </style>
 </head>
 <body>
 
 <div class="container" id="app">
 
-    <!-- LOGIN -->
+    <!-- ===== LOGIN ===== -->
     <div id="loginSection">
         <div class="login-box">
             <h2><i class="fas fa-store-alt" style="color:var(--primary);"></i> نظام ابن المختار</h2>
@@ -705,10 +770,11 @@
                 </div>
                 <button type="submit" class="btn btn-primary btn-lg"><i class="fas fa-sign-in-alt"></i> دخول</button>
             </form>
+            <p class="demo-note"><i class="fas fa-info-circle"></i> تجريبي: admin / admin123</p>
         </div>
     </div>
 
-    <!-- MAIN -->
+    <!-- ===== MAIN CONTENT ===== -->
     <div id="mainContent" class="hidden">
 
         <!-- HEADER -->
@@ -721,16 +787,18 @@
             </div>
         </div>
 
+        <!-- ALERT BOX -->
         <div id="alertBox"></div>
 
-        <!-- TABS -->
+        <!-- ===== TABS ===== -->
         <div class="tabs">
             <button class="tab-btn active" data-tab="orders"><i class="fas fa-list-ul"></i> الطلبات</button>
             <button class="tab-btn" data-tab="drivers"><i class="fas fa-handshake"></i> تسوية المندوبين</button>
             <button class="tab-btn" data-tab="driver-account"><i class="fas fa-file-invoice"></i> كشف حساب المندوب</button>
+            <button class="tab-btn" data-tab="returns"><i class="fas fa-undo-alt"></i> طلبات الإرجاع</button>
         </div>
 
-        <!-- TAB: ORDERS -->
+        <!-- ===== TAB: ORDERS ===== -->
         <div class="tab-content active" id="tab-orders">
             <div class="filters">
                 <div class="group">
@@ -794,7 +862,7 @@
             <div class="pagination" id="pagination"></div>
         </div>
 
-        <!-- TAB: DRIVERS SETTLEMENT -->
+        <!-- ===== TAB: DRIVERS SETTLEMENT ===== -->
         <div class="tab-content" id="tab-drivers">
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; margin-bottom:16px;">
                 <div style="display:flex; gap:8px; align-items:center;">
@@ -817,7 +885,7 @@
             </div>
         </div>
 
-        <!-- TAB: DRIVER ACCOUNT STATEMENT -->
+        <!-- ===== TAB: DRIVER ACCOUNT STATEMENT ===== -->
         <div class="tab-content" id="tab-driver-account">
             <div class="card">
                 <h3 style="margin-bottom:16px;"><i class="fas fa-file-invoice"></i> كشف حساب المندوب</h3>
@@ -849,12 +917,63 @@
                 </div>
             </div>
         </div>
-    </div>
-</div>
 
-<!-- ===== MODALS ===== -->
+        <!-- ===== TAB: RETURNS ===== -->
+        <div class="tab-content" id="tab-returns">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; margin-bottom:16px;">
+                <h3 style="font-size:1.2rem;"><i class="fas fa-undo-alt"></i> طلبات الإرجاع</h3>
+                <button class="btn btn-secondary btn-sm" onclick="fetchReturns()" title="تحديث"><i class="fas fa-sync-alt"></i></button>
+            </div>
 
-<!-- Detail Modal -->
+            <div class="filters" style="margin-bottom:16px;">
+                <div class="group">
+                    <label>الحالة</label>
+                    <select id="filterReturnStatus">
+                        <option value="">الجميع</option>
+                        <option value="pending">قيد الانتظار</option>
+                        <option value="completed">تم التنفيذ</option>
+                        <option value="cancelled">ملغي</option>
+                    </select>
+                </div>
+                <div class="group">
+                    <label>المندوب</label>
+                    <select id="filterReturnDriver"><option value="">الجميع</option></select>
+                </div>
+                <div class="filter-actions">
+                    <button class="btn btn-primary btn-sm" onclick="fetchReturns()"><i class="fas fa-filter"></i> تطبيق</button>
+                    <button class="btn btn-secondary btn-sm" onclick="document.getElementById('filterReturnStatus').value='';document.getElementById('filterReturnDriver').value='';fetchReturns();"><i class="fas fa-undo"></i> مسح</button>
+                </div>
+            </div>
+
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>الطلب الأصلي</th>
+                            <th>العميل</th>
+                            <th>المندوب المسند</th>
+                            <th>المبلغ المسترد</th>
+                            <th>الحالة</th>
+                            <th>تاريخ الإنشاء</th>
+                            <th>إجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="returnsBody">
+                        <tr><td colspan="8" class="text-center text-muted">جاري التحميل...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div> <!-- end mainContent -->
+</div> <!-- end container -->
+
+<!-- ========================================================== -->
+<!-- MODALS (جميع المودالات) -->
+<!-- ========================================================== -->
+
+<!-- مودال تفاصيل الطلب -->
 <div class="modal-overlay" id="detailModal">
     <div class="modal">
         <h2><span>تفاصيل الطلب #<span id="detailOrderId"></span></span><button class="close-btn" onclick="closeDetailModal()">&times;</button></h2>
@@ -863,7 +982,7 @@
     </div>
 </div>
 
-<!-- Driver Manager Modal -->
+<!-- مودال إدارة المندوبين -->
 <div class="modal-overlay" id="driverManagerModal">
     <div class="modal" style="max-width:800px;">
         <h2><span><i class="fas fa-users"></i> إدارة المندوبين</span><button class="close-btn" onclick="closeDriverManager()">&times;</button></h2>
@@ -893,7 +1012,7 @@
     </div>
 </div>
 
-<!-- Edit Driver Modal -->
+<!-- مودال تعديل المندوب -->
 <div class="modal-overlay" id="editDriverModal">
     <div class="modal" style="max-width:600px;">
         <h2><span><i class="fas fa-user-edit"></i> تعديل المندوب</span><button class="close-btn" onclick="closeEditDriverModal()">&times;</button></h2>
@@ -915,7 +1034,7 @@
     </div>
 </div>
 
-<!-- Settlement Modal -->
+<!-- مودال تسوية المندوب -->
 <div class="modal-overlay" id="settlementModal">
     <div class="modal" style="max-width:550px;">
         <h2><span><i class="fas fa-money-bill-wave"></i> تسوية المندوب</span><button class="close-btn" onclick="closeSettlementModal()">&times;</button></h2>
@@ -980,7 +1099,7 @@
     </div>
 </div>
 
-<!-- Transactions Modal -->
+<!-- مودال حركات المندوب -->
 <div class="modal-overlay" id="transactionsModal">
     <div class="modal" style="max-width:700px;">
         <h2><span>حركات المندوب <span id="transDriverName"></span></span><button class="close-btn" onclick="closeTransactionsModal()">&times;</button></h2>
@@ -993,7 +1112,7 @@
     </div>
 </div>
 
-<!-- Assign Driver Modal -->
+<!-- مودال إسناد مندوب -->
 <div class="modal-overlay" id="assignDriverModal">
     <div class="modal" style="max-width:400px;">
         <h2><span>إسناد مندوب للطلب #<span id="assignOrderId"></span></span><button class="close-btn" onclick="closeAssignDriverModal()">&times;</button></h2>
@@ -1008,7 +1127,7 @@
     </div>
 </div>
 
-<!-- Return Modal -->
+<!-- مودال الإرجاع -->
 <div class="modal-overlay" id="returnModal">
     <div class="modal" style="max-width:750px;">
         <h2>
@@ -1077,9 +1196,18 @@
     </div>
 </div>
 
-<!-- ==========================================================
-JAVASCRIPT - تم تعديل loadDriverStatement لاستخدام /drivers/transactions
-========================================================== -->
+<!-- مودال تفاصيل طلب الإرجاع -->
+<div class="modal-overlay" id="returnDetailsModal">
+    <div class="modal" style="max-width:700px;">
+        <h2><span><i class="fas fa-undo-alt" style="color:var(--warning);"></i> تفاصيل طلب الإرجاع #<span id="returnDetailId"></span></span><button class="close-btn" onclick="closeReturnDetailsModal()">&times;</button></h2>
+        <div id="returnDetailContent"></div>
+        <div class="flex-row" id="returnDetailActions"></div>
+    </div>
+</div>
+
+<!-- ========================================================== -->
+<!-- JAVASCRIPT (النسخة الموحدة والمحسّنة) -->
+<!-- ========================================================== -->
 <script>
     // ================================================================
     //  CONSTANTS & STATE
@@ -1143,17 +1271,11 @@ JAVASCRIPT - تم تعديل loadDriverStatement لاستخدام /drivers/trans
         if (!d) return '';
         const dt = new Date(d);
         const y = dt.getFullYear();
-        const m = String(dt.getMonth() + 1).padStart(2, '0');
-        const day = String(dt.getDate()).padStart(2, '0');
-        const h = String(dt.getHours()).padStart(2, '0');
-        const min = String(dt.getMinutes()).padStart(2, '0');
+        const m = String(dt.getMonth()+1).padStart(2,'0');
+        const day = String(dt.getDate()).padStart(2,'0');
+        const h = String(dt.getHours()).padStart(2,'0');
+        const min = String(dt.getMinutes()).padStart(2,'0');
         return `${y}-${m}-${day} ${h}:${min}`;
-    }
-
-    function formatDateShort(d) {
-        if (!d) return '';
-        const dt = new Date(d);
-        return dt.toLocaleDateString('ar-EG');
     }
 
     function statusClass(status) {
@@ -1178,17 +1300,9 @@ JAVASCRIPT - تم تعديل loadDriverStatement لاستخدام /drivers/trans
     function isDateInRange(dateStr, fromDate, toDate) {
         if (!dateStr) return true;
         const d = new Date(dateStr);
-        d.setHours(0, 0, 0, 0);
-        if (fromDate) {
-            const f = new Date(fromDate);
-            f.setHours(0, 0, 0, 0);
-            if (d < f) return false;
-        }
-        if (toDate) {
-            const t = new Date(toDate);
-            t.setHours(23, 59, 59, 999);
-            if (d > t) return false;
-        }
+        d.setHours(0,0,0,0);
+        if (fromDate) { const f = new Date(fromDate); f.setHours(0,0,0,0); if (d < f) return false; }
+        if (toDate) { const t = new Date(toDate); t.setHours(23,59,59,999); if (d > t) return false; }
         return true;
     }
 
@@ -1256,20 +1370,26 @@ JAVASCRIPT - تم تعديل loadDriverStatement لاستخدام /drivers/trans
     }
 
     // ================================================================
-    //  INIT
+    //  INIT (تحميل أساسي مع Lazy Loading)
     // ================================================================
     async function initApp() {
         await loadCurrenciesAndWallets();
         await loadDriversForFilter();
         await loadDriversForAccountSelect();
+        await loadDriversForReturnFilter();
         await fetchOrders(1);
-        await loadDriversSummary();
         setupTabs();
+
         setInterval(() => {
-            if (document.getElementById('tab-orders').classList.contains('active')) {
-                fetchOrders(currentPage);
-            } else if (document.getElementById('tab-drivers').classList.contains('active')) {
-                loadDriversSummary();
+            const activeTab = document.querySelector('.tab-content.active');
+            if (activeTab) {
+                if (activeTab.id === 'tab-orders') {
+                    fetchOrders(currentPage);
+                } else if (activeTab.id === 'tab-drivers') {
+                    loadDriversSummary();
+                } else if (activeTab.id === 'tab-returns') {
+                    fetchReturns();
+                }
             }
         }, 30000);
     }
@@ -1287,13 +1407,17 @@ JAVASCRIPT - تم تعديل loadDriverStatement لاستخدام /drivers/trans
                 document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
                 this.classList.add('active');
                 document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-                document.getElementById('tab-' + this.dataset.tab).classList.add('active');
+                const tabId = 'tab-' + this.dataset.tab;
+                document.getElementById(tabId).classList.add('active');
+
                 if (this.dataset.tab === 'drivers') {
                     loadDriversSummary();
+                } else if (this.dataset.tab === 'returns') {
+                    fetchReturns();
                 } else if (this.dataset.tab === 'driver-account') {
                     loadDriversForAccountSelect();
                 } else {
-                    fetchOrders(currentPage);
+                    if (!ordersData.length) fetchOrders(1);
                 }
             });
         });
@@ -1324,6 +1448,17 @@ JAVASCRIPT - تم تعديل loadDriverStatement لاستخدام /drivers/trans
         }
     }
 
+    async function loadDriversForReturnFilter() {
+        const data = await apiFetch('/drivers');
+        if (data && data.drivers) {
+            const sel = document.getElementById('filterReturnDriver');
+            sel.innerHTML = '<option value="">الجميع</option>';
+            data.drivers.forEach(d => {
+                sel.innerHTML += `<option value="${d.id}">${d.name}</option>`;
+            });
+        }
+    }
+
     async function loadDriversForSelect(selectId) {
         const data = await apiFetch('/drivers');
         if (data && data.drivers) {
@@ -1333,157 +1468,6 @@ JAVASCRIPT - تم تعديل loadDriverStatement لاستخدام /drivers/trans
                 sel.innerHTML += `<option value="${d.id}">${d.name}</option>`;
             });
         }
-    }
-
-    // ================================================================
-    //  DRIVER STATEMENT (كشف حساب المندوب) - المعدل
-    //  يستخدم /drivers/transactions مع تصفية حسب التاريخ في الواجهة
-    // ================================================================
-    async function loadDriverStatement() {
-        const driverId = document.getElementById('accountDriverSelect').value;
-        const from = document.getElementById('accountDateFrom').value;
-        const to = document.getElementById('accountDateTo').value;
-
-        if (!driverId) {
-            document.getElementById('driverStatementContent').innerHTML = `
-                <div class="text-center text-muted" style="padding:40px;">
-                    <i class="fas fa-user-tie fa-3x" style="display:block; margin-bottom:12px; color:var(--gray-400);"></i>
-                    اختر مندوباً لعرض كشف الحساب
-                </div>
-            `;
-            return;
-        }
-
-        const content = document.getElementById('driverStatementContent');
-        content.innerHTML = '<div class="text-center text-muted" style="padding:40px;"><i class="fas fa-spinner fa-spin"></i> جاري تحميل البيانات...</div>';
-
-        // جلب حركات المندوب من المسار المتاح
-        const data = await apiFetch(`/drivers/transactions?driver_id=${driverId}`);
-        if (!data) {
-            content.innerHTML = '<div class="text-center text-muted" style="padding:40px;"><i class="fas fa-exclamation-triangle"></i> فشل تحميل البيانات</div>';
-            return;
-        }
-
-        // جلب معلومات المندوب الأساسية
-        const driversData = await apiFetch('/drivers');
-        let driverInfo = null;
-        if (driversData && driversData.drivers) {
-            driverInfo = driversData.drivers.find(d => d.id == driverId);
-        }
-
-        // جلب ملخص المندوب (الرصيد)
-        const summaryData = await apiFetch('/drivers/summary');
-        let driverSummary = null;
-        if (summaryData && summaryData.drivers) {
-            driverSummary = summaryData.drivers.find(d => d.id == driverId);
-        }
-
-        // تصفية المعاملات حسب التاريخ (في الواجهة)
-        let transactions = data.transactions || [];
-        if (from || to) {
-            transactions = transactions.filter(t => isDateInRange(t.created_at, from, to));
-        }
-
-        // حساب الملخص
-        let totalCollected = 0, totalFees = 0, totalPaid = 0, totalSettlements = 0;
-        let runningBalance = 0;
-
-        transactions.forEach(t => {
-            const amount = parseFloat(t.amount) || 0;
-            const type = t.type || '';
-            if (type === 'collection') totalCollected += amount;
-            else if (type === 'delivery_fee') totalFees += amount;
-            else if (type === 'payment') totalPaid += Math.abs(amount);
-            else if (type === 'settlement') totalSettlements += Math.abs(amount);
-            runningBalance += amount;
-        });
-
-        const balance = driverSummary ? parseFloat(driverSummary.balance) || 0 : runningBalance;
-        const balanceClass = balance > 0 ? 'balance-negative' : (balance < 0 ? 'balance-positive' : 'balance-neutral');
-        const balanceLabel = balance > 0 ? 'مستحق على المندوب' : (balance < 0 ? 'مستحق للمندوب' : 'متساوي');
-
-        // بناء واجهة كشف الحساب
-        let html = `
-            <div class="statement-header">
-                <div class="item"><strong>👤 المندوب:</strong> ${driverInfo ? driverInfo.name : 'غير معروف'}</div>
-                <div class="item"><strong>📞 الهاتف:</strong> ${driverInfo ? driverInfo.phone || '-' : '-'}</div>
-                <div class="item"><strong>💰 الرصيد الحالي:</strong> <span class="${balanceClass}">${formatNumber(Math.abs(balance))} (${balanceLabel})</span></div>
-                <div class="item"><strong>📦 إجمالي التوصيلات:</strong> ${driverSummary ? driverSummary.total_deliveries || 0 : 0}</div>
-                <div class="item"><strong>💵 إجمالي التحصيلات:</strong> ${formatNumber(totalCollected)}</div>
-                <div class="item"><strong>🚚 إجمالي الرسوم:</strong> ${formatNumber(totalFees)}</div>
-                <div class="item"><strong>💳 إجمالي المدفوع:</strong> ${formatNumber(totalPaid + totalSettlements)}</div>
-            </div>
-        `;
-
-        if (transactions.length === 0) {
-            html += `<div class="text-center text-muted" style="padding:20px;">لا توجد حركات في الفترة المحددة</div>`;
-        } else {
-            html += `
-                <div class="table-wrap">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>التاريخ</th>
-                                <th>نوع الحركة</th>
-                                <th>الوصف</th>
-                                <th>المبلغ</th>
-                                <th>طريقة الدفع</th>
-                                <th>المحفظة</th>
-                                <th>رقم الطلب</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-            `;
-            
-            // عرض الحركات من الأحدث إلى الأقدم
-            const sortedTransactions = [...transactions].sort((a, b) => 
-                new Date(b.created_at) - new Date(a.created_at)
-            );
-
-            let currentBalance = balance;
-            for (const t of sortedTransactions) {
-                const amount = parseFloat(t.amount) || 0;
-                const typeMap = {
-                    'delivery_fee': '🚚 رسوم توصيل',
-                    'collection': '💵 تحصيل',
-                    'settlement': '🤝 تسوية',
-                    'adjustment': '⚙️ تعديل',
-                    'payment': '💳 دفع',
-                    'return': '↩️ إرجاع',
-                    'balance_adjustment': '⚖️ تعديل الرصيد'
-                };
-                const typeLabel = typeMap[t.type] || t.type || 'أخرى';
-                const color = amount < 0 ? 'var(--danger)' : (amount > 0 ? 'var(--success)' : 'var(--gray-500)');
-                const paymentMethodMap = {
-                    'cash': 'نقداً',
-                    'wallet': 'محفظة',
-                    'mixed': 'مختلط'
-                };
-                const paymentLabel = paymentMethodMap[t.payment_method] || t.payment_method || '-';
-                
-                // تحديث الرصيد الجاري (عرض)
-                currentBalance -= amount;
-                
-                html += `
-                    <tr>
-                        <td>${formatDate(t.created_at)}</td>
-                        <td>${typeLabel}</td>
-                        <td>${t.description || '-'}</td>
-                        <td style="color:${color}; font-weight:700;">${formatNumber(amount)}</td>
-                        <td>${paymentLabel}</td>
-                        <td>${t.wallet_name || '-'}</td>
-                        <td>${t.order_id || '-'}</td>
-                    </tr>
-                `;
-            }
-            html += `
-                        </tbody>
-                    </table>
-                </div>
-            `;
-        }
-
-        content.innerHTML = html;
     }
 
     // ================================================================
@@ -1584,7 +1568,7 @@ JAVASCRIPT - تم تعديل loadDriverStatement لاستخدام /drivers/trans
     }
 
     // ================================================================
-    //  DETAIL MODAL
+    //  DETAIL MODAL (يجلب تفاصيل الطلب عند الضغط)
     // ================================================================
     async function openDetailModal(orderId) {
         document.getElementById('detailOrderId').textContent = orderId;
@@ -1759,20 +1743,138 @@ JAVASCRIPT - تم تعديل loadDriverStatement لاستخدام /drivers/trans
         list.innerHTML = html;
     }
 
-    // دالة مساعدة لتحميل كشف حساب مندوب معين والتبديل إلى تبويب الكشف
     function loadDriverStatementForDriver(driverId) {
-        // التبديل إلى تبويب كشف الحساب
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
         document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
         document.querySelector('[data-tab="driver-account"]')?.classList.add('active');
         document.getElementById('tab-driver-account').classList.add('active');
-        
-        // تعيين المندوب في القائمة المنسدلة
         const sel = document.getElementById('accountDriverSelect');
         sel.value = driverId;
-        
-        // تحميل الكشف
         loadDriverStatement();
+    }
+
+    // ================================================================
+    //  DRIVER ACCOUNT STATEMENT
+    // ================================================================
+    async function loadDriverStatement() {
+        const driverId = document.getElementById('accountDriverSelect').value;
+        const from = document.getElementById('accountDateFrom').value;
+        const to = document.getElementById('accountDateTo').value;
+
+        if (!driverId) {
+            document.getElementById('driverStatementContent').innerHTML = `
+                <div class="text-center text-muted" style="padding:40px;">
+                    <i class="fas fa-user-tie fa-3x" style="display:block; margin-bottom:12px; color:var(--gray-400);"></i>
+                    اختر مندوباً لعرض كشف الحساب
+                </div>
+            `;
+            return;
+        }
+
+        const content = document.getElementById('driverStatementContent');
+        content.innerHTML = '<div class="text-center text-muted" style="padding:40px;"><i class="fas fa-spinner fa-spin"></i> جاري تحميل البيانات...</div>';
+
+        const data = await apiFetch(`/drivers/transactions?driver_id=${driverId}`);
+        if (!data) {
+            content.innerHTML = '<div class="text-center text-muted" style="padding:40px;"><i class="fas fa-exclamation-triangle"></i> فشل تحميل البيانات</div>';
+            return;
+        }
+
+        const driversData = await apiFetch('/drivers');
+        let driverInfo = null;
+        if (driversData && driversData.drivers) {
+            driverInfo = driversData.drivers.find(d => d.id == driverId);
+        }
+
+        const summaryData = await apiFetch('/drivers/summary');
+        let driverSummary = null;
+        if (summaryData && summaryData.drivers) {
+            driverSummary = summaryData.drivers.find(d => d.id == driverId);
+        }
+
+        let transactions = data.transactions || [];
+        if (from || to) {
+            transactions = transactions.filter(t => isDateInRange(t.created_at, from, to));
+        }
+
+        let totalCollected = 0, totalFees = 0, totalPaid = 0, totalSettlements = 0;
+        let runningBalance = 0;
+        transactions.forEach(t => {
+            const amount = parseFloat(t.amount) || 0;
+            const type = t.type || '';
+            if (type === 'collection') totalCollected += amount;
+            else if (type === 'delivery_fee') totalFees += amount;
+            else if (type === 'payment') totalPaid += Math.abs(amount);
+            else if (type === 'settlement') totalSettlements += Math.abs(amount);
+            runningBalance += amount;
+        });
+
+        const balance = driverSummary ? parseFloat(driverSummary.balance) || 0 : runningBalance;
+        const balanceClass = balance > 0 ? 'balance-negative' : (balance < 0 ? 'balance-positive' : 'balance-neutral');
+        const balanceLabel = balance > 0 ? 'مستحق على المندوب' : (balance < 0 ? 'مستحق للمندوب' : 'متساوي');
+
+        let html = `
+            <div class="statement-header">
+                <div class="item"><strong>👤 المندوب:</strong> ${driverInfo ? driverInfo.name : 'غير معروف'}</div>
+                <div class="item"><strong>📞 الهاتف:</strong> ${driverInfo ? driverInfo.phone || '-' : '-'}</div>
+                <div class="item"><strong>💰 الرصيد الحالي:</strong> <span class="${balanceClass}">${formatNumber(Math.abs(balance))} (${balanceLabel})</span></div>
+                <div class="item"><strong>📦 إجمالي التوصيلات:</strong> ${driverSummary ? driverSummary.total_deliveries || 0 : 0}</div>
+                <div class="item"><strong>💵 إجمالي التحصيلات:</strong> ${formatNumber(totalCollected)}</div>
+                <div class="item"><strong>🚚 إجمالي الرسوم:</strong> ${formatNumber(totalFees)}</div>
+                <div class="item"><strong>💳 إجمالي المدفوع:</strong> ${formatNumber(totalPaid + totalSettlements)}</div>
+            </div>
+        `;
+
+        if (transactions.length === 0) {
+            html += `<div class="text-center text-muted" style="padding:20px;">لا توجد حركات في الفترة المحددة</div>`;
+        } else {
+            html += `
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>التاريخ</th>
+                                <th>نوع الحركة</th>
+                                <th>الوصف</th>
+                                <th>المبلغ</th>
+                                <th>طريقة الدفع</th>
+                                <th>المحفظة</th>
+                                <th>رقم الطلب</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+            const sortedTransactions = [...transactions].sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+            for (const t of sortedTransactions) {
+                const amount = parseFloat(t.amount) || 0;
+                const typeMap = {
+                    'delivery_fee': '🚚 رسوم توصيل',
+                    'collection': '💵 تحصيل',
+                    'settlement': '🤝 تسوية',
+                    'adjustment': '⚙️ تعديل',
+                    'payment': '💳 دفع',
+                    'return': '↩️ إرجاع',
+                    'balance_adjustment': '⚖️ تعديل الرصيد'
+                };
+                const typeLabel = typeMap[t.type] || t.type || 'أخرى';
+                const color = amount < 0 ? 'var(--danger)' : (amount > 0 ? 'var(--success)' : 'var(--gray-500)');
+                const paymentMethodMap = { 'cash': 'نقداً', 'wallet': 'محفظة', 'mixed': 'مختلط' };
+                const paymentLabel = paymentMethodMap[t.payment_method] || t.payment_method || '-';
+                html += `
+                    <tr>
+                        <td>${formatDate(t.created_at)}</td>
+                        <td>${typeLabel}</td>
+                        <td>${t.description || '-'}</td>
+                        <td style="color:${color}; font-weight:700;">${formatNumber(amount)}</td>
+                        <td>${paymentLabel}</td>
+                        <td>${t.wallet_name || '-'}</td>
+                        <td>${t.order_id || '-'}</td>
+                    </tr>
+                `;
+            }
+            html += `</tbody></table></div>`;
+        }
+        content.innerHTML = html;
     }
 
     // ================================================================
@@ -2039,7 +2141,7 @@ JAVASCRIPT - تم تعديل loadDriverStatement لاستخدام /drivers/trans
 
     function hideAddDriverForm() {
         document.getElementById('addDriverForm').classList.add('hidden');
-        ['newDriverName', 'newDriverPhone', 'newDriverVehicle', 'newDriverUsername', 'newDriverPassword', 'newDriverWhatsappPhone', 'newDriverWhatsappApikey'].forEach(id => {
+        ['newDriverName','newDriverPhone','newDriverVehicle','newDriverUsername','newDriverPassword','newDriverWhatsappPhone','newDriverWhatsappApikey'].forEach(id => {
             document.getElementById(id).value = '';
         });
     }
@@ -2068,6 +2170,7 @@ JAVASCRIPT - تم تعديل loadDriverStatement لاستخدام /drivers/trans
             loadDriversForFilter();
             loadDriversSummary();
             loadDriversForAccountSelect();
+            loadDriversForReturnFilter();
         } else {
             showAlert('فشل الإضافة', 'error');
         }
@@ -2082,6 +2185,7 @@ JAVASCRIPT - تم تعديل loadDriverStatement لاستخدام /drivers/trans
             loadDriversForFilter();
             loadDriversSummary();
             loadDriversForAccountSelect();
+            loadDriversForReturnFilter();
         } else {
             showAlert('فشل الحذف', 'error');
         }
@@ -2138,13 +2242,141 @@ JAVASCRIPT - تم تعديل loadDriverStatement لاستخدام /drivers/trans
             loadDriversForFilter();
             loadDriversSummary();
             loadDriversForAccountSelect();
+            loadDriversForReturnFilter();
         } else {
             showAlert('فشل التحديث', 'error');
         }
     }
 
     // ================================================================
-    //  RETURN MODAL
+    //  RETURNS MODULE
+    // ================================================================
+    async function fetchReturns() {
+        const status = document.getElementById('filterReturnStatus').value;
+        const driver = document.getElementById('filterReturnDriver').value;
+        let url = '/returns?';
+        const params = new URLSearchParams();
+        if (status) params.append('status', status);
+        if (driver) params.append('driver_id', driver);
+        url += params.toString();
+
+        const data = await apiFetch(url);
+        if (!data) return;
+        const returns = data.returns || [];
+        renderReturns(returns);
+    }
+
+    function renderReturns(returns) {
+        const tbody = document.getElementById('returnsBody');
+        if (returns.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">لا توجد طلبات إرجاع</td></tr>';
+            return;
+        }
+        let html = '';
+        returns.forEach(r => {
+            const statusText = r.status === 'pending' ? 'قيد الانتظار' : r.status === 'completed' ? 'تم التنفيذ' : 'ملغي';
+            const statusColor = r.status === 'pending' ? 'status-new' : r.status === 'completed' ? 'status-delivered' : 'status-cancelled';
+            html += `
+                <tr>
+                    <td>${r.id}</td>
+                    <td>#${r.order_id}</td>
+                    <td>${r.customer_name || '-'}</td>
+                    <td>${r.driver_name || '-'}</td>
+                    <td>${formatNumber(r.total_refund)}</td>
+                    <td><span class="status-badge ${statusColor}">${statusText}</span></td>
+                    <td>${formatDate(r.created_at)}</td>
+                    <td>
+                        <button class="btn btn-info btn-sm" onclick="openReturnDetailsModal(${r.id})"><i class="fas fa-eye"></i></button>
+                        ${r.status === 'pending' ? `<button class="btn btn-success btn-sm" onclick="confirmReturnByAdmin(${r.id})"><i class="fas fa-check"></i></button>
+                        <button class="btn btn-danger btn-sm" onclick="cancelReturnByAdmin(${r.id})"><i class="fas fa-times"></i></button>` : ''}
+                    </td>
+                </tr>
+            `;
+        });
+        tbody.innerHTML = html;
+    }
+
+    async function openReturnDetailsModal(returnId) {
+        const data = await apiFetch(`/returns/${returnId}`);
+        if (!data) return;
+        const r = data.return;
+        document.getElementById('returnDetailId').textContent = returnId;
+        const content = document.getElementById('returnDetailContent');
+        let itemsHtml = '<table class="items-table"><thead><tr><th>المنتج</th><th>الكمية</th><th>سعر الوحدة</th><th>الإجمالي</th></tr></thead><tbody>';
+        if (r.items && r.items.length) {
+            r.items.forEach(item => {
+                itemsHtml += `<tr><td>${item.product_name}</td><td>${item.quantity}</td><td>${formatNumber(item.unit_price)}</td><td>${formatNumber(item.line_total)}</td></tr>`;
+            });
+        } else {
+            itemsHtml += `<tr><td colspan="4" class="text-muted">لا توجد منتجات</td></tr>`;
+        }
+        itemsHtml += '</tbody></table>';
+
+        const statusMap = { 'pending': 'قيد الانتظار', 'completed': 'تم التنفيذ', 'cancelled': 'ملغي' };
+        const statusColorMap = { 'pending': 'status-new', 'completed': 'status-delivered', 'cancelled': 'status-cancelled' };
+
+        content.innerHTML = `
+            <div class="detail-row"><label>الطلب الأصلي:</label><div class="value">#${r.order_id}</div></div>
+            <div class="detail-row"><label>العميل:</label><div class="value">${r.customer_name || '-'}</div></div>
+            <div class="detail-row"><label>المندوب المسند:</label><div class="value">${r.driver_name || '-'}</div></div>
+            <div class="detail-row"><label>المبلغ المسترد:</label><div class="value">${formatNumber(r.total_refund)} ريال</div></div>
+            <div class="detail-row"><label>طريقة الاسترداد:</label><div class="value">${r.refund_method || '-'}</div></div>
+            <div class="detail-row"><label>رسوم التوصيل:</label><div class="value">${formatNumber(r.return_fee || 0)} ريال</div></div>
+            <div class="detail-row"><label>نوع رسوم التوصيل:</label><div class="value">${r.return_fee_type || '-'}</div></div>
+            <div class="detail-row"><label>الحالة:</label><div class="value"><span class="status-badge ${statusColorMap[r.status] || 'status-new'}">${statusMap[r.status] || r.status}</span></div></div>
+            <div class="detail-row"><label>تاريخ الإنشاء:</label><div class="value">${formatDate(r.created_at)}</div></div>
+            <hr />
+            <h4>المنتجات المرتجعة</h4>
+            ${itemsHtml}
+        `;
+
+        const actions = document.getElementById('returnDetailActions');
+        if (r.status === 'pending') {
+            actions.innerHTML = `
+                <button class="btn btn-success" onclick="confirmReturnByAdmin(${returnId}); closeReturnDetailsModal();"><i class="fas fa-check"></i> تأكيد</button>
+                <button class="btn btn-danger" onclick="cancelReturnByAdmin(${returnId}); closeReturnDetailsModal();"><i class="fas fa-times"></i> إلغاء</button>
+                <button class="btn btn-secondary" onclick="closeReturnDetailsModal()">إغلاق</button>
+            `;
+        } else {
+            actions.innerHTML = `<button class="btn btn-secondary" onclick="closeReturnDetailsModal()">إغلاق</button>`;
+        }
+        document.getElementById('returnDetailsModal').classList.add('active');
+    }
+
+    function closeReturnDetailsModal() {
+        document.getElementById('returnDetailsModal').classList.remove('active');
+    }
+
+    async function confirmReturnByAdmin(returnId) {
+        if (!confirm('تأكيد تنفيذ طلب الإرجاع هذا؟')) return;
+        const result = await apiFetch(`/returns/${returnId}/confirm`, { method: 'POST' });
+        if (result && result.success) {
+            showAlert('✅ تم تأكيد الإرجاع بنجاح', 'success');
+            fetchReturns();
+            if (document.getElementById('tab-orders').classList.contains('active')) {
+                fetchOrders(currentPage);
+            }
+        } else {
+            showAlert('❌ فشل التأكيد: ' + (result?.error || ''), 'error');
+        }
+    }
+
+    async function cancelReturnByAdmin(returnId) {
+        if (!confirm('إلغاء طلب الإرجاع هذا؟')) return;
+        const result = await apiFetch(`/returns/${returnId}/cancel`, { method: 'POST' });
+        if (result && result.success) {
+            showAlert('✅ تم إلغاء طلب الإرجاع', 'success');
+            fetchReturns();
+            if (document.getElementById('tab-orders').classList.contains('active')) {
+                fetchOrders(currentPage);
+            }
+        } else {
+            showAlert('❌ فشل الإلغاء: ' + (result?.error || ''), 'error');
+        }
+    }
+
+    // ================================================================
+    //  RETURN MODAL (إنشاء طلب إرجاع)
     // ================================================================
     async function loadDriversForReturn() {
         const data = await apiFetch('/drivers');
@@ -2276,7 +2508,7 @@ JAVASCRIPT - تم تعديل loadDriverStatement لاستخدام /drivers/trans
 
         let totalWithFee = totalRefund;
         if (feeType === 'customer') {
-            totalWithFee += deliveryFee;
+            totalWithFee = Math.max(0, totalRefund - deliveryFee);
         }
 
         const method = document.getElementById('refundMethod').value;
@@ -2346,8 +2578,8 @@ JAVASCRIPT - تم تعديل loadDriverStatement لاستخدام /drivers/trans
             wallet_id: walletId || null,
             cash_refund: cashRefund,
             wallet_refund: walletRefund,
-            return_delivery_fee: deliveryFee,
-            return_delivery_fee_type: feeType,
+            return_fee: deliveryFee,
+            return_fee_type: feeType,
             return_driver_id: returnDriverId || null
         };
 
@@ -2357,14 +2589,16 @@ JAVASCRIPT - تم تعديل loadDriverStatement لاستخدام /drivers/trans
         });
 
         if (result && result.success) {
-            showAlert(`✅ تم الإرجاع بنجاح! الحالة الجديدة: ${result.new_status}`, 'success');
+            showAlert(`✅ تم إنشاء طلب إرجاع! في انتظار تأكيد المندوب.`, 'success');
             closeReturnModal();
             fetchOrders(currentPage);
             closeDetailModal();
             if (document.getElementById('tab-drivers').classList.contains('active')) {
                 loadDriversSummary();
             }
-            loadDriversForAccountSelect();
+            if (document.getElementById('tab-returns').classList.contains('active')) {
+                fetchReturns();
+            }
         } else {
             showAlert('❌ فشل الإرجاع: ' + (result?.error || ''), 'error');
         }
@@ -2389,7 +2623,8 @@ JAVASCRIPT - تم تعديل loadDriverStatement لاستخدام /drivers/trans
         document.getElementById('mainContent').classList.add('hidden');
     })();
 
-    console.log('✅ نظام ابن المختار – كشف الحساب المتطور جاهز (باستخدام /drivers/transactions)');
+    console.log('✅ نظام ابن المختار – النسخة الموحدة والمحسّنة (Lazy Loading)');
 </script>
+
 </body>
 </html>
