@@ -1163,8 +1163,7 @@
             }
         }
 
-        function renderOrders(orders) {
-
+function renderOrders(orders) {
     const container = document.getElementById('ordersList');
     if (!container) return;
 
@@ -1173,11 +1172,36 @@
         orders = orders.filter(o => o.driver_id == driverId);
     }
 
+    // --- التعديل الذكي: إخفاء طلبات الأيام القادمة ---
+    const now = new Date();
+    // نحدد نهاية اليوم الحالي بدقة (الساعة 11:59:59 مساءً)
+    const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999).getTime();
+
+    orders = orders.filter(o => {
+        const rawDate = o.order_date || o.created_at;
+        if (!rawDate) return true; // نعرض الطلبات التي بدون تاريخ
+        
+        // تحويل وقت السيرفر إلى وقت محلي
+        const orderTime = new Date(rawDate.replace(' ', 'T') + 'Z').getTime();
+        
+        // نعرض الطلب فقط إذا كان وقته يقع قبل أو يساوي نهاية هذا اليوم
+        // (وهذا يشمل طلبات اليوم، والطلبات القديمة التي لم تُسلم، ويخفي طلبات الغد)
+        return orderTime <= endOfToday;
+    });
+    // ---------------------------------------------
+
     if (!orders || orders.length === 0) {
-        container.innerHTML = `<div class="empty-state"><span class="empty-icon">📭</span><span>لا توجد طلبات تطابق الفلتر</span></div>`;
+        container.innerHTML = `<div class="empty-state"><span class="empty-icon">📭</span><span>لا توجد طلبات اليوم تطابق الفلتر</span></div>`;
         return;
     }
-    const sortedOrders = [...orders].sort((a, b) => (b.id || 0) - (a.id || 0));
+
+    // 1. ترتيب الطلبات حسب التاريخ والوقت (الأحدث أولاً)
+    const sortedOrders = [...orders].sort((a, b) => {
+        const dateA = new Date((a.order_date || a.created_at || '').replace(' ', 'T') + 'Z').getTime() || 0;
+        const dateB = new Date((b.order_date || b.created_at || '').replace(' ', 'T') + 'Z').getTime() || 0;
+        return dateB - dateA;
+    });
+
     let html = '';
     sortedOrders.forEach(order => {
         const isPrepaid = isPrepaidOrder(order);
@@ -1193,6 +1217,21 @@
         items = items.sort((a, b) => (b.id || 0) - (a.id || 0));
         
         const dueAmount = getOrderDueAmount(order);
+
+        // 2. معالجة وتنسيق تاريخ الطلب لعرضه للمندوب
+        let formattedDate = 'تاريخ غير محدد';
+        const rawDate = order.order_date || order.created_at;
+        if (rawDate) {
+            const dateObj = new Date(rawDate.replace(' ', 'T') + 'Z');
+            formattedDate = dateObj.toLocaleString('ar-SA', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: true
+            });
+        }
 
         const orderNote = order.notes || order.note || '';
         const noteHtml = orderNote ? `<div class="order-note">📝 ${orderNote}</div>` : '';
@@ -1264,6 +1303,10 @@
 
         html += `
             <div class="order-card ${cardClass}" data-order-id="${order.id}">
+                <div style="font-size: 0.75rem; color: var(--primary); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; font-weight: 600; background: var(--surface-secondary); padding: 4px 10px; border-radius: 8px; width: fit-content;">
+                    <span>🕒</span> <span>${formattedDate}</span>
+                </div>
+                
                 <div class="order-header"><span class="order-id">📦 طلب #${order.id}</span><span class="order-status-badge ${statusBadgeClass}">${statusText}</span></div>
                 <div class="customer-info">
                     <div class="info-row"><span class="info-icon">👤</span> ${order.customer_name}</div>
@@ -1292,7 +1335,6 @@
     container.innerHTML = html;
     updateSyncCounter();
 }
-
         function detectMapLink(text) {
             if (!text) return null;
             const patterns = [
