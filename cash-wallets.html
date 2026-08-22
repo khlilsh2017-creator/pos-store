@@ -344,6 +344,8 @@
         let token = localStorage.getItem('pos_token') || '';
         if (!token) window.location.href = 'index.html';
 
+        function escapeHtml(value) { return String(value ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
+
         function showToast(msg, type='info') {
             const c = document.getElementById('toast-container');
             const t = document.createElement('div');
@@ -363,9 +365,9 @@
                 const tbody = document.getElementById('currency-list');
                 tbody.innerHTML = data.currencies.map(c => `
                     <tr>
-                        <td>${c.code}</td>
-                        <td>${c.name}</td>
-                        <td>${c.rate_to_base}</td>
+                        <td>${escapeHtml(c.code)}</td>
+                        <td>${escapeHtml(c.name)}</td>
+                        <td>${Number(c.rate_to_base || 0).toFixed(4)}</td>
                         <td>${c.is_base ? '✅' : ''}</td>
                         <td>
                             ${!c.is_base ? `<button class="btn btn-sm btn-primary" onclick="editCurrencyRate(${c.id}, '${c.code}')"><i class="fas fa-edit"></i> تعديل</button>
@@ -383,7 +385,7 @@
             selects.forEach(id => {
                 const sel = document.getElementById(id);
                 if (sel) {
-                    sel.innerHTML = currencies.map(c => `<option value="${c.id}">${c.code} - ${c.name}</option>`).join('');
+                    sel.innerHTML = currencies.map(c => `<option value="${c.id}">${escapeHtml(c.code)} - ${escapeHtml(c.name)}</option>`).join('');
                 }
             });
         }
@@ -518,14 +520,14 @@
                 container.innerHTML = data.wallets.map(w => {
                     let balancesHtml = '';
                     if (w.balances && w.balances.length) {
-                        balancesHtml = w.balances.map(b => `<span>${b.code}: ${b.balance.toFixed(2)}</span>`).join('');
+                        balancesHtml = w.balances.map(b => `<span>${escapeHtml(b.code)}: ${Number(b.balance || 0).toFixed(2)}</span>`).join('');
                     }
-                    return `<div class="wallet-card"><div><strong>${w.name}</strong></div><div class="balances">${balancesHtml}</div></div>`;
-                }).join('');
+                    return `<div class="wallet-card"><div><strong>${escapeHtml(w.name)}</strong></div><div class="balances">${balancesHtml || '<span>لا يوجد رصيد</span>'}</div></div>`;
+                }).join('') || '<p class="text-muted">لا توجد محافظ</p>';
                 // تحديث القوائم المنسدلة للتحويل
                 const fromSel = document.getElementById('from-wallet');
                 const toSel = document.getElementById('to-wallet');
-                const opts = data.wallets.map(w => `<option value="${w.id}">${w.name}</option>`).join('');
+                const opts = data.wallets.map(w => `<option value="${w.id}">${escapeHtml(w.name)}</option>`).join('');
                 fromSel.innerHTML = toSel.innerHTML = opts;
                 loadWalletTransactions();
             } catch {}
@@ -645,8 +647,8 @@
                     container.innerHTML = data.vouchers.slice(0, 20).map(v => `
                         <div class="voucher-item">
                             <div>
-                                <strong>${v.type === 'receipt' ? 'قبض' : 'صرف'}</strong> | ${v.amount} ${v.currency_code} | ${v.reason || ''}
-                                <br><small>${new Date(v.created_at).toLocaleString()}</small>
+                                <strong>${v.type === 'receipt' ? 'قبض' : 'صرف'}</strong> | ${Number(v.amount || 0).toFixed(2)} ${escapeHtml(v.currency_code || '')} | ${escapeHtml(v.reason || '')}
+                                <br><small>${escapeHtml(new Date(v.created_at).toLocaleString('ar-YE'))}</small>
                             </div>
                             <button class="btn btn-sm btn-danger" onclick="cancelVoucher(${v.id})">إلغاء</button>
                         </div>

@@ -1425,7 +1425,7 @@ function renderOrders(orders) {
 
         async function loadOrderDetails(orderId) {
             try {
-                const data = await apiCall(`/orders/${orderId}`, 'GET');
+                const data = await apiCall(`/online-orders/${orderId}`, 'GET');
                 if (data.order) {
                     const existing = currentOrders.find(o => o.id === data.order.id);
                     if (existing) Object.assign(existing, data.order);
@@ -2253,9 +2253,18 @@ function useLocalOrdersForDashboard() {
 // إضافة سجل للتصحيح
 console.log('📦 Payload المرسل للتوصيل:', JSON.stringify(operationData, null, 2));
 
+            // حفظ العملية أولاً في طابور محلي لمنع فقدان تحديث التسليم عند انقطاع الشبكة.
+            const queuedOperation = await addOperation({
+                store: STORES.ORDERS,
+                type: 'update',
+                operation_id: operationId,
+                data: operationData
+            });
+
             if (navigator.onLine) {
                 try {
                     const response = await apiCall('/driver/update-delivery', 'POST', operationData);
+                    if (queuedOperation?.id) await deleteOperation(queuedOperation.id);
 
                     if (response.order) {
                         const serverOrder = response.order;
@@ -2274,17 +2283,23 @@ console.log('📦 Payload المرسل للتوصيل:', JSON.stringify(operatio
                     renderOrders(currentOrders);
                     showToast(`✅ تمت المزامنة مع الخادم للطلب #${orderId}`);
                 } catch (err) {
-                    await rollbackLocalOrderUpdate(orderId, originalOrder);
-                    let errorText = err.message || '';
-                    try {
-                        const errorObj = JSON.parse(err.message);
-                        if (errorObj && errorObj.error) errorText = errorObj.error;
-                    } catch (e) {}
-                    showToast('⚠️ فشلت المزامنة، تم إلغاء التحديث وإرجاع أزرار الطلب' + (errorText ? ': ' + errorText : ''));
+                    const errorText = err.message || '';
+                    const isNetworkError = !navigator.onLine || /تعذر الاتصال|Failed to fetch|network/i.test(errorText);
+                    if (isNetworkError) {
+                        // العملية محفوظة محليًا وستُرسل تلقائيًا عند عودة الاتصال.
+                        showToast('📴 تم حفظ التحديث محليًا، وستتم مزامنته عند عودة الاتصال');
+                    } else {
+                        // رفض الخادم للبيانات يحتاج إرجاع الحالة وحذف العملية غير الصالحة من الطابور.
+                        if (queuedOperation?.id) await deleteOperation(queuedOperation.id);
+                        await rollbackLocalOrderUpdate(orderId, originalOrder);
+                        let readable = errorText;
+                        try { const errorObj = JSON.parse(errorText); readable = errorObj.error || errorObj.message || readable; } catch (e) {}
+                        showToast('⚠️ رفض الخادم التحديث وتم إرجاع الحالة' + (readable ? ': ' + readable : ''));
+                    }
                 }
             } else {
-                await rollbackLocalOrderUpdate(orderId, originalOrder);
-                showToast('📴 تعذر الاتصال بالخادم، تم إلغاء التحديث وإرجاع أزرار الطلب');
+                // لا نلغي التحديث: يبقى في IndexedDB حتى تتم مزامنته تلقائيًا.
+                showToast('📴 تم حفظ التحديث دون اتصال وسيظهر في عداد المزامنة');
             }
 
             document.querySelectorAll('.action-buttons .btn').forEach(btn => {
@@ -2448,6 +2463,7 @@ console.log('📦 Payload المرسل للتوصيل:', JSON.stringify(operatio
             let syncedCount = 0;
             let failedCount = 0;
             let cancelledCount = 0;
+            let pendingCount = 0;
 
             for (const op of operations) {
                 const { store, type, data, id } = op;
@@ -2472,9 +2488,9 @@ console.log('📦 Payload المرسل للتوصيل:', JSON.stringify(operatio
                             console.warn(`العملية ${op.id} اكتملت أو رُفضت من الخادم، وتم حذفها من المزامنة لمنع التكرار.`);
                         }
                     } catch (err) {
-                        // هنا يحدث الخطأ فقط إذا لم يكن هناك إنترنت تماماً
-                        console.error(`انقطاع اتصال للعملية ${op.id}:`, err);
-                        failedCount++;
+                        // احتفظ بالعملية عند فشل الشبكة فقط، حتى تعاد المحاولة لاحقًا.
+                        console.error(`تعذر مزامنة العملية ${op.id}:`, err);
+                        pendingCount++;
                     }
                 }
 
@@ -2494,6 +2510,9 @@ console.log('📦 Payload المرسل للتوصيل:', JSON.stringify(operatio
             }
             if (cancelledCount > 0) {
                 showToast(`⚠️ تم إلغاء ${cancelledCount} عملية بعد فشل محاولتين`);
+            }
+            if (pendingCount > 0) {
+                showToast(`📴 بقيت ${pendingCount} عملية معلقة لإعادة المحاولة`);
             }
 
             isSyncing = false;
@@ -2580,5 +2599,6 @@ console.log('📦 Payload المرسل للتوصيل:', JSON.stringify(operatio
         `;
         document.head.appendChild(styleEl);
     </script>
+    <script src="../document-utils.js"></script>
 </body>
 </html>

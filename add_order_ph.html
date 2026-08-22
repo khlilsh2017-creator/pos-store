@@ -187,6 +187,34 @@
         .w-full { width: 100%; }
         .hidden { display: none !important; }
 
+        /* --- APP INITIALIZATION STATES --- */
+        .app-loader {
+            position: fixed;
+            inset: 0;
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background: rgba(240, 244, 249, .94);
+            backdrop-filter: blur(5px);
+        }
+        .app-loader-card {
+            width: min(100%, 420px);
+            padding: 24px 18px;
+            text-align: center;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-lg);
+        }
+        .app-loader-card h2 { margin: 8px 0 6px; font-size: 1.1rem; }
+        .app-loader-card p { color: var(--text-secondary); font-size: .85rem; margin-bottom: 14px; }
+        .app-loader-icon { color: var(--primary); font-size: 2rem; }
+        .app-loader.error .app-loader-icon { color: var(--danger); }
+        .app-loader-actions { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+        .app-loader-actions .btn { width: auto; min-width: 130px; }
+
         /* --- PROGRESS BAR --- */
         .progress-bar {
             width: 100%;
@@ -1391,6 +1419,20 @@
         <div class="progress" id="progress"></div>
     </div>
 
+    <!-- ===== APP INITIALIZATION OVERLAY ===== -->
+    <div class="app-loader" id="app-loader" role="status" aria-live="polite">
+        <div class="app-loader-card">
+            <i class="app-loader-icon fas fa-circle-notch fa-spin" id="app-loader-icon"></i>
+            <h2 id="app-loader-title">جاري تجهيز التطبيق...</h2>
+            <p id="app-loader-message">يتم تحميل الإعدادات والبيانات المحلية بأمان.</p>
+            <div class="progress-bar" aria-hidden="true"><div class="progress" id="app-loader-progress"></div></div>
+            <div class="app-loader-actions" id="app-loader-actions" style="display:none;">
+                <button type="button" class="btn btn-primary" onclick="retryAppInitialization()"><i class="fas fa-redo"></i> إعادة المحاولة</button>
+                <button type="button" class="btn btn-outline" onclick="window.location.reload()"><i class="fas fa-sync-alt"></i> إعادة تحميل الصفحة</button>
+            </div>
+        </div>
+    </div>
+
     <!-- ===== HEADER ===== -->
     <header class="app-header">
         <div>
@@ -1620,6 +1662,7 @@
             <button class="btn btn-outline" onclick="openDraftsModal()" style="padding: 10px 4px;"><i class="fas fa-folder-open"></i></button>
             <button class="btn btn-outline" onclick="openEditOrdersModal()" style="flex:0 0 auto;"><i class="fas fa-edit"></i></button>
             <button class="btn btn-outline" onclick="resetOrderForm()" style="flex:0 0 auto;"><i class="fas fa-plus"></i></button>
+            <span id="draft-status" style="font-size:0.72rem;color:var(--muted);margin-right:auto;align-self:center;">الحفظ التلقائي جاهز</span>
         </div>
 
         <!-- مودال قائمة المسودات -->
@@ -1795,8 +1838,104 @@
         // ================================================================
         let currentFetchId = 0; // متغير العداد لمنع تداخل البحث
 
+        // ================================================================
+        //  SAFE STORAGE & NETWORK HELPERS
+        // ================================================================
+        const APP_VERSION = '2.1.0';
+        const APP_VERSION_KEY = 'app_version';
+
+        function safeGetItem(key, defaultValue = null) {
+            try {
+                const raw = localStorage.getItem(key);
+                if (raw === null || raw === '') return defaultValue;
+                return JSON.parse(raw);
+            } catch (error) {
+                console.warn(`بيانات تالفة في المفتاح "${key}"، سيتم حذفها تلقائياً.`, error);
+                try { localStorage.removeItem(key); } catch (removeError) { /* تجاهل */ }
+                return defaultValue;
+            }
+        }
+
+        function safeGetString(key, defaultValue = '') {
+            try { return localStorage.getItem(key) ?? defaultValue; }
+            catch (error) { return defaultValue; }
+        }
+
+        function safeSetItem(key, value) {
+            try { localStorage.setItem(key, JSON.stringify(value)); return true; }
+            catch (error) { console.error(`فشل حفظ البيانات في "${key}":`, error); return false; }
+        }
+
+        function safeSetString(key, value) {
+            try { localStorage.setItem(key, String(value)); return true; }
+            catch (error) { console.error(`فشل حفظ القيمة في "${key}":`, error); return false; }
+        }
+
+        function safeRemoveItem(key) {
+            try { localStorage.removeItem(key); } catch (error) { console.warn('تعذر حذف بيانات التخزين', error); }
+        }
+
+        function checkAndClearOnVersionChange() {
+            const savedVersion = safeGetString(APP_VERSION_KEY, '');
+            if (!savedVersion) {
+                safeSetString(APP_VERSION_KEY, APP_VERSION);
+                return false;
+            }
+            if (savedVersion === APP_VERSION) return false;
+            const keepKeys = new Set(['pos_token', 'user_info', 'dark_mode', 'shop_name', 'shop_phone', APP_VERSION_KEY]);
+            const keysToRemove = [];
+            for (let i = 0; i < localStorage.length; i += 1) {
+                const key = localStorage.key(i);
+                if (key && key.startsWith('pos_') && !keepKeys.has(key)) keysToRemove.push(key);
+            }
+            keysToRemove.forEach(safeRemoveItem);
+            safeSetString(APP_VERSION_KEY, APP_VERSION);
+            console.info(`تم تحديث الإصدار من ${savedVersion} إلى ${APP_VERSION}.`);
+            window.location.reload();
+            return true;
+        }
+
+        async function fetchWithTimeout(url, options = {}, timeout = 10000) {
+            const controller = new AbortController();
+            const timeoutId = window.setTimeout(() => controller.abort(), timeout);
+            try {
+                return await fetch(url, { ...options, signal: controller.signal });
+            } catch (error) {
+                if (error.name === 'AbortError') throw new Error('انتهت مهلة الاتصال بالسيرفر، يرجى التحقق من الإنترنت والمحاولة مجدداً');
+                throw error;
+            } finally {
+                window.clearTimeout(timeoutId);
+            }
+        }
+
+        let appInitializationRunning = false;
+        let appRetryCount = 0;
+
+        function setAppLoaderState(state, message = '') {
+            const loader = document.getElementById('app-loader');
+            const title = document.getElementById('app-loader-title');
+            const messageEl = document.getElementById('app-loader-message');
+            const icon = document.getElementById('app-loader-icon');
+            const actions = document.getElementById('app-loader-actions');
+            const progress = document.getElementById('app-loader-progress');
+            if (!loader) return;
+            loader.classList.toggle('error', state === 'error');
+            loader.style.display = state === 'ready' ? 'none' : 'flex';
+            if (title) title.textContent = state === 'error' ? 'تعذر تجهيز التطبيق' : 'جاري تجهيز التطبيق...';
+            if (messageEl) messageEl.textContent = message || (state === 'error' ? 'تحقق من الاتصال ثم أعد المحاولة.' : 'يتم تحميل الإعدادات والبيانات المحلية بأمان.');
+            if (icon) icon.className = state === 'error' ? 'app-loader-icon fas fa-exclamation-triangle' : 'app-loader-icon fas fa-circle-notch fa-spin';
+            if (actions) actions.style.display = state === 'error' ? 'flex' : 'none';
+            if (progress) progress.style.width = state === 'error' ? '100%' : (state === 'ready' ? '100%' : '20%');
+        }
+
+        function retryAppInitialization() {
+            if (appInitializationRunning) return;
+            appRetryCount += 1;
+            initializeApp();
+        }
+
         const API = 'https://api.ibnalmukhtar.com';
-        let token = localStorage.getItem('pos_token') || '';
+        let token = safeGetString('pos_token', '');
         if (!token) window.location.href = 'index.html';
 
         let cart = [];
@@ -1816,6 +1955,8 @@
         let editingOrderId = null;
         let editingOrderStatus = null;
         let isSubmittingOrder = false;
+        let draftSaveTimer = null;
+        let lastSubmitFingerprint = null;
         let pendingInvoiceSnapshot = null;
         let updatingMixedFromCash = false;
         let updatingMixedFromWallet = false;
@@ -1869,15 +2010,14 @@
                     categoryId: selectedCategoryId,
                     sort: currentSort
                 };
-                localStorage.setItem('pos_filter_state', JSON.stringify(state));
+                safeSetItem('pos_filter_state', state);
             } catch (e) {}
         }
 
         function loadFilterState() {
             try {
-                const raw = localStorage.getItem('pos_filter_state');
-                if (raw) {
-                    const state = JSON.parse(raw);
+                const state = safeGetItem('pos_filter_state', null);
+                if (state) {
                     currentSearch = ''; // تصفير دائم
                     selectedCategoryId = state.categoryId || null;
                     currentSort = state.sort || 'name';
@@ -1895,12 +2035,12 @@
             const icon = document.getElementById('dark-mode-icon');
             if (icon) icon.className = isDarkMode ? 'fas fa-sun' : 'fas fa-moon';
             document.documentElement.style.colorScheme = isDarkMode ? 'dark' : 'light';
-            localStorage.setItem('dark_mode', isDarkMode ? 'dark' : 'light');
+            safeSetString('dark_mode', isDarkMode ? 'dark' : 'light');
             showToast(isDarkMode ? '🌙 وضع الليل' : '☀️ وضع النهار', 'info');
         }
 
         function loadDarkModePreference() {
-            const saved = localStorage.getItem('dark_mode');
+            const saved = safeGetString('dark_mode', '');
             if (saved === 'dark') { isDarkMode = true; } else if (saved === 'light') { isDarkMode = false; }
             const icon = document.getElementById('dark-mode-icon');
             if (icon) icon.className = isDarkMode ? 'fas fa-sun' : 'fas fa-moon';
@@ -1939,18 +2079,21 @@
         // ================================================================
         //  SETTINGS
         // ================================================================
-        function readStaticCache(key) {
-            try {
-                const raw = localStorage.getItem(`pos_static_${key}`);
-                if (!raw) return null;
-                const item = JSON.parse(raw);
-                if (!item || Date.now() - item.time > STATIC_CACHE_TTL) return null;
-                return item.value;
-            } catch (e) { return null; }
+        function readStaticCache(key, allowExpired = false) {
+            const item = safeGetItem(`pos_static_${key}`, null);
+            if (!item || typeof item !== 'object' || !Object.prototype.hasOwnProperty.call(item, 'value')) return null;
+            const expired = !item.time || Date.now() - item.time > STATIC_CACHE_TTL;
+            return expired && !allowExpired ? null : item.value;
         }
 
         function writeStaticCache(key, value) {
-            try { localStorage.setItem(`pos_static_${key}`, JSON.stringify({ time: Date.now(), value })); } catch (e) {}
+            safeSetItem(`pos_static_${key}`, { time: Date.now(), value });
+        }
+
+        function renderSettingsInfo(message = '') {
+            const infoEl = document.getElementById('settings-info');
+            if (!infoEl) return;
+            infoEl.innerHTML = `${message ? message + ' ' : ''}⚙️ بيع سالب: <span style="color:${appSettings.allow_negative_stock ? 'var(--success)' : 'var(--danger)'};">${appSettings.allow_negative_stock ? 'مفعل' : 'غير مفعل'}</span> | بيع أقل من التكلفة: <span style="color:${appSettings.allow_below_cost ? 'var(--success)' : 'var(--danger)'};">${appSettings.allow_below_cost ? 'مفعل' : 'غير مفعل'}</span>`;
         }
 
         async function loadSettings() {
@@ -1958,28 +2101,29 @@
             if (cached) {
                 appSettings.allow_negative_stock = cached.allow_negative_stock === true;
                 appSettings.allow_below_cost = cached.allow_below_cost === true;
+                renderSettingsInfo('من الذاكرة المؤقتة:');
                 return;
             }
             try {
-                const res = await fetch(`${API}/settings`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const res = await fetchWithTimeout(`${API}/settings`, { headers: { 'Authorization': `Bearer ${token}` } }, 8000);
+                if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
                 const data = await res.json();
                 if (data.settings) {
-                    appSettings.allow_negative_stock = data.settings.allow_negative_stock === '1';
-                    appSettings.allow_below_cost = data.settings.allow_below_cost === '1';
+                    appSettings.allow_negative_stock = data.settings.allow_negative_stock === '1' || data.settings.allow_negative_stock === true;
+                    appSettings.allow_below_cost = data.settings.allow_below_cost === '1' || data.settings.allow_below_cost === true;
                     writeStaticCache('settings', { allow_negative_stock: appSettings.allow_negative_stock, allow_below_cost: appSettings.allow_below_cost });
                 }
-                const infoEl = document.getElementById('settings-info');
-                if (infoEl) {
-                    infoEl.innerHTML = `
-                        ⚙️ بيع سالب: <span style="color:${appSettings.allow_negative_stock ? 'var(--success)' : 'var(--danger)'};">${appSettings.allow_negative_stock ? 'مفعل' : 'غير مفعل'}</span> 
-                        | بيع أقل من التكلفة: <span style="color:${appSettings.allow_below_cost ? 'var(--success)' : 'var(--danger)'};">${appSettings.allow_below_cost ? 'مفعل' : 'غير مفعل'}</span>
-                    `;
+                renderSettingsInfo();
+            } catch (error) {
+                const stale = readStaticCache('settings', true);
+                if (stale) {
+                    appSettings.allow_negative_stock = stale.allow_negative_stock === true;
+                    appSettings.allow_below_cost = stale.allow_below_cost === true;
+                    renderSettingsInfo('⚠️ من نسخة مؤقتة قديمة:');
+                } else {
+                    renderSettingsInfo('⚠️ تعذر تحميل الإعدادات، القيم الافتراضية ممنوعة:');
                 }
-            } catch (e) {
-                const infoEl = document.getElementById('settings-info');
-                if (infoEl) infoEl.innerHTML = '⚠️ تعذر تحميل الإعدادات، استخدم القيم الافتراضية (ممنوع)';
+                console.warn('تعذر تحميل الإعدادات:', error);
             }
         }
 
@@ -2028,8 +2172,7 @@
                     const payload = JSON.parse(atob(parts[1]));
                     currentUser = { username: payload.username || 'مستخدم', role: payload.role || 'cashier' };
                 } else {
-                    const stored = localStorage.getItem('user_info');
-                    currentUser = stored ? JSON.parse(stored) : { username: 'مستخدم', role: 'cashier' };
+                    currentUser = safeGetItem('user_info', { username: 'مستخدم', role: 'cashier' });
                 }
             } catch (e) { currentUser = { username: 'مستخدم', role: 'cashier' }; }
             const avatar = document.getElementById('user-avatar');
@@ -2147,7 +2290,7 @@
             if (cached && cached.length) { currenciesCache = cached; return; }
             if (navigator.onLine) {
                 try {
-                    const res = await fetch(`${API}/currencies`, { headers: { 'Authorization': `Bearer ${token}` } });
+                    const res = await fetchWithTimeout(`${API}/currencies`, { headers: { 'Authorization': `Bearer ${token}` } });
                     const data = await res.json();
                     currenciesCache = data.currencies || [];
                     writeStaticCache('currencies', currenciesCache);
@@ -2184,7 +2327,7 @@
                 });
             }
             try {
-                const res = await fetch(`${API}/wallets`, { headers: { 'Authorization': `Bearer ${token}` } });
+                const res = await fetchWithTimeout(`${API}/wallets`, { headers: { 'Authorization': `Bearer ${token}` } });
                 const data = await res.json();
                 walletsCache = data.wallets || [];
                 writeStaticCache('wallets', walletsCache);
@@ -2384,13 +2527,13 @@
                 btn.innerHTML = '<i class="fas fa-chevron-down"></i> عرض';
             }
             try {
-                localStorage.setItem('products_visible', productsVisible ? 'true' : 'false');
+                safeSetString('products_visible', productsVisible ? 'true' : 'false');
             } catch (e) {}
         }
 
         function loadProductsVisibility() {
             try {
-                const saved = localStorage.getItem('products_visible');
+                const saved = safeGetString('products_visible', '');
                 if (saved === 'false') {
                     productsVisible = false;
                     const grid = document.getElementById('products-grid');
@@ -2466,7 +2609,7 @@
                     if (currentSort) url += `&sort=${encodeURIComponent(currentSort)}`;
                     url += `&_t=${new Date().getTime()}`;
 
-                    const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
+                    const res = await fetchWithTimeout(url, { headers: { 'Authorization': `Bearer ${token}` } });
                     
                     if (fetchId !== currentFetchId) return; 
 
@@ -2510,7 +2653,7 @@
                 if (currentSort) url += `&sort=${encodeURIComponent(currentSort)}`;
                 url += `&_t=${new Date().getTime()}`;
 
-                const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
+                const res = await fetchWithTimeout(url, { headers: { 'Authorization': `Bearer ${token}` } });
                 
                 if (fetchId !== currentFetchId) return;
 
@@ -2669,7 +2812,7 @@
                 return;
             }
             try {
-                const res = await fetch(`${API}/customers?limit=2000`, { headers: { 'Authorization': `Bearer ${token}` } });
+                const res = await fetchWithTimeout(`${API}/customers?limit=2000`, { headers: { 'Authorization': `Bearer ${token}` } });
                 const data = await res.json();
                 customersCache = data.customers || [];
                 await saveCustomersToLocal(customersCache);
@@ -2825,10 +2968,10 @@
             content.innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin"></i> جاري...</div>';
             openModal('product-details-modal');
             try {
-                const productRes = await fetch(`${API}/products/${productId}`, { headers: { 'Authorization': `Bearer ${token}` } });
+                const productRes = await fetchWithTimeout(`${API}/products/${productId}`, { headers: { 'Authorization': `Bearer ${token}` } });
                 const productData = await productRes.json();
                 const p = productData.product || {};
-                const supplierRes = await fetch(`${API}/products/suppliers?product_id=${productId}`, { headers: { 'Authorization': `Bearer ${token}` } });
+                const supplierRes = await fetchWithTimeout(`${API}/products/suppliers?product_id=${productId}`, { headers: { 'Authorization': `Bearer ${token}` } });
                 const supplierData = await supplierRes.json();
                 const suppliers = supplierData.suppliers || [];
                 let suppliersHtml = suppliers.length === 0 ?
@@ -2872,7 +3015,7 @@
                 </div>
                 <div style="display:flex;justify-content:space-between;font-size:0.8rem;margin-bottom:6px;"><span>المخزون</span><span style="font-weight:700;">${stock}</span></div>
                 <div class="form-group"><label>سعر البيع</label><input type="number" id="modal-sale-price" class="input-field" step="0.01" value="${defaultPrice}" min="0" inputmode="decimal" /></div>
-                <div class="form-group"><label>الكمية</label><input type="number" id="modal-quantity" class="input-field" step="1" value="1" min="1" max="${stock}" inputmode="numeric" /></div>
+                <div class="form-group"><label>الكمية</label><input type="number" id="modal-quantity" class="input-field" step="${Number(product.is_decimal_allowed) === 1 ? '0.001' : '1'}" value="1" min="${Number(product.is_decimal_allowed) === 1 ? '0.001' : '1'}" max="${stock}" inputmode="decimal" /></div>
                 <div class="form-group"><label>خصم المنتج</label><input type="number" id="modal-item-discount" class="input-field" step="0.01" value="0" min="0" inputmode="decimal" /></div>
                 <div class="form-group"><label>ملاحظات</label><input type="text" id="modal-item-notes" class="input-field" placeholder="ملاحظات..." /></div>
                 <div class="modal-actions">
@@ -2889,13 +3032,14 @@
             const discountInput = document.getElementById('modal-item-discount');
             const notesInput = document.getElementById('modal-item-notes');
             const price = parseFloat(priceInput?.value) || 0;
-            const qty = parseInt(qtyInput?.value) || 1;
+            const qty = parseFloat(qtyInput?.value) || 1;
             const discount = parseFloat(discountInput?.value) || 0;
             const notes = notesInput?.value.trim() || '';
             const product = currentProductForCart;
             
             if (!product) return;
             if (qty <= 0) return showToast('الكمية يجب أن تكون أكبر من صفر', 'warning');
+            if (Number(product.is_decimal_allowed) !== 1 && !Number.isInteger(qty)) return showToast('هذا المنتج لا يسمح بالكمية العشرية', 'warning');
             const stock = product.stock_quantity || 0;
             if (!appSettings.allow_negative_stock && qty > stock) {
                 return showToast(`⚠️ الكمية (${qty}) أكبر من المخزون (${stock})`, 'warning');
@@ -2941,7 +3085,7 @@
                 <div style="text-align:center;margin-bottom:8px;"><strong>${escapeHTML(item.name)}</strong><div style="font-size:0.7rem;color:var(--muted);">التكلفة: ${(item.cost||0).toFixed(2)} ريال</div></div>
                 <div style="display:flex;justify-content:space-between;font-size:0.8rem;"><span>المخزون</span><span>${stock}</span></div>
                 <div class="form-group"><label>سعر البيع</label><input type="number" id="edit-sale-price" class="input-field" step="0.01" value="${item.price}" min="0" inputmode="decimal" /></div>
-                <div class="form-group"><label>الكمية</label><input type="number" id="edit-quantity" class="input-field" step="1" value="${item.quantity}" min="1" max="${stock}" inputmode="numeric" /></div>
+                <div class="form-group"><label>الكمية</label><input type="number" id="edit-quantity" class="input-field" step="${Number(product?.is_decimal_allowed) === 1 ? '0.001' : '1'}" value="${item.quantity}" min="${Number(product?.is_decimal_allowed) === 1 ? '0.001' : '1'}" max="${stock}" inputmode="numeric" /></div>
                 <div class="form-group"><label>خصم المنتج</label><input type="number" id="edit-item-discount" class="input-field" step="0.01" value="${discount}" min="0" inputmode="decimal" /></div>
                 <div class="form-group"><label>ملاحظات</label><input type="text" id="edit-item-notes" class="input-field" value="${escapeHTML(notes)}" placeholder="ملاحظات..." /></div>
                 <div class="modal-actions">
@@ -2970,6 +3114,7 @@
             const stock = product ? product.stock_quantity || 0 : 999;
             
             if (qty <= 0) return showToast('الكمية يجب أن تكون أكبر من صفر', 'warning');
+            if (product && Number(product.is_decimal_allowed) !== 1 && !Number.isInteger(qty)) return showToast('هذا المنتج لا يسمح بالكمية العشرية', 'warning');
             if (!appSettings.allow_negative_stock && qty > stock) {
                 return showToast(`⚠️ الكمية (${qty}) أكبر من المخزون (${stock})`, 'warning');
             }
@@ -2995,14 +3140,28 @@
         let swipeCurrentItem = null;
 
         function saveCartToLocal() {
-            try { localStorage.setItem('pos_cart_online', JSON.stringify(cart)); } catch (e) {}
+            safeSetItem('pos_cart_online', cart);
+            scheduleDraftAutoSave();
+        }
+
+        function scheduleDraftAutoSave() {
+            if (!cart.length || editingOrderId) return;
+            clearTimeout(draftSaveTimer);
+            const status = document.getElementById('draft-status');
+            if (status) status.textContent = 'سيتم حفظ المسودة تلقائيًا...';
+            draftSaveTimer = setTimeout(() => saveDraft(true), 1200);
+        }
+
+        function updateDraftStatus(text, color='var(--muted)') {
+            const status = document.getElementById('draft-status');
+            if (status) { status.textContent = text; status.style.color = color; }
         }
 
         function loadCartFromLocal() {
             try {
-                const saved = localStorage.getItem('pos_cart_online');
+                const saved = safeGetItem('pos_cart_online', null);
                 if (saved) {
-                    cart = JSON.parse(saved);
+                    cart = saved;
                     cart = cart.filter(item => item.id && item.name && typeof item.price === 'number');
                 }
             } catch (e) { cart = []; }
@@ -3383,7 +3542,7 @@
 
         function resetOrderForm() {
             cart = [];
-            localStorage.removeItem('pos_cart_online');
+            safeRemoveItem('pos_cart_online');
             setElementValue('cart-discount', 0);
             selectedCustomerData = null;
             updateCustomerSummary();
@@ -3424,7 +3583,7 @@
             if (!container) return;
             container.innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin"></i> جاري...</div>';
             try {
-                const res = await fetch(`${API}/online-orders?page=${ordersPage}&limit=${ordersPageSize}`, { headers: { 'Authorization': `Bearer ${token}` } });
+                const res = await fetchWithTimeout(`${API}/online-orders?page=${ordersPage}&limit=${ordersPageSize}`, { headers: { 'Authorization': `Bearer ${token}` } });
                 const data = await res.json();
                 const total = Number(data.total ?? data.pagination?.total ?? data.meta?.total ?? 0);
                 ordersTotalPages = Math.max(1, Number(data.pages ?? data.pagination?.pages ?? data.meta?.pages ?? (total ? Math.ceil(total / ordersPageSize) : (data.orders?.length === ordersPageSize ? ordersPage + 1 : ordersPage))));
@@ -3465,7 +3624,7 @@
             showToast('جاري تحميل الطلب...', 'info');
             setProgress(30);
             try {
-                const res = await fetch(`${API}/online-orders/${orderId}`, { headers: { 'Authorization': `Bearer ${token}` } });
+                const res = await fetchWithTimeout(`${API}/online-orders/${orderId}`, { headers: { 'Authorization': `Bearer ${token}` } });
                 const data = await res.json();
                 const order = data.order;
                 if (!order) { showToast('الطلب غير موجود', 'error'); return; }
@@ -3575,7 +3734,7 @@
                         name: item.product_name || 'منتج',
                         price: parseFloat(item.unit_price) || 0,
                         cost: 0,
-                        quantity: parseInt(item.quantity) || 1,
+                        quantity: parseFloat(item.quantity) || 1,
                         discount: parseFloat(item.discount) || parseFloat(item.discount_amount) || 0,
                         notes: item.note || item.notes || ''
                     }));
@@ -3661,7 +3820,7 @@
             if (!editingOrderId) return showToast('لا يوجد طلب لإلغائه', 'warning');
             if (!confirm('هل أنت متأكد من إلغاء هذا الطلب؟')) return;
             try {
-                const res = await fetch(`${API}/online-orders/cancel`, {
+                const res = await fetchWithTimeout(`${API}/online-orders/cancel`, {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify({ order_id: editingOrderId })
@@ -3793,7 +3952,15 @@
 })(),
     };
 
-    // يمكنك إضافة console.log هنا لفحص الـ payload
+    // معرف محلي يساعد على منع الضغط المتكرر أثناء إنشاء طلب جديد.
+    if (!editingOrderId) payload.client_request_id = `web-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+    const fingerprint = JSON.stringify({ ...payload, client_request_id: undefined });
+    const previous = safeGetItem('pos_last_order_fingerprint', null);
+    if (!editingOrderId && previous && previous.key === fingerprint && Date.now() - Number(previous.at || 0) < 60000) {
+        if (!confirm('تم إرسال طلب مطابق خلال أقل من دقيقة. هل تريد المتابعة مرة أخرى؟')) return;
+    }
+    safeSetItem('pos_last_order_fingerprint', { key: fingerprint, at: Date.now() });
+    lastSubmitFingerprint = fingerprint;
     console.log('📦 Payload المرسل:', JSON.stringify(payload, null, 2));
 
     const btn = document.querySelector('.bottom-actions .btn-success');
@@ -3811,7 +3978,7 @@
         let method = 'POST';
         if (editingOrderId) { url = `${API}/online-orders/${editingOrderId}`; method = 'PUT'; }
 
-        const res = await fetch(url, {
+        const res = await fetchWithTimeout(url, {
             method: method,
             headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
@@ -3831,9 +3998,9 @@
             pendingInvoiceSnapshot = captureInvoiceSnapshot(orderId);
 
             if (currentDraftId) {
-                let drafts = JSON.parse(localStorage.getItem('pos_drafts_list') || '[]');
+                let drafts = safeGetItem('pos_drafts_list', []);
                 drafts = drafts.filter(d => d.id !== currentDraftId);
-                localStorage.setItem('pos_drafts_list', JSON.stringify(drafts));
+                safeSetItem('pos_drafts_list', drafts);
                 currentDraftId = null;
             }
 
@@ -3845,6 +4012,7 @@
             showToast(data.error || 'فشل حفظ الطلب', 'error', { sound: false });
         }
     } catch (err) {
+        if (lastSubmitFingerprint) safeRemoveItem('pos_last_order_fingerprint');
         showToast(err.message || 'خطأ في الاتصال', 'error', { sound: false });
     } finally {
         if (btn) {
@@ -3952,8 +4120,8 @@
                 const currencyCode = orderCurrencyId ? getCurrencyCode(orderCurrencyId) : 'ريال';
                 const rate = orderCurrencyId ? getCurrencyRate(orderCurrencyId) : 1;
 
-                const shopName = localStorage.getItem('shop_name') || 'لمسات منزليه ابن المختار';
-                const shopPhone = localStorage.getItem('shop_phone') || '773266534';
+                const shopName = safeGetString('shop_name', 'لمسات منزليه ابن المختار');
+                const shopPhone = safeGetString('shop_phone', '773266534');
                 
                 const rawSubtotal = cart.reduce((s, i) => s + ((i.price || 0) - (i.discount || 0)) * i.quantity, 0);
                 const rawDiscount = parseFloat(document.getElementById('cart-discount')?.value) || 0;
@@ -4149,8 +4317,8 @@
             });
         }
 
-        function saveDraft() {
-            if (cart.length === 0) return showToast('⚠️ السلة فارغة، لا يمكن حفظ مسودة', 'warning');
+        function saveDraft(isAuto = false) {
+            if (cart.length === 0) return isAuto ? null : showToast('⚠️ السلة فارغة، لا يمكن حفظ مسودة', 'warning');
 
             const draftId = currentDraftId || new Date().getTime(); 
 
@@ -4178,7 +4346,7 @@
                 total: document.getElementById('cart-total')?.innerText || '0'
             };
 
-            let drafts = JSON.parse(localStorage.getItem('pos_drafts_list') || '[]');
+            let drafts = safeGetItem('pos_drafts_list', []);
             const existingIndex = drafts.findIndex(d => d.id === draftId);
             
             if (existingIndex > -1) {
@@ -4187,18 +4355,18 @@
                 drafts.push(draftData); 
             }
 
-            localStorage.setItem('pos_drafts_list', JSON.stringify(drafts));
+            safeSetItem('pos_drafts_list', drafts);
             currentDraftId = draftId;
-            showToast('✅ تم حفظ المسودة في الجهاز بنجاح', 'success');
+            updateDraftStatus(isAuto ? 'تم الحفظ التلقائي' : 'تم حفظ المسودة', 'var(--success)');
+            if (!isAuto) showToast('✅ تم حفظ المسودة في الجهاز بنجاح', 'success');
 
-            // لا يتم توليد PDF تلقائياً؛ تبقى الشاشة متاحة ويُنشأ عند ضغط زر الفاتورة.
-            pendingInvoiceSnapshot = captureInvoiceSnapshot(`مسودة_${draftId}`);
-            setTimeout(() => openInvoiceChoiceModal(), 0);
+            // حفظ المسودة لا يفتح نافذة فاتورة تلقائيًا؛ الطباعة تتم من زر الفاتورة عند الحاجة.
         }
 
         function openDraftsModal() {
             const container = document.getElementById('drafts-list-container');
-            let drafts = JSON.parse(localStorage.getItem('pos_drafts_list') || '[]');
+            let drafts = safeGetItem('pos_drafts_list', []);
+            if (!Array.isArray(drafts)) drafts = [];
             
             if (drafts.length === 0) {
                 container.innerHTML = '<div class="empty-state"><i class="fas fa-folder-open" style="font-size:2rem; color:var(--muted); margin-bottom:10px;"></i><p>لا توجد مسودات محفوظة محلياً</p></div>';
@@ -4227,7 +4395,8 @@
         }
 
         function loadDraft(draftId) {
-            let drafts = JSON.parse(localStorage.getItem('pos_drafts_list') || '[]');
+            let drafts = safeGetItem('pos_drafts_list', []);
+            if (!Array.isArray(drafts)) drafts = [];
             const draft = drafts.find(d => d.id === draftId);
             if (!draft) return showToast('المسودة غير موجودة', 'error');
 
@@ -4262,14 +4431,15 @@
             setTimeout(() => { updateTotals(); }, 100);
             
             closeModal('drafts-modal');
+            updateDraftStatus('تم استرجاع المسودة', 'var(--primary)');
             showToast('✅ تم استرجاع بيانات المسودة', 'success');
         }
 
         function deleteDraft(draftId) {
             if(!confirm('هل أنت متأكد من حذف هذه المسودة نهائياً؟')) return;
-            let drafts = JSON.parse(localStorage.getItem('pos_drafts_list') || '[]');
+            let drafts = safeGetItem('pos_drafts_list', []);
             drafts = drafts.filter(d => d.id !== draftId);
-            localStorage.setItem('pos_drafts_list', JSON.stringify(drafts));
+            safeSetItem('pos_drafts_list', drafts);
             
             if (currentDraftId === draftId) currentDraftId = null;
             openDraftsModal(); 
@@ -4302,7 +4472,7 @@
                 return;
             }
             try {
-                const res = await fetch(`${API}/categories?flat=1`, {
+                const res = await fetchWithTimeout(`${API}/categories?flat=1`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const data = await res.json();
@@ -4421,7 +4591,7 @@
             setProgress(30);
 
             try {
-                const res = await fetch(`${API}/products`, {
+                const res = await fetchWithTimeout(`${API}/products`, {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify({ name, price, cost, barcode, stock_quantity: stock, category_id })
@@ -4466,7 +4636,7 @@
 
         async function loadDrivers() {
             try {
-                const res = await fetch(`${API}/drivers`, { headers: { 'Authorization': `Bearer ${token}` } });
+                const res = await fetchWithTimeout(`${API}/drivers`, { headers: { 'Authorization': `Bearer ${token}` } });
                 const data = await res.json();
                 const sel = document.getElementById('driverSelect');
                 if (!sel) return;
@@ -4481,88 +4651,75 @@
                 console.warn('فشل تحميل المندوبين', e);
             }
         }
-        window.onload = async function() {
+        async function initializeApp() {
+            if (appInitializationRunning) return;
+            appInitializationRunning = true;
+            setAppLoaderState('loading', appRetryCount ? `إعادة المحاولة رقم ${appRetryCount}...` : 'يتم تحميل الإعدادات والبيانات المحلية بأمان.');
+            try {
+                if (checkAndClearOnVersionChange()) return;
+                loadDarkModePreference();
+                loadCurrentUser();
+                updateOnlineStatus();
+                loadCartFromLocal();
+                loadProductsVisibility();
 
-            loadDarkModePreference();
-            loadCurrentUser();
-            updateOnlineStatus();
-            loadCartFromLocal();
-            loadProductsVisibility(); 
-
-            const savedState = loadFilterState();
-            if (savedState) {
+                const savedState = loadFilterState();
                 currentSearch = '';
-                selectedCategoryId = savedState.categoryId || null;
-                currentSort = savedState.sort || 'name';
-                document.getElementById('top-search-input').value = '';
+                selectedCategoryId = savedState?.categoryId || null;
+                currentSort = savedState?.sort || 'name';
+                const searchInput = document.getElementById('top-search-input');
+                if (searchInput) searchInput.value = '';
                 const sortSelect = document.getElementById('sort-select');
                 if (sortSelect) sortSelect.value = currentSort;
-            } else {
-                currentSearch = '';
-                selectedCategoryId = null;
-                currentSort = 'name';
-                document.getElementById('top-search-input').value = '';
-                const sortSelect = document.getElementById('sort-select');
-                if (sortSelect) sortSelect.value = 'name';
-            }
 
-            setProgress(20);
-            await loadCurrencies();
-            await loadWalletsFromServer();
-            populateCurrencySelects();
-            populateWalletSelects();
-            await loadAllCategories();
-            await loadDrivers();
-            await fetchCustomersList();
-            await loadSettings();
+                setProgress(20);
+                const tasks = await Promise.allSettled([
+                    loadCurrencies(), loadWalletsFromServer(), loadAllCategories(),
+                    loadDrivers(), fetchCustomersList(), loadSettings()
+                ]);
+                const failures = tasks.filter(result => result.status === 'rejected');
+                if (failures.length) console.warn('بعض بيانات التهيئة لم تُحمّل:', failures.map(result => result.reason));
 
-            productRefreshRequested = true;
-            await fetchProducts('', selectedCategoryId, true);
-            const initialGrid = document.getElementById('products-grid');
-            const initialCount = document.getElementById('products-count-label');
-            if (initialGrid && productsCache.length === 0) initialGrid.innerHTML = '<div class="empty-state"><i class="fas fa-sync-alt"></i><p>لا توجد منتجات</p></div>';
-            if (initialCount && productsCache.length === 0) initialCount.textContent = 'عدد المنتجات: 0';
-            setProgress(100);
-            setTimeout(() => setProgress(0), 500);
+                populateCurrencySelects();
+                populateWalletSelects();
+                productRefreshRequested = true;
+                await fetchProducts('', selectedCategoryId, true);
+                const initialGrid = document.getElementById('products-grid');
+                const initialCount = document.getElementById('products-count-label');
+                if (initialGrid && productsCache.length === 0) initialGrid.innerHTML = '<div class="empty-state"><i class="fas fa-sync-alt"></i><p>لا توجد منتجات متاحة حالياً. اضغط زر التحديث للمحاولة.</p></div>';
+                if (initialCount && productsCache.length === 0) initialCount.textContent = 'لا توجد منتجات متاحة حالياً';
+                setProgress(100);
+                setTimeout(() => setProgress(0), 500);
 
-            const searchInput = document.getElementById('top-search-input');
-            if (searchInput) searchInput.focus();
-
-            handlePaymentMethodChange();
-            updateCustomerSummary();
-
-            document.querySelectorAll('.currency-select').forEach(sel => {
-                sel.addEventListener('change', function() {
-                    const method = document.getElementById('payment-method')?.value;
-                    if (method === 'مدفوع مسبقاً (محفظة)') updateTotalsFromPaid();
-                    else if (method === 'مدفوع مسبقاً (مختلط)') updateTotalsFromPaidMixed();
+                handlePaymentMethodChange();
+                updateCustomerSummary();
+                document.querySelectorAll('.currency-select').forEach(sel => {
+                    sel.addEventListener('change', function() {
+                        const method = document.getElementById('payment-method')?.value;
+                        if (method === 'مدفوع مسبقاً (محفظة)') updateTotalsFromPaid();
+                        else if (method === 'مدفوع مسبقاً (مختلط)') updateTotalsFromPaidMixed();
+                    });
                 });
-            });
-
-            const editModal = document.getElementById('edit-orders-modal');
-            if (editModal) {
-                editModal.addEventListener('click', function(e) { if (e.target === this) closeModal('edit-orders-modal'); });
+                const editModal = document.getElementById('edit-orders-modal');
+                if (editModal) editModal.addEventListener('click', function(e) { if (e.target === this) closeModal('edit-orders-modal'); });
+                const params = new URLSearchParams(window.location.search);
+                const orderId = params.get('order_id');
+                if (orderId) setTimeout(() => loadOrderForEdit(parseInt(orderId, 10)), 500);
+                if ('serviceWorker' in navigator) {
+                    navigator.serviceWorker.getRegistrations().then(registrations => registrations.forEach(registration => registration.unregister()));
+                    try { navigator.serviceWorker.register('./sw.js?v=' + new Date().getTime(), { scope: '/add_order_ph' }); } catch (error) { console.warn('تعذر تسجيل Service Worker', error); }
+                }
+                if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission();
+                setAppLoaderState('ready');
+            } catch (error) {
+                console.error('فشل تجهيز التطبيق:', error);
+                setAppLoaderState('error', error.message || 'حدث عطل غير متوقع أثناء تحميل التطبيق.');
+            } finally {
+                appInitializationRunning = false;
             }
+        }
 
-            const params = new URLSearchParams(window.location.search);
-            const orderId = params.get('order_id');
-            if (orderId) { setTimeout(() => { loadOrderForEdit(parseInt(orderId)); }, 500); }
-
-            if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.getRegistrations().then(function(registrations) {
-                    for(let registration of registrations) {
-                        registration.unregister();
-                    }
-                });
-                try {
-                    navigator.serviceWorker.register('./sw.js?v=' + new Date().getTime(), { scope: '/add_order_ph' });
-                } catch (error) {}
-            }
-
-            if ('Notification' in window && Notification.permission === 'default') {
-                Notification.requestPermission();
-            }
-        };
+        window.onload = initializeApp;
 
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Enter') {
@@ -4597,5 +4754,6 @@
 
         console.log('📱 واجهة الجوال جاهزة (بدون تعليق بحث أو تخريب التخزين)');
     </script>
+    <script src="document-utils.js"></script>
 </body>
 </html>

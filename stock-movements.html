@@ -185,7 +185,8 @@
 <body>
 <div class="container">
   <div class="header">
-    <h1><i class="fas fa-boxes"></i> حركة المخزون</h1>
+    <div><h1><i class="fas fa-boxes"></i> حركة المخزون</h1><p style="color:var(--muted);margin-top:4px;">تتبع دخول وخروج وتعديلات مخزون كل منتج.</p></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;"><a class="btn btn-outline" href="products.html"><i class="fas fa-boxes"></i> المنتجات</a><a class="btn btn-outline" href="index.html"><i class="fas fa-home"></i> الرئيسية</a></div>
     <div class="search-box">
       <input type="text" id="searchInput" placeholder="بحث باسم المنتج أو الباركود..." />
       <select id="categoryFilter">
@@ -243,8 +244,10 @@
   let currentPage = 1;
   const pageSize = 20;
   let productsData = [];
+  let productsTotal = 0;
   let categoriesMap = {};
   let selectedProductId = null;
+  function escapeHtml(value) { return String(value ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
 
   // جلب التصنيفات لملء الفلتر
   async function loadCategories() {
@@ -286,10 +289,11 @@
       if (!res.ok) throw new Error('فشل جلب المنتجات');
       const data = await res.json();
       productsData = data.products || [];
-      document.getElementById('productCount').textContent = productsData.length;
+      productsTotal = Number(data.total || productsData.length);
+      document.getElementById('productCount').textContent = productsTotal;
 
       renderProductsTable(productsData);
-      renderPagination(page, Math.ceil(productsData.length / pageSize) || 1);
+      renderPagination(page, Math.ceil(productsTotal / pageSize) || 1);
     } catch (e) {
       document.getElementById('productsTableBody').innerHTML = `<tr><td colspan="8" class="text-center text-muted">خطأ في التحميل: ${e.message}</td></tr>`;
       console.error(e);
@@ -309,12 +313,12 @@
       html += `
         <tr class="product-row ${isActive ? 'active' : ''}" onclick="selectProduct(${p.id})">
           <td>${idx + 1}</td>
-          <td><strong>${p.name}</strong></td>
-          <td>${p.barcode || '-'}</td>
-          <td>${p.stock_quantity || 0}</td>
-          <td>${p.price || 0}</td>
-          <td>${p.cost || 0}</td>
-          <td>${p.category_name || '-'}</td>
+          <td><strong>${escapeHtml(p.name)}</strong></td>
+          <td>${escapeHtml(p.barcode || '-')}</td>
+          <td>${Number(p.stock_quantity || 0)}</td>
+          <td>${Number(p.price || 0).toFixed(2)}</td>
+          <td>${Number(p.cost || 0).toFixed(2)}</td>
+          <td>${escapeHtml(p.category_name || '-')}</td>
           <td><button class="btn btn-sm btn-outline" onclick="event.stopPropagation(); viewMovements(${p.id})"><i class="fas fa-eye"></i> الحركة</button></td>
         </tr>
       `;
@@ -357,7 +361,7 @@
 
     // البحث عن اسم المنتج من البيانات المخزنة
     const product = productsData.find(p => p.id === productId);
-    titleEl.innerHTML = `<i class="fas fa-history"></i> سجل حركة المنتج: ${product ? product.name : '#' + productId}`;
+    titleEl.innerHTML = `<i class="fas fa-history"></i> سجل حركة المنتج: ${escapeHtml(product ? product.name : '#' + productId)}`;
 
     detailsDiv.style.display = 'block';
     listDiv.innerHTML = '<div class="loading">جاري تحميل الحركة...</div>';
@@ -411,13 +415,13 @@
               <span style="font-weight:400;font-size:0.9rem;color:var(--muted);margin-right:10px;">
                 ${m.old_quantity} → ${m.new_quantity}
               </span>
-              ${m.supplier_name ? `<span class="badge badge-info" style="font-size:0.7rem;">${m.supplier_name}</span>` : ''}
+                ${m.supplier_name ? `<span class="badge badge-info" style="font-size:0.7rem;">${escapeHtml(m.supplier_name)}</span>` : ''}
             </div>
             <div class="meta">
               <span><i class="far fa-calendar-alt"></i> ${new Date(m.created_at).toLocaleString('ar-EG')}</span>
-              <span><i class="fas fa-tag"></i> ${refLabel} ${m.reference_id ? '#'+m.reference_id : ''}</span>
-              ${m.note ? `<span><i class="fas fa-pencil-alt"></i> ${m.note}</span>` : ''}
-              ${m.created_by_name ? `<span><i class="fas fa-user"></i> ${m.created_by_name}</span>` : ''}
+              <span><i class="fas fa-tag"></i> ${escapeHtml(refLabel)} ${m.reference_id ? '#'+escapeHtml(m.reference_id) : ''}</span>
+              ${m.note ? `<span><i class="fas fa-pencil-alt"></i> ${escapeHtml(m.note)}</span>` : ''}
+              ${m.created_by_name ? `<span><i class="fas fa-user"></i> ${escapeHtml(m.created_by_name)}</span>` : ''}
             </div>
           </div>
         `;

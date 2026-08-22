@@ -21,7 +21,7 @@ messaging.onBackgroundMessage((payload) => {
   // محاولة قراءة البيانات من عدة مصادر
   let title = '📦 ابن مختار';
   let body = 'لديك إشعار جديد';
-  let link = '/driver.html';
+  let link = '/driver/';
   let orderId = null;
 
   // 1️⃣ من payload.notification (إذا وجد)
@@ -57,7 +57,7 @@ messaging.onBackgroundMessage((payload) => {
     badge: '/icon-192x192.png',
     vibrate: [200, 100, 200],
     data: {
-      url: orderId ? `/driver.html?order_id=${orderId}` : link,
+      url: orderId ? `/driver/?order_id=${orderId}` : link,
       order_id: orderId
     },
     actions: [
@@ -88,7 +88,7 @@ messaging.onBackgroundMessage((payload) => {
 // ========== معالج push مباشر (احتياطي، للإشعارات غير القادمة عبر Firebase) ==========
 self.addEventListener('push', (event) => {
   console.log('📩 Push event received (direct handler)');
-  let data = { title: '📦 ابن مختار', body: 'لديك إشعار جديد', link: '/driver.html', order_id: null };
+  let data = { title: '📦 ابن مختار', body: 'لديك إشعار جديد', link: '/driver/', order_id: null };
   try {
     if (event.data) {
       const parsed = event.data.json();
@@ -110,7 +110,7 @@ self.addEventListener('push', (event) => {
     badge: '/icon-192x192.png',
     vibrate: [200, 100, 200],
     data: {
-      url: data.link || '/driver.html',
+      url: data.link || '/driver/',
       order_id: data.order_id || null
     },
     actions: [
@@ -133,7 +133,7 @@ self.addEventListener('push', (event) => {
               title: data.title,
               body: data.body,
               order_id: data.order_id || null,
-              link: data.link || '/driver.html'
+              link: data.link || '/driver/'
             }
           });
         });
@@ -145,7 +145,7 @@ self.addEventListener('push', (event) => {
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
-  const urlToOpen = event.notification.data?.url || '/driver.html';
+  const urlToOpen = event.notification.data?.url || '/driver/';
   const orderId = event.notification.data?.order_id || null;
 
   event.waitUntil(

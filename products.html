@@ -639,7 +639,20 @@
                     </div>
                     <div class="form-group">
                         <label>الكمية الابتدائية</label>
-                        <input type="number" id="pQty" class="input-field" value="0" min="0" />
+                        <input type="number" id="pQty" class="input-field" value="0" min="0" step="0.001" />
+                    </div>
+                    <div class="form-group">
+                        <label>وحدة القياس</label>
+                        <select id="pUnitType" class="input-field">
+                            <option value="piece">قطعة</option><option value="weight">وزن</option><option value="length">طول</option><option value="volume">حجم</option><option value="box">كرتون/عبوة</option>
+                        </select>
+                    </div>
+                    <div class="form-group"><label>رمز الوحدة</label><input type="text" id="pUnitSymbol" class="input-field" value="قطعة" placeholder="قطعة، كجم، متر..." /></div>
+                    <div class="form-group toggle-group"><span class="toggle-label">السماح بالكمية العشرية</span><label class="toggle-switch"><input type="checkbox" id="pDecimalAllowed" /><span class="toggle-slider"></span></label></div>
+                    <div class="form-group"><label>الوزن بالغرام (اختياري)</label><input type="number" id="pWeightGrams" class="input-field" min="0" step="0.01" placeholder="مثال: 250" /></div>
+                    <div class="form-group">
+                        <label>تاريخ انتهاء الصلاحية <small style="color:var(--text-muted);font-weight:400;">(اختياري)</small></label>
+                        <input type="date" id="pExpiryDate" class="input-field" />
                     </div>
                     <div class="form-actions">
                         <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> حفظ</button>
@@ -684,7 +697,8 @@
                 </div>
             </div>
         </div>
-    </main>
+    <div style="margin:12px 0;"><a class="btn btn-outline btn-sm" href="stock-movements.html"><i class="fas fa-history"></i> فتح حركة المخزون</a></div>
+        </main>
 
     <!-- ========== المودالات ========== -->
 
@@ -829,10 +843,45 @@
     <!-- ========== الإشعارات ========== -->
     <div class="toast-container" id="toastContainer"></div>
 
+    <div class="modal-overlay" id="pendingProductsModal">
+        <div class="modal-box wide">
+            <button class="close-btn" onclick="closePendingProductsModal()">&times;</button>
+            <h4 style="margin-bottom:14px;"><i class="fas fa-clock" style="color:var(--primary);"></i> المنتجات المعلقة في Worker</h4>
+            <div id="pendingProductsContent"><div class="loader"><i class="fas fa-spinner fa-spin"></i> جاري التحميل...</div></div>
+        </div>
+    </div>
+
     <script>
         // ========================================================================
         //                       الكود البرمجي الموحد
         // ========================================================================
+
+        // ===== المنتجات المعلقة =====
+        async function openPendingProductsModal() {
+            const modal = document.getElementById('pendingProductsModal');
+            const content = document.getElementById('pendingProductsContent');
+            modal.classList.add('active');
+            content.innerHTML = '<div class="loader"><i class="fas fa-spinner fa-spin"></i> جاري التحميل...</div>';
+            try {
+                const res = await fetch(`${API}/api/pending-products`, { headers: { 'Authorization': `Bearer ${token}` } });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'فشل تحميل المنتجات المعلقة');
+                const rows = data.products || data.pending_products || data.results || [];
+                if (!rows.length) { content.innerHTML = '<div class="loader">لا توجد منتجات معلقة حاليًا</div>'; return; }
+                content.innerHTML = `<div class="table-responsive"><table><thead><tr><th>المعرف</th><th>المنتج</th><th>الباركود</th><th>السعر</th><th>تاريخ الإضافة</th><th>إجراء</th></tr></thead><tbody>${rows.map(p => `<tr><td>${p.pending_id || p.id || '—'}</td><td>${escapeHTML(p.name || '—')}</td><td>${escapeHTML(p.barcode || '—')}</td><td>${formatNumber(p.price)} ريال</td><td>${p.created_at ? new Date(p.created_at).toLocaleString('ar-SA') : '—'}</td><td><button class="btn btn-sm btn-danger" onclick="skipPendingProduct(${p.pending_id || p.id})">تجاهل</button></td></tr>`).join('')}</tbody></table></div>`;
+            } catch (e) { content.innerHTML = `<div class="loader" style="color:var(--danger);">${escapeHTML(e.message)}</div>`; }
+        }
+
+        function closePendingProductsModal() { document.getElementById('pendingProductsModal').classList.remove('active'); }
+
+        async function skipPendingProduct(pendingId) {
+            if (!pendingId || !confirm('هل تريد تجاهل هذا المنتج المعلق؟')) return;
+            try {
+                const res = await fetch(`${API}/api/skip-pending-product`, { method:'POST', headers:{'Authorization': `Bearer ${token}`, 'Content-Type':'application/json'}, body:JSON.stringify({ pending_id: pendingId }) });
+                const data = await res.json(); if (!res.ok) throw new Error(data.error || 'فشل التحديث');
+                showToast('تم تحديث حالة المنتج المعلق', 'success'); openPendingProductsModal();
+            } catch (e) { showToast(e.message, 'error'); }
+        }
 
         // ===== متغيرات عامة =====
         const API = 'https://api.ibnalmukhtar.com';
@@ -1355,7 +1404,7 @@
                         <td>
                             <div style="display:flex;align-items:center;gap:10px;">
                                 <div class="product-avatar">${icon}</div>
-                                <div><strong>${p.name || 'بدون اسم'}</strong><br><small style="color:var(--text-muted);">باركود: ${p.barcode || '—'}</small></div>
+                                <div><strong>${p.name || 'بدون اسم'}</strong><br><small style="color:var(--text-muted);">باركود: ${p.barcode || '—'}</small>${p.expiry_date ? `<br><small style="color:${new Date(String(p.expiry_date).length <= 10 ? p.expiry_date + 'T23:59:59' : p.expiry_date) < new Date() ? 'var(--danger)' : 'var(--text-muted)'};">الصلاحية: ${p.expiry_date}</small>` : ''}</div>
                             </div>
                         </td>
                         <td><span style="font-weight:600;color:var(--primary);">${p.product_code || '—'}</span></td>
@@ -1547,12 +1596,19 @@
             const categoryText = document.getElementById('pCategory').value || '';
             const price = parseFloat(document.getElementById('pPrice').value);
             const cost = parseFloat(document.getElementById('pCost').value) || 0;
-            const qty = parseInt(document.getElementById('pQty').value) || 0;
+                const qty = parseFloat(document.getElementById('pQty').value) || 0;
+                const expiryDate = document.getElementById('pExpiryDate').value || null;
+                const unitType = document.getElementById('pUnitType').value || 'piece';
+                const unitSymbol = document.getElementById('pUnitSymbol').value.trim() || 'قطعة';
+                const decimalAllowed = document.getElementById('pDecimalAllowed').checked;
+                const weightGrams = parseFloat(document.getElementById('pWeightGrams').value) || null;
 
             if (!name) return showToast('الاسم مطلوب', 'warning');
             if (isNaN(price) || price <= 0) return showToast('السعر يجب أن يكون أكبر من 0', 'warning');
             if (cost < 0) return showToast('التكلفة لا يمكن أن تكون سالبة', 'warning');
             if (qty < 0) return showToast('الكمية لا يمكن أن تكون سالبة', 'warning');
+            if (!decimalAllowed && !Number.isInteger(qty)) return showToast('فعّل السماح بالعشري لاستخدام كمية كسرية', 'warning');
+            if (weightGrams !== null && weightGrams < 0) return showToast('الوزن لا يمكن أن يكون سالبًا', 'warning');
 
             const product = {
                 id: editId || Date.now(),
@@ -1563,7 +1619,12 @@
                 category_id: categoryId ? parseInt(categoryId) : null,
                 price,
                 cost,
-                stock_quantity: qty
+                stock_quantity: qty,
+                expiry_date: expiryDate,
+                unit_type: unitType,
+                unit_symbol: unitSymbol,
+                is_decimal_allowed: decimalAllowed ? 1 : 0,
+                weight_grams: weightGrams
             };
 
             await saveLocalProduct(product);
@@ -1584,7 +1645,12 @@
             const categoryId = document.getElementById('pCategoryId').value || null;
             const price = parseFloat(document.getElementById('pPrice').value);
             const cost = parseFloat(document.getElementById('pCost').value) || 0;
-            const stock = parseInt(document.getElementById('pQty').value) || 0;
+            const stock = parseFloat(document.getElementById('pQty').value) || 0;
+            const expiryDate = document.getElementById('pExpiryDate').value || null;
+            const unitType = document.getElementById('pUnitType').value || 'piece';
+            const unitSymbol = document.getElementById('pUnitSymbol').value.trim() || 'قطعة';
+            const decimalAllowed = document.getElementById('pDecimalAllowed').checked;
+            const weightGrams = parseFloat(document.getElementById('pWeightGrams').value) || null;
 
             if (!name) {
                 showToast('الاسم مطلوب', 'warning');
@@ -1605,6 +1671,11 @@
                 barcode,
                 product_code: productCode,
                 category_id: categoryId ? parseInt(categoryId) : null,
+                expiry_date: expiryDate,
+                unit_type: unitType,
+                unit_symbol: unitSymbol,
+                is_decimal_allowed: decimalAllowed ? 1 : 0,
+                weight_grams: weightGrams
             };
 
             try {
@@ -1662,6 +1733,11 @@
                 document.getElementById('pPrice').value = p.price || 0;
                 document.getElementById('pCost').value = p.cost || 0;
                 document.getElementById('pQty').value = p.stock_quantity || 0;
+                document.getElementById('pExpiryDate').value = p.expiry_date ? String(p.expiry_date).slice(0, 10) : '';
+                document.getElementById('pUnitType').value = p.unit_type || 'piece';
+                document.getElementById('pUnitSymbol').value = p.unit_symbol || 'قطعة';
+                document.getElementById('pDecimalAllowed').checked = Number(p.is_decimal_allowed) === 1;
+                document.getElementById('pWeightGrams').value = p.weight_grams || '';
                 document.getElementById('formTitle').innerHTML = '<i class="fas fa-edit"></i> تعديل المنتج';
                 document.getElementById('cancelBtn').style.display = 'inline-flex';
                 window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1755,6 +1831,7 @@
                 <div class="detail-row"><span class="detail-label">الربح المتوقع</span><span class="detail-value" style="color:${profit >= 0 ? 'var(--success)' : 'var(--danger)'};">${formatNumber(profit)} ريال (${profitMargin.toFixed(1)}%)</span></div>
                 <div class="detail-row"><span class="detail-label">الكمية المباعة</span><span class="detail-value">${p.sold_quantity || 0}</span></div>
                 <div class="detail-row"><span class="detail-label">المخزون الحالي</span><span class="detail-value"><strong>${p.stock_quantity || 0}</strong></span></div>
+                <div class="detail-row"><span class="detail-label">انتهاء الصلاحية</span><span class="detail-value" style="color:${p.expiry_date && new Date(String(p.expiry_date).slice(0,10) + 'T23:59:59') < new Date() ? 'var(--danger)' : 'inherit'};">${p.expiry_date || 'غير محدد'}</span></div>
                 <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap;">
                     <button class="btn btn-sm btn-primary" onclick="editProduct(${p.id});closeDetail();"><i class="fas fa-edit"></i> تعديل</button>
                     <button class="btn btn-sm btn-info" onclick="openChangeCategoryModal(${p.id});closeDetail();"><i class="fas fa-tag"></i> تغيير التصنيف</button>
@@ -1777,6 +1854,11 @@
             document.getElementById('pCategory').value = '';
             document.getElementById('pCategoryId').value = '';
             document.getElementById('pProductCode').value = '';
+            document.getElementById('pExpiryDate').value = '';
+            document.getElementById('pUnitType').value = 'piece';
+            document.getElementById('pUnitSymbol').value = 'قطعة';
+            document.getElementById('pDecimalAllowed').checked = false;
+            document.getElementById('pWeightGrams').value = '';
             document.getElementById('formTitle').innerHTML = '<i class="fas fa-plus-circle"></i> إضافة منتج جديد';
             document.getElementById('cancelBtn').style.display = 'none';
             closeDuplicateModal();
@@ -1807,11 +1889,11 @@
         // ===== تصدير CSV =====
         function exportCSV() {
             if (allProducts.length === 0) return showToast('لا توجد منتجات للتصدير', 'warning');
-            let csv = 'ID,الاسم,الباركود,رقم الصنف,التصنيف,السعر,التكلفة,المخزون,المورد\n';
+            let csv = 'ID,الاسم,الباركود,رقم الصنف,التصنيف,السعر,التكلفة,المخزون,تاريخ الانتهاء,المورد\n';
             allProducts.forEach(p => {
                 const catName = p.category_name || p.category || '';
                 const supplier = productSupplierMap[p.id] || 'غير معين';
-                csv += `${p.id},"${p.name || ''}",${p.barcode || ''},"${p.product_code || ''}","${catName}",${p.price || 0},${p.cost || 0},${p.stock_quantity || 0},"${supplier}"\n`;
+                csv += `${p.id},"${p.name || ''}",${p.barcode || ''},"${p.product_code || ''}","${catName}",${p.price || 0},${p.cost || 0},${p.stock_quantity || 0},"${p.expiry_date || ''}","${supplier}"\n`;
             });
             const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement('a');
@@ -2617,5 +2699,6 @@
             document.getElementById('pBarcode').focus();
         };
     </script>
+    <script src="document-utils.js"></script>
 </body>
 </html>

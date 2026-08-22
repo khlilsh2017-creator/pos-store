@@ -26,10 +26,11 @@ const STATIC_ASSETS = [
     '/add_order.html',
     '/add_order_ph.html',
     '/barcode-print.html',
-    '/driver.html',
+    '/stock-movements.html',
+    '/notification-test.html',
+    '/driver/',
     '/online-reports.html',
     '/orders.html',
-    '/sales.html',
     '/db.js',
     '/html2canvas.min.js',
     '/html2pdf.bundle.min.js',
@@ -214,13 +215,13 @@ self.addEventListener('push', event => {
     let notificationData = {
         title: '📦 ابن مختار',
         body: 'لديك إشعار جديد',
-        link: '/driver.html',
+        link: '/driver/',
         icon: '/icon-192x192.png',
         badge: '/icon-192x192.png',
         vibrate: [200, 100, 200],
         tag: 'default',
         requireInteraction: true,
-        data: { link: '/driver.html' }
+        data: { link: '/driver/' }
     };
 
     let orderId = null;
@@ -320,7 +321,7 @@ self.addEventListener('notificationclick', event => {
     console.log('🖱️ تم النقر على الإشعار:', event.notification);
     event.notification.close();
 
-    let link = '/driver.html';
+    let link = '/driver/';
     let orderId = null;
 
     if (event.notification.data) {

@@ -1,152 +1,98 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ar" dir="rtl">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>سندات - النظام المحاسبي</title>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-    <style>
-        :root { --primary: #1a56db; --primary-hover: #1e40af; --bg: #f1f5f9; --card: #ffffff; --text: #0f172a; --muted: #64748b; --border: #e2e8f0; --success: #16a34a; --danger: #dc2626; --warning: #f59e0b; --info: #0ea5e9; --shadow: 0 4px 6px -1px rgba(0,0,0,0.1); --sidebar-width: 220px; }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Cairo', sans-serif; background: var(--bg); color: var(--text); display: flex; flex-direction: column; min-height: 100vh; }
-        .input-field, select { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 1rem; outline: none; background: white; transition: 0.2s; }
-        .input-field:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(26,86,219,0.1); }
-        .btn { padding: 10px 18px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; gap: 6px; }
-        .btn-primary { background: var(--primary); color: white; }
-        .btn-primary:hover { background: var(--primary-hover); }
-        .btn-success { background: var(--success); color: white; }
-        .btn-success:hover { background: #15803d; }
-        .btn-warning { background: var(--warning); color: white; }
-        .btn-warning:hover { background: #d97706; }
-        .btn-danger { background: var(--danger); color: white; }
-        .btn-danger:hover { background: #b91c1c; }
-        .btn-outline { background: transparent; border: 1px solid var(--border); }
-        .btn-sm { padding: 4px 10px; font-size: 0.8rem; }
-        .text-center { text-align: center; }
-        .text-muted { color: var(--muted); }
-        .text-danger { color: var(--danger); }
-        .mt-10 { margin-top: 10px; }
-        .mb-10 { margin-bottom: 10px; }
-        .flex-row { display: flex; flex-wrap: wrap; gap: 15px; }
-        .flex-1 { flex: 1; min-width: 200px; }
-        .flex-2 { flex: 2; min-width: 200px; }
-        .hidden { display: none; }
-        .card-section { background: var(--card); border-radius: 16px; padding: 20px; box-shadow: var(--shadow); border: 1px solid var(--border); margin-bottom: 20px; }
-        .app-wrapper { display: flex; min-height: 100vh; }
-        .sidebar { width: var(--sidebar-width); background: var(--card); border-left: 1px solid var(--border); box-shadow: 2px 0 8px rgba(0,0,0,0.05); display: flex; flex-direction: column; padding: 20px 0; position: sticky; top: 0; height: 100vh; overflow-y: auto; flex-shrink: 0; }
-        .sidebar .brand { text-align: center; padding: 0 15px 20px; border-bottom: 1px solid var(--border); margin-bottom: 15px; font-size: 1.1rem; font-weight: 700; color: var(--primary); }
-        .sidebar .brand i { font-size: 1.8rem; display: block; margin-bottom: 5px; }
-        .sidebar .nav-link { display: flex; align-items: center; gap: 10px; padding: 10px 20px; color: var(--text); text-decoration: none; border-radius: 0 20px 20px 0; transition: 0.15s; font-weight: 600; font-size: 0.9rem; border-right: 3px solid transparent; cursor: pointer; }
-        .sidebar .nav-link:hover { background: var(--bg); border-right-color: var(--primary); }
-        .sidebar .nav-link.active { background: var(--bg); border-right-color: var(--primary); color: var(--primary); }
-        .sidebar .nav-link i { width: 20px; text-align: center; }
-        .sidebar .logout-btn { margin-top: auto; border-top: 1px solid var(--border); padding-top: 15px; margin-bottom: 10px; }
-        .main-content { flex: 1; padding: 20px; background: var(--bg); overflow-y: auto; }
-        .toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
-        .toast { background: var(--text); color: white; padding: 14px 24px; border-radius: 12px; box-shadow: 0 10px 20px rgba(0,0,0,0.2); animation: slideIn 0.3s ease; display: flex; align-items: center; gap: 10px; min-width: 200px; max-width: 400px; }
-        .toast.success { background: var(--success); }
-        .toast.error { background: var(--danger); }
-        .toast.warning { background: var(--warning); }
-        .toast.info { background: var(--info); }
-        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-        @media (max-width: 768px) { .sidebar { width: 60px; padding: 10px 0; } .sidebar .brand span { display: none; } .sidebar .nav-link span { display: none; } .sidebar .nav-link { justify-content: center; padding: 12px 0; } }
-    </style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>السندات المالية - النظام المحاسبي</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root{--primary:#2563eb;--primary-dark:#1d4ed8;--bg:#f4f7fb;--surface:#fff;--text:#172033;--muted:#6b7280;--line:#e5e7eb;--success:#16a34a;--danger:#dc2626;--warning:#d97706;--shadow:0 8px 24px rgba(15,23,42,.07);--sidebar:230px}
+    *{box-sizing:border-box}body{margin:0;font-family:Cairo,Arial,sans-serif;background:var(--bg);color:var(--text)}button,input,select{font:inherit}.app{display:flex;min-height:100vh}.sidebar{width:var(--sidebar);background:var(--surface);border-left:1px solid var(--line);padding:18px 0;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow:auto;flex-shrink:0}.brand{text-align:center;padding:4px 12px 18px;border-bottom:1px solid var(--line);margin-bottom:12px;color:var(--primary);font-weight:800}.brand i{display:block;font-size:28px;margin-bottom:4px}.brand small{display:block;color:var(--muted);font-size:11px;font-weight:500}.nav-link{display:flex;align-items:center;gap:10px;padding:10px 18px;color:var(--text);text-decoration:none;font-size:13px;font-weight:600;border-right:3px solid transparent;transition:.2s}.nav-link:hover,.nav-link.active{background:#eff6ff;color:var(--primary);border-right-color:var(--primary)}.nav-link i{width:20px;text-align:center}.logout{margin-top:auto;border-top:1px solid var(--line);padding-top:10px}.content{flex:1;min-width:0;padding:22px}.topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}.title h1{margin:0;font-size:24px}.title p{margin:4px 0 0;color:var(--muted);font-size:13px}.top-actions{display:flex;gap:8px;flex-wrap:wrap}.btn{border:0;border-radius:9px;padding:10px 14px;cursor:pointer;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:7px;transition:.2s}.btn:disabled{opacity:.55;cursor:not-allowed}.btn-primary{background:var(--primary);color:#fff}.btn-primary:hover{background:var(--primary-dark)}.btn-outline{background:#fff;border:1px solid var(--line);color:var(--text)}.btn-outline:hover{border-color:var(--primary);color:var(--primary)}.btn-success{background:var(--success);color:#fff}.btn-danger{background:var(--danger);color:#fff}.btn-sm{padding:7px 10px;font-size:12px}.cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:18px}.stat{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;box-shadow:var(--shadow);display:flex;align-items:center;gap:12px}.stat .icon{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;font-size:18px;background:#eff6ff;color:var(--primary)}.stat.success .icon{background:#ecfdf5;color:var(--success)}.stat.danger .icon{background:#fef2f2;color:var(--danger)}.stat.warning .icon{background:#fff7ed;color:var(--warning)}.stat .label{font-size:12px;color:var(--muted)}.stat .value{font-size:20px;font-weight:800;margin-top:2px}.panel{background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:18px;margin-bottom:18px}.panel-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px}.panel-head h2{font-size:17px;margin:0}.panel-head p{margin:3px 0 0;color:var(--muted);font-size:12px}.voucher-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.voucher-card{border:1px solid var(--line);border-radius:14px;padding:16px;background:linear-gradient(180deg,#fff,#f8fafc)}.voucher-card.receipt{border-top:4px solid var(--success)}.voucher-card.payment{border-top:4px solid var(--danger)}.voucher-card h3{margin:0 0 14px;font-size:15px}.form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}.field{display:flex;flex-direction:column;gap:5px}.field.full{grid-column:1/-1}.field label{font-size:12px;color:var(--muted);font-weight:700}.input{width:100%;border:1px solid var(--line);border-radius:8px;padding:10px 11px;background:#fff;outline:0}.input:focus{border-color:var(--primary);box-shadow:0 0 0 3px #dbeafe}.form-actions{display:flex;gap:8px;margin-top:13px}.filters{display:grid;grid-template-columns:1.2fr 1fr 1fr 1fr auto;gap:9px;align-items:end}.table-wrap{overflow:auto;border:1px solid var(--line);border-radius:10px}.table{width:100%;border-collapse:collapse;min-width:850px}.table th,.table td{padding:11px 12px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap;font-size:12px}.table th{background:#f8fafc;color:var(--muted);font-weight:800}.table tr:last-child td{border-bottom:0}.badge{display:inline-flex;padding:4px 9px;border-radius:999px;font-size:11px;font-weight:800}.badge.receipt{background:#dcfce7;color:#166534}.badge.payment{background:#fee2e2;color:#991b1b}.empty{text-align:center;padding:35px;color:var(--muted)}.loading{opacity:.6}.pagination{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:14px}.pagination button{min-width:34px}.hint{font-size:11px;color:var(--muted);margin-top:8px}.toast-container{position:fixed;bottom:18px;right:18px;z-index:20;display:grid;gap:8px}.toast{background:#111827;color:white;border-radius:10px;padding:12px 16px;box-shadow:var(--shadow);font-size:13px}.toast.success{background:var(--success)}.toast.error{background:var(--danger)}.toast.warning{background:var(--warning)}.toast.info{background:#0284c7}.mobile-toggle{display:none}.print-only{display:none}@media print{.sidebar,.top-actions,.voucher-grid,.filters,.panel-head button,.actions-col,.pagination,.toast-container{display:none!important}.content{padding:0}.panel{box-shadow:none;border:0}.print-only{display:block}.table th,.table td{font-size:10px}}@media(max-width:1050px){.cards{grid-template-columns:repeat(2,minmax(0,1fr))}.filters{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:760px){.app{display:block}.sidebar{position:fixed;z-index:10;right:-240px;top:0;transition:.25s;height:100vh}.sidebar.open{right:0}.content{padding:15px}.mobile-toggle{display:inline-flex}.topbar{align-items:flex-start}.title h1{font-size:20px}.voucher-grid{grid-template-columns:1fr}.form-grid{grid-template-columns:1fr}.field.full{grid-column:auto}.cards{grid-template-columns:1fr 1fr}.stat{padding:12px}.stat .value{font-size:16px}.filters{grid-template-columns:1fr}.overlay{display:none;position:fixed;inset:0;background:rgba(15,23,42,.35);z-index:9}.overlay.show{display:block}}
+  </style>
 </head>
 <body>
-    <div class="app-wrapper">
-        <nav class="sidebar">
-            <div class="brand"><i class="fas fa-store-alt"></i><span>ابن المختار</span></div>
-            <a class="nav-link" href="index.html"><i class="fas fa-th-large"></i> <span>لوحة التحكم</span></a>
-            <a class="nav-link" href="sale.html"><i class="fas fa-cash-register"></i> <span>البيع</span></a>
-            <a class="nav-link" href="products.html"><i class="fas fa-boxes"></i> <span>المنتجات</span></a>
-            <a class="nav-link" href="customers.html"><i class="fas fa-users"></i> <span>العملاء</span></a>
-            <a class="nav-link" href="suppliers.html"><i class="fas fa-truck"></i> <span>الموردين</span></a>
-            <a class="nav-link" href="purchases.html"><i class="fas fa-shopping-cart"></i> <span>المشتريات</span></a>
-            <a class="nav-link" href="expenses.html"><i class="fas fa-receipt"></i> <span>المصروفات</span></a>
-            <a class="nav-link active" href="payments.html"><i class="fas fa-hand-holding-usd"></i> <span>سندات</span></a>
-            <a class="nav-link" href="cash-wallets.html"><i class="fas fa-wallet"></i> <span>المحافظ</span></a>
-            <a class="nav-link" href="cash-wallets.html"><i class="fas fa-coins"></i> <span>الصندوق</span></a>
-            <a class="nav-link" href="invoices.html"><i class="fas fa-file-invoice"></i> <span>الفواتير</span></a>
-            <a class="nav-link" href="journal.html"><i class="fas fa-book"></i> <span>القيود</span></a>
-            <a class="nav-link" href="reports.html"><i class="fas fa-chart-pie"></i> <span>التقارير</span></a>
-            <a class="nav-link" href="operations.html"><i class="fas fa-tools"></i> <span>عمليات</span></a>
-            <a class="nav-link" href="settings.html"><i class="fas fa-cog"></i> <span>إعدادات</span></a>
-            <div class="logout-btn"><div class="nav-link" onclick="logout()" style="color:var(--danger);"><i class="fas fa-sign-out-alt"></i> <span>خروج</span></div></div>
-        </nav>
-
-        <main class="main-content">
-            <div class="card-section">
-                <h4><i class="fas fa-hand-holding-usd"></i> سندات القبض والصرف</h4>
-                <div class="flex-row">
-                    <div class="flex-1">
-                        <h5>سند قبض (إيداع في الصندوق)</h5>
-                        <label>المبلغ</label><input type="number" id="receipt-amount" class="input-field" step="0.01" />
-                        <label>السبب</label><input type="text" id="receipt-reason" class="input-field" />
-                        <button class="btn btn-success mt-10" onclick="addCashVoucher('receipt')"><i class="fas fa-plus"></i> سند قبض</button>
-                    </div>
-                    <div class="flex-1">
-                        <h5>سند صرف (سحب من الصندوق)</h5>
-                        <label>المبلغ</label><input type="number" id="payment-amount" class="input-field" step="0.01" />
-                        <label>السبب</label><input type="text" id="payment-reason" class="input-field" />
-                        <button class="btn btn-danger mt-10" onclick="addCashVoucher('payment')"><i class="fas fa-minus"></i> سند صرف</button>
-                    </div>
-                </div>
-                <hr />
-                <h5>سجل السندات</h5>
-                <div id="vouchers-log" style="max-height:400px; overflow-y:auto;"></div>
-            </div>
-        </main>
-    </div>
-    <div class="toast-container" id="toast-container"></div>
-
-    <script>
-        const API = 'https://api.ibnalmukhtar.com';
-        let token = localStorage.getItem('pos_token') || '';
-        if (!token) window.location.href = 'index.html';
-
-        function showToast(msg, type='info') {
-            const c = document.getElementById('toast-container');
-            const t = document.createElement('div');
-            t.className = `toast ${type}`;
-            const icons = { success:'fa-check-circle', error:'fa-exclamation-circle', warning:'fa-exclamation-triangle', info:'fa-info-circle' };
-            t.innerHTML = `<i class="fas ${icons[type] || icons.info}"></i> ${msg}`;
-            c.appendChild(t);
-            setTimeout(() => t.remove(), 4000);
-        }
-        function logout() { if(confirm('تأكيد الخروج?')) { localStorage.removeItem('pos_token'); window.location.href='index.html'; } }
-
-        async function addCashVoucher(type) {
-            const amount = parseFloat(document.getElementById(type === 'receipt' ? 'receipt-amount' : 'payment-amount').value);
-            const reason = document.getElementById(type === 'receipt' ? 'receipt-reason' : 'payment-reason').value;
-            if (!amount) return showToast('أدخل المبلغ', 'warning');
-            try {
-                const res = await fetch(`${API}/cash/voucher`, {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ type, amount, reason })
-                });
-                if (res.ok) {
-                    showToast('تم تسجيل السند', 'success');
-                    loadVouchers();
-                    document.getElementById(type === 'receipt' ? 'receipt-amount' : 'payment-amount').value = '';
-                    document.getElementById(type === 'receipt' ? 'receipt-reason' : 'payment-reason').value = '';
-                } else { const err = await res.json(); showToast(err.error, 'error'); }
-            } catch { showToast('خطأ', 'error'); }
-        }
-        async function loadVouchers() {
-            try {
-                const res = await fetch(`${API}/cash/vouchers`, { headers: { 'Authorization': `Bearer ${token}` } });
-                const data = await res.json();
-                const log = document.getElementById('vouchers-log');
-                log.innerHTML = data.vouchers.map(v => `
-                    <div style="border-bottom:1px solid var(--border); padding:6px 0;">
-                        <strong>${v.type === 'receipt' ? 'قبض' : 'صرف'}</strong> | ${v.amount} ريال | ${v.reason || ''} | ${new Date(v.created_at).toLocaleString()}
-                    </div>
-                `).join('') || 'لا توجد سندات';
-            } catch {}
-        }
-        window.onload = loadVouchers;
-    </script>
+<div class="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand"><i class="fas fa-store-alt"></i>ابن المختار<small>النظام المحاسبي</small></div>
+    <a class="nav-link" href="index.html"><i class="fas fa-th-large"></i>لوحة التحكم</a>
+    <a class="nav-link" href="add_order.html"><i class="fas fa-globe"></i>طلب إنترنت</a>
+    <a class="nav-link" href="orders.html"><i class="fas fa-list"></i>الطلبات والمندوبون</a>
+    <a class="nav-link" href="sale.html"><i class="fas fa-cash-register"></i>البيع</a>
+    <a class="nav-link" href="products.html"><i class="fas fa-boxes"></i>المنتجات</a>
+    <a class="nav-link" href="customers.html"><i class="fas fa-users"></i>العملاء</a>
+    <a class="nav-link" href="suppliers.html"><i class="fas fa-truck"></i>الموردون</a>
+    <a class="nav-link" href="purchases.html"><i class="fas fa-shopping-cart"></i>المشتريات</a>
+    <a class="nav-link" href="expenses.html"><i class="fas fa-receipt"></i>المصروفات</a>
+    <a class="nav-link active" href="payments.html"><i class="fas fa-hand-holding-usd"></i>السندات</a>
+    <a class="nav-link" href="cash-wallets.html"><i class="fas fa-wallet"></i>الصندوق والمحافظ</a>
+    <a class="nav-link" href="invoices.html"><i class="fas fa-file-invoice"></i>الفواتير</a>
+    <a class="nav-link" href="journal.html"><i class="fas fa-book"></i>القيود</a>
+    <a class="nav-link" href="reports.html"><i class="fas fa-chart-pie"></i>التقارير</a>
+    <a class="nav-link" href="operations.html"><i class="fas fa-tools"></i>العمليات</a>
+    <a class="nav-link" href="settings.html"><i class="fas fa-cog"></i>الإعدادات</a>
+    <div class="logout"><div class="nav-link" onclick="logout()" style="color:var(--danger);"><i class="fas fa-sign-out-alt"></i>تسجيل الخروج</div></div>
+  </aside>
+  <div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
+  <main class="content">
+    <header class="topbar">
+      <div class="title"><h1><i class="fas fa-file-invoice-dollar" style="color:var(--primary)"></i> السندات المالية</h1><p>إدارة سندات القبض والصرف ومراجعة أثرها على الصندوق.</p></div>
+      <div class="top-actions"><button class="btn btn-outline mobile-toggle" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button><button class="btn btn-outline" onclick="loadAll()"><i class="fas fa-sync-alt"></i> تحديث</button><button class="btn btn-outline" onclick="window.print()"><i class="fas fa-print"></i> طباعة</button><button class="btn btn-primary" onclick="exportCsv()"><i class="fas fa-file-csv"></i> CSV</button></div>
+    </header>
+    <section class="cards">
+      <div class="stat"><div class="icon"><i class="fas fa-list"></i></div><div><div class="label">إجمالي السندات المعروضة</div><div class="value" id="stat-count">0</div></div></div>
+      <div class="stat success"><div class="icon"><i class="fas fa-arrow-down"></i></div><div><div class="label">إجمالي القبض</div><div class="value" id="stat-receipts">0.00</div></div></div>
+      <div class="stat danger"><div class="icon"><i class="fas fa-arrow-up"></i></div><div><div class="label">إجمالي الصرف</div><div class="value" id="stat-payments">0.00</div></div></div>
+      <div class="stat warning"><div class="icon"><i class="fas fa-vault"></i></div><div><div class="label">رصيد الصندوق بالعملة الأساسية</div><div class="value" id="stat-balance">0.00</div></div></div>
+    </section>
+    <section class="panel">
+      <div class="panel-head"><div><h2>إضافة سند جديد</h2><p>يجب اختيار العملة لأن Worker يتحقق من `currency_id` قبل الحفظ.</p></div><span class="badge" id="currency-status">جاري تحميل العملات</span></div>
+      <div class="voucher-grid">
+        <div class="voucher-card receipt"><h3><i class="fas fa-plus-circle" style="color:var(--success)"></i> سند قبض</h3><div class="form-grid"><div class="field"><label for="receipt-amount">المبلغ</label><input class="input" id="receipt-amount" type="number" min="0.01" step="0.01" placeholder="0.00"></div><div class="field"><label for="receipt-currency">العملة</label><select class="input" id="receipt-currency"></select></div><div class="field full"><label for="receipt-reason">البيان / السبب</label><input class="input" id="receipt-reason" type="text" maxlength="200" placeholder="مثال: إيراد إضافي"></div></div><div class="form-actions"><button class="btn btn-success" onclick="submitVoucher('receipt')"><i class="fas fa-check"></i> حفظ سند القبض</button><button class="btn btn-outline btn-sm" onclick="clearForm('receipt')">مسح</button></div></div>
+        <div class="voucher-card payment"><h3><i class="fas fa-minus-circle" style="color:var(--danger)"></i> سند صرف</h3><div class="form-grid"><div class="field"><label for="payment-amount">المبلغ</label><input class="input" id="payment-amount" type="number" min="0.01" step="0.01" placeholder="0.00"></div><div class="field"><label for="payment-currency">العملة</label><select class="input" id="payment-currency"></select></div><div class="field full"><label for="payment-reason">البيان / السبب</label><input class="input" id="payment-reason" type="text" maxlength="200" placeholder="مثال: مصروف تشغيل"></div></div><div class="form-actions"><button class="btn btn-danger" onclick="submitVoucher('payment')"><i class="fas fa-check"></i> حفظ سند الصرف</button><button class="btn btn-outline btn-sm" onclick="clearForm('payment')">مسح</button></div></div>
+      </div>
+    </section>
+    <section class="panel">
+      <div class="panel-head"><div><h2>سجل السندات</h2><p id="result-label">آخر السندات المسجلة في النظام</p></div><button class="btn btn-outline btn-sm" onclick="resetFilters()"><i class="fas fa-undo"></i> تصفير الفلاتر</button></div>
+      <div class="filters"><div class="field"><label>بحث</label><input class="input" id="filter-search" placeholder="رقم السند أو البيان أو العملة"></div><div class="field"><label>النوع</label><select class="input" id="filter-type"><option value="">الكل</option><option value="receipt">قبض</option><option value="payment">صرف</option></select></div><div class="field"><label>من تاريخ</label><input class="input" type="date" id="filter-from"></div><div class="field"><label>إلى تاريخ</label><input class="input" type="date" id="filter-to"></div><button class="btn btn-primary" onclick="applyFilters()"><i class="fas fa-filter"></i> تطبيق</button></div>
+      <div class="table-wrap" style="margin-top:16px"><table class="table"><thead><tr><th>#</th><th>النوع</th><th>المبلغ</th><th>العملة</th><th>البيان</th><th>التاريخ</th><th class="actions-col">الإجراء</th></tr></thead><tbody id="vouchers-body"><tr><td colspan="7" class="empty">جاري تحميل السندات...</td></tr></tbody></table></div>
+      <div class="pagination"><button class="btn btn-outline btn-sm" id="prev-page" onclick="changePage(-1)">السابق</button><span id="page-label">صفحة 1</span><button class="btn btn-outline btn-sm" id="next-page" onclick="changePage(1)">التالي</button></div>
+    </section>
+    <div class="print-only"><h2>تقرير السندات المالية</h2><p id="print-date"></p></div>
+  </main>
+</div>
+<div class="modal-overlay" id="voucher-document-modal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:30;place-items:center;padding:16px;"><div class="panel" style="max-width:760px;width:100%;max-height:90vh;overflow:auto;"><div class="panel-head"><h2>مستند السند</h2><button class="btn btn-outline btn-sm" onclick="closeVoucherDocument()">إغلاق</button></div><div id="voucher-document-content"></div><div class="actions no-print" style="margin-top:12px;"><button class="btn btn-primary" onclick="printVoucherDocument()"><i class="fas fa-print"></i> طباعة</button><button class="btn btn-outline" onclick="exportVoucherDocumentPDF()"><i class="fas fa-file-pdf"></i> PDF</button><button class="btn btn-outline" onclick="exportVoucherDocumentExcel()"><i class="fas fa-file-excel"></i> Excel</button></div></div></div><div class="toast-container" id="toast-container"></div>
+<script>
+const API='https://api.ibnalmukhtar.com';
+const token=localStorage.getItem('pos_token')||'';
+if(!token) location.href='index.html';
+let currencies=[], vouchers=[], filtered=[], page=1; const pageSize=20;
+const auth=()=>({Authorization:`Bearer ${token}`});
+function escapeHtml(v){return String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));}
+function toast(msg,type='info'){const el=document.createElement('div');el.className=`toast ${type}`;el.textContent=msg;document.getElementById('toast-container').appendChild(el);setTimeout(()=>el.remove(),4000)}
+function logout(){if(confirm('هل تريد تسجيل الخروج؟')){localStorage.removeItem('pos_token');localStorage.removeItem('pos_user');location.href='index.html'}}
+function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('overlay').classList.toggle('show')}
+async function loadCurrencies(){const res=await fetch(`${API}/currencies`,{headers:auth()});const data=await res.json();if(!res.ok)throw Error(data.error||'تعذر تحميل العملات');currencies=data.currencies||[];const options=currencies.map(c=>`<option value="${c.id}" ${c.is_base?'selected':''}>${escapeHtml(c.code||c.name)} - ${escapeHtml(c.name||'')}</option>`).join('');document.getElementById('receipt-currency').innerHTML=options;document.getElementById('payment-currency').innerHTML=options;document.getElementById('currency-status').textContent=`${currencies.length} عملة متاحة`}
+async function loadBalance(){const res=await fetch(`${API}/cash/balance`,{headers:auth()});const data=await res.json();if(!res.ok)throw Error(data.error||'تعذر تحميل الرصيد');document.getElementById('stat-balance').textContent=Number(data.total_base||0).toFixed(2)}
+async function loadVouchers(){const res=await fetch(`${API}/cash/vouchers`,{headers:auth()});const data=await res.json();if(!res.ok)throw Error(data.error||'تعذر تحميل السندات');vouchers=data.vouchers||[];applyFilters()}
+function applyFilters(){const q=document.getElementById('filter-search').value.trim().toLowerCase(), type=document.getElementById('filter-type').value, from=document.getElementById('filter-from').value, to=document.getElementById('filter-to').value;filtered=vouchers.filter(v=>{const text=`${v.id} ${v.reason||''} ${v.currency_code||''} ${v.currency_name||''}`.toLowerCase(), day=(v.created_at||'').slice(0,10);return(!q||text.includes(q))&&(!type||v.type===type)&&(!from||day>=from)&&(!to||day<=to)});page=1;renderVouchers()}
+function resetFilters(){['filter-search','filter-from','filter-to'].forEach(id=>document.getElementById(id).value='');document.getElementById('filter-type').value='';applyFilters()}
+function renderVouchers(){const body=document.getElementById('vouchers-body');const start=(page-1)*pageSize;const rows=filtered.slice(start,start+pageSize);if(!rows.length)body.innerHTML='<tr><td colspan="7" class="empty">لا توجد سندات مطابقة للبحث</td></tr>';else body.innerHTML=rows.map(v=>`<tr><td><strong>#${v.id}</strong></td><td><span class="badge ${v.type}">${v.type==='receipt'?'قبض':'صرف'}</span></td><td><strong>${Number(v.amount||0).toFixed(2)}</strong></td><td>${escapeHtml(v.currency_code||v.currency_name||'-')}</td><td>${escapeHtml(v.reason||'-')}</td><td>${new Date(v.created_at).toLocaleString('ar-YE')}</td><td class="actions-col"><button class="btn btn-primary btn-sm" onclick="viewVoucher(${v.id})"><i class="fas fa-eye"></i> مستند</button><button class="btn btn-danger btn-sm" onclick="cancelVoucher(${v.id})"><i class="fas fa-undo"></i> إلغاء</button></td></tr>`).join('');const pages=Math.max(1,Math.ceil(filtered.length/pageSize));document.getElementById('page-label').textContent=`صفحة ${page} من ${pages}`;document.getElementById('prev-page').disabled=page<=1;document.getElementById('next-page').disabled=page>=pages;const receipts=filtered.filter(v=>v.type==='receipt').reduce((s,v)=>s+Number(v.amount||0),0),payments=filtered.filter(v=>v.type==='payment').reduce((s,v)=>s+Number(v.amount||0),0);document.getElementById('stat-count').textContent=filtered.length;document.getElementById('stat-receipts').textContent=receipts.toFixed(2);document.getElementById('stat-payments').textContent=payments.toFixed(2);document.getElementById('result-label').textContent=`عرض ${rows.length} من ${filtered.length} سند`}
+function changePage(delta){const pages=Math.max(1,Math.ceil(filtered.length/pageSize));page=Math.min(pages,Math.max(1,page+delta));renderVouchers()}
+function clearForm(type){document.getElementById(`${type}-amount`).value='';document.getElementById(`${type}-reason`).value=''}
+let activeVoucher = null;
+function viewVoucher(id){ activeVoucher = vouchers.find(v => Number(v.id) === Number(id)); if(!activeVoucher) return toast('السند غير موجود','error'); const box=document.getElementById('voucher-document-content'); box.innerHTML=window.POSDocs ? POSDocs.renderVoucher(activeVoucher) : `<div>سند #${id}</div>`; document.getElementById('voucher-document-modal').style.display='grid'; }
+function closeVoucherDocument(){ document.getElementById('voucher-document-modal').style.display='none'; activeVoucher=null; }
+function printVoucherDocument(){ if(activeVoucher&&window.POSDocs) POSDocs.printVoucherData(activeVoucher,{title:`سند ${activeVoucher.id}`}).catch(e=>toast(e.message,'error')); }
+function exportVoucherDocumentPDF(){ if(activeVoucher&&window.POSDocs) POSDocs.exportVoucherPDF(activeVoucher,{title:`سند ${activeVoucher.id}`,filename:`سند-${activeVoucher.id}.pdf`}).then(()=>toast('تم تنزيل PDF','success')).catch(e=>toast(e.message,'error')); }
+function exportVoucherDocumentExcel(){ if(!activeVoucher||!window.POSDocs) return; POSDocs.exportRowsExcel([{الرقم:activeVoucher.id, النوع:activeVoucher.type==='receipt'?'قبض':'صرف', المبلغ:activeVoucher.amount, العملة:activeVoucher.currency_code||activeVoucher.currency_name||'', البيان:activeVoucher.reason||'', التاريخ:activeVoucher.created_at}],{filename:`سند-${activeVoucher.id}.xlsx`}).then(()=>toast('تم تنزيل Excel','success')).catch(e=>toast(e.message,'error')); }
+async function submitVoucher(type){const amount=Number(document.getElementById(`${type}-amount`).value),currency_id=Number(document.getElementById(`${type}-currency`).value),reason=document.getElementById(`${type}-reason`).value.trim();if(!amount||amount<=0)return toast('أدخل مبلغًا صحيحًا','warning');if(!currency_id)return toast('اختر العملة','warning');try{const res=await fetch(`${API}/cash/voucher`,{method:'POST',headers:{...auth(),'Content-Type':'application/json'},body:JSON.stringify({type,amount,currency_id,reason})});const data=await res.json();if(!res.ok)throw Error(data.error||'فشل حفظ السند');toast(`تم حفظ السند #${data.voucher_id||''}`,'success');clearForm(type);await loadAll()}catch(e){toast(e.message,'error')}}
+async function cancelVoucher(id){if(!confirm(`سيتم إلغاء السند #${id} وإنشاء حركة عكسية. هل تريد المتابعة؟`))return;try{const res=await fetch(`${API}/cash/cancel-voucher`,{method:'POST',headers:{...auth(),'Content-Type':'application/json'},body:JSON.stringify({voucher_id:id})});const data=await res.json();if(!res.ok)throw Error(data.error||'فشل إلغاء السند');toast('تم إلغاء السند وإنشاء الحركة العكسية','success');await loadAll()}catch(e){toast(e.message,'error')}}
+function exportCsv(){if(!filtered.length)return toast('لا توجد بيانات للتصدير','warning');const headers=['الرقم','النوع','المبلغ','العملة','البيان','التاريخ'];const lines=[headers,...filtered.map(v=>[v.id,v.type==='receipt'?'قبض':'صرف',v.amount,v.currency_code||v.currency_name||'',v.reason||'',v.created_at])].map(row=>row.map(v=>`"${String(v??'').replace(/"/g,'""')}"`).join(','));const blob=new Blob(['\ufeff'+lines.join('\n')],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`vouchers-${new Date().toISOString().slice(0,10)}.csv`;a.click();URL.revokeObjectURL(url)}
+async function loadAll(){document.getElementById('vouchers-body').classList.add('loading');try{await Promise.all([loadCurrencies(),loadVouchers(),loadBalance()])}catch(e){toast(e.message,'error')}finally{document.getElementById('vouchers-body').classList.remove('loading');document.getElementById('print-date').textContent=`تاريخ الطباعة: ${new Date().toLocaleString('ar-YE')}`}}
+window.addEventListener('DOMContentLoaded',()=>{loadAll();document.querySelectorAll('#filter-search,#filter-from,#filter-to').forEach(el=>el.addEventListener('keydown',e=>{if(e.key==='Enter')applyFilters()}));document.getElementById('filter-type').addEventListener('change',applyFilters)})
+</script>
+    <script src="document-utils.js"></script>
 </body>
 </html>

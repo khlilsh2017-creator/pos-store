@@ -281,7 +281,7 @@
         <div class="form-group">
             <label>📌 نوع الإشعار</label>
             <select id="notificationType">
-                <option value="driver">🚚 للمندوبين (driver.html)</option>
+                <option value="driver">🚚 للمندوبين (واجهة المندوب)</option>
                 <option value="admin">👤 للمشرفين (orders.html)</option>
             </select>
         </div>
@@ -299,7 +299,7 @@
         <div class="form-row">
             <div class="form-group">
                 <label>🔗 الرابط (اختياري)</label>
-                <input type="text" id="notifLink" placeholder="https://pos.ibnalmukhtar.com/..." value="https://pos.ibnalmukhtar.com/driver.html">
+                <input type="text" id="notifLink" placeholder="https://pos.ibnalmukhtar.com/..." value="https://pos.ibnalmukhtar.com/driver/">
             </div>
         </div>
 
@@ -409,7 +409,7 @@
             const btn = document.getElementById('sendBtn');
             const title = document.getElementById('notifTitle').value.trim() || '🧪 إشعار تجريبي';
             const body = document.getElementById('notifBody').value.trim() || 'هذا إشعار اختبار';
-            const link = document.getElementById('notifLink').value.trim() || 'https://pos.ibnalmukhtar.com/driver.html';
+            const link = document.getElementById('notifLink').value.trim() || 'https://pos.ibnalmukhtar.com/driver/';
             const type = document.getElementById('notificationType').value;
 
             if (!title || !body) {

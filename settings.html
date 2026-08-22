@@ -91,6 +91,10 @@
         </nav>
 
         <main class="main-content">
+            <div class="card-section" id="connection-card" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+                <div><h4><i class="fas fa-signal"></i> حالة الاتصال</h4><p class="text-muted" id="connection-detail">جاري فحص الاتصال بالخادم...</p></div>
+                <span id="connection-badge" class="btn btn-warning btn-sm"><i class="fas fa-spinner fa-spin"></i> فحص</span>
+            </div>
             <!-- إعدادات النظام الأساسية -->
             <div class="card-section">
                 <h4><i class="fas fa-cog"></i> إعدادات النظام</h4>
@@ -117,13 +121,20 @@
                                 <span class="toggle-slider"></span>
                             </label>
                         </div>
-                        <div class="flex-1 toggle-group">
-                            <span class="toggle-label">السماح بالمخزون السالب</span>
-                            <label class="toggle-switch">
-                                <input type="checkbox" id="setting-allow-negative-stock" />
-                                <span class="toggle-slider"></span>
-                            </label>
-                        </div>
+                            <div class="flex-1 toggle-group">
+                                <span class="toggle-label">السماح بالمخزون السالب</span>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="setting-allow-negative-stock" />
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="flex-1 toggle-group">
+                                <span class="toggle-label">السالب للمنتجات المنتهية فقط</span>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="setting-allow-expired-negative" />
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
                         <div class="flex-1">
                             <label>رقم المنتج التالي (SKU)</label>
                             <input type="number" id="setting-next-product-code" class="input-field" min="1" step="1" />
@@ -141,8 +152,22 @@
                 </form>
             </div>
 
+            <!-- الإقفال المحاسبي -->
+            <div class="card-section" id="accounting-card" data-admin-only="true">
+                <h4><i class="fas fa-lock"></i> الإقفال المحاسبي</h4>
+                <p class="text-muted">يقفل التعديلات المالية حتى التاريخ المحدد وينشئ قيدًا عكسيًا للإيرادات والمصروفات. هذه العملية متاحة للمدير فقط.</p>
+                <div class="flex-row mt-10" style="align-items:end;gap:12px;">
+                    <div class="flex-1"><label>مغلق حتى تاريخ</label><input type="date" id="closed-until-date" class="input-field" disabled /></div>
+                    <div class="flex-1"><span id="accounting-lock-status" class="text-muted">جاري فحص الحالة...</span></div>
+                </div>
+                <div class="form-actions mt-10">
+                    <button type="button" class="btn btn-warning" onclick="closeAccountingYear()"><i class="fas fa-lock"></i> إقفال حتى التاريخ</button>
+                    <button type="button" class="btn btn-outline" onclick="reopenAccounting()"><i class="fas fa-lock-open"></i> إعادة فتح آخر إقفال</button>
+                </div>
+            </div>
+
             <!-- النسخ الاحتياطي والاستعادة -->
-            <div class="card-section">
+            <div class="card-section" id="backup-card" data-admin-only="true">
                 <h4><i class="fas fa-database"></i> النسخ الاحتياطي للبيانات</h4>
                 <p class="text-muted">حفظ نسخة من النظام أو استعادتها. (يتم تحميل نسخة تلقائياً الساعة 10:00 مساءً إذا كان النظام مفتوحاً).</p>
                 <div class="flex-row mt-10">
@@ -188,7 +213,7 @@
             </div>
 
             <!-- إدارة المستخدمين -->
-            <div class="card-section">
+            <div class="card-section" id="users-card" data-admin-only="true">
                 <h4><i class="fas fa-users-cog"></i> إدارة المستخدمين</h4>
                 <p class="text-muted">يمكن للمدير فقط إدارة المستخدمين. الأدوار: <strong>admin</strong> (مدير) و <strong>cashier</strong> (كاشير).</p>
                 
@@ -239,6 +264,8 @@
     <script>
         const API = 'https://api.ibnalmukhtar.com';
         let token = localStorage.getItem('pos_token') || '';
+        const currentUser = JSON.parse(localStorage.getItem('pos_user') || '{}');
+        const isAdmin = currentUser.role === 'admin';
         if (!token) window.location.href = 'index.html';
 
         function showToast(msg, type='info') {
@@ -250,7 +277,20 @@
             c.appendChild(t);
             setTimeout(() => t.remove(), 4000);
         }
-        function logout() { if(confirm('تأكيد الخروج?')) { localStorage.removeItem('pos_token'); window.location.href='index.html'; } }
+        function logout() { if(confirm('تأكيد الخروج?')) { localStorage.removeItem('pos_token'); localStorage.removeItem('pos_user'); window.location.href='index.html'; } }
+
+        function applySettingsPermissions() {
+            document.querySelectorAll('[data-admin-only="true"]').forEach(el => { if (!isAdmin) el.style.display = 'none'; });
+            if (!isAdmin) document.querySelectorAll('#settings-form input, #settings-form select, #settings-form button[type="submit"], #invoice-numbers-form input, #invoice-numbers-form select, #invoice-numbers-form button').forEach(el => el.disabled = true);
+        }
+
+        async function checkConnection() {
+            const badge = document.getElementById('connection-badge'); const detail = document.getElementById('connection-detail');
+            if (!navigator.onLine) { badge.className = 'btn btn-danger btn-sm'; badge.innerHTML = '<i class="fas fa-wifi-slash"></i> غير متصل'; detail.textContent = 'لا يوجد اتصال بالشبكة'; return false; }
+            const controller = new AbortController(); const timer = setTimeout(() => controller.abort(), 6000);
+            try { const started = performance.now(); const res = await fetch(`${API}/settings`, { headers:{'Authorization': `Bearer ${token}`}, signal: controller.signal }); clearTimeout(timer); if (!res.ok) throw new Error('HTTP ' + res.status); badge.className = 'btn btn-success btn-sm'; badge.innerHTML = '<i class="fas fa-check-circle"></i> متصل'; detail.textContent = `Worker متصل · زمن الاستجابة ${Math.round(performance.now()-started)}ms`; return true; }
+            catch (e) { clearTimeout(timer); badge.className = 'btn btn-danger btn-sm'; badge.innerHTML = '<i class="fas fa-exclamation-circle"></i> تعذر الاتصال'; detail.textContent = 'تحقق من عنوان API أو صلاحية الجلسة'; return false; }
+        }
 
         // ========== الإعدادات ==========
         async function loadSettings() {
@@ -263,7 +303,12 @@
                 document.getElementById('setting-default-discount').value = s.default_discount_percentage || 0;
                 document.getElementById('setting-allow-below-cost').checked = s.allow_below_cost === '1';
                 document.getElementById('setting-allow-negative-stock').checked = s.allow_negative_stock === '1';
+                document.getElementById('setting-allow-expired-negative').checked = s.allow_expired_negative_sales === undefined || s.allow_expired_negative_sales === '1';
                 document.getElementById('setting-next-product-code').value = s.next_product_code || 1;
+                const closed = s.closed_until_date || '';
+                document.getElementById('closed-until-date').value = closed;
+                document.getElementById('accounting-lock-status').textContent = closed ? `الفترة مغلقة حتى ${closed}` : 'الفترة المحاسبية مفتوحة';
+                document.getElementById('accounting-lock-status').style.color = closed ? 'var(--danger)' : 'var(--success)';
             } catch {
                 showToast('فشل تحميل الإعدادات', 'error');
             }
@@ -277,6 +322,7 @@
                 default_discount_percentage: parseFloat(document.getElementById('setting-default-discount').value) || 0,
                 allow_below_cost: document.getElementById('setting-allow-below-cost').checked ? '1' : '0',
                 allow_negative_stock: document.getElementById('setting-allow-negative-stock').checked ? '1' : '0',
+                allow_expired_negative_sales: document.getElementById('setting-allow-expired-negative').checked ? '1' : '0',
                 next_product_code: parseInt(document.getElementById('setting-next-product-code').value) || 1
             };
             try {
@@ -290,6 +336,27 @@
                     loadSettings();
                 } else { const err = await res.json(); showToast(err.error, 'error'); }
             } catch { showToast('خطأ', 'error'); }
+        }
+
+        async function closeAccountingYear() {
+            if (!isAdmin) return showToast('تتطلب صلاحية مدير', 'error');
+            const date = document.getElementById('closed-until-date').value;
+            if (!date) return showToast('حدد تاريخ الإقفال أولاً', 'warning');
+            if (!confirm(`سيتم إنشاء قيد إقفال ومنع التعديلات حتى ${date}. هل تريد المتابعة؟`)) return;
+            try {
+                const res = await fetch(`${API}/accounting/close-year`, { method:'POST', headers:{'Authorization':`Bearer ${token}`,'Content-Type':'application/json'}, body:JSON.stringify({closing_date:date}) });
+                const data = await res.json(); if (!res.ok) throw new Error(data.error || 'فشل الإقفال');
+                showToast('تم إقفال السنة وإنشاء القيد العكسي', 'success'); await loadSettings();
+            } catch (e) { showToast(e.message, 'error'); }
+        }
+        async function reopenAccounting() {
+            if (!isAdmin) return showToast('تتطلب صلاحية مدير', 'error');
+            if (!confirm('سيتم حذف قيد آخر إقفال وفتح الفترة. هل تريد المتابعة؟')) return;
+            try {
+                const res = await fetch(`${API}/accounting/reopen`, { method:'POST', headers:{'Authorization':`Bearer ${token}`,'Content-Type':'application/json'}, body:'{}' });
+                const data = await res.json(); if (!res.ok) throw new Error(data.error || 'فشل إعادة الفتح');
+                showToast(data.message || 'تم فتح الفترة المحاسبية', 'success'); await loadSettings();
+            } catch (e) { showToast(e.message, 'error'); }
         }
 
         // ========== توليد أرقام SKU للمنتجات القديمة ==========
@@ -347,11 +414,12 @@
 
         async function importData() {
             const fileInput = document.getElementById('import-file');
+            if (!isAdmin) return showToast('استعادة البيانات متاحة للمدير فقط', 'warning');
             if (!fileInput.files.length) return showToast('الرجاء اختيار ملف النسخة الاحتياطية (JSON) أولاً', 'warning');
-
-            if (!confirm('🚨 تحذير خطير 🚨\nاستعادة البيانات ستحذف كافة الفواتير، المبيعات، والأرصدة الحالية وتستبدلها بالملف المرفوع.\n\nهل أنت متأكد من هذه العملية؟')) return;
-
             const file = fileInput.files[0];
+            if (file.size > 20 * 1024 * 1024) return showToast('حجم النسخة يتجاوز الحد الآمن 20MB', 'warning');
+            if (!confirm('سيتم استبدال البيانات الحالية. اضغط موافق للمتابعة ثم اكتب كلمة استعادة في التأكيد التالي.')) return;
+            if (prompt('للتأكيد اكتب: استعادة') !== 'استعادة') return showToast('تم إلغاء الاستعادة لعدم تطابق التأكيد', 'info');
             const reader = new FileReader();
 
             reader.onload = async function(e) {
@@ -538,12 +606,18 @@
         }
 
         // ========== التحميل عند فتح الصفحة ==========
+        applySettingsPermissions();
         window.onload = function() {
+            checkConnection();
             loadSettings();
-            loadUsers();
+            if (isAdmin) loadUsers();
             loadInvoiceNumbers();
             setupAutoBackup();
         };
+        window.addEventListener('online', checkConnection);
+        window.addEventListener('offline', checkConnection);
+        setInterval(checkConnection, 60000);
     </script>
+    <script src="document-utils.js"></script>
 </body>
 </html>

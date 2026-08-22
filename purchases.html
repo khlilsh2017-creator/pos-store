@@ -161,6 +161,11 @@
                 <i class="fas fa-shopping-cart" style="color:var(--primary);"></i>
                 <span id="page-title">فاتورة شراء جديدة</span>
                 <span id="edit-badge" class="status-badge active" style="display:none;margin-right:12px;">تعديل</span>
+                <span style="float:left;display:flex;gap:6px;flex-wrap:wrap;">
+                    <button class="btn btn-outline btn-sm" onclick="savePurchaseDraft()"><i class="fas fa-file-alt"></i> مسودة</button>
+                    <button class="btn btn-outline btn-sm" onclick="openPurchaseDrafts()"><i class="fas fa-folder-open"></i> المسودات</button>
+                    <button class="btn btn-outline btn-sm" onclick="exportPurchasesCSV()"><i class="fas fa-file-csv"></i> تصدير</button>
+                </span>
             </h2>
 
             <div class="pos-layout">
@@ -515,6 +520,7 @@
         let editingInvoiceId = null;
         let lastSavedInvoiceId = null;
         let isEditing = false;
+        let activePurchaseDraftId = null;
 
         // ===== متغيرات العملات والمحافظ والصندوق =====
         let currenciesCache = [];
@@ -861,6 +867,59 @@
         async function refreshLog() {
             await loadPurchasesHistory();
             showToast('تم تحديث السجل', 'info');
+        }
+
+        function getPurchaseDraftSnapshot() {
+            return { supplierId: document.getElementById('purchase-supplier').value, items: JSON.parse(JSON.stringify(purchaseItems)),
+                discount: document.getElementById('purchase-discount').value || 0, discountType: document.getElementById('discount-type').value || 'fixed',
+                taxRate: document.getElementById('purchase-tax-rate').value || 0, additional: document.getElementById('purchase-additional').value || 0,
+                paymentMethod: document.getElementById('purchase-payment-method').value || 'cash', created_at: new Date().toISOString() };
+        }
+
+        function savePurchaseDraft(isAuto = false) {
+            if (!purchaseItems.length) return isAuto ? null : showToast('أضف منتجات أولاً لحفظ المسودة', 'warning');
+            const drafts = JSON.parse(localStorage.getItem('pos_purchase_drafts') || '[]');
+            const draft = { id: activePurchaseDraftId || Date.now(), ...getPurchaseDraftSnapshot() };
+            const next = drafts.filter(d => d.id !== draft.id); next.unshift(draft);
+            localStorage.setItem('pos_purchase_drafts', JSON.stringify(next.slice(0, 30)));
+            activePurchaseDraftId = draft.id;
+            if (!isAuto) showToast('تم حفظ مسودة المشتريات محليًا', 'success');
+        }
+
+        function openPurchaseDrafts() {
+            const drafts = JSON.parse(localStorage.getItem('pos_purchase_drafts') || '[]');
+            if (!drafts.length) return showToast('لا توجد مسودات مشتريات', 'info');
+            const overlay = document.createElement('div'); overlay.className = 'modal-overlay active'; overlay.id = 'purchaseDraftOverlay';
+            overlay.innerHTML = `<div class="modal" style="max-width:700px"><button class="close-btn" onclick="this.closest('.modal-overlay').remove()">&times;</button><h3>مسودات المشتريات</h3>${drafts.map(d => `<div class="card" style="margin:8px 0;display:flex;justify-content:space-between;align-items:center;gap:8px"><span>${new Date(d.created_at).toLocaleString('ar-SA')} · ${d.items.length} أصناف</span><span><button class="btn btn-sm btn-primary" onclick="loadPurchaseDraft(${d.id})">استرجاع</button><button class="btn btn-sm btn-danger" onclick="deletePurchaseDraft(${d.id})">حذف</button></span></div>`).join('')}</div>`;
+            document.body.appendChild(overlay);
+        }
+
+        function loadPurchaseDraft(id) {
+            const drafts = JSON.parse(localStorage.getItem('pos_purchase_drafts') || '[]'); const d = drafts.find(x => x.id === id); if (!d) return;
+            activePurchaseDraftId = d.id; purchaseItems = d.items || [];
+            document.getElementById('purchase-supplier').value = d.supplierId || '';
+            document.getElementById('purchase-discount').value = d.discount || 0; document.getElementById('discount-type').value = d.discountType || 'fixed';
+            document.getElementById('purchase-tax-rate').value = d.taxRate || 0; document.getElementById('purchase-additional').value = d.additional || 0;
+            document.getElementById('purchase-payment-method').value = d.paymentMethod || 'cash'; renderPurchaseItems(); updateTotals(); togglePaymentFields();
+            document.getElementById('purchaseDraftOverlay')?.remove(); showToast('تم استرجاع مسودة المشتريات', 'success');
+        }
+
+        function deletePurchaseDraft(id) {
+            const drafts = JSON.parse(localStorage.getItem('pos_purchase_drafts') || '[]').filter(d => d.id !== id);
+            localStorage.setItem('pos_purchase_drafts', JSON.stringify(drafts)); openPurchaseDrafts();
+        }
+
+        function clearActivePurchaseDraft() {
+            if (!activePurchaseDraftId) return;
+            const drafts = JSON.parse(localStorage.getItem('pos_purchase_drafts') || '[]').filter(d => d.id !== activePurchaseDraftId);
+            localStorage.setItem('pos_purchase_drafts', JSON.stringify(drafts)); activePurchaseDraftId = null;
+        }
+
+        function exportPurchasesCSV() {
+            if (!allPurchasesLog.length) return showToast('لا توجد مشتريات للتصدير', 'warning');
+            const keys = ['id','invoice_number','supplier_name','created_at','total_amount','payment_method','status'];
+            const csv = '\ufeff' + [keys, ...allPurchasesLog.map(r => keys.map(k => r[k] ?? ''))].map(row => row.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\\n');
+            const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv;charset=utf-8'})); a.download = `المشتريات-${new Date().toISOString().slice(0,10)}.csv`; a.click(); URL.revokeObjectURL(a.href); showToast('تم تصدير المشتريات', 'success');
         }
 
         // ===== التصنيفات =====
@@ -1487,6 +1546,7 @@
                         lastSavedInvoiceId = parseInt(invoiceId);
                     }
 
+                    clearActivePurchaseDraft();
                     purchaseItems = [];
                     renderPurchaseItems();
                     updateTotals();
@@ -1814,6 +1874,7 @@
             const total = parseFloat(invoice.total_amount || 0).toFixed(2);
             const totalCost = parseFloat(invoice.total_cost || 0).toFixed(2);
             const items = invoice.items || [];
+            window._purchaseInvoiceData = { type:'purchase', number:invNumber, date, party:supplier, items, total:Number(invoice.total_amount||0), discount:Number(invoice.discount||0), paid:Number(invoice.paid_amount||0), payment_method:method, status, notes:invoice.note||'' };
             const status = invoice.status === 'cancelled' ? 'ملغاة' : 'نشطة';
 
             const content = document.getElementById('details-content');
@@ -1842,7 +1903,9 @@
                     </p>
                 </div>
                 <div class="flex-row mt-20 no-print">
-                    <button class="btn btn-primary" onclick="window.print()"><i class="fas fa-print"></i> طباعة</button>
+                    <button class="btn btn-primary" onclick="POSDocs ? POSDocs.printInvoiceData(window._purchaseInvoiceData || {type:'purchase',items:[]}, {title:'فاتورة شراء'}).catch(e => showToast(e.message, 'error')) : window.print()"><i class="fas fa-print"></i> طباعة</button>
+                    <button class="btn btn-outline" onclick="POSDocs && POSDocs.exportInvoicePDF(window._purchaseInvoiceData || {type:'purchase',items:[]}, {title:'فاتورة شراء',filename:'فاتورة-شراء.pdf'}).catch(e=>showToast(e.message,'error'))"><i class="fas fa-file-pdf"></i> PDF</button>
+                    <button class="btn btn-outline" onclick="POSDocs && POSDocs.exportExcel(document.querySelector('#details-content .print-area'), {filename:'فاتورة-شراء.xlsx'}).catch(e=>showToast(e.message,'error'))"><i class="fas fa-file-excel"></i> Excel</button>
                     <button class="btn btn-outline" onclick="closeModal('details-modal')">إغلاق</button>
                 </div>
             `;
@@ -1902,5 +1965,6 @@
             }
         };
     </script>
+    <script src="document-utils.js"></script>
 </body>
 </html>
