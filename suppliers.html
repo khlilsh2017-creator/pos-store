@@ -639,9 +639,13 @@
                     <div class="statement-container" id="statement-list"></div>
                     <div class="statement-actions">
                         <button class="btn btn-primary btn-sm" onclick="printStatement()"><i class="fas fa-print"></i> طباعة كشف الحساب</button>
+<<<<<<< HEAD
                         <button class="btn btn-outline btn-sm" onclick="exportSupplierStatement(currentSupplierId)"><i class="fas fa-file-csv"></i> CSV</button>
                         <button class="btn btn-outline btn-sm" onclick="exportSupplierStatementPDF()"><i class="fas fa-file-pdf"></i> PDF</button>
                         <button class="btn btn-outline btn-sm" onclick="exportSupplierStatementExcel()"><i class="fas fa-file-excel"></i> Excel</button>
+=======
+                        <button class="btn btn-outline btn-sm" onclick="exportSupplierStatement(currentSupplierId)"><i class="fas fa-file-csv"></i> تصدير CSV</button>
+>>>>>>> 3577be6f8f8599b5bfc9830fc31e600baca4bb58
                     </div>
                 </div>
                 <div id="tab-returns" class="tab-content">
@@ -666,8 +670,11 @@
                 <div id="invoice-details-body"></div>
                 <div style="display:flex; gap:10px; margin-top:20px; flex-wrap:wrap;">
                     <button class="btn btn-gold" onclick="printInvoice()"><i class="fas fa-print"></i> طباعة الفاتورة</button>
+<<<<<<< HEAD
                     <button class="btn btn-outline" onclick="exportSupplierInvoicePDF()"><i class="fas fa-file-pdf"></i> PDF</button>
                     <button class="btn btn-outline" onclick="exportSupplierInvoiceExcel()"><i class="fas fa-file-excel"></i> Excel</button>
+=======
+>>>>>>> 3577be6f8f8599b5bfc9830fc31e600baca4bb58
                     <button class="btn btn-danger" id="btn-cancel-purchase-invoice" onclick="cancelSupplierInvoice()" style="display:none;"><i class="fas fa-times"></i> إلغاء الفاتورة</button>
                     <button class="btn btn-warning" id="btn-undo-purchase-invoice" onclick="undoSupplierInvoice()" style="display:none;"><i class="fas fa-undo"></i> عكس الإلغاء</button>
                     <button class="btn btn-outline" onclick="closeModal('invoiceModal')">إغلاق</button>
@@ -1476,6 +1483,7 @@
             } catch (e) { showToast('تعذر تصدير كشف المورد', 'error'); }
         }
 
+<<<<<<< HEAD
         function exportSupplierStatementPDF() {
             const e=document.getElementById('statement-list'); if(window.POSDocs&&e) POSDocs.exportPDF(e,{title:'كشف حساب المورد',filename:`كشف-مورد-${currentSupplierId||''}.pdf`}).then(()=>showToast('تم تنزيل PDF','success')).catch(x=>showToast(x.message,'error'));
         }
@@ -1488,6 +1496,8 @@
         function exportSupplierInvoiceExcel() {
             const e=document.getElementById('invoice-details-body'); if(window.POSDocs&&e) POSDocs.exportExcel(e,{filename:'فاتورة-شراء.xlsx'}).then(()=>showToast('تم تنزيل Excel','success')).catch(x=>showToast(x.message,'error'));
         }
+=======
+>>>>>>> 3577be6f8f8599b5bfc9830fc31e600baca4bb58
         function printStatement() {
             const content = document.getElementById('statement-list').innerHTML;
             if (!content || content.includes('لا توجد حركات')) {

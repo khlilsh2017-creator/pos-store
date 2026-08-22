@@ -2208,6 +2208,7 @@
             } catch (e) { showToast('تعذر تصدير كشف العميل', 'error'); }
         }
 
+<<<<<<< HEAD
         function printCustomerStatement(customerId) {
             const element = document.getElementById('statement-details-area');
             if (window.POSDocs && element) POSDocs.printElement(element, { title: `كشف حساب العميل ${customerId || ''}` }).then(() => showToast('تم تجهيز كشف العميل للطباعة', 'success')).catch(e => showToast(e.message, 'error'));
@@ -2221,6 +2222,9 @@
             const e = document.getElementById('statement-details-area');
             if (window.POSDocs && e) POSDocs.exportExcel(e, {filename:'كشف-حساب-العميل.xlsx'}).then(()=>showToast('تم تنزيل Excel','success')).catch(x=>showToast(x.message,'error'));
         }
+=======
+        function printCustomerStatement(customerId) { window.print(); }
+>>>>>>> 3577be6f8f8599b5bfc9830fc31e600baca4bb58
 
         async function exportCustomersCSV() {
             try {

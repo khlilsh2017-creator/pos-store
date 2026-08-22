@@ -39,6 +39,9 @@ async function submitExpense(){const select=document.getElementById('expense-nam
 function exportCsv(){if(!filtered.length)return toast('لا توجد بيانات للتصدير','warning');const lines=[['الرقم','المصروف','المبلغ','طريقة الدفع','المحفظة','الملاحظة','التاريخ'],...filtered.map(e=>[e.id,e.name,e.amount,e.payment_method,e.wallet_name||'',e.note||'',e.created_at])].map(r=>r.map(v=>`"${String(v??'').replace(/"/g,'""')}"`).join(','));const b=new Blob(['\ufeff'+lines.join('\n')],{type:'text/csv;charset=utf-8'}),u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download=`expenses-${new Date().toISOString().slice(0,10)}.csv`;a.click();URL.revokeObjectURL(u)}
 async function loadAll(){try{await Promise.all([loadCurrencies(),loadWallets(),loadExpenses()])}catch(e){toast(e.message,'error')}}document.addEventListener('DOMContentLoaded',()=>{loadAll();document.getElementById('expense-name-select').addEventListener('change',e=>{document.getElementById('new-name-field').style.display=e.target.value==='new'?'flex':'none'});document.getElementById('expense-payment-method').addEventListener('change',e=>{const v=e.target.value;document.getElementById('wallet-field').style.display=v==='wallet'||v==='mixed'?'flex':'none';document.getElementById('mixed-fields').style.display=v==='mixed'?'grid':'none'});document.getElementById('filter-method').addEventListener('change',applyFilters)})
 </script>
+<<<<<<< HEAD
     <script src="document-utils.js"></script>
+=======
+>>>>>>> 3577be6f8f8599b5bfc9830fc31e600baca4bb58
 </body>
 </html>
