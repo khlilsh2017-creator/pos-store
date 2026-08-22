@@ -2904,24 +2904,56 @@
 
         document.getElementById('modal-addPhoneBtn')?.addEventListener('click', function() { addModalExtraPhone(''); });
 
+        // 1. دالة البحث والفلترة المباشرة عند كتابة الرقم
         document.getElementById('modal-mainPhone')?.addEventListener('input', function() {
             clearTimeout(phoneSearchTimeout);
-            const phone = this.value.trim();
-            if (phone.length < 4) { const msg = document.getElementById('customer-found-msg'); if (msg) msg.style.display = 'none'; return; }
+            
+            // تنظيف الرقم: إزالة أي رموز غير الأرقام وإشارة +
+            let phone = this.value.replace(/[^\d+]/g, '');
+            // إزالة مفتاح اليمن بأشكاله المختلفة
+            phone = phone.replace(/^(?:\+967|00967|967)/, '');
+            // إزالة الصفر في بداية الرقم إن وجد
+            if (phone.startsWith('0')) phone = phone.substring(1);
+            // تقييد الرقم بـ 9 أرقام كحد أقصى
+            if (phone.length > 9) phone = phone.substring(0, 9);
+            
+            // تحديث الحقل فوراً أمام المستخدم بالرقم النظيف
+            this.value = phone;
+
+            const msg = document.getElementById('customer-found-msg');
+            
+            // لا نبحث في السيرفر إلا إذا اكتمل الرقم (9 أرقام بالضبط)
+            if (phone.length !== 9) { 
+                if (msg) msg.style.display = 'none'; 
+                return; 
+            }
+            
             phoneSearchTimeout = setTimeout(() => {
                 const customer = searchCustomerByPhone(phone);
                 if (customer) fillCustomerModalFields(customer);
-                else { const msg = document.getElementById('customer-found-msg'); if (msg) msg.style.display = 'none'; }
+                else { if (msg) msg.style.display = 'none'; }
             }, 500);
         });
 
+        // 2. دالة التأكيد مع تصفية الأرقام الإضافية
         function confirmCustomerData() {
             const mainPhone = document.getElementById('modal-mainPhone')?.value.trim();
-            if (!mainPhone) { showToast('رقم الهاتف مطلوب', 'warning'); return; }
+            if (!mainPhone || mainPhone.length !== 9) { 
+                showToast('رقم الهاتف الأساسي يجب أن يتكون من 9 أرقام', 'warning'); 
+                return; 
+            }
+            
             const address = document.getElementById('modal-address')?.value.trim();
             if (!address) { showToast('العنوان مطلوب', 'warning'); return; }
+            
+            // تنظيف الأرقام الإضافية بنفس الطريقة وقبول المكتملة (9 أرقام) فقط
             const extraInputs = document.querySelectorAll('#modal-extraPhonesContainer .modal-extra-phone');
-            const extraPhones = Array.from(extraInputs).map(inp => inp.value.trim()).filter(p => p !== '');
+            const extraPhones = Array.from(extraInputs).map(inp => {
+                let p = inp.value.replace(/[^\d+]/g, '').replace(/^(?:\+967|00967|967)/, '');
+                if (p.startsWith('0')) p = p.substring(1);
+                return p.substring(0, 9);
+            }).filter(p => p.length === 9);
+
             selectedCustomerData = {
                 mainPhone: mainPhone,
                 name: document.getElementById('modal-customerName')?.value.trim() || '',
@@ -2930,6 +2962,7 @@
                 deliveryType: document.getElementById('modal-deliveryType')?.value || 'داخل صنعاء',
                 extraPhones: extraPhones
             };
+            
             updateCustomerSummary();
             closeModal('customer-modal');
             showToast('✅ تم تحديث بيانات العميل', 'success');
@@ -3141,6 +3174,7 @@
 
         function saveCartToLocal() {
             safeSetItem('pos_cart_online', cart);
+<<<<<<< HEAD
             scheduleDraftAutoSave();
         }
 
@@ -3155,6 +3189,8 @@
         function updateDraftStatus(text, color='var(--muted)') {
             const status = document.getElementById('draft-status');
             if (status) { status.textContent = text; status.style.color = color; }
+=======
+>>>>>>> e15466324e6eb9da598a4e305675f1f79fe3fff9
         }
 
         function loadCartFromLocal() {
