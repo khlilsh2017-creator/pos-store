@@ -1,193 +1,26 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ar" dir="rtl">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>التقارير - النظام المحاسبي</title>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-    <style>
-        :root { --primary: #1a56db; --primary-hover: #1e40af; --bg: #f1f5f9; --card: #ffffff; --text: #0f172a; --muted: #64748b; --border: #e2e8f0; --success: #16a34a; --danger: #dc2626; --warning: #f59e0b; --info: #0ea5e9; --shadow: 0 4px 6px -1px rgba(0,0,0,0.1); --sidebar-width: 220px; }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Cairo', sans-serif; background: var(--bg); color: var(--text); display: flex; flex-direction: column; min-height: 100vh; }
-        .input-field, select { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 1rem; outline: none; background: white; transition: 0.2s; }
-        .input-field:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(26,86,219,0.1); }
-        .btn { padding: 10px 18px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; gap: 6px; }
-        .btn-primary { background: var(--primary); color: white; }
-        .btn-primary:hover { background: var(--primary-hover); }
-        .btn-success { background: var(--success); color: white; }
-        .btn-success:hover { background: #15803d; }
-        .btn-warning { background: var(--warning); color: white; }
-        .btn-warning:hover { background: #d97706; }
-        .btn-danger { background: var(--danger); color: white; }
-        .btn-danger:hover { background: #b91c1c; }
-        .btn-outline { background: transparent; border: 1px solid var(--border); }
-        .btn-sm { padding: 4px 10px; font-size: 0.8rem; }
-        .text-center { text-align: center; }
-        .text-muted { color: var(--muted); }
-        .text-danger { color: var(--danger); }
-        .mt-10 { margin-top: 10px; }
-        .mb-10 { margin-bottom: 10px; }
-        .flex-row { display: flex; flex-wrap: wrap; gap: 15px; }
-        .flex-1 { flex: 1; min-width: 200px; }
-        .flex-2 { flex: 2; min-width: 200px; }
-        .hidden { display: none; }
-        .card-section { background: var(--card); border-radius: 16px; padding: 20px; box-shadow: var(--shadow); border: 1px solid var(--border); margin-bottom: 20px; }
-        .app-wrapper { display: flex; min-height: 100vh; }
-        .sidebar { width: var(--sidebar-width); background: var(--card); border-left: 1px solid var(--border); box-shadow: 2px 0 8px rgba(0,0,0,0.05); display: flex; flex-direction: column; padding: 20px 0; position: sticky; top: 0; height: 100vh; overflow-y: auto; flex-shrink: 0; }
-        .sidebar .brand { text-align: center; padding: 0 15px 20px; border-bottom: 1px solid var(--border); margin-bottom: 15px; font-size: 1.1rem; font-weight: 700; color: var(--primary); }
-        .sidebar .brand i { font-size: 1.8rem; display: block; margin-bottom: 5px; }
-        .sidebar .nav-link { display: flex; align-items: center; gap: 10px; padding: 10px 20px; color: var(--text); text-decoration: none; border-radius: 0 20px 20px 0; transition: 0.15s; font-weight: 600; font-size: 0.9rem; border-right: 3px solid transparent; cursor: pointer; }
-        .sidebar .nav-link:hover { background: var(--bg); border-right-color: var(--primary); }
-        .sidebar .nav-link.active { background: var(--bg); border-right-color: var(--primary); color: var(--primary); }
-        .sidebar .nav-link i { width: 20px; text-align: center; }
-        .sidebar .logout-btn { margin-top: auto; border-top: 1px solid var(--border); padding-top: 15px; margin-bottom: 10px; }
-        .main-content { flex: 1; padding: 20px; background: var(--bg); overflow-y: auto; }
-        .toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
-        .toast { background: var(--text); color: white; padding: 14px 24px; border-radius: 12px; box-shadow: 0 10px 20px rgba(0,0,0,0.2); animation: slideIn 0.3s ease; display: flex; align-items: center; gap: 10px; min-width: 200px; max-width: 400px; }
-        .toast.success { background: var(--success); }
-        .toast.error { background: var(--danger); }
-        .toast.warning { background: var(--warning); }
-        .toast.info { background: var(--info); }
-        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-        .cash-summary { display: flex; flex-wrap: wrap; gap: 15px; margin: 10px 0; }
-        .cash-summary .stat-card { flex: 1; min-width: 150px; background: var(--card); padding: 15px; border-radius: 12px; box-shadow: var(--shadow); border-right: 4px solid var(--primary); }
-        .cash-summary .stat-card .label { font-size: 0.9rem; color: var(--muted); }
-        .cash-summary .stat-card .value { font-size: 1.5rem; font-weight: 700; }
-        @media (max-width: 768px) { .sidebar { width: 60px; padding: 10px 0; } .sidebar .brand span { display: none; } .sidebar .nav-link span { display: none; } .sidebar .nav-link { justify-content: center; padding: 12px 0; } }
-    </style>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>مركز التقارير - النظام المحاسبي</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet"><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root{--primary:#2563eb;--primary-dark:#1d4ed8;--bg:#f4f7fb;--surface:#fff;--text:#172033;--muted:#6b7280;--line:#e5e7eb;--success:#16a34a;--danger:#dc2626;--warning:#d97706;--info:#0284c7;--shadow:0 8px 24px rgba(15,23,42,.07);--sidebar:230px}*{box-sizing:border-box}body{margin:0;font-family:Cairo,Arial,sans-serif;background:var(--bg);color:var(--text)}button,input,select{font:inherit}.app{display:flex;min-height:100vh}.sidebar{width:var(--sidebar);background:var(--surface);border-left:1px solid var(--line);padding:18px 0;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow:auto;flex-shrink:0}.brand{text-align:center;padding:4px 12px 18px;border-bottom:1px solid var(--line);margin-bottom:12px;color:var(--primary);font-weight:800}.brand i{display:block;font-size:28px;margin-bottom:4px}.brand small{display:block;color:var(--muted);font-size:11px;font-weight:500}.nav-link{display:flex;align-items:center;gap:10px;padding:10px 18px;color:var(--text);text-decoration:none;font-size:13px;font-weight:600;border-right:3px solid transparent;transition:.2s}.nav-link:hover,.nav-link.active{background:#eff6ff;color:var(--primary);border-right-color:var(--primary)}.nav-link i{width:20px;text-align:center}.logout{margin-top:auto;border-top:1px solid var(--line);padding-top:10px}.content{flex:1;min-width:0;padding:22px}.topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}.title h1{margin:0;font-size:24px}.title p{margin:4px 0 0;color:var(--muted);font-size:13px}.actions{display:flex;gap:8px;flex-wrap:wrap}.btn{border:0;border-radius:9px;padding:10px 14px;cursor:pointer;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:7px;transition:.2s}.btn:disabled{opacity:.55;cursor:not-allowed}.btn-primary{background:var(--primary);color:#fff}.btn-primary:hover{background:var(--primary-dark)}.btn-outline{background:#fff;border:1px solid var(--line);color:var(--text)}.btn-outline:hover{border-color:var(--primary);color:var(--primary)}.btn-sm{padding:7px 10px;font-size:12px}.cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:18px}.stat{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px;box-shadow:var(--shadow);display:flex;align-items:center;gap:12px}.stat .icon{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;background:#eff6ff;color:var(--primary)}.stat.success .icon{background:#ecfdf5;color:var(--success)}.stat.danger .icon{background:#fef2f2;color:var(--danger)}.stat.warning .icon{background:#fff7ed;color:var(--warning)}.stat .label{font-size:12px;color:var(--muted)}.stat .value{font-size:20px;font-weight:800;margin-top:2px}.panel{background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:18px;margin-bottom:18px}.panel-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px}.panel-head h2{font-size:17px;margin:0}.panel-head p{margin:3px 0 0;color:var(--muted);font-size:12px}.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.field{display:flex;flex-direction:column;gap:5px}.field label{font-size:12px;color:var(--muted);font-weight:700}.input{width:100%;border:1px solid var(--line);border-radius:8px;padding:10px 11px;background:#fff;outline:0}.input:focus{border-color:var(--primary);box-shadow:0 0 0 3px #dbeafe}.daily-grid{display:grid;grid-template-columns:1.2fr .8fr;gap:16px}.metric-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.metric{border:1px solid var(--line);border-radius:10px;padding:12px;background:#f8fafc}.metric .label{font-size:11px;color:var(--muted)}.metric strong{display:block;font-size:18px;margin-top:3px}.table-wrap{overflow:auto;border:1px solid var(--line);border-radius:10px}.table{width:100%;border-collapse:collapse;min-width:700px}.table th,.table td{padding:10px 12px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap;font-size:12px}.table th{background:#f8fafc;color:var(--muted);font-weight:800}.table tr:last-child td{border-bottom:0}.report-buttons{display:flex;gap:8px;flex-wrap:wrap}.report-buttons .active{background:var(--primary);color:#fff;border-color:var(--primary)}.report-output{margin-top:16px}.report-output h3{font-size:15px;margin:16px 0 8px}.empty{text-align:center;padding:30px;color:var(--muted)}.status{font-size:12px;color:var(--muted)}.toast-container{position:fixed;bottom:18px;right:18px;z-index:20;display:grid;gap:8px}.toast{background:#111827;color:#fff;border-radius:10px;padding:12px 16px;box-shadow:var(--shadow);font-size:13px}.toast.error{background:var(--danger)}.toast.success{background:var(--success)}.toast.warning{background:var(--warning)}.mobile-toggle{display:none}.overlay{display:none}@media(max-width:1050px){.cards{grid-template-columns:repeat(2,minmax(0,1fr))}.daily-grid{grid-template-columns:1fr}.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:760px){.app{display:block}.sidebar{position:fixed;z-index:10;right:-240px;top:0;transition:.25s;height:100vh}.sidebar.open{right:0}.overlay.show{display:block;position:fixed;inset:0;background:rgba(15,23,42,.35);z-index:9}.content{padding:15px}.mobile-toggle{display:inline-flex}.topbar{align-items:flex-start}.title h1{font-size:20px}.cards{grid-template-columns:1fr 1fr}.grid,.metric-list{grid-template-columns:1fr}.panel{padding:14px}}
+  </style>
 </head>
 <body>
-    <div class="app-wrapper">
-        <nav class="sidebar">
-            <div class="brand"><i class="fas fa-store-alt"></i><span>ابن المختار</span></div>
-            <a class="nav-link" href="index.html"><i class="fas fa-th-large"></i> <span>لوحة التحكم</span></a>
-            <a class="nav-link" href="sale.html"><i class="fas fa-cash-register"></i> <span>البيع</span></a>
-            <a class="nav-link" href="products.html"><i class="fas fa-boxes"></i> <span>المنتجات</span></a>
-            <a class="nav-link" href="customers.html"><i class="fas fa-users"></i> <span>العملاء</span></a>
-            <a class="nav-link" href="suppliers.html"><i class="fas fa-truck"></i> <span>الموردين</span></a>
-            <a class="nav-link" href="purchases.html"><i class="fas fa-shopping-cart"></i> <span>المشتريات</span></a>
-            <a class="nav-link" href="expenses.html"><i class="fas fa-receipt"></i> <span>المصروفات</span></a>
-            <a class="nav-link" href="payments.html"><i class="fas fa-hand-holding-usd"></i> <span>سندات</span></a>
-            <a class="nav-link" href="cash-wallets.html"><i class="fas fa-wallet"></i> <span>المحافظ</span></a>
-            <a class="nav-link" href="cash-wallets.html"><i class="fas fa-coins"></i> <span>الصندوق</span></a>
-            <a class="nav-link" href="invoices.html"><i class="fas fa-file-invoice"></i> <span>الفواتير</span></a>
-            <a class="nav-link" href="journal.html"><i class="fas fa-book"></i> <span>القيود</span></a>
-            <a class="nav-link active" href="reports.html"><i class="fas fa-chart-pie"></i> <span>التقارير</span></a>
-            <a class="nav-link" href="operations.html"><i class="fas fa-tools"></i> <span>عمليات</span></a>
-            <a class="nav-link" href="settings.html"><i class="fas fa-cog"></i> <span>إعدادات</span></a>
-            <div class="logout-btn"><div class="nav-link" onclick="logout()" style="color:var(--danger);"><i class="fas fa-sign-out-alt"></i> <span>خروج</span></div></div>
-        </nav>
-
-        <main class="main-content">
-            <div class="card-section">
-                <h4><i class="fas fa-chart-pie"></i> تقارير مالية</h4>
-                <div id="total-assets" class="cash-summary"></div>
-                <div class="flex-row">
-                    <div class="flex-1"><button class="btn btn-primary" onclick="loadDailyReport()"><i class="fas fa-sync-alt"></i> تحديث تقرير اليوم</button></div>
-                    <div class="flex-1">
-                        <h5>تصدير تقرير</h5>
-                        <div class="flex-row">
-                            <div class="flex-1"><label>النوع</label><select id="export-type" class="input-field"><option value="sales">مبيعات</option><option value="purchases">مشتريات</option><option value="profits">أرباح</option><option value="expenses">مصروفات</option></select></div>
-                            <div class="flex-1"><label>من تاريخ</label><input type="date" id="export-from" class="input-field" /></div>
-                            <div class="flex-1"><label>إلى تاريخ</label><input type="date" id="export-to" class="input-field" /></div>
-                        </div>
-                        <button class="btn btn-outline mt-10" onclick="exportReport()"><i class="fas fa-download"></i> تصدير</button>
-                    </div>
-                </div>
-                <div id="report-container" class="mt-10"></div>
-            </div>
-        </main>
-    </div>
-    <div class="toast-container" id="toast-container"></div>
-
-    <script>
-        const API = 'https://api.ibnalmukhtar.com';
-        let token = localStorage.getItem('pos_token') || '';
-        if (!token) window.location.href = 'index.html';
-
-        function showToast(msg, type='info') {
-            const c = document.getElementById('toast-container');
-            const t = document.createElement('div');
-            t.className = `toast ${type}`;
-            const icons = { success:'fa-check-circle', error:'fa-exclamation-circle', warning:'fa-exclamation-triangle', info:'fa-info-circle' };
-            t.innerHTML = `<i class="fas ${icons[type] || icons.info}"></i> ${msg}`;
-            c.appendChild(t);
-            setTimeout(() => t.remove(), 4000);
-        }
-        function logout() { if(confirm('تأكيد الخروج?')) { localStorage.removeItem('pos_token'); window.location.href='index.html'; } }
-
-        async function updateTotalAssets() {
-            try {
-                const res = await fetch(`${API}/cash`, { headers: { 'Authorization': `Bearer ${token}` } });
-                const data = await res.json();
-                let balance = 0;
-                if (data.history) {
-                    data.history.forEach(h => {
-                        if (h.type === 'deposit' || h.type === 'open') balance += h.amount;
-                        else if (h.type === 'withdraw' || h.type === 'close') balance -= h.amount;
-                    });
-                }
-                const walletsRes = await fetch(`${API}/wallets`, { headers: { 'Authorization': `Bearer ${token}` } });
-                const walletsData = await walletsRes.json();
-                let totalWallets = 0;
-                walletsData.wallets.forEach(w => totalWallets += w.balance);
-                document.getElementById('total-assets').innerHTML = `
-                    <div class="stat-card"><div class="label">💵 إجمالي النقدي</div><div class="value" style="color:var(--primary);">${balance.toFixed(2)} ريال</div></div>
-                    <div class="stat-card" style="border-right-color:var(--info);"><div class="label">💳 إجمالي المحافظ</div><div class="value" style="color:var(--info);">${totalWallets.toFixed(2)} ريال</div></div>
-                    <div class="stat-card" style="border-right-color:var(--success);"><div class="label">🏦 إجمالي الأصول</div><div class="value" style="color:var(--success);">${(balance + totalWallets).toFixed(2)} ريال</div></div>
-                `;
-            } catch {}
-        }
-        async function loadDailyReport() {
-            try {
-                const res = await fetch(`${API}/reports/daily`, { headers: { 'Authorization': `Bearer ${token}` } });
-                const data = await res.json();
-               let html = `
-    <p><strong>التاريخ:</strong> ${data.date}</p>
-    <p><strong>إجمالي المبيعات:</strong> ${data.total_sales} ريال</p>
-    <p>عدد الفواتير: ${data.invoices_count}</p>
-    <p>مبيعات نقداً: ${data.cash_sales} ريال</p>
-    <p>مبيعات عبر المحافظ: ${data.wallet_sales} ريال</p>
-    <p>إجمالي تكلفة البضاعة: ${data.total_cost} ريال</p>
-    <p style="color:var(--info);"><strong>الربح الإجمالي (قبل المصروفات): ${data.gross_profit} ريال</strong></p>
-    <p style="color:var(--danger);"><strong>إجمالي المصروفات: ${data.total_expenses} ريال</strong></p>
-    <p style="color:var(--success); font-size:1.4rem;"><strong>صافي الربح (بعد المصروفات): ${data.net_profit} ريال</strong></p>
-    <h5 class="mt-10">أرصدة المحافظ:</h5>
-`;
-                if (data.wallets) {
-                    data.wallets.forEach(w => {
-                        html += `<p>${w.name}: ${w.balance} ريال</p>`;
-                    });
-                }
-                document.getElementById('report-container').innerHTML = html;
-            } catch { showToast('خطأ في تحميل التقرير', 'error'); }
-        }
-        async function exportReport() {
-            const type = document.getElementById('export-type').value;
-            const from = document.getElementById('export-from').value;
-            const to = document.getElementById('export-to').value;
-            if (!from || !to) return showToast('حدد نطاق التاريخ', 'warning');
-            try {
-                const res = await fetch(`${API}/reports/export?type=${type}&from=${from}&to=${to}`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                const data = await res.json();
-                if (res.ok) {
-                    showToast('تم التصدير', 'success');
-                    const win = window.open('', '_blank');
-                    win.document.write(`<pre>${JSON.stringify(data, null, 2)}</pre>`);
-                    win.document.close();
-                } else showToast('فشل التصدير', 'error');
-            } catch { showToast('خطأ', 'error'); }
-        }
-        window.onload = function() {
-            updateTotalAssets();
-            loadDailyReport();
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('export-from').value = today;
-            document.getElementById('export-to').value = today;
-        };
-    </script>
-</body>
-</html>
+<div class="app"><aside class="sidebar" id="sidebar"><div class="brand"><i class="fas fa-store-alt"></i>ابن المختار<small>النظام المحاسبي</small></div><a class="nav-link" href="index.html"><i class="fas fa-th-large"></i>لوحة التحكم</a><a class="nav-link" href="add_order.html"><i class="fas fa-globe"></i>طلب إنترنت</a><a class="nav-link" href="orders.html"><i class="fas fa-list"></i>الطلبات والمندوبون</a><a class="nav-link" href="sale.html"><i class="fas fa-cash-register"></i>البيع</a><a class="nav-link" href="products.html"><i class="fas fa-boxes"></i>المنتجات</a><a class="nav-link" href="customers.html"><i class="fas fa-users"></i>العملاء</a><a class="nav-link" href="suppliers.html"><i class="fas fa-truck"></i>الموردون</a><a class="nav-link" href="purchases.html"><i class="fas fa-shopping-cart"></i>المشتريات</a><a class="nav-link" href="expenses.html"><i class="fas fa-receipt"></i>المصروفات</a><a class="nav-link" href="payments.html"><i class="fas fa-hand-holding-usd"></i>السندات</a><a class="nav-link" href="cash-wallets.html"><i class="fas fa-wallet"></i>الصندوق والمحافظ</a><a class="nav-link" href="invoices.html"><i class="fas fa-file-invoice"></i>الفواتير</a><a class="nav-link" href="journal.html"><i class="fas fa-book"></i>القيود</a><a class="nav-link active" href="reports.html"><i class="fas fa-chart-pie"></i>التقارير</a><a class="nav-link" href="operations.html"><i class="fas fa-tools"></i>العمليات</a><a class="nav-link" href="settings.html"><i class="fas fa-cog"></i>الإعدادات</a><div class="logout"><div class="nav-link" onclick="logout()" style="color:var(--danger)"><i class="fas fa-sign-out-alt"></i>تسجيل الخروج</div></div></aside><div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
+<main class="content"><header class="topbar"><div class="title"><h1><i class="fas fa-chart-pie" style="color:var(--primary)"></i> مركز التقارير</h1><p>قراءة الأداء المالي والمخزون والحسابات من مكان واحد.</p></div><div class="actions"><button class="btn btn-outline mobile-toggle" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button><button class="btn btn-outline" onclick="loadAll()"><i class="fas fa-sync-alt"></i> تحديث</button><button class="btn btn-outline" onclick="window.print()"><i class="fas fa-print"></i> طباعة</button></div></header>
+<section class="cards"><div class="stat"><div class="icon"><i class="fas fa-cash-register"></i></div><div><div class="label">مبيعات اليوم</div><div class="value" id="stat-sales">0.00</div></div></div><div class="stat success"><div class="icon"><i class="fas fa-chart-line"></i></div><div><div class="label">الربح الإجمالي</div><div class="value" id="stat-gross">0.00</div></div></div><div class="stat danger"><div class="icon"><i class="fas fa-receipt"></i></div><div><div class="label">مصروفات اليوم</div><div class="value" id="stat-expenses">0.00</div></div></div><div class="stat warning"><div class="icon"><i class="fas fa-trophy"></i></div><div><div class="label">صافي الربح</div><div class="value" id="stat-net">0.00</div></div></div></section>
+<section class="panel"><div class="panel-head"><div><h2>ملخص اليوم</h2><p id="daily-status">جاري التحميل...</p></div><button class="btn btn-primary btn-sm" onclick="loadDailyReport()"><i class="fas fa-sync-alt"></i> تحديث</button></div><div class="daily-grid"><div class="metric-list" id="daily-metrics"><div class="metric"><div class="label">عدد الفواتير</div><strong>0</strong></div></div><div><h3 style="font-size:14px;margin:0 0 8px">أرصدة المحافظ</h3><div id="wallets-box" class="empty">جاري التحميل...</div></div></div></section>
+<section class="panel"><div class="panel-head"><div><h2>التقارير المحاسبية والتشغيلية</h2><p>اختر تقريرًا لعرضه ثم صدّره إذا احتجت.</p></div><span class="status" id="advanced-status"></span></div><div class="report-buttons"><button class="btn btn-outline btn-sm" data-report="trial-balance" onclick="loadAdvancedReport('trial-balance',this)">ميزان المراجعة</button><button class="btn btn-outline btn-sm" data-report="income-statement" onclick="loadAdvancedReport('income-statement',this)">قائمة الدخل</button><button class="btn btn-outline btn-sm" data-report="balance-sheet" onclick="loadAdvancedReport('balance-sheet',this)">الميزانية</button><button class="btn btn-outline btn-sm" data-report="sales-by-category" onclick="loadAdvancedReport('sales-by-category',this)">المبيعات حسب التصنيف</button><button class="btn btn-outline btn-sm" data-report="profits-by-category" onclick="loadAdvancedReport('profits-by-category',this)">الأرباح حسب التصنيف</button><button class="btn btn-outline btn-sm" data-report="inventory-by-category" onclick="loadAdvancedReport('inventory-by-category',this)">المخزون حسب التصنيف</button><button class="btn btn-outline btn-sm" data-report="top-products" onclick="loadAdvancedReport('top-products',this)">الأكثر مبيعًا</button><button class="btn btn-outline btn-sm" data-report="sales-by-product" onclick="loadAdvancedReport('sales-by-product',this)">المبيعات حسب المنتج</button><button class="btn btn-outline btn-sm" data-report="top-customers" onclick="loadAdvancedReport('top-customers',this)">أفضل العملاء</button><button class="btn btn-outline btn-sm" data-report="monthly-trends" onclick="loadAdvancedReport('monthly-trends',this)">الاتجاهات الشهرية</button><button class="btn btn-outline btn-sm" data-report="driver-performance" onclick="loadAdvancedReport('driver-performance',this)">أداء المندوبين</button><button class="btn btn-outline btn-sm" data-report="aging" onclick="loadAdvancedReport('aging',this)">أعمار الديون</button></div><div id="advanced-output" class="report-output"><div class="empty">اختر نوع التقرير لعرض النتائج.</div></div></section>
+<section class="panel"><div class="panel-head"><div><h2>تصدير تقرير زمني</h2><p>التصدير يتم من Worker حسب النوع والتاريخ.</p></div></div><div class="grid"><div class="field"><label>نوع التقرير</label><select class="input" id="export-type"><option value="sales">المبيعات</option><option value="purchases">المشتريات</option><option value="profits">الأرباح اليومية</option><option value="expenses">المصروفات</option></select></div><div class="field"><label>من تاريخ</label><input class="input" type="date" id="export-from"></div><div class="field"><label>إلى تاريخ</label><input class="input" type="date" id="export-to"></div></div><div class="actions" style="margin-top:12px"><button class="btn btn-primary" onclick="exportReport('json')"><i class="fas fa-download"></i> تنزيل JSON</button><button class="btn btn-outline" onclick="exportReport('csv')"><i class="fas fa-file-csv"></i> تنزيل CSV</button></div></section>
+</main></div><div class="toast-container" id="toast-container"></div>
+<script>
+const API='https://api.ibnalmukhtar.com',token=localStorage.getItem('pos_token')||'';if(!token)location.href='index.html';const auth=()=>({Authorization:`Bearer ${token}`});
+function esc(v){return String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]||c))}function toast(m,t='info'){const e=document.createElement('div');e.className=`toast ${t}`;e.textContent=m;document.getElementById('toast-container').appendChild(e);setTimeout(()=>e.remove(),4000)}function logout(){if(confirm('هل تريد تسجيل الخروج؟')){localStorage.removeItem('pos_token');localStorage.removeItem('pos_user');location.href='index.html'}}function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('overlay').classList.toggle('show')}
+async function loadDailyReport(){try{const r=await fetch(`${API}/reports/daily`,{headers:auth()}),d=await r.json();if(!r.ok)throw Error(d.error||'تعذر تحميل التقرير');document.getElementById('daily-status').textContent=`تاريخ التقرير: ${d.date||new Date().toLocaleDateString('ar-YE')}`;document.getElementById('stat-sales').textContent=Number(d.total_sales||0).toFixed(2);document.getElementById('stat-gross').textContent=Number(d.gross_profit||0).toFixed(2);document.getElementById('stat-expenses').textContent=Number(d.total_expenses||0).toFixed(2);document.getElementById('stat-net').textContent=Number(d.net_profit||0).toFixed(2);document.getElementById('daily-metrics').innerHTML=[['عدد الفواتير',d.invoices_count],['نقدًا',d.cash_sales],['المحافظ',d.wallet_sales],['آجل',d.credit_sales],['تكلفة البضاعة',d.total_cost]].map(x=>`<div class="metric"><div class="label">${x[0]}</div><strong>${Number(x[1]||0).toFixed(2)}</strong></div>`).join('');document.getElementById('wallets-box').innerHTML=d.wallets?.length?d.wallets.map(w=>`<div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--line);padding:8px 0"><span>${esc(w.name)}</span><strong>${Array.isArray(w.balances)?w.balances.map(b=>`${esc(b.currency)}: ${Number(b.balance||0).toFixed(2)}`).join(' | '):Number(w.balance||0).toFixed(2)}</strong></div>`).join(''):'<div class="empty">لا توجد أرصدة</div>'}catch(e){toast(e.message,'error');document.getElementById('daily-status').textContent='تعذر تحميل التقرير'}}
+function renderPayload(data){const payload=data&&typeof data==='object'&&!Array.isArray(data)?data:{data};const arrays=Object.entries(payload).filter(([,v])=>Array.isArray(v));if(arrays.length)return arrays.map(([key,rows])=>{if(!rows.length)return `<h3>${esc(key)}</h3><div class="empty">لا توجد بيانات</div>`;const cols=Object.keys(rows[0]);return `<h3>${esc(key)}</h3><div class="table-wrap"><table class="table"><thead><tr>${cols.map(c=>`<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${rows.map(row=>`<tr>${cols.map(c=>`<td>${esc(row[c])}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`}).join('');return `<div class="metric-list">${Object.entries(payload).map(([k,v])=>`<div class="metric"><div class="label">${esc(k)}</div><strong>${esc(typeof v==='object'?JSON.stringify(v):v)}</strong></div>`).join('')}</div>`}
+async function loadAdvancedReport(type,btn){document.querySelectorAll('[data-report]').forEach(b=>b.classList.remove('active'));if(btn)btn.classList.add('active');const out=document.getElementById('advanced-output');out.innerHTML='<div class="empty">جاري تحميل التقرير...</div>';document.getElementById('advanced-status').textContent='جاري التحميل';try{const r=await fetch(`${API}/reports/${type}`,{headers:auth()}),d=await r.json();if(!r.ok)throw Error(d.error||'تعذر تحميل التقرير');out.innerHTML=renderPayload(d);document.getElementById('advanced-status').textContent='تم التحديث'}catch(e){out.innerHTML=`<div class="empty" style="color:var(--danger)">${esc(e.message)}</div>`;document.getElementById('advanced-status').textContent='فشل التحميل'}}
+async function exportReport(format){const type=document.getElementById('export-type').value,from=document.getElementById('export-from').value,to=document.getElementById('export-to').value;if(!from||!to)return toast('حدد نطاق التاريخ','warning');try{const r=await fetch(`${API}/reports/export?type=${encodeURIComponent(type)}&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,{headers:auth()}),d=await r.json();if(!r.ok)throw Error(d.error||'فشل التصدير');const rows=d.data||[],headers=rows.length?Object.keys(rows[0]):['النتيجة'];let content;if(format==='csv'){content=[headers,...rows.map(row=>headers.map(h=>row[h]))].map(row=>row.map(v=>`"${String(v??'').replace(/"/g,'""')}"`).join(',')).join('\n');content='\ufeff'+content}else content=JSON.stringify(d,null,2);const blob=new Blob([content],{type:format==='csv'?'text/csv;charset=utf-8':'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`report-${type}-${from}-${to}.${format==='csv'?'csv':'json'}`;a.click();URL.revokeObjectURL(url);toast('تم تجهيز ملف التصدير','success')}catch(e){toast(e.message,'error')}}
+async function loadAll(){await loadDailyReport();const today=new Date().toISOString().slice(0,10);document.getElementById('export-from').value=today;document.getElementById('export-to').value=today}document.addEventListener('DOMContentLoaded',loadAll)
+</script></body></html>

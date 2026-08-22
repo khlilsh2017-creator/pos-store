@@ -1093,6 +1093,7 @@
                     <button class="theme-toggle" onclick="toggleTheme()" title="تبديل الوضع">
                         <i class="fas fa-moon" id="theme-icon"></i>
                     </button>
+                    <button class="btn btn-outline" onclick="exportCustomersCSV()"><i class="fas fa-file-csv"></i> تصدير الكشوف</button>
                     <button class="btn btn-primary" onclick="openAddCustomerModal()">
                         <i class="fas fa-plus"></i> عميل جديد
                     </button>
@@ -1170,6 +1171,7 @@
                         <h4><i class="fas fa-table"></i> قائمة العملاء</h4>
                         <div style="display:flex;gap:8px;flex-wrap:wrap;">
                             <button class="btn btn-outline btn-sm" onclick="refreshCustomers()"><i class="fas fa-sync-alt"></i> تحديث</button>
+                            <button class="btn btn-outline btn-sm" onclick="exportCustomersCSV()"><i class="fas fa-download"></i> CSV</button>
                         </div>
                     </div>
                     <div class="table-wrapper">
@@ -1396,6 +1398,7 @@
                 <button class="btn btn-primary btn-sm no-print" onclick="window.print()"><i class="fas fa-print"></i> طباعة</button>
                 <button class="btn btn-warning btn-sm no-print" id="btn-edit-invoice" onclick="editInvoice()"><i class="fas fa-edit"></i> تعديل</button>
                 <button class="btn btn-danger btn-sm no-print" id="btn-cancel-invoice" onclick="cancelInvoice()"><i class="fas fa-times-circle"></i> إلغاء</button>
+                <button class="btn btn-warning btn-sm no-print" id="btn-undo-cancel-invoice" onclick="undoCancelInvoice()" style="display:none;"><i class="fas fa-undo"></i> عكس الإلغاء</button>
                 <button class="btn btn-outline btn-sm" onclick="closeModal('modal-invoice')">إغلاق</button>
             </div>
         </div>
@@ -1473,6 +1476,8 @@
     <script>
         // ===== CONFIG =====
         const API = 'https://api.ibnalmukhtar.com';
+        const currentUser = JSON.parse(localStorage.getItem('pos_user') || '{}');
+        const canReverseCustomerOperations = currentUser.role === 'admin';
         let token = localStorage.getItem('pos_token') || '';
         let currentInvoiceId = null;
         let selectedPaymentMethod = 'cash';
@@ -1764,6 +1769,12 @@
                 document.getElementById('stat-total-customers').textContent = data.customers.length;
                 document.getElementById('stat-total-debt').innerHTML = totalDebt.toFixed(2) +
                     ' <small style="font-size:0.6rem;font-weight:400;">ريال</small>';
+                try {
+                    const debtRes = await fetch(`${API}/customers/total-debt`, { headers: { 'Authorization': `Bearer ${token}` } });
+                    const debtData = await debtRes.json();
+                    const serverDebt = Number(debtData.total_debt ?? debtData.total ?? NaN);
+                    if (Number.isFinite(serverDebt)) document.getElementById('stat-total-debt').innerHTML = serverDebt.toFixed(2) + ' <small style="font-size:0.6rem;font-weight:400;">ريال</small>';
+                } catch (_) {}
 
                 await loadStats();
                 await loadPendingInvoices();
@@ -1782,9 +1793,8 @@
                 const debtCount = data.customers.filter(c => parseFloat(c.balance || 0) > 0).length;
                 document.getElementById('stat-pending-invoices').textContent = debtCount;
                 const trend = document.getElementById('stat-debt-trend');
-                const up = Math.random() > 0.5;
-                trend.className = 'stat-trend' + (up ? '' : ' down');
-                trend.innerHTML = `<i class="fas fa-arrow-${up ? 'up' : 'down'}"></i> ${(Math.random() * 20 + 2).toFixed(0)}%`;
+                trend.className = 'stat-trend';
+                trend.innerHTML = `<i class="fas fa-database"></i> مباشر`;
             } catch {}
         }
 
@@ -2007,7 +2017,7 @@
                             <td>${walletName}</td>
                             <td>${formatDate(p.created_at)}</td>
                             <td>${p.note || ''}</td>
-                            <td><button class="btn btn-danger btn-xs" onclick="cancelCustomerPayment(${p.id}, ${customerId})"><i class="fas fa-times"></i></button></td>
+                            <td>${canReverseCustomerOperations ? `<button class="btn btn-danger btn-xs" onclick="cancelCustomerPayment(${p.id}, ${customerId})" title="للمدير فقط"><i class="fas fa-undo"></i></button>` : '<span class="text-muted" title="يتطلب صلاحية المدير">للقراءة فقط</span>'}</td>
                         </tr>
                     `;
                 });
@@ -2185,6 +2195,29 @@
             }
         }
 
+        async function exportCustomerStatement(customerId) {
+            try {
+                const res = await fetch(`${API}/customers/statement?customer_id=${customerId}`, { headers: { 'Authorization': `Bearer ${token}` } });
+                const data = await res.json(); const rows = data.statement || [];
+                if (!rows.length) return showToast('لا توجد حركات لتصديرها', 'warning');
+                const keys = ['created_at','type','invoice_number','amount','total_amount','payment_method','note'];
+                const csv = '\ufeff' + [keys, ...rows.map(r => keys.map(k => r[k] ?? ''))].map(row => row.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\\n');
+                const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv;charset=utf-8'})); a.download = `كشف-عميل-${customerId}-${new Date().toISOString().slice(0,10)}.csv`; a.click(); URL.revokeObjectURL(a.href); showToast('تم تصدير كشف العميل', 'success');
+            } catch (e) { showToast('تعذر تصدير كشف العميل', 'error'); }
+        }
+
+        function printCustomerStatement(customerId) { window.print(); }
+
+        async function exportCustomersCSV() {
+            try {
+                const res = await fetch(`${API}/customers`, { headers: { 'Authorization': `Bearer ${token}` } }); const data = await res.json(); const rows = data.customers || [];
+                const total = rows.reduce((sum, c) => sum + Math.max(0, Number(c.balance) || 0), 0);
+                const keys = ['id','name','phone','address','balance'];
+                const csv = '\ufeff' + [keys, ...rows.map(r => keys.map(k => r[k] ?? ''))].map(row => row.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\\n');
+                const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv;charset=utf-8'})); a.download = `كشوف-العملاء-${new Date().toISOString().slice(0,10)}.csv`; a.click(); URL.revokeObjectURL(a.href); showToast(`تم تصدير ${rows.length} عميلاً بإجمالي ديون ${total.toFixed(2)} ريال`, 'success');
+            } catch (e) { showToast('تعذر تصدير كشوف العملاء', 'error'); }
+        }
+
         // ===== VIEW CUSTOMER STATEMENT (with currency) =====
         async function viewCustomerStatement(customerId) {
             openModal('modal-statement');
@@ -2283,7 +2316,7 @@
 
                 const finalBalance = balance;
                 const content = `
-                    <div class="print-header">كشف حساب العميل <small>رقم العميل: ${customerId}</small></div>
+                    <div class="print-header" style="display:flex;justify-content:space-between;align-items:center;gap:8px;">كشف حساب العميل <small>رقم العميل: ${customerId}</small><button class="btn btn-outline btn-sm no-print" onclick="printCustomerStatement(${customerId})"><i class="fas fa-print"></i> طباعة</button><button class="btn btn-outline btn-sm no-print" onclick="exportCustomerStatement(${customerId})"><i class="fas fa-file-csv"></i> CSV</button></div>
                     <div style="margin-bottom:16px;padding:16px;background:var(--bg);border-radius:var(--radius-sm);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;">
                         <strong style="font-size:1.1rem;">الرصيد النهائي المستحق:</strong>
                         <span class="badge ${finalBalance > 0.01 ? 'badge-debt' : 'badge-credit'}" style="font-size:1.2rem;padding:8px 20px;">${finalBalance.toFixed(2)} ريال</span>
@@ -2324,6 +2357,7 @@
                 '<div class="text-center"><i class="fas fa-spinner fa-spin fa-2x"></i><br>جاري التحميل...</div>';
             document.getElementById('btn-cancel-invoice').disabled = false;
             document.getElementById('btn-edit-invoice').disabled = false;
+            document.getElementById('btn-undo-cancel-invoice').style.display = canReverseCustomerOperations ? 'inline-flex' : 'none';
 
             try {
                 const res = await fetch(`${API}/sales/${invoiceId}`, { headers: { 'Authorization': `Bearer ${token}` } });
@@ -2346,6 +2380,9 @@
                 }
 
                 const walletDisplay = inv.wallet_name ? ` (المحفظة: ${inv.wallet_name})` : '';
+                const isCancelledInvoice = ['cancelled','canceled','ملغاة','ملغي'].includes(String(inv.status || '').toLowerCase());
+                document.getElementById('btn-cancel-invoice').style.display = isCancelledInvoice ? 'none' : 'inline-flex';
+                document.getElementById('btn-undo-cancel-invoice').style.display = canReverseCustomerOperations && isCancelledInvoice ? 'inline-flex' : 'none';
                 document.getElementById('invoice-details-area').innerHTML = `
                     <div class="print-header">فاتورة #${inv.invoice_number || invoiceId}</div>
                     <div style="border:2px solid var(--border);padding:20px;border-radius:var(--radius-sm);background:var(--bg);">
@@ -2375,6 +2412,7 @@
 
         // ===== CANCEL INVOICE =====
         async function cancelInvoice() {
+            if (!canReverseCustomerOperations) return showToast('إلغاء الفواتير متاح للمدير فقط', 'warning');
             if (!currentInvoiceId) return showToast('لا توجد فاتورة محددة', 'error');
             if (!confirm('هل أنت متأكد من إلغاء هذه الفاتورة؟ سيتم استرجاع المخزون وعكس القيود المحاسبية.')) return;
             try {
@@ -2397,6 +2435,16 @@
         function editInvoice() {
             if (!currentInvoiceId) return showToast('لا توجد فاتورة محددة', 'error');
             window.location.href = `sale.html?edit=${currentInvoiceId}`;
+        }
+
+        async function undoCancelInvoice() {
+            if (!canReverseCustomerOperations) return showToast('هذه العملية متاحة للمدير فقط', 'warning');
+            if (!currentInvoiceId || !confirm('هل تريد عكس إلغاء الفاتورة وإعادتها؟')) return;
+            try {
+                const res = await fetch(`${API}/sales/cancel/undo`, { method:'POST', headers:{'Authorization': `Bearer ${token}`, 'Content-Type':'application/json'}, body:JSON.stringify({ sale_id: currentInvoiceId }) });
+                const data = await res.json(); if (!res.ok) throw new Error(data.error || 'فشل عكس الإلغاء');
+                showToast('تم عكس إلغاء الفاتورة', 'success'); closeModal('modal-invoice'); loadCustomers();
+            } catch (e) { showToast(e.message, 'error'); }
         }
 
         // ===== VIEW CUSTOMER PURCHASES =====

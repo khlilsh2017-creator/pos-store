@@ -509,6 +509,7 @@
             <div class="card-section">
                 <div class="flex-row" style="justify-content:space-between;">
                     <h4><i class="fas fa-truck"></i> قائمة الموردين</h4>
+                    <button class="btn btn-outline" onclick="exportSuppliersCSV()"><i class="fas fa-file-csv"></i> تصدير الكشوف</button>
                     <button class="btn btn-primary" onclick="openAddSupplierModal()"><i class="fas fa-user-plus"></i> إضافة مورد</button>
                 </div>
                 <div class="search-bar">
@@ -519,7 +520,8 @@
                         <option value="negative">رصيد سالب (لنا)</option>
                         <option value="zero">رصيد صفر</option>
                     </select>
-                    <button class="btn btn-outline" onclick="loadSuppliers(1)"><i class="fas fa-sync-alt"></i> تحديث</button>
+                        <button class="btn btn-outline" onclick="loadSuppliers(1)"><i class="fas fa-sync-alt"></i> تحديث</button>
+                        <button class="btn btn-outline" onclick="exportSuppliersCSV()"><i class="fas fa-download"></i> CSV</button>
                 </div>
                 <div style="overflow-x:auto;">
                     <table class="supplier-table" id="supplier-table">
@@ -637,6 +639,7 @@
                     <div class="statement-container" id="statement-list"></div>
                     <div class="statement-actions">
                         <button class="btn btn-primary btn-sm" onclick="printStatement()"><i class="fas fa-print"></i> طباعة كشف الحساب</button>
+                        <button class="btn btn-outline btn-sm" onclick="exportSupplierStatement(currentSupplierId)"><i class="fas fa-file-csv"></i> تصدير CSV</button>
                     </div>
                 </div>
                 <div id="tab-returns" class="tab-content">
@@ -661,6 +664,8 @@
                 <div id="invoice-details-body"></div>
                 <div style="display:flex; gap:10px; margin-top:20px; flex-wrap:wrap;">
                     <button class="btn btn-gold" onclick="printInvoice()"><i class="fas fa-print"></i> طباعة الفاتورة</button>
+                    <button class="btn btn-danger" id="btn-cancel-purchase-invoice" onclick="cancelSupplierInvoice()" style="display:none;"><i class="fas fa-times"></i> إلغاء الفاتورة</button>
+                    <button class="btn btn-warning" id="btn-undo-purchase-invoice" onclick="undoSupplierInvoice()" style="display:none;"><i class="fas fa-undo"></i> عكس الإلغاء</button>
                     <button class="btn btn-outline" onclick="closeModal('invoiceModal')">إغلاق</button>
                 </div>
             </div>
@@ -716,6 +721,8 @@
         // ================================================================
         const API = 'https://api.ibnalmukhtar.com';
         let token = localStorage.getItem('pos_token') || '';
+        const currentUser = JSON.parse(localStorage.getItem('pos_user') || '{}');
+        const canReverseSupplierOperations = currentUser.role === 'admin';
         if (!token) window.location.href = 'index.html';
 
         function showToast(msg, type = 'info') {
@@ -929,6 +936,7 @@
         const pageSize = 10;
         let totalSuppliers = 0;
         let currentSupplierId = null;
+        let currentPurchaseInvoiceId = null;
         let currentSupplierData = null; // لتخزين بيانات المورد الحالي
 
         // ================================================================
@@ -993,9 +1001,12 @@
 
         function updateStats(data) {
             document.getElementById('total-suppliers').innerText = data.total || 0;
-            document.getElementById('total-debt').innerText = data.total_debt || 0;
-            const avg = data.total > 0 ? (data.total_debt / data.total).toFixed(2) : 0;
+            document.getElementById('total-debt').innerText = Number(data.total_debt || 0).toFixed(2);
+            const avg = data.total > 0 ? (Number(data.total_debt || 0) / data.total).toFixed(2) : '0.00';
             document.getElementById('avg-balance').innerText = avg;
+            fetch(`${API}/suppliers/total-debt`, { headers: { 'Authorization': `Bearer ${token}` } }).then(r => r.json()).then(d => {
+                const total = Number(d.total_debt ?? d.total ?? NaN); if (Number.isFinite(total)) document.getElementById('total-debt').innerText = total.toFixed(2);
+            }).catch(() => {});
         }
 
         // ================================================================
@@ -1178,7 +1189,7 @@
                         <span style="display:flex; gap:5px;">
                             <button class="btn btn-sm btn-outline" onclick="viewInvoice(${inv.id})"><i class="fas fa-eye"></i> عرض</button>
                             <button class="btn btn-sm btn-warning" onclick="editPurchaseInvoice(${inv.id})"><i class="fas fa-edit"></i> تعديل</button>
-                            <button class="btn btn-sm btn-danger" onclick="returnPurchaseItem(${inv.id})"><i class="fas fa-undo-alt"></i> إرجاع</button>
+                            ${canReverseSupplierOperations ? `<button class="btn btn-sm btn-danger" onclick="returnPurchaseItem(${inv.id})"><i class="fas fa-undo-alt"></i> إرجاع</button>` : '<span class="text-muted" title="يتطلب صلاحية المدير">للقراءة فقط</span>'}
                         </span>
                     </div>
                 `).join('');
@@ -1196,6 +1207,10 @@
                 const data = await res.json();
                 if (res.ok && data.purchase) {
                     const inv = data.purchase;
+                    currentPurchaseInvoiceId = inv.id || invoiceId;
+                    const isCancelledInvoice = ['cancelled','canceled','ملغاة','ملغي'].includes(String(inv.status || '').toLowerCase());
+                    document.getElementById('btn-cancel-purchase-invoice').style.display = canReverseSupplierOperations && !isCancelledInvoice ? 'inline-flex' : 'none';
+                    document.getElementById('btn-undo-purchase-invoice').style.display = canReverseSupplierOperations && isCancelledInvoice ? 'inline-flex' : 'none';
                     const items = inv.items || [];
                     const total = inv.total_amount || 0;
                     const discount = inv.discount || 0;
@@ -1251,6 +1266,26 @@
             } catch (e) {
                 showToast('خطأ', 'error');
             }
+        }
+
+        async function cancelSupplierInvoice() {
+            if (!canReverseSupplierOperations) return showToast('هذه العملية متاحة للمدير فقط', 'warning');
+            if (!currentPurchaseInvoiceId || !confirm('سيتم إلغاء فاتورة الشراء وعكس المخزون والقيود. هل تريد المتابعة؟')) return;
+            try {
+                const res = await fetch(`${API}/purchases/cancel`, { method:'POST', headers:{'Authorization': `Bearer ${token}`, 'Content-Type':'application/json'}, body:JSON.stringify({ purchase_invoice_id: currentPurchaseInvoiceId }) });
+                const data = await res.json(); if (!res.ok) throw new Error(data.error || 'فشل إلغاء الفاتورة');
+                showToast('تم إلغاء فاتورة الشراء', 'success'); closeModal('invoiceModal'); loadSuppliers(currentPage); if (currentSupplierId) loadTabContent('purchases', currentSupplierId);
+            } catch (e) { showToast(e.message, 'error'); }
+        }
+
+        async function undoSupplierInvoice() {
+            if (!canReverseSupplierOperations) return showToast('هذه العملية متاحة للمدير فقط', 'warning');
+            if (!currentPurchaseInvoiceId || !confirm('هل تريد عكس إلغاء فاتورة الشراء؟')) return;
+            try {
+                const res = await fetch(`${API}/purchases/cancel/undo`, { method:'POST', headers:{'Authorization': `Bearer ${token}`, 'Content-Type':'application/json'}, body:JSON.stringify({ purchase_invoice_id: currentPurchaseInvoiceId }) });
+                const data = await res.json(); if (!res.ok) throw new Error(data.error || 'فشل عكس الإلغاء');
+                showToast('تم عكس إلغاء الفاتورة', 'success'); closeModal('invoiceModal'); loadSuppliers(currentPage); if (currentSupplierId) loadTabContent('purchases', currentSupplierId);
+            } catch (e) { showToast(e.message, 'error'); }
         }
 
         function printInvoice() {
@@ -1325,7 +1360,7 @@
                             </span>
                             <span>${new Date(p.created_at).toLocaleDateString()}</span>
                             <span>${p.note || ''}</span>
-                            <button class="btn btn-sm btn-danger" onclick="cancelPayment('supplier', ${p.id})"><i class="fas fa-times"></i> إلغاء</button>
+                            ${canReverseSupplierOperations ? `<button class="btn btn-sm btn-danger" onclick="cancelPayment('supplier', ${p.id})" title="للمدير فقط"><i class="fas fa-undo"></i> عكس</button>` : '<span class="text-muted" title="يتطلب صلاحية المدير">للقراءة فقط</span>'}
                         </div>
                     `;
                 }).join('');
@@ -1413,6 +1448,26 @@
                 showToast('خطأ في تحميل كشف الحساب', 'error');
                 console.error(e);
             }
+        }
+
+        async function exportSuppliersCSV() {
+            try {
+                const res = await fetch(`${API}/suppliers?limit=10000`, { headers: { 'Authorization': `Bearer ${token}` } }); const data = await res.json(); const rows = data.suppliers || [];
+                const keys = ['id','name','phone','address','balance'];
+                const csv = '\ufeff' + [keys, ...rows.map(r => keys.map(k => r[k] ?? ''))].map(row => row.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\\n');
+                const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv;charset=utf-8'})); a.download = `كشوف-الموردين-${new Date().toISOString().slice(0,10)}.csv`; a.click(); URL.revokeObjectURL(a.href); showToast('تم تصدير كشوف الموردين', 'success');
+            } catch (e) { showToast('تعذر تصدير كشوف الموردين', 'error'); }
+        }
+
+        async function exportSupplierStatement(supplierId) {
+            if (!supplierId) return showToast('اختر موردًا أولًا', 'warning');
+            try {
+                const res = await fetch(`${API}/suppliers/statement?supplier_id=${supplierId}`, { headers: { 'Authorization': `Bearer ${token}` } }); const data = await res.json(); const rows = data.statement || [];
+                if (!rows.length) return showToast('لا توجد حركات لتصديرها', 'warning');
+                const keys = ['created_at','type','invoice_number','amount','total_amount','currency_code','exchange_rate','note'];
+                const csv = '\ufeff' + [keys, ...rows.map(r => keys.map(k => r[k] ?? ''))].map(row => row.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\\n');
+                const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv;charset=utf-8'})); a.download = `كشف-مورد-${supplierId}-${new Date().toISOString().slice(0,10)}.csv`; a.click(); URL.revokeObjectURL(a.href); showToast('تم تصدير كشف المورد', 'success');
+            } catch (e) { showToast('تعذر تصدير كشف المورد', 'error'); }
         }
 
         function printStatement() {

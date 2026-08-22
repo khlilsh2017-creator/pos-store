@@ -793,6 +793,8 @@
                     <button class="btn btn-sm btn-outline" onclick="printReport()"><i class="fas fa-print"></i> طباعة</button>
                     <button class="btn btn-sm btn-success" onclick="exportCSV()"><i class="fas fa-file-csv"></i> تصدير CSV</button>
                     <button class="btn btn-sm btn-primary" onclick="applyFilters()"><i class="fas fa-sync-alt"></i> تحديث</button>
+                    <span id="report-connection-badge" class="status-badge" style="padding:6px 10px;"><i class="fas fa-spinner fa-spin"></i> فحص</span>
+                    <span id="report-role-badge" class="status-badge" style="padding:6px 10px;">قارئ</span>
                 </div>
             </div>
 
@@ -937,6 +939,7 @@
         // ================================================================
         const API = 'https://api.ibnalmukhtar.com'; // غيّر حسب خادمك
         let token = localStorage.getItem('pos_token') || '';
+        const currentUser = JSON.parse(localStorage.getItem('pos_user') || '{}');
         if (!token) window.location.href = 'index.html';
 
         let allOrders = [];
@@ -968,6 +971,19 @@
             setTimeout(() => { t.style.opacity = '0';
                 t.style.transform = 'translateX(40px)';
                 setTimeout(() => t.remove(), 300); }, 4000);
+        }
+
+        async function checkReportConnection() {
+            const badge = document.getElementById('report-connection-badge');
+            if (!navigator.onLine) { badge.className = 'status-badge cancelled'; badge.innerHTML = '<i class="fas fa-wifi-slash"></i> غير متصل'; return false; }
+            const controller = new AbortController(); const timer = setTimeout(() => controller.abort(), 6000); const started = performance.now();
+            try { const res = await fetch(`${API}/settings`, { headers:{'Authorization': `Bearer ${token}`}, signal: controller.signal }); clearTimeout(timer); if (!res.ok) throw new Error(); badge.className = 'status-badge delivered'; badge.innerHTML = `<i class="fas fa-check-circle"></i> متصل ${Math.round(performance.now()-started)}ms`; return true; }
+            catch (e) { clearTimeout(timer); badge.className = 'status-badge cancelled'; badge.innerHTML = '<i class="fas fa-exclamation-circle"></i> الخادم غير متاح'; return false; }
+        }
+
+        function applyReportPermissions() {
+            const badge = document.getElementById('report-role-badge');
+            if (badge) { badge.innerHTML = currentUser.role === 'admin' ? '<i class="fas fa-user-shield"></i> مدير' : '<i class="fas fa-user"></i> موظف · قراءة'; badge.title = currentUser.role === 'admin' ? 'صلاحية مدير' : 'التقارير متاحة للقراءة والتصدير'; }
         }
 
         function formatNumber(num) {
@@ -1474,12 +1490,16 @@
         // ================================================================
         //  التهيئة عند التحميل
         // ================================================================
-        window.onload = function() {
+        window.onload = async function() {
+            applyReportPermissions();
+            await checkReportConnection();
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('filterDateFrom').value = today;
             document.getElementById('filterDateTo').value = today;
             document.getElementById('pageSizeSelect').value = pageSize;
             applyFilters();
+            window.addEventListener('online', () => { checkReportConnection(); applyFilters(); });
+            window.addEventListener('offline', checkReportConnection);
         };
     </script>
 </body>
