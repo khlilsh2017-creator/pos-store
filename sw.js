@@ -3,12 +3,13 @@
 // ============================================================
 importScripts('/offline-sw-core.js');
 
-const CACHE_NAME = 'ibn-mukhtar-pos-v30';
-const STATIC_CACHE = 'ibn-mukhtar-static-v30';
-const DYNAMIC_CACHE = 'ibn-mukhtar-dynamic-v30';
-const VERSION = '2026-08-26-offline-sync-v1';
+const CACHE_NAME = 'ibn-mukhtar-pos-v31';
+const STATIC_CACHE = 'ibn-mukhtar-static-v31';
+const DYNAMIC_CACHE = 'ibn-mukhtar-dynamic-v31';
+const VERSION = '2026-08-29-offline-sync-v2';
 
 const STATIC_ASSETS = [
+    // الصفحات الرئيسية
     '/',
     '/index.html',
     '/sale.html',
@@ -26,21 +27,30 @@ const STATIC_ASSETS = [
     '/settings.html',
     '/add_order.html',
     '/add_order_ph.html',
+    '/orders.html',
+    '/barcode-print.html',
+    '/stock-movements.html',
+    '/inventory.html',
+    '/notification-test.html',
+    '/online-reports.html',
+    '/reports_central.html',          // ⬅️ موجود
+    '/audit-logs.html',               // موجود
+    '/site-integration.html',         // موجود
+
+    // مجلد driver
+    '/driver/',
+    '/driver/index.html',
+    '/driver/sw_driver.js',
+    '/driver/db.js',
+
+    // مجلد phone
     '/phone/index.html',
     '/phone/add_order_ph.html',
     '/phone/orders.html',
     '/phone/manifest.json',
     '/phone/sw_phone.js',
-    '/barcode-print.html',
-    '/stock-movements.html',
-    '/inventory.html',
-    '/notification-test.html',
-    '/driver/',
-    '/driver/index.html',
-    '/driver/sw_driver.js',
-    '/driver/db.js',
-    '/online-reports.html',
-    '/orders.html',
+
+    // ملفات JavaScript الأساسية
     '/db.js',
     '/offline-sw-core.js',
     '/offline-sync.js',
@@ -49,16 +59,25 @@ const STATIC_ASSETS = [
     '/number-utils.js',
     '/filter-utils.js',
     '/permissions.js',
+    '/notification-center-v3.js',      // ⬅️ موجود
+    '/notification-settings-v3.js',    // ⬅️ موجود
+    '/sidebar-config.js',
+
+    // ملفات CSS
+    '/sidebar.css',
+    '/sidebar-v4.css',                 // ⬅️ موجود (أنشأته مؤخراً)
+
+    // مكتبات خارجية
     '/html2canvas.min.js',
     '/html2pdf.bundle.min.js',
-    '/sidebar-config.js',
-    '/sidebar.css',
-    '/audit-logs.html',
-    '/site-integration.html',
+
+    // Service Worker وملفات المانيفست
     '/firebase-messaging-sw.js',
     '/manifest.json',
     '/manifest_pos_s.json',
     '/manifest_pos.json',
+
+    // الأيقونات
     '/icon-192x192.png',
     '/icon-512x512.png'
 ];
