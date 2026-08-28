@@ -824,11 +824,7 @@
                 </div>
                 <div class="filter-actions">
                     <button class="btn btn-purple btn-sm" onclick="printOrders()"><i class="fas fa-print"></i> طباعة</button>
-<<<<<<< HEAD
                     <button class="btn btn-info btn-sm" onclick="printOrders()"><i class="fas fa-print"></i> طباعة السجل</button>
-=======
-                    <button class="btn btn-info btn-sm" onclick="exportOrdersCSV()"><i class="fas fa-file-csv"></i> تصدير CSV</button>
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
                 </div>
             </div>
 
@@ -1292,11 +1288,7 @@
         return String(value ?? '').replace(/[&<>\"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]));
     }
 
-<<<<<<< HEAD
     function formatNumber(n) { return formatPosMoney(n); }
-=======
-    function formatNumber(n) { return Number(n || 0).toFixed(2); }
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
 
     function formatDate(d) {
         if (!d) return '';
@@ -1686,14 +1678,10 @@
         `;
         if (order.items && order.items.length) {
             order.items.forEach(item => {
-<<<<<<< HEAD
                     const itemName = item.variant_label && !String(item.product_name || '').includes(String(item.variant_label)) ? `${item.product_name || 'منتج'} — ${item.variant_label}` : (item.product_name || 'منتج');
                     const itemDiscount = Number(item.discount || item.discount_amount || 0);
                     const itemNote = item.note || item.notes || '';
                     html += `<tr><td>${escapeHtml(itemName)}${itemDiscount > 0 ? `<small style="display:block;color:var(--danger);">خصم المنتج: ${formatNumber(itemDiscount)}</small>` : ''}${itemNote ? `<small style="display:block;color:var(--muted);">ملاحظة: ${escapeHtml(itemNote)}</small>` : ''}</td><td>${formatPosQuantity(Number(item.quantity || 0))}</td><td>${formatNumber(item.unit_price)}</td><td>${formatNumber(item.line_total)}</td></tr>`;
-=======
-                html += `<tr><td>${escapeHtml(item.product_name)}</td><td>${Number(item.quantity || 0)}</td><td>${formatNumber(item.unit_price)}</td><td>${formatNumber(item.line_total)}</td></tr>`;
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
             });
         } else {
             html += `<tr><td colspan="4" class="text-muted">لا توجد منتجات</td></tr>`;

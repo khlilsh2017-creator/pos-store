@@ -4,18 +4,11 @@ import { createClient } from '@libsql/client/web';
 // ==================== المتغيرات العامة والأمان ====================
 let cachedClient = null;
 let dbInitialized = false;
-<<<<<<< HEAD
 let dbInitPromise = null;
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Store-ID, X-Page-Name',
-=======
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Store-ID',
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
 };
 // ==================== كاش توكن Firebase ======================
 let fcmTokenCache = {
@@ -90,17 +83,12 @@ async function setInitialInvoiceNumber(conn, type, startNumber) {
 }
 async function ensureInitialized(env) {
   if (dbInitialized) return;
-<<<<<<< HEAD
   if (!dbInitPromise) {
     dbInitPromise = initializeDatabase(env)
       .then(() => { dbInitialized = true; })
       .finally(() => { dbInitPromise = null; });
   }
   await dbInitPromise;
-=======
-  await initializeDatabase(env);
-  dbInitialized = true;
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
 }
 // ==================== تهيئة قاعدة البيانات ========================
 // ==================== تهيئة قاعدة البيانات (مُحسّنة لتجنب خطأ الـ 50 طلب) ========================
@@ -128,7 +116,6 @@ async function initializeDatabase(env) {
       id INTEGER PRIMARY KEY AUTOINCREMENT, closing_date DATE NOT NULL, entry_id INTEGER NOT NULL,
       retained_earnings REAL DEFAULT 0, closed_by INTEGER, created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`,
-<<<<<<< HEAD
     `CREATE TABLE IF NOT EXISTS offline_idempotency (
       operation_id TEXT PRIMARY KEY,
       method TEXT NOT NULL,
@@ -203,15 +190,6 @@ async function initializeDatabase(env) {
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     )`,
     `CREATE INDEX IF NOT EXISTS idx_user_permissions_user ON user_permissions(user_id)`,
-=======
-    `CREATE INDEX IF NOT EXISTS idx_sales_created_status ON sales(created_at, status)`,
-    `CREATE INDEX IF NOT EXISTS idx_sale_items_product ON sale_items(product_id)`,
-    `CREATE INDEX IF NOT EXISTS idx_sales_customer ON sales(customer_id)`,
-    `CREATE INDEX IF NOT EXISTS idx_products_name ON products(name)`,
-    `CREATE INDEX IF NOT EXISTS idx_products_barcode ON products(barcode)`,
-    `CREATE INDEX IF NOT EXISTS idx_online_orders_driver ON online_orders(assigned_driver_id, status)`,
-    `CREATE INDEX IF NOT EXISTS idx_online_orders_date ON online_orders(order_date)`,
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
     `CREATE TABLE IF NOT EXISTS product_supplier_stock (
       id INTEGER PRIMARY KEY AUTOINCREMENT, product_id INTEGER NOT NULL, supplier_id INTEGER NOT NULL,
       quantity REAL NOT NULL DEFAULT 0, last_purchase_price REAL, total_purchased REAL DEFAULT 0,
@@ -219,7 +197,6 @@ async function initializeDatabase(env) {
       FOREIGN KEY (product_id) REFERENCES products(id), FOREIGN KEY (supplier_id) REFERENCES suppliers(id),
       UNIQUE(product_id, supplier_id)
     )`,
-<<<<<<< HEAD
     `CREATE TABLE IF NOT EXISTS product_variants (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       product_id INTEGER NOT NULL,
@@ -236,8 +213,6 @@ async function initializeDatabase(env) {
     )`,
     `CREATE INDEX IF NOT EXISTS idx_product_variants_product ON product_variants(product_id)`,
     `CREATE INDEX IF NOT EXISTS idx_product_variants_active_stock ON product_variants(product_id, is_active, stock_quantity)`,
-=======
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
     `CREATE TABLE IF NOT EXISTS online_order_returns (
       id INTEGER PRIMARY KEY AUTOINCREMENT, order_id INTEGER NOT NULL, reason TEXT,
       total_refund REAL NOT NULL DEFAULT 0, refund_method TEXT NOT NULL DEFAULT 'cash', wallet_id INTEGER,
@@ -268,7 +243,6 @@ async function initializeDatabase(env) {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (product_id) REFERENCES products(id)
     )`,
     `CREATE INDEX IF NOT EXISTS idx_stock_movements_product ON stock_movements(product_id)`,
-<<<<<<< HEAD
     `CREATE INDEX IF NOT EXISTS idx_stock_movements_product_created ON stock_movements(product_id, created_at, id)`,
     `CREATE INDEX IF NOT EXISTS idx_stock_movements_date ON stock_movements(created_at)`,
     `CREATE INDEX IF NOT EXISTS idx_stock_movements_ref ON stock_movements(reference_type, reference_id)`,
@@ -294,28 +268,12 @@ async function initializeDatabase(env) {
   await client.batch(createBatch.map(sql => ({ sql, args: [] })), 'write');
   // ترحيل آمن: الكاشير يستخدم جلسة POS الحالية لعرض المندوبين دون دخول مستقل.
   await client.execute("INSERT OR IGNORE INTO user_permissions (user_id, permission) SELECT id, 'delivery.drivers.view' FROM users WHERE role = 'cashier'");
-=======
-    `CREATE INDEX IF NOT EXISTS idx_stock_movements_date ON stock_movements(created_at)`,
-    `CREATE INDEX IF NOT EXISTS idx_stock_movements_ref ON stock_movements(reference_type, reference_id)`,
-    `INSERT OR IGNORE INTO settings (key, value) VALUES ('next_product_code', '1')`,
-    `INSERT OR IGNORE INTO settings (key, value) VALUES ('allow_below_cost', '0')`,
-    `INSERT OR IGNORE INTO settings (key, value) VALUES ('allow_negative_stock', '0')`,
-    `INSERT OR IGNORE INTO settings (key, value) VALUES ('allow_expired_negative_sales', '1')`,
-    `INSERT OR IGNORE INTO settings (key, value) VALUES ('closed_until_date', '')`
-  ];
-
-  await client.batch(createBatch.map(sql => ({ sql, args: [] })), 'write');
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
   invalidateSettingsCache();
 
   // 2. فحص الأعمدة المفقودة في كل الجداول بطلب فرعي واحد فقط
   const tablesToCheck = [
     'products', 'suppliers', 'sale_items', 'online_orders', 
-<<<<<<< HEAD
       'online_order_items', 'online_order_returns', 'driver_transactions', 'purchase_invoices', 'audit_logs', 'purchase_invoice_items', 'expenses', 'product_variants', 'driver_order_receipts', 'customer_payments', 'supplier_payments', 'cash_vouchers', 'accounting_closures'
-=======
-    'online_order_items', 'online_order_returns', 'driver_transactions', 'purchase_invoices'
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
   ];
   
   // دمج استعلامات PRAGMA باستخدام UNION ALL لتقليل عدد الطلبات
@@ -331,7 +289,6 @@ async function initializeDatabase(env) {
 
   // 3. قائمة بكل الأعمدة المطلوبة
   const columnsToAdd = [
-<<<<<<< HEAD
     { table: 'audit_logs', col: 'user_id', type: 'INTEGER' },
     { table: 'audit_logs', col: 'username', type: 'TEXT' },
     { table: 'audit_logs', col: 'role', type: 'TEXT' },
@@ -351,9 +308,6 @@ async function initializeDatabase(env) {
     { table: 'products', col: 'is_set', type: 'INTEGER DEFAULT 0' },
     { table: 'products', col: 'set_piece_count', type: 'INTEGER DEFAULT 1' },
     { table: 'products', col: 'set_details_json', type: 'TEXT' },
-=======
-    { table: 'products', col: 'product_code', type: 'TEXT' },
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
     { table: 'products', col: 'unit_type', type: "TEXT DEFAULT 'piece'" },
     { table: 'products', col: 'unit_symbol', type: "TEXT DEFAULT 'قطعة'" },
     { table: 'products', col: 'is_decimal_allowed', type: 'INTEGER DEFAULT 0' },
@@ -363,7 +317,6 @@ async function initializeDatabase(env) {
     { table: 'sale_items', col: 'supplier_id', type: 'INTEGER' },
     { table: 'sale_items', col: 'supplier_price', type: 'REAL' },
     { table: 'sale_items', col: 'discount', type: 'REAL DEFAULT 0' },
-<<<<<<< HEAD
     { table: 'sale_items', col: 'variant_id', type: 'INTEGER' },
     { table: 'sale_items', col: 'variant_label', type: 'TEXT' },
     { table: 'purchase_invoice_items', col: 'variant_id', type: 'INTEGER' },
@@ -375,11 +328,6 @@ async function initializeDatabase(env) {
     { table: 'online_order_items', col: 'variant_id', type: 'INTEGER' },
     { table: 'online_order_items', col: 'variant_label', type: 'TEXT' },
     { table: 'online_order_items', col: 'sale_mode', type: "TEXT DEFAULT 'size'" },
-=======
-    { table: 'online_orders', col: 'actual_collected', type: 'REAL DEFAULT 0' },
-    { table: 'online_orders', col: 'order_date', type: 'DATETIME' },
-    { table: 'online_order_items', col: 'discount', type: 'REAL DEFAULT 0' },
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
     { table: 'online_order_returns', col: 'status', type: "TEXT DEFAULT 'pending'" },
     { table: 'online_order_returns', col: 'assigned_driver_id', type: 'INTEGER' },
     { table: 'online_order_returns', col: 'delivery_fee_return', type: 'REAL DEFAULT 0' },
@@ -397,7 +345,6 @@ async function initializeDatabase(env) {
     { table: 'purchase_invoices', col: 'cash_paid', type: 'REAL DEFAULT 0' },
     { table: 'purchase_invoices', col: 'wallet_paid', type: 'REAL DEFAULT 0' },
     { table: 'purchase_invoices', col: 'cash_currency_id', type: 'INTEGER' },
-<<<<<<< HEAD
     { table: 'purchase_invoices', col: 'wallet_currency_id', type: 'INTEGER' },
     { table: 'expenses', col: 'expense_type', type: "TEXT DEFAULT 'operating'" },
     { table: 'expenses', col: 'expense_scope', type: "TEXT DEFAULT 'general'" },
@@ -430,9 +377,6 @@ async function initializeDatabase(env) {
     { table: 'accounting_closures', col: 'status', type: "TEXT DEFAULT 'active'" },
     { table: 'accounting_closures', col: 'reopened_at', type: 'DATETIME' },
     { table: 'accounting_closures', col: 'reopened_by', type: 'INTEGER' }
-=======
-    { table: 'purchase_invoices', col: 'wallet_currency_id', type: 'INTEGER' }
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
   ];
 
   // 4. بناء دفعات (Batches) لتنفيذ أي أعمدة ناقصة
@@ -449,7 +393,6 @@ async function initializeDatabase(env) {
       await client.batch(alterBatch.slice(i, i + 20), 'write');
     }
   }
-<<<<<<< HEAD
 
   // تهيئة باركود فريد للمقاسات القديمة التي أُنشئت قبل إضافة عمود barcode.
   const missingVariantBarcodes = await dbAll(client, "SELECT id FROM product_variants WHERE barcode IS NULL OR barcode = ''");
@@ -469,8 +412,6 @@ async function initializeDatabase(env) {
     .filter(row => Number(row.variant_count) > 0)
     .map(row => ({ sql: 'UPDATE product_variants SET cost = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', args: [(Number(row.parent_cost) || 0) / Number(row.variant_count), row.id] }));
   if (variantCostUpdates.length) await client.batch(variantCostUpdates, 'write');
-=======
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
 }
 // ==================== دوال FCM (إشعارات) ====================
 // ==================== دوال الإشعارات (FCM) ====================
@@ -820,7 +761,6 @@ async function sendDailySummary(env) {
   }
 }
 
-<<<<<<< HEAD
 // ==================== تقرير المنتجات ذات الرصيد السالب اليومي ====================
 function getConfiguredWhatsAppRecipients(env) {
   try {
@@ -917,8 +857,6 @@ async function exportNegativeStockCSV(request, env, headers) {
   });
 }
 
-=======
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
 async function updateDailyProductStats(client, day = new Date(Date.now() - 86400000).toISOString().slice(0,10)) {
   await dbRun(client,'DELETE FROM daily_product_stats WHERE sale_date=?',[day]);
   await dbRun(client,`INSERT INTO daily_product_stats(product_id,sale_date,total_quantity,total_revenue,total_cost) SELECT si.product_id,?,SUM(si.quantity),SUM(si.total_price),SUM(COALESCE(si.cost_price,0)*si.quantity) FROM sale_items si JOIN sales s ON s.id=si.sale_id WHERE s.status='completed' AND date(s.created_at)=? GROUP BY si.product_id`,[day,day]); reportCache.clear();
@@ -935,7 +873,6 @@ async function updateMonthlySummary(client, month = new Date().toISOString().sli
 }
 async function updateAgingSummary(client) { await dbRun(client,'DELETE FROM aging_summary'); const entities=[['customers','customers'],['suppliers','suppliers']]; for(const [type,table] of entities) await dbRun(client,`INSERT INTO aging_summary(entity_type,entity_id,age_days,total_balance) SELECT ?,id,CASE WHEN julianday('now')-julianday(COALESCE(created_at,'now'))<=30 THEN 30 WHEN julianday('now')-julianday(COALESCE(created_at,'now'))<=60 THEN 60 WHEN julianday('now')-julianday(COALESCE(created_at,'now'))<=90 THEN 90 ELSE 120 END,COALESCE(balance,0) FROM ${table} WHERE COALESCE(balance,0)<>0`,[type]); reportCache.clear(); }
 
-<<<<<<< HEAD
 // ==================== مزامنة مخزون المتجر المرتبط ====================
 function getConfiguredStoreBase(env) {
   return String(env.STORE_API_BASE || env.SITE_BASE_URL || env.SITE_API_BASE || env.WEBSITE_API_URL || '').trim().replace(/\/$/, '');
@@ -1051,18 +988,13 @@ async function getStockSyncStatus(env) {
   return { frequency: settings.stock_sync_frequency === 'daily' ? 'daily' : 'hourly', last_run: settings.stock_sync_last_run || null, last_status: lastStatus, store_configured: Boolean(getConfiguredStoreBase(env) && getConfiguredStoreToken(env)) };
 }
 
-=======
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
 // ==================== المجدول =====================================
 async function scheduled(event, env, ctx) {
   console.log("⏰ تم تشغيل المجدول في:", new Date().toISOString());
   ctx.waitUntil((async () => {
     await sendDailySummary(env);
     try { const c = getTursoClient(env); await updateDailyProductStats(c); await updateMonthlySummary(c); await updateAgingSummary(c); } catch (e) { console.error('فشل تحديث الجداول الملخصة:', e.message); }
-<<<<<<< HEAD
     try { const result = await syncLinkedStock(env); console.log('✅ نتيجة مزامنة المخزون:', JSON.stringify({ updated: result.updated, unchanged: result.unchanged, unlinked: result.unlinked, errors: result.errors, skipped: result.skipped })); } catch (e) { console.error('❌ فشل مزامنة مخزون المتجر:', e.message); }
-=======
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
   })());
 }
 
@@ -1094,7 +1026,6 @@ async function dbRun(conn, sql, args = []) {
 }
 
 // ==================== دوال مساعدة للموردين ====================
-<<<<<<< HEAD
 // delta موجب = إعادة الكمية إلى مخزون المورد، وdelta سالب = خصمها منه.
 // الدالة لا تنفذ استعلامًا منفردًا؛ بل تضيفه إلى batchQueries ليُنفّذ مع بقية
 // تغييرات المخزون داخل نفس معاملة Turso.
@@ -1121,13 +1052,6 @@ async function deductSupplierStock(tx, productId, quantityToDeduct, supplierId =
 async function restoreSupplierStock(tx, productId, supplierId, quantity, unitPrice = 0, batchQueries = []) {
   await updateSupplierStock(tx, productId, supplierId, Math.abs(Number(quantity) || 0), batchQueries);
   return batchQueries;
-=======
-async function deductSupplierStock(tx, productId, quantityToDeduct) {
-  return { queries: [], deductions: [] };
-}
-async function restoreSupplierStock(tx, productId, supplierId, quantity, unitPrice = 0) {
-  return [];
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
 }
 
 // ==================== تسجيل حركة المخزون (موحّد) ====================
@@ -1225,16 +1149,11 @@ async function getCurrentUser(request, env) {
   const authHeader = request.headers.get('Authorization');
   if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
   const token = authHeader.split(' ')[1];
-<<<<<<< HEAD
   if (token === env.STOCK_API_TOKEN) return { role: 'admin', username: 'system-token', id: null };
-=======
-  if (token === env.STOCK_API_TOKEN) return { role: 'admin' };
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
   try {
     const parts = token.split('.');
     if (parts.length !== 3) return null;
     const payload = JSON.parse(atob(parts[1]));
-<<<<<<< HEAD
     if (!payload.userId || !payload.role) return null;
     const client = getTursoClient(env);
     if (payload.role === 'driver') {
@@ -1243,15 +1162,11 @@ async function getCurrentUser(request, env) {
     }
     const user = await dbFirst(client, 'SELECT id, username, role FROM users WHERE id = ?', [payload.userId]);
     return user ? { id: user.id, username: user.username, role: user.role } : null;
-=======
-    return { id: payload.userId, username: payload.username, role: payload.role };
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
   } catch {
     return null;
   }
 }
 
-<<<<<<< HEAD
 async function writeAuditLog(env, entry) {
   try {
     const client = getTursoClient(env);
@@ -1481,8 +1396,6 @@ async function permissionResponse(data, request, env, headers, status = 200, cos
   return jsonResponse(allowed.some(Boolean) ? data : stripSensitiveFields(data), status, headers);
 }
 
-=======
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
 // ==================== دوال محاسبية مساعدة =========================
 const cache = {
   accounts: new Map(),
@@ -1518,7 +1431,6 @@ async function getAccountId(conn, name) {
 }
 // ===== إصلاح #5: رفض القيم غير المنتظمة (NaN/Infinity) التي كانت تمر بصمت =====
 function checkBalance(details) {
-<<<<<<< HEAD
   if (!Array.isArray(details) || details.length < 2) throw new Error('القيد يجب أن يحتوي على سطرين محاسبيين على الأقل');
   let balance = 0;
   for (const d of details) {
@@ -1534,15 +1446,6 @@ function checkBalance(details) {
     balance += debit - credit;
   }
   if (Math.abs(balance) > 0.001) throw new Error('القيد غير متوازن');
-=======
-  for (const d of details) {
-    if (!Number.isFinite(d.debit) || !Number.isFinite(d.credit)) {
-      throw new Error('القيد يحتوي مبالغ غير صالحة (NaN/Infinity)');
-    }
-  }
-  const balance = details.reduce((sum, d) => sum + (d.debit - d.credit), 0);
-  if (Math.abs(balance) > 0.001) throw new Error("القيد غير متوازن");
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
 }
 async function createJournalEntry(conn, entryDate, description, details, referenceType = null, referenceId = null) {
   checkBalance(details);
@@ -1582,7 +1485,6 @@ function isMixedOrder(order) {
   const method = order.payment_method.toLowerCase().trim();
   return method.includes('mixed') || method.includes('مختلط');
 }
-<<<<<<< HEAD
 function getDeliveryFeeDue(order) {
   const payment = String(order?.delivery_fee_payment || '').trim();
   return payment === 'عند الاستلام' ? Math.max(0, parseFloat(order?.delivery_fee) || 0) : 0;
@@ -1593,8 +1495,6 @@ function getExpectedCashForOrder(order) {
   if (isMixedOrder(order)) return Math.max(0, parseFloat(order.cash_paid) || 0);
   return Math.max(0, parseFloat(order.total_amount) || 0);
 }
-=======
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
 async function addColumnIfNotExists(conn, tableName, columnName, columnType) {
   const tableInfo = await dbAll(conn, `PRAGMA table_info(${tableName})`);
   const exists = tableInfo.some(col => col.name === columnName);
@@ -1621,11 +1521,7 @@ async function getOrCreateAccount(conn, name, code, type, parent_id = null) {
   return account.id;
 }
 async function getOrCreateFeeAccount(conn) {
-<<<<<<< HEAD
   return await getOrCreateAccount(conn, 'خسائر صرف العملات', '6300', 'expense');
-=======
-  return await getOrCreateAccount(conn, 'رسوم التحويل', '6205', 'expense');
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
 }
 async function ensureWalletBalance(conn, walletId, currencyId) {
   const existing = await dbFirst(conn,
@@ -1668,23 +1564,15 @@ async function getCurrencies(request, env, headers) {
 }
 async function createCurrency(request, env, headers) {
   const { code, name, rate_to_base, is_base } = await request.json();
-<<<<<<< HEAD
   const numericRate = Number(rate_to_base);
   if (!String(code || '').trim() || !String(name || '').trim() || !Number.isFinite(numericRate) || numericRate <= 0) {
-=======
-  if (!code || !name || rate_to_base === undefined || rate_to_base <= 0) {
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
     return jsonResponse({ error: 'الرمز، الاسم وسعر الصرف الموجب مطلوبة' }, 400, headers);
   }
   const client = getTursoClient(env);
   if (is_base) await dbRun(client, "UPDATE currencies SET is_base = 0");
   const result = await dbRun(client,
     "INSERT INTO currencies (code, name, rate_to_base, is_base) VALUES (?, ?, ?, ?)",
-<<<<<<< HEAD
     [String(code).trim().toUpperCase(), String(name).trim(), numericRate, is_base ? 1 : 0]
-=======
-    [code, name, rate_to_base, is_base ? 1 : 0]
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
   );
   invalidateCurrencyCache();
   return jsonResponse({ success: true, id: result.lastInsertRowid }, 200, headers);
@@ -1692,22 +1580,15 @@ async function createCurrency(request, env, headers) {
 async function updateCurrency(request, env, headers) {
   const id = parseInt(request.url.split('/').pop());
   const { rate_to_base, is_base } = await request.json();
-<<<<<<< HEAD
   const numericRate = Number(rate_to_base);
   if (!Number.isInteger(id) || id <= 0 || !Number.isFinite(numericRate) || numericRate <= 0) return jsonResponse({ error: 'معرف أو سعر صرف غير صالح' }, 400, headers);
-=======
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
   const client = getTursoClient(env);
   const curr = await dbFirst(client, "SELECT id FROM currencies WHERE id = ?", [id]);
   if (!curr) return jsonResponse({ error: 'العملة غير موجودة' }, 404, headers);
   if (is_base) await dbRun(client, "UPDATE currencies SET is_base = 0");
   await dbRun(client,
     "UPDATE currencies SET rate_to_base = ?, is_base = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
-<<<<<<< HEAD
     [numericRate, is_base ? 1 : 0, id]
-=======
-    [rate_to_base, is_base ? 1 : 0, id]
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
   );
   invalidateCurrencyCache();
   return jsonResponse({ success: true }, 200, headers);
@@ -1718,7 +1599,6 @@ async function deleteCurrency(request, env, headers) {
   const curr = await dbFirst(client, "SELECT is_base FROM currencies WHERE id = ?", [id]);
   if (!curr) return jsonResponse({ error: 'العملة غير موجودة' }, 404, headers);
   if (curr.is_base) return jsonResponse({ error: 'لا يمكن حذف العملة الأساسية' }, 400, headers);
-<<<<<<< HEAD
   const usage = await dbFirst(client, `
     SELECT (
       (SELECT COUNT(*) FROM cash_register WHERE currency_id = ?) +
@@ -1731,8 +1611,6 @@ async function deleteCurrency(request, env, headers) {
     ) AS total_usage
   `, [id, id, id, id, id, id, id, id, id, id, id]);
   if (Number(usage?.total_usage || 0) > 0) return jsonResponse({ error: 'لا يمكن حذف عملة مرتبطة بحركات أو أرصدة تاريخية' }, 409, headers);
-=======
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
   await dbRun(client, "DELETE FROM currencies WHERE id = ?", [id]);
   invalidateCurrencyCache();
   return jsonResponse({ success: true }, 200, headers);
@@ -1752,15 +1630,9 @@ async function handleLogin(request, env, headers) {
       const driver = await dbFirst(client, "SELECT * FROM drivers WHERE username = ? AND is_active = 1", [username]);
       if (driver) { user = driver; role = 'driver'; userId = driver.id; }
     }
-<<<<<<< HEAD
     if (!user) { await writeAuditLog(env, { action: 'auth.login', resource: 'auth', method: 'POST', path: '/auth/login', status_code: 401, success: false, details: { username: String(username).slice(0, 120), reason: 'unknown_user' } }); return jsonResponse({ error: 'بيانات الدخول غير صحيحة' }, 401, headers); }
     const hash = await hashPassword(password, user.salt);
     if (hash !== user.password_hash) { await writeAuditLog(env, { user_id: userId, username: user.username, role, action: 'auth.login', resource: 'auth', method: 'POST', path: '/auth/login', status_code: 401, success: false, details: { reason: 'invalid_password' } }); return jsonResponse({ error: 'بيانات الدخول غير صحيحة' }, 401, headers); }
-=======
-    if (!user) return jsonResponse({ error: 'بيانات الدخول غير صحيحة' }, 401, headers);
-    const hash = await hashPassword(password, user.salt);
-    if (hash !== user.password_hash) return jsonResponse({ error: 'بيانات الدخول غير صحيحة' }, 401, headers);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
     if (!env.JWT_SECRET) return jsonResponse({ error: 'إعدادات السيرفر غير مكتملة' }, 500, headers);
     const token = await createJWT({
       userId: userId,
@@ -1768,19 +1640,12 @@ async function handleLogin(request, env, headers) {
       role: role,
       exp: Math.floor(Date.now() / 1000) + (30 * 24 * 60 * 60)
     }, env.JWT_SECRET);
-<<<<<<< HEAD
     const permissions = await loadUserPermissions(client, userId, role);
     await writeAuditLog(env, { user_id: userId, username: user.username, role, action: 'auth.login', resource: 'auth', method: 'POST', path: '/auth/login', status_code: 200, success: true, details: { reason: 'success' } });
     return jsonResponse({
       success: true,
       token: token,
       user: { id: userId, username: user.username, role: role, name: user.name || user.username, permissions }
-=======
-    return jsonResponse({
-      success: true,
-      token: token,
-      user: { id: userId, username: user.username, role: role, name: user.name || user.username }
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
     }, 200, headers);
   } catch (error) {
     return jsonResponse({ error: 'حدث خطأ داخلي أثناء تسجيل الدخول' }, 500, headers);
@@ -1789,7 +1654,6 @@ async function handleLogin(request, env, headers) {
 async function getUsers(request, env, headers) {
   const client = getTursoClient(env);
   const rows = await dbAll(client, "SELECT id, username, role, created_at FROM users ORDER BY id");
-<<<<<<< HEAD
   for (const row of rows) row.permissions = await loadUserPermissions(client, row.id, row.role);
   return jsonResponse({ users: rows }, 200, headers);
 }
@@ -1797,19 +1661,11 @@ async function createUser(request, env, headers) {
   const { username, password, role, permissions } = await request.json();
   if (!username || !password) return jsonResponse({ error: 'اسم المستخدم وكلمة المرور مطلوبة' }, 400, headers);
   const safeRole = ['admin', 'cashier', 'custom'].includes(role) ? role : 'cashier';
-=======
-  return jsonResponse({ users: rows }, 200, headers);
-}
-async function createUser(request, env, headers) {
-  const { username, password, role } = await request.json();
-  if (!username || !password) return jsonResponse({ error: 'اسم المستخدم وكلمة المرور مطلوبة' }, 400, headers);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
   const client = getTursoClient(env);
   const existing = await dbFirst(client, "SELECT id FROM users WHERE username = ?", [username]);
   if (existing) return jsonResponse({ error: 'اسم المستخدم موجود مسبقاً' }, 409, headers);
   const salt = crypto.randomUUID();
   const hash = await hashPassword(password, salt);
-<<<<<<< HEAD
   const result = await dbRun(client, "INSERT INTO users (username, password_hash, salt, role) VALUES (?, ?, ?, ?)", [username, hash, salt, safeRole]);
   const savedPermissions = await saveUserPermissions(client, result.lastInsertRowid, permissions ?? DEFAULT_ROLE_PERMISSIONS_SERVER[safeRole] ?? [], safeRole);
   return jsonResponse({ success: true, id: result.lastInsertRowid, user: { id: result.lastInsertRowid, username, role: safeRole, permissions: savedPermissions } }, 200, headers);
@@ -1829,32 +1685,6 @@ async function updateUser(request, env, headers) {
   else if (role && safeRole !== user.role) await saveUserPermissions(client, id, DEFAULT_ROLE_PERMISSIONS_SERVER[safeRole] || [], safeRole);
   if (!fields.length && permissions === undefined) return jsonResponse({ error: 'لا توجد بيانات للتحديث' }, 400, headers);
   return jsonResponse({ success: true, permissions: await loadUserPermissions(client, id, safeRole) }, 200, headers);
-=======
-  const result = await dbRun(client,
-    "INSERT INTO users (username, password_hash, salt, role) VALUES (?, ?, ?, ?)",
-    [username, hash, salt, role || 'cashier']
-  );
-  return jsonResponse({ success: true, id: result.lastInsertRowid }, 200, headers);
-}
-async function updateUser(request, env, headers) {
-  const id = parseInt(request.url.split('/').pop());
-  const { password, role } = await request.json();
-  const client = getTursoClient(env);
-  const user = await dbFirst(client, "SELECT id FROM users WHERE id = ?", [id]);
-  if (!user) return jsonResponse({ error: 'المستخدم غير موجود' }, 404, headers);
-  const fields = [], values = [];
-  if (password) {
-    const salt = crypto.randomUUID();
-    const hash = await hashPassword(password, salt);
-    fields.push('password_hash = ?', 'salt = ?');
-    values.push(hash, salt);
-  }
-  if (role) { fields.push('role = ?'); values.push(role); }
-  if (fields.length === 0) return jsonResponse({ error: 'لا توجد بيانات للتحديث' }, 400, headers);
-  values.push(id);
-  await dbRun(client, `UPDATE users SET ${fields.join(', ')} WHERE id = ?`, values);
-  return jsonResponse({ success: true }, 200, headers);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
 }
 async function deleteUser(request, env, headers) {
   const id = parseInt(request.url.split('/').pop());
@@ -1893,20 +1723,15 @@ async function createCategory(request, env, headers) {
   const { name, parent_id } = await request.json();
   if (!name) return jsonResponse({ error: 'اسم التصنيف مطلوب' }, 400, headers);
   const client = getTursoClient(env);
-<<<<<<< HEAD
   const parentId = parent_id ? Number(parent_id) : null;
   if (parentId !== null && !await dbFirst(client, 'SELECT id FROM categories WHERE id = ?', [parentId])) return jsonResponse({ error: 'التصنيف الأب غير موجود' }, 400, headers);
   const result = await dbRun(client, "INSERT INTO categories (name, parent_id) VALUES (?, ?)", [name, parentId]);
-=======
-  const result = await dbRun(client, "INSERT INTO categories (name, parent_id) VALUES (?, ?)", [name, parent_id || null]);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
   return jsonResponse({ success: true, id: result.lastInsertRowid }, 200, headers);
 }
 async function updateCategory(request, env, headers) {
   const id = parseInt(request.url.split('/').pop());
   const { name, parent_id } = await request.json();
   const client = getTursoClient(env);
-<<<<<<< HEAD
   const cat = await dbFirst(client, "SELECT id, name, parent_id FROM categories WHERE id = ?", [id]);
   if (!cat) return jsonResponse({ error: 'التصنيف غير موجود' }, 404, headers);
   const nextParentId = parent_id !== undefined ? (parent_id ? Number(parent_id) : null) : (cat.parent_id || null);
@@ -1918,11 +1743,6 @@ async function updateCategory(request, env, headers) {
     if (cycle) return jsonResponse({ error: 'لا يمكن نقل التصنيف تحت أحد تصنيفاته الفرعية' }, 400, headers);
   }
   await dbRun(client, "UPDATE categories SET name = ?, parent_id = ? WHERE id = ?", [name || cat.name, nextParentId, id]);
-=======
-  const cat = await dbFirst(client, "SELECT id FROM categories WHERE id = ?", [id]);
-  if (!cat) return jsonResponse({ error: 'التصنيف غير موجود' }, 404, headers);
-  await dbRun(client, "UPDATE categories SET name = ?, parent_id = ? WHERE id = ?", [name || cat.name, parent_id !== undefined ? parent_id : cat.parent_id, id]);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
   return jsonResponse({ success: true }, 200, headers);
 }
 async function deleteCategory(request, env, headers) {
@@ -1947,11 +1767,8 @@ async function getProducts(request, env, headers) {
   const url = new URL(request.url);
   const search = url.searchParams.get('search') || '';
   const categoryId = url.searchParams.get('category_id');
-<<<<<<< HEAD
   const negativeOnly = url.searchParams.get('negative') === '1';
   const positiveOnly = url.searchParams.get('positive_only') === '1' || url.searchParams.get('exclude_nonpositive') === '1';
-=======
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
   const sort = url.searchParams.get('sort') || 'name';
   const page = parseInt(url.searchParams.get('page')) || 1;
   const limit = parseInt(url.searchParams.get('limit')) || 100;
@@ -1968,16 +1785,12 @@ async function getProducts(request, env, headers) {
     conditions += ` AND p.category_id = ?`;
     args.push(categoryId);
   }
-<<<<<<< HEAD
     if (negativeOnly) {
     conditions += ' AND COALESCE(p.stock_quantity, 0) < 0';
   }
   if (positiveOnly) {
     conditions += ' AND COALESCE(p.stock_quantity, 0) > 0';
   }
-=======
-
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
   const mainSupplierSubquery = `
     (SELECT s.name FROM product_supplier_stock pss
      JOIN suppliers s ON s.id = pss.supplier_id
@@ -1999,12 +1812,9 @@ async function getProducts(request, env, headers) {
     case 'date':
       orderBy = `ORDER BY p.created_at DESC, p.name`;
       break;
-<<<<<<< HEAD
     case 'quantity':
       orderBy = `ORDER BY p.stock_quantity ASC, p.name`;
       break;
-=======
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
     default:
       orderBy = `ORDER BY p.name`;
   }
@@ -2022,11 +1832,7 @@ async function getProducts(request, env, headers) {
   const countArgs = args.slice(0, -2);
   const countRow = await dbFirst(client, `SELECT COUNT(*) AS total FROM products p WHERE ${conditions}`, countArgs);
   const rows = await dbAll(client, sql, args);
-<<<<<<< HEAD
   return await permissionResponse({ products: rows, total: Number(countRow?.total || 0), page, limit }, request, env, headers);
-=======
-  return jsonResponse({ products: rows, total: Number(countRow?.total || 0), page, limit }, 200, headers);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
 }
 
 async function getProductSuppliers(request, env, headers) {
@@ -2044,11 +1850,7 @@ async function getProductSuppliers(request, env, headers) {
     WHERE pss.product_id = ?
     ORDER BY pss.quantity DESC
   `, [productId]);
-<<<<<<< HEAD
   return await permissionResponse({ suppliers: rows }, request, env, headers);
-=======
-  return jsonResponse({ suppliers: rows }, 200, headers);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
 }
 async function getProductDetails(request, env, headers) {
   const id = parseInt(request.url.split('/').pop());
@@ -2070,22 +1872,17 @@ async function getProductDetails(request, env, headers) {
     [id]
   );
   product.sold_quantity = sold ? sold.sold : 0;
-<<<<<<< HEAD
   if (Number(product.is_set) === 1) {
     product.variants = await dbAll(client, 'SELECT id, product_id, label, stock_quantity, selling_price, cost, barcode, is_active FROM product_variants WHERE product_id = ? AND is_active = 1 ORDER BY id', [id]);
     if (!product.variants.length) product.variants = normalizeSetDetails(product.set_details_json).map(v => ({ ...v, product_id: id, cost: product.cost || 0, is_active: 1 }));
   }
   return await permissionResponse({ product }, request, env, headers);
-=======
-  return jsonResponse({ product }, 200, headers);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
 }
 async function searchProducts(request, env, headers) {
   const url = new URL(request.url);
   const term = url.searchParams.get('term') || '';
   const client = getTursoClient(env);
   const rows = await dbAll(client,
-<<<<<<< HEAD
     `SELECT id, name, barcode, product_code, price, cost, stock_quantity, category_id, unit_type, unit_symbol, is_decimal_allowed, weight_grams, is_set, set_piece_count, set_details_json
      FROM products p
      WHERE p.is_active = 1 AND (p.name LIKE ? OR p.barcode LIKE ? OR p.product_code LIKE ? OR EXISTS (SELECT 1 FROM product_variants v WHERE v.product_id = p.id AND v.is_active = 1 AND v.barcode LIKE ?))
@@ -2210,27 +2007,6 @@ async function addProduct(request, env, headers) {
   // 1. توليد باركود فريد جداً إذا تركه المستخدم فارغاً
   let barcode = data.barcode;
   if (!barcode || barcode.toString().trim() === '') barcode = await generateUniqueProductBarcode(client);
-=======
-    `SELECT id, name, barcode, product_code, price, cost, stock_quantity, category_id, unit_type, unit_symbol, is_decimal_allowed, weight_grams 
-     FROM products 
-     WHERE is_active = 1 AND (name LIKE ? OR barcode LIKE ? OR product_code LIKE ?) 
-     LIMIT 20`,
-    [`%${term}%`, `%${term}%`, `%${term}%`]
-  );
-  return jsonResponse({ results: rows }, 200, headers);
-}
-async function addProduct(request, env, headers) {
-  const data = await request.json();
-  if (!data.name) return jsonResponse({ error: 'اسم المنتج مطلوب' }, 400, headers);
-  const client = getTursoClient(env);
-  
-  // 1. توليد باركود فريد جداً إذا تركه المستخدم فارغاً
-  let barcode = data.barcode;
-  if (!barcode || barcode.toString().trim() === '') {
-    // نستخدم الوقت بالملي ثانية + رقم عشوائي لضمان عدم التكرار
-    barcode = new Date().getTime().toString().slice(-10) + Math.floor(Math.random() * 100).toString();
-  }
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
 
   let categoryId = data.category_id || null;
   if (!categoryId && data.category) {
@@ -2255,7 +2031,6 @@ async function addProduct(request, env, headers) {
     const productCode = String(nextNum).padStart(4, '0');
 
     // 3. إدخال المنتج
-<<<<<<< HEAD
     const setDetails = data.is_set ? normalizeSetDetails(data.set_details_json || data.set_details) : [];
     const setPieceCount = data.is_set ? Math.max(1, parseInt(data.set_piece_count, 10) || setDetails.reduce((sum, item) => sum + Number(item.quantity || 1), 0) || 1) : 1;
     const result = await dbRun(tx,
@@ -2267,17 +2042,6 @@ async function addProduct(request, env, headers) {
     // 4. تحديث العداد في جدول الإعدادات للاحتياط فقط
         await dbRun(tx, "INSERT INTO settings (key, value) VALUES ('next_product_code', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value", [(nextNum + 1).toString()]);
     if (data.is_set) await syncProductVariants(tx, result.lastInsertRowid, setDetails, Number(data.cost) || 0, Number(data.price) || 0);
-=======
-    const result = await dbRun(tx,
-      `INSERT INTO products (barcode, name, price, cost, stock_quantity, category, category_id, image_data, is_active, product_code, expiry_date, unit_type, unit_symbol, is_decimal_allowed, weight_grams)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?)`,
-      [barcode, data.name, data.price || 0, data.cost || 0, data.stock_quantity || 0, data.category || null, categoryId, data.image_data || null, productCode, data.expiry_date || null, data.unit_type || 'piece', data.unit_symbol || 'قطعة', data.is_decimal_allowed ? 1 : 0, data.weight_grams || null]
-    );
-    
-    // 4. تحديث العداد في جدول الإعدادات للاحتياط فقط
-    await dbRun(tx, "INSERT INTO settings (key, value) VALUES ('next_product_code', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value", [(nextNum + 1).toString()]);
-    
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
     await tx.commit();
     invalidateSettingsCache();
     return jsonResponse({ success: true, id: result.lastInsertRowid, barcode, product_code: productCode }, 200, headers);
@@ -2294,7 +2058,6 @@ async function updateProduct(request, env, headers) {
   const id = parseInt(url.pathname.split('/').pop());
   const data = await request.json();
   const client = getTursoClient(env);
-<<<<<<< HEAD
   const product = await dbFirst(client, "SELECT id, barcode, category, category_id, price, cost, is_set, set_details_json FROM products WHERE id = ? AND is_active = 1", [id]);
   if (!product) return jsonResponse({ error: 'المنتج غير موجود' }, 404, headers);
   const fields = [], values = [];
@@ -2315,15 +2078,6 @@ async function updateProduct(request, env, headers) {
   if (data.opening_balance !== undefined) {
     return jsonResponse({ error: 'opening_balance غير مدعوم؛ استخدم قيد التأسيس الشامل' }, 400, headers);
   }
-=======
-  const product = await dbFirst(client, "SELECT id, category, category_id FROM products WHERE id = ? AND is_active = 1", [id]);
-  if (!product) return jsonResponse({ error: 'المنتج غير موجود' }, 404, headers);
-  const fields = [], values = [];
-  if (data.name !== undefined) { fields.push('name = ?'); values.push(data.name); }
-  if (data.price !== undefined) { fields.push('price = ?'); values.push(data.price); }
-  if (data.cost !== undefined) { fields.push('cost = ?'); values.push(data.cost); }
-  if (data.stock_quantity !== undefined) { fields.push('stock_quantity = ?'); values.push(data.stock_quantity); }
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
   if (data.category !== undefined) { fields.push('category = ?'); values.push(data.category); }
   if (data.category_id !== undefined) {
     fields.push('category_id = ?'); values.push(data.category_id);
@@ -2338,25 +2092,19 @@ async function updateProduct(request, env, headers) {
   if (data.unit_symbol !== undefined) { fields.push('unit_symbol = ?'); values.push(data.unit_symbol || 'قطعة'); }
   if (data.is_decimal_allowed !== undefined) { fields.push('is_decimal_allowed = ?'); values.push(data.is_decimal_allowed ? 1 : 0); }
   if (data.weight_grams !== undefined) { fields.push('weight_grams = ?'); values.push(data.weight_grams || null); }
-<<<<<<< HEAD
   if (data.is_set !== undefined) { fields.push('is_set = ?'); values.push(data.is_set ? 1 : 0); }
   if (data.set_piece_count !== undefined) { fields.push('set_piece_count = ?'); values.push(Math.max(1, parseInt(data.set_piece_count, 10) || 1)); }
   if (data.set_details_json !== undefined || data.set_details !== undefined) { fields.push('set_details_json = ?'); values.push(JSON.stringify(normalizeSetDetails(data.set_details_json || data.set_details))); }
-=======
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
   if (data.is_active !== undefined) { fields.push('is_active = ?'); values.push(data.is_active); }
   fields.push('updated_at = CURRENT_TIMESTAMP');
   if (fields.length === 1) return jsonResponse({ error: 'لا توجد حقول للتحديث' }, 400, headers);
   values.push(id);
   await dbRun(client, `UPDATE products SET ${fields.join(', ')} WHERE id = ?`, values);
-<<<<<<< HEAD
   const nextIsSet = data.is_set !== undefined ? (data.is_set ? 1 : 0) : Number(product.is_set || 0);
   if (nextIsSet && (data.set_details_json !== undefined || data.set_details !== undefined || data.cost !== undefined || data.price !== undefined)) {
     const details = data.set_details_json !== undefined || data.set_details !== undefined ? (data.set_details_json || data.set_details) : product.set_details_json;
     await syncProductVariants(client, id, details, Number(data.cost ?? product.cost) || 0, Number(data.price ?? product.price) || 0);
   }
-=======
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
   return jsonResponse({ success: true }, 200, headers);
 }
 async function deleteProduct(request, env, headers) {
@@ -2438,7 +2186,6 @@ async function generateMissingSKU(request, env, headers) {
 // ---- العملاء ----
 async function getCustomers(request, env, headers) {
   const client = getTursoClient(env);
-<<<<<<< HEAD
   const query = parseListQuery(request, { limit: 50, period: 'all' });
   const url = new URL(request.url);
   const search = (url.searchParams.get('search') || url.searchParams.get('q') || '').trim();
@@ -2452,10 +2199,6 @@ async function getCustomers(request, env, headers) {
   const count = await dbFirst(client, `SELECT COUNT(*) AS total FROM customers ${where}`, args);
   const rows = await dbAll(client, `SELECT * FROM customers ${where} ORDER BY name LIMIT ? OFFSET ?`, [...args, query.limit, query.offset]);
   return jsonResponse({ customers: rows, total: Number(count?.total || 0), pagination: { page: query.page, limit: query.limit, total: Number(count?.total || 0), has_next: query.offset + rows.length < Number(count?.total || 0) } }, 200, headers);
-=======
-  const rows = await dbAll(client, "SELECT * FROM customers ORDER BY name");
-  return jsonResponse({ customers: rows }, 200, headers);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
 }
 async function createCustomer(request, env, headers) {
   const data = await request.json();
@@ -2474,7 +2217,6 @@ async function createCustomer(request, env, headers) {
 }
 async function addCustomerPayment(request, env, headers) {
   const data = await request.json();
-<<<<<<< HEAD
   const { customer_id, amount, payment_method, wallet_id, note, currency_id, cash_currency_id, wallet_currency_id, cash_amount, wallet_amount, type = 'receipt' } = data;
   const customerId = Number(customer_id), inputAmount = Number(amount);
   const isPayment = type === 'payment';
@@ -2530,134 +2272,11 @@ async function addCustomerPayment(request, env, headers) {
     await tx.commit(); committed = true;
     return jsonResponse({ success: true, payment_id: paymentId, type, total_base_amount: totalBase }, 200, headers);
   } catch (error) { if (!committed) { try { await tx.rollback(); } catch (_) {} } return jsonResponse({ error: error.message }, 400, headers); }
-=======
-  const { customer_id, amount, payment_method, wallet_id, note, currency_id, cash_currency_id, wallet_currency_id, cash_amount, wallet_amount } = data;
-  if (!customer_id || !amount || amount <= 0) return jsonResponse({ error: 'بيانات غير صالحة' }, 400, headers);
-  const client = getTursoClient(env);
-  await checkIfClosed(client, new Date().toISOString().slice(0, 10));
-  const customer = await dbFirst(client, "SELECT * FROM customers WHERE id = ?", [customer_id]);
-  if (!customer) return jsonResponse({ error: 'العميل غير موجود' }, 404, headers);
-  const baseCurrency = await getBaseCurrency(client);
-  if (!baseCurrency) throw new Error('لا توجد عملة أساسية');
-  const useCurrencyId = currency_id || baseCurrency.id;
-  const useCashCurrencyId = cash_currency_id || useCurrencyId;
-  const useWalletCurrencyId = wallet_currency_id || useCurrencyId;
-
-  // ===== إصلاح #6: توفيق المبلغ المدفوع مع إجمالي الدفعة (نفس منطق addSupplierPayment) =====
-  let finalCashPaid = parseFloat(cash_amount) || 0;
-  let finalWalletPaid = parseFloat(wallet_amount) || 0;
-  if (finalCashPaid === 0 && finalWalletPaid === 0) {
-    if (payment_method === 'cash') finalCashPaid = amount;
-    else if (payment_method === 'wallet') finalWalletPaid = amount;
-    else if (payment_method === 'mixed') { finalCashPaid = amount / 2; finalWalletPaid = amount / 2; }
-  } else {
-    const totalPaid = finalCashPaid + finalWalletPaid;
-    if (Math.abs(totalPaid - amount) > 0.001) {
-      const ratio = amount / totalPaid;
-      finalCashPaid *= ratio; finalWalletPaid *= ratio;
-    }
-  }
-  finalCashPaid = Math.max(0, finalCashPaid);
-  finalWalletPaid = Math.max(0, finalWalletPaid);
-
-  const tx = await client.transaction();
-  let committed = false;
-  try {
-    const cashAccountId = await getAccountId(tx, 'الصندوق');
-    const walletAccountId = await getAccountId(tx, 'المحافظ');
-    const customerAccountId = await getAccountId(tx, 'الذمم المدينة (عملاء)');
-    const paymentResult = await dbRun(tx,
-      "INSERT INTO customer_payments (customer_id, amount, payment_method, wallet_id, note) VALUES (?, ?, ?, ?, ?)",
-      [customer_id, amount, payment_method, wallet_id || null, note || '']
-    );
-    const entryDate = new Date().toISOString().split('T')[0];
-    const desc = `استلام من العميل ${customer.name}`;
-    let totalBaseAmount = 0;
-    const journalDetails = [];
-
-    if (payment_method === 'cash' || payment_method === 'mixed') {
-      let cashPaid = finalCashPaid;
-      if (cashPaid > 0) {
-        const rate = await getCurrencyRate(tx, useCashCurrencyId);
-        if (!rate) throw new Error('سعر صرف غير متاح للعملة النقدية');
-        const baseAmount = convertToBase(cashPaid, rate);
-        totalBaseAmount += baseAmount;
-        await dbRun(tx,
-          "INSERT INTO cash_register (type, amount, currency_id, exchange_rate, note) VALUES ('deposit', ?, ?, ?, ?)",
-          [cashPaid, useCashCurrencyId, rate, desc]
-        );
-        journalDetails.push({ account_id: cashAccountId, debit: baseAmount, credit: 0 });
-        journalDetails.push({ account_id: customerAccountId, debit: 0, credit: baseAmount });
-      }
-    }
-
-    if (payment_method === 'wallet' || payment_method === 'mixed') {
-      let walletPaid = finalWalletPaid;
-      if (walletPaid > 0) {
-        if (!wallet_id) throw new Error('اختر المحفظة');
-        const rate = await getCurrencyRate(tx, useWalletCurrencyId);
-        if (!rate) throw new Error('سعر صرف غير متاح لعملة المحفظة');
-        const baseAmount = convertToBase(walletPaid, rate);
-        totalBaseAmount += baseAmount;
-        await ensureWalletBalance(tx, wallet_id, useWalletCurrencyId);
-        await updateWalletBalance(tx, wallet_id, useWalletCurrencyId, walletPaid, 'add');
-        await dbRun(tx,
-          "INSERT INTO wallet_transactions (wallet_id, type, amount, currency_id, description, reference_id) VALUES (?, 'deposit', ?, ?, ?, ?)",
-          [wallet_id, walletPaid, useWalletCurrencyId, desc, paymentResult.lastInsertRowid]
-        );
-        journalDetails.push({ account_id: walletAccountId, debit: baseAmount, credit: 0 });
-        journalDetails.push({ account_id: customerAccountId, debit: 0, credit: baseAmount });
-      }
-    }
-
-    if (payment_method === 'cash' && journalDetails.length === 0) {
-      const rate = await getCurrencyRate(tx, useCurrencyId);
-      const baseAmount = convertToBase(amount, rate);
-      totalBaseAmount += baseAmount;
-      await dbRun(tx,
-        "INSERT INTO cash_register (type, amount, currency_id, exchange_rate, note) VALUES ('deposit', ?, ?, ?, ?)",
-        [amount, useCurrencyId, rate, desc]
-      );
-      journalDetails.push({ account_id: cashAccountId, debit: baseAmount, credit: 0 });
-      journalDetails.push({ account_id: customerAccountId, debit: 0, credit: baseAmount });
-    }
-
-    if (journalDetails.length > 0) {
-      checkBalance(journalDetails);
-      await createJournalEntry(tx, entryDate, desc, journalDetails, 'customer_payment', paymentResult.lastInsertRowid);
-    }
-
-    await dbRun(tx, "UPDATE customers SET balance = balance - ? WHERE id = ?", [totalBaseAmount, customer_id]);
-    await tx.commit();
-    committed = true;
-
-    try {
-      let walletName = null;
-      if (wallet_id) {
-        const w = await dbFirst(client, "SELECT name FROM wallets WHERE id = ?", [wallet_id]);
-        walletName = w ? w.name : null;
-      }
-      return jsonResponse({ success: true, payment_id: paymentResult.lastInsertRowid, wallet_name: walletName }, 200, headers);
-    } catch (postCommitError) {
-      console.error('نجح حفظ دفعة العميل لكن تعذر جلب بيانات الرد:', postCommitError.message);
-      return jsonResponse({ success: true, payment_id: paymentResult.lastInsertRowid, wallet_name: null,
-        warning: 'تم حفظ الدفعة، لكن تعذر جلب اسم المحفظة' }, 200, headers);
-    }
-  } catch (error) {
-    if (committed) {
-      return jsonResponse({ success: true,
-        warning: 'تم حفظ الدفعة، لكن حدث خطأ بعد commit' }, 200, headers);
-    }
-    try { await tx.rollback(); } catch (rollbackError) { console.error('فشل rollback:', rollbackError.message); }
-    return jsonResponse({ error: error.message }, 400, headers);
-  }
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
 }
 async function getCustomerStatement(request, env, headers) {
   const url = new URL(request.url);
   const customer_id = url.searchParams.get('customer_id');
   if (!customer_id) return jsonResponse({ error: 'معرف العميل مطلوب' }, 400, headers);
-<<<<<<< HEAD
   const query = parseListQuery(request);
   const client = getTursoClient(env);
   const customer = await dbFirst(client, 'SELECT id, name, phone FROM customers WHERE id = ?', [customer_id]);
@@ -2756,17 +2375,6 @@ async function getOpeningMovementClosingReport(request, env, headers) {
   const start = query.offset, visible = rows.slice(start, start + query.limit);
   const totals = rows.reduce((sum, row) => { sum.opening_balance += row.opening_balance; sum.period_debit += row.period_debit; sum.period_credit += row.period_credit; sum.closing_balance += row.closing_balance; return sum; }, { opening_balance: 0, period_debit: 0, period_credit: 0, closing_balance: 0 });
   return jsonResponse(listResponse({ entity_type: entityType, data: visible, rows: visible, summary: totals }, query, start + visible.length < rows.length, rows.length), 200, headers);
-=======
-  const client = getTursoClient(env);
-  const sales = await dbAll(client, "SELECT id, invoice_number, total_amount, created_at, 'sale' as type FROM sales WHERE customer_id = ?", [customer_id]);
-  const payments = await dbAll(client,
-    `SELECT cp.id, cp.amount, cp.payment_method, cp.note, cp.created_at, 'payment' as type, w.name as wallet_name
-     FROM customer_payments cp LEFT JOIN wallets w ON w.id = cp.wallet_id WHERE cp.customer_id = ?`,
-    [customer_id]
-  );
-  const statement = [...sales, ...payments].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-  return jsonResponse({ statement }, 200, headers);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
 }
 async function getTotalCustomerDebt(request, env, headers) {
   const client = getTursoClient(env);
@@ -2799,7 +2407,6 @@ async function getRecentCustomerPayments(request, env, headers) {
 
 async function getTodayCustomerPayments(request, env, headers) {
   const client = getTursoClient(env);
-<<<<<<< HEAD
   const today = businessISODate();
   const row = await dbFirst(client, `
     SELECT COALESCE(SUM(amount), 0) AS total, COUNT(*) AS count
@@ -2807,14 +2414,6 @@ async function getTodayCustomerPayments(request, env, headers) {
     WHERE COALESCE(status, 'active') != 'cancelled'
       AND created_at >= datetime(?, '-03:00') AND created_at < datetime(?, '-03:00')
   `, [`${today} 00:00:00`, `${nextISODate(today)} 00:00:00`]);
-=======
-  const today = new Date().toISOString().split('T')[0];
-  const row = await dbFirst(client, `
-    SELECT COALESCE(SUM(amount), 0) AS total, COUNT(*) AS count
-    FROM customer_payments
-    WHERE DATE(created_at) = ?
-  `, [today]);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
   return jsonResponse({ date: today, total: Number(row?.total || 0), count: Number(row?.count || 0) }, 200, headers);
 }
 
@@ -2823,7 +2422,6 @@ async function getCustomerPurchasesById(request, env, headers) {
   const match = url.pathname.match(/^\/customers\/(\d+)\/purchases\/?$/);
   const customerId = match ? parseInt(match[1], 10) : 0;
   if (!customerId) return jsonResponse({ error: 'معرف العميل غير صالح' }, 400, headers);
-<<<<<<< HEAD
   const query = parseListQuery(request);
   const client = getTursoClient(env);
   const conditions = ['customer_id = ?'], args = [customerId];
@@ -2831,17 +2429,6 @@ async function getCustomerPurchasesById(request, env, headers) {
   const rows = await dbAll(client, `SELECT id, invoice_number, total_amount, payment_method, status, created_at FROM sales WHERE ${conditions.join(' AND ')} ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?`, [...args, query.limit + 1, query.offset]);
   const hasNext = rows.length > query.limit;
   return jsonResponse(listResponse({ purchases: rows.slice(0, query.limit) }, query, hasNext), 200, headers);
-=======
-  const client = getTursoClient(env);
-  const rows = await dbAll(client, `
-    SELECT id, invoice_number, total_amount, payment_method, status, created_at
-    FROM sales
-    WHERE customer_id = ?
-    ORDER BY created_at DESC
-    LIMIT 200
-  `, [customerId]);
-  return jsonResponse({ purchases: rows }, 200, headers);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
 }
 
 async function importDatabaseBackup(request, env, headers) {
@@ -2898,7 +2485,6 @@ async function askAI(request, env, headers) {
 
 // ---- الموردين ----
 async function getSuppliers(request, env, headers) {
-<<<<<<< HEAD
   const client = getTursoClient(env);
   const query = parseListQuery(request, { limit: 50, period: 'all' });
   const url = new URL(request.url);
@@ -2915,28 +2501,6 @@ async function getSuppliers(request, env, headers) {
   const rows = await dbAll(client, `SELECT * FROM suppliers ${where} ORDER BY name LIMIT ? OFFSET ?`, [...args, query.limit, query.offset]);
   const totalDebt = await dbFirst(client, 'SELECT COALESCE(SUM(balance), 0) AS total_debt FROM suppliers WHERE balance > 0');
   return jsonResponse({ suppliers: rows, total, total_debt: Number(totalDebt?.total_debt || 0), pagination: { page: query.page, limit: query.limit, total, has_next: query.offset + rows.length < total } }, 200, headers);
-=======
-  const url = new URL(request.url);
-  const page = parseInt(url.searchParams.get('page')) || 1;
-  const limit = parseInt(url.searchParams.get('limit')) || 10;
-  const offset = (page - 1) * limit;
-  const search = url.searchParams.get('search') || '';
-  const balanceFilter = url.searchParams.get('balance_filter') || 'all';
-  const client = getTursoClient(env);
-  let sql = "SELECT * FROM suppliers WHERE 1=1";
-  const args = [];
-  if (search) { sql += " AND (name LIKE ? OR phone LIKE ?)"; args.push(`%${search}%`, `%${search}%`); }
-  if (balanceFilter === 'positive') sql += " AND balance > 0";
-  else if (balanceFilter === 'negative') sql += " AND balance < 0";
-  else if (balanceFilter === 'zero') sql += " AND balance = 0";
-  const countResult = await dbFirst(client, `SELECT COUNT(*) as total FROM (${sql})`, args);
-  const total = countResult.total;
-  sql += " ORDER BY name LIMIT ? OFFSET ?";
-  args.push(limit, offset);
-  const rows = await dbAll(client, sql, args);
-  const totalDebt = await dbFirst(client, "SELECT SUM(balance) as total_debt FROM suppliers WHERE balance > 0");
-  return jsonResponse({ suppliers: rows, total, total_debt: totalDebt?.total_debt || 0 }, 200, headers);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
 }
 async function getSupplierById(request, env, headers) {
   const id = parseInt(request.url.split('/').pop());
@@ -2981,7 +2545,6 @@ async function deleteSupplier(request, env, headers) {
 async function addSupplierPayment(request, env, headers) {
   const { supplier_id, amount, payment_method, wallet_id, note, type = 'payment',
     currency_id, exchange_rate: providedExchangeRate,
-<<<<<<< HEAD
     cash_currency_id, wallet_currency_id, cash_amount, wallet_amount,
     transfer_fee: rawTransferFee = 0, fee: feeAlias = 0,
     fee_deducted_from_amount = false } = await request.json();
@@ -3020,51 +2583,12 @@ async function addSupplierPayment(request, env, headers) {
     if (transferFee > 0 && cashComponent > 0 && walletComponent > 0 && useCashCurrencyId !== useWalletCurrencyId) throw new Error('رسوم التحويل مع دفع مختلط تتطلب نفس العملة للنقد والمحفظة');
   }
   const feeAllocation = transferFee > 0 ? (cashComponent > 0 ? { cash: transferFee, wallet: 0 } : { cash: 0, wallet: transferFee }) : { cash: 0, wallet: 0 };
-=======
-    cash_currency_id, wallet_currency_id, cash_amount, wallet_amount } = await request.json();
-  if (!supplier_id || !amount || amount <= 0) return jsonResponse({ error: 'بيانات غير صالحة' }, 400, headers);
-  const client = getTursoClient(env);
-  await checkIfClosed(client, new Date().toISOString().slice(0, 10));
-  const supplier = await dbFirst(client, "SELECT * FROM suppliers WHERE id = ?", [supplier_id]);
-  if (!supplier) return jsonResponse({ error: 'المورد غير موجود' }, 404, headers);
-  const baseCurrency = await getBaseCurrency(client);
-  if (!baseCurrency) throw new Error('لا توجد عملة أساسية');
-  const useCurrencyId = currency_id || baseCurrency.id;
-  let finalExchangeRate = providedExchangeRate;
-  if (!finalExchangeRate || finalExchangeRate <= 0) {
-    const rateFromDb = await getCurrencyRate(client, useCurrencyId);
-    finalExchangeRate = rateFromDb || 1;
-  }
-  let normalizedMethod = payment_method?.toLowerCase().trim() || 'cash';
-  if (normalizedMethod === 'نقدي' || normalizedMethod === 'cash') normalizedMethod = 'cash';
-  else if (normalizedMethod === 'محفظة' || normalizedMethod === 'wallet') normalizedMethod = 'wallet';
-  else if (normalizedMethod === 'مختلط' || normalizedMethod === 'mixed') normalizedMethod = 'mixed';
-  else normalizedMethod = 'cash';
-  const useCashCurrencyId = cash_currency_id || useCurrencyId;
-  const useWalletCurrencyId = wallet_currency_id || useCurrencyId;
-  let finalCashPaid = parseFloat(cash_amount) || 0;
-  let finalWalletPaid = parseFloat(wallet_amount) || 0;
-  if (finalCashPaid === 0 && finalWalletPaid === 0) {
-    if (normalizedMethod === 'cash') finalCashPaid = amount;
-    else if (normalizedMethod === 'wallet') finalWalletPaid = amount;
-    else if (normalizedMethod === 'mixed') { finalCashPaid = amount / 2; finalWalletPaid = amount / 2; }
-  } else {
-    const totalPaid = finalCashPaid + finalWalletPaid;
-    if (Math.abs(totalPaid - amount) > 0.001) {
-      const ratio = amount / totalPaid;
-      finalCashPaid *= ratio; finalWalletPaid *= ratio;
-    }
-  }
-  finalCashPaid = Math.max(0, finalCashPaid);
-  finalWalletPaid = Math.max(0, finalWalletPaid);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
   const tx = await client.transaction();
   let committed = false;
   try {
     const cashAccountId = await getAccountId(tx, 'الصندوق');
     const walletAccountId = await getAccountId(tx, 'المحافظ');
     const supplierAccountId = await getAccountId(tx, 'الذمم الدائنة (موردين)');
-<<<<<<< HEAD
     const feeAccountId = transferFee > 0 ? await getOrCreateFeeAccount(tx) : null;
     const journalDetails = [];
     let supplierBaseAmount = 0;
@@ -3153,96 +2677,6 @@ async function addSupplierPayment(request, env, headers) {
     return jsonResponse({ success: true, payment_id: paymentId, total_base_amount: supplierBaseAmount, transfer_fee: transferFee, fee_deducted_from_amount: feeDeducted, cash_paid: cashComponent, wallet_paid: walletComponent }, 200, headers);
   } catch (error) {
     if (!committed) { try { await tx.rollback(); } catch (_) {} }
-=======
-    let totalBaseAmount = 0;
-    const journalDetails = [];
-    const paymentResult = await dbRun(tx,
-      `INSERT INTO supplier_payments 
-        (supplier_id, type, amount, payment_method, wallet_id, note, currency_id, exchange_rate) 
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [supplier_id, type, amount, normalizedMethod, wallet_id || null, note || '', useCurrencyId, finalExchangeRate]
-    );
-    const paymentId = paymentResult.lastInsertRowid;
-    const isPayment = (type === 'payment');
-    const cashRegisterType = isPayment ? 'withdraw' : 'deposit';
-    const walletOperation = isPayment ? 'subtract' : 'add';
-    const balanceSign = isPayment ? -1 : 1;
-    if (normalizedMethod === 'cash' || normalizedMethod === 'mixed') {
-      const cashPaid = finalCashPaid;
-      if (cashPaid > 0) {
-        const rate = await getCurrencyRate(tx, useCashCurrencyId);
-        if (!rate) throw new Error('سعر الصرف غير متاح للعملة النقدية');
-        const baseAmount = convertToBase(cashPaid, rate);
-        totalBaseAmount += baseAmount;
-        await dbRun(tx,
-          "INSERT INTO cash_register (type, amount, currency_id, exchange_rate, note) VALUES (?, ?, ?, ?, ?)",
-          [cashRegisterType, cashPaid, useCashCurrencyId, rate, isPayment ? `سداد للمورد ${supplier.name}` : `استلام من المورد ${supplier.name}`]
-        );
-        if (isPayment) {
-          journalDetails.push({ account_id: supplierAccountId, debit: baseAmount, credit: 0 });
-          journalDetails.push({ account_id: cashAccountId, debit: 0, credit: baseAmount });
-        } else {
-          journalDetails.push({ account_id: cashAccountId, debit: baseAmount, credit: 0 });
-          journalDetails.push({ account_id: supplierAccountId, debit: 0, credit: baseAmount });
-        }
-      }
-    }
-    if (normalizedMethod === 'wallet' || normalizedMethod === 'mixed') {
-      const walletPaid = finalWalletPaid;
-      if (walletPaid > 0) {
-        if (!wallet_id) throw new Error('اختر المحفظة');
-        const rate = await getCurrencyRate(tx, useWalletCurrencyId);
-        if (!rate) throw new Error('سعر الصرف غير متاح لعملة المحفظة');
-        const baseAmount = convertToBase(walletPaid, rate);
-        totalBaseAmount += baseAmount;
-        if (isPayment) {
-          const bal = await dbFirst(tx,
-            "SELECT balance FROM wallet_balances WHERE wallet_id = ? AND currency_id = ?",
-            [wallet_id, useWalletCurrencyId]
-          );
-          if (!bal || bal.balance < walletPaid) throw new Error('رصيد غير كافٍ في المحفظة');
-        }
-        await updateWalletBalance(tx, wallet_id, useWalletCurrencyId, walletPaid, walletOperation);
-        await dbRun(tx,
-          "INSERT INTO wallet_transactions (wallet_id, type, amount, currency_id, description, reference_id) VALUES (?, ?, ?, ?, ?, ?)",
-          [wallet_id, isPayment ? 'withdraw' : 'deposit', walletPaid, useWalletCurrencyId,
-           isPayment ? `سداد للمورد ${supplier.name}` : `استلام من المورد ${supplier.name}`, paymentId]
-        );
-        if (isPayment) {
-          journalDetails.push({ account_id: supplierAccountId, debit: baseAmount, credit: 0 });
-          journalDetails.push({ account_id: walletAccountId, debit: 0, credit: baseAmount });
-        } else {
-          journalDetails.push({ account_id: walletAccountId, debit: baseAmount, credit: 0 });
-          journalDetails.push({ account_id: supplierAccountId, debit: 0, credit: baseAmount });
-        }
-      }
-    }
-    await dbRun(tx, "UPDATE suppliers SET balance = balance + ? WHERE id = ?", [balanceSign * totalBaseAmount, supplier_id]);
-    const entryDate = new Date().toISOString().split('T')[0];
-    const desc = isPayment ? `سداد للمورد ${supplier.name}` : `استلام من المورد ${supplier.name}`;
-    if (journalDetails.length > 0) {
-      checkBalance(journalDetails);
-      await createJournalEntry(tx, entryDate, desc, journalDetails, 'supplier_payment', paymentId);
-    }
-    await tx.commit();
-    committed = true;
-    try {
-      let walletName = null;
-      if (wallet_id) { const w = await dbFirst(client, "SELECT name FROM wallets WHERE id = ?", [wallet_id]); walletName = w ? w.name : null; }
-      return jsonResponse({ success: true, payment_id: paymentId, wallet_name: walletName, total_base_amount: totalBaseAmount, cash_paid: finalCashPaid, wallet_paid: finalWalletPaid }, 200, headers);
-    } catch (postCommitError) {
-      console.error('نجح حفظ دفعة المورد لكن تعذر جلب بيانات الرد:', postCommitError.message);
-      return jsonResponse({ success: true, payment_id: paymentId, wallet_name: null,
-        total_base_amount: totalBaseAmount, cash_paid: finalCashPaid, wallet_paid: finalWalletPaid,
-        warning: 'تم حفظ الدفعة، لكن تعذر جلب اسم المحفظة' }, 200, headers);
-    }
-  } catch (error) {
-    if (committed) {
-      return jsonResponse({ success: true,
-        warning: 'تم حفظ الدفعة، لكن حدث خطأ بعد commit' }, 200, headers);
-    }
-    try { await tx.rollback(); } catch (rollbackError) { console.error('فشل rollback:', rollbackError.message); }
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
     return jsonResponse({ error: error.message }, 400, headers);
   }
 }
@@ -3250,7 +2684,6 @@ async function getSupplierStatement(request, env, headers) {
   const url = new URL(request.url);
   const supplier_id = url.searchParams.get('supplier_id');
   if (!supplier_id) return jsonResponse({ error: 'معرف المورد مطلوب' }, 400, headers);
-<<<<<<< HEAD
   const query = parseListQuery(request);
   const client = getTursoClient(env);
   const supplier = await dbFirst(client, 'SELECT id, name, phone FROM suppliers WHERE id = ?', [supplier_id]);
@@ -3305,29 +2738,6 @@ async function getSupplierStatement(request, env, headers) {
   summary.final_balance = summary.opening_balance + summary.total_debit - summary.total_credit;
   summary.closing_balance = summary.final_balance;
   return jsonResponse(listResponse({ statement: enriched, summary, supplier, supplier_name: supplier.name, party: supplier.name }, query, hasNext, count?.total || 0), 200, headers);
-=======
-  const client = getTursoClient(env);
-  const invoices = await dbAll(client, `
-    SELECT pi.id, pi.invoice_number, pi.total_amount as amount, pi.created_at, 'purchase' as type, pi.note,
-      pi.currency_id, COALESCE(pi.exchange_rate, c.rate_to_base, 1) as exchange_rate, c.code as currency_code, c.name as currency_name
-    FROM purchase_invoices pi LEFT JOIN currencies c ON c.id = pi.currency_id
-    WHERE pi.supplier_id = ? AND pi.payment_method = 'credit'
-  `, [supplier_id]);
-  const payments = await dbAll(client, `
-    SELECT sp.id, sp.amount, sp.payment_method, sp.note, sp.created_at, sp.type,
-      COALESCE(sp.exchange_rate, c.rate_to_base, 1) as exchange_rate, sp.currency_id, c.code as currency_code, c.name as currency_name, w.name as wallet_name
-    FROM supplier_payments sp LEFT JOIN currencies c ON c.id = sp.currency_id LEFT JOIN wallets w ON w.id = sp.wallet_id
-    WHERE sp.supplier_id = ?
-  `, [supplier_id]);
-  const returns = await dbAll(client, `
-    SELECT rp.id, rp.amount, rp.reason as note, rp.created_at, 'return' as type,
-      pi.currency_id, COALESCE(pi.exchange_rate, c.rate_to_base, 1) as exchange_rate, c.code as currency_code, c.name as currency_name
-    FROM returned_purchases rp JOIN purchase_invoices pi ON pi.id = rp.purchase_invoice_id LEFT JOIN currencies c ON c.id = pi.currency_id
-    WHERE pi.supplier_id = ?
-  `, [supplier_id]);
-  const statement = [...invoices, ...payments, ...returns].sort((a,b) => new Date(a.created_at) - new Date(b.created_at));
-  return jsonResponse({ statement }, 200, headers);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
 }
 async function getTotalSupplierDebt(request, env, headers) {
   const client = getTursoClient(env);
@@ -3461,7 +2871,6 @@ async function assignProductsToSupplier(request, env, headers) {
     return jsonResponse({ error: error.message }, 500, headers);
   }
 }
-<<<<<<< HEAD
 async function getSupplierReturnDetail(request, env, headers) {
   const url = new URL(request.url);
   const match = url.pathname.match(/^\/suppliers\/returns\/(\d+)\/?$/);
@@ -3492,8 +2901,6 @@ async function getSupplierReturnDetail(request, env, headers) {
   `, [returnId]);
   return jsonResponse({ return: returned, items }, 200, headers);
 }
-=======
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
 async function getSupplierRemainingStock(request, env, headers) {
   const url = new URL(request.url);
   const all = url.searchParams.get('all') === 'true';
@@ -3511,10 +2918,7 @@ async function getSupplierRemainingStock(request, env, headers) {
         s.name as supplier_name,
         pss.quantity,
         pss.last_purchase_price,
-<<<<<<< HEAD
         pss.quantity * COALESCE(pss.last_purchase_price, 0) AS remaining_value,
-=======
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
         pss.supplier_sku
       FROM product_supplier_stock pss
       JOIN products p ON p.id = pss.product_id
@@ -3528,21 +2932,13 @@ async function getSupplierRemainingStock(request, env, headers) {
     return jsonResponse({ error: 'معرف المورد مطلوب' }, 400, headers);
   }
   const rows = await dbAll(client, `
-<<<<<<< HEAD
     SELECT pss.product_id, p.name as product_name, pss.quantity, pss.last_purchase_price, pss.quantity * COALESCE(pss.last_purchase_price, 0) AS remaining_value, pss.supplier_sku
-=======
-    SELECT pss.product_id, p.name as product_name, pss.quantity, pss.last_purchase_price, pss.supplier_sku
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
     FROM product_supplier_stock pss JOIN products p ON p.id = pss.product_id
     WHERE pss.supplier_id = ? AND pss.quantity > 0
     ORDER BY p.name
   `, [supplier_id]);
-<<<<<<< HEAD
   const total = await dbFirst(client, `SELECT COALESCE(SUM(pss.quantity * COALESCE(pss.last_purchase_price, 0)), 0) AS total_value FROM product_supplier_stock pss WHERE pss.supplier_id = ? AND pss.quantity > 0`, [supplier_id]);
   return jsonResponse({ stock: rows, summary: { total_value: Number(total?.total_value || 0) } }, 200, headers);
-=======
-  return jsonResponse({ stock: rows }, 200, headers);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
 }
 async function getSupplierFinancialBalance(request, env, headers) {
   const url = new URL(request.url);
@@ -3559,11 +2955,7 @@ async function getWallets(request, env, headers) {
   const client = getTursoClient(env);
   const wallets = await dbAll(client, "SELECT * FROM wallets ORDER BY name");
   
-<<<<<<< HEAD
   const allCurrencies = await dbAll(client, "SELECT id, code, name, rate_to_base FROM currencies ORDER BY code");
-=======
-  const baseCurrencies = await dbAll(client, "SELECT id, code, name, rate_to_base FROM currencies WHERE code IN ('YER','SAR','USD')");
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
 
   const allBalances = await dbAll(client, `
     SELECT wb.wallet_id, wb.balance, c.id as currency_id, c.code, c.name as currency_name, c.rate_to_base
@@ -3583,7 +2975,6 @@ async function getWallets(request, env, headers) {
     });
   }
 
-<<<<<<< HEAD
   const walletIds = wallets.map(w => Number(w.id)).filter(id => Number.isInteger(id) && id > 0);
   const walletPlaceholders = walletIds.map(() => '?').join(',');
   const updatedBalances = walletIds.length ? await dbAll(client, `
@@ -3592,32 +2983,6 @@ async function getWallets(request, env, headers) {
     WHERE wb.wallet_id IN (${walletPlaceholders})
     ORDER BY wb.wallet_id, c.code
   `, walletIds) : [];
-=======
-  const walletIds = wallets.map(w => w.id);
-  const currencyIds = baseCurrencies.map(c => c.id);
-  if (walletIds.length > 0 && currencyIds.length > 0) {
-    const insertSql = `
-      INSERT OR IGNORE INTO wallet_balances (wallet_id, currency_id, balance)
-      SELECT w.id, c.id, 0
-      FROM wallets w
-      CROSS JOIN currencies c
-      WHERE c.id IN (${currencyIds.join(',')})
-        AND w.id IN (${walletIds.join(',')})
-        AND NOT EXISTS (
-          SELECT 1 FROM wallet_balances wb
-          WHERE wb.wallet_id = w.id AND wb.currency_id = c.id
-        )
-    `;
-    await client.execute(insertSql);
-  }
-
-  const updatedBalances = await dbAll(client, `
-    SELECT wb.wallet_id, wb.balance, c.id as currency_id, c.code, c.name as currency_name, c.rate_to_base
-    FROM wallet_balances wb JOIN currencies c ON c.id = wb.currency_id
-    WHERE wb.wallet_id IN (${walletIds.join(',')})
-    ORDER BY wb.wallet_id, c.code
-  `);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
 
   const updatedMap = {};
   for (const bal of updatedBalances) {
@@ -3631,7 +2996,6 @@ async function getWallets(request, env, headers) {
     });
   }
 
-<<<<<<< HEAD
   for (const walletId of walletIds) {
     const existing = new Set((updatedMap[walletId] || []).map(row => Number(row.currency_id)));
     for (const currency of allCurrencies) {
@@ -3642,8 +3006,6 @@ async function getWallets(request, env, headers) {
     }
   }
 
-=======
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
   const result = wallets.map(wallet => ({
     id: wallet.id,
     name: wallet.name,
@@ -3652,7 +3014,6 @@ async function getWallets(request, env, headers) {
     balances: (updatedMap[wallet.id] || []).sort((a, b) => a.code.localeCompare(b.code))
   }));
 
-<<<<<<< HEAD
   return await walletResponse({ wallets: result }, request, env, headers);
 }
 async function createWallet(request, env, headers) {
@@ -3711,105 +3072,10 @@ async function exchangeCurrency(request, env, headers) {
     return jsonResponse({ success: true, from_amount: sourceAmount, to_amount: destinationAmount, fee: 0 }, 200, headers);
   } catch (error) {
     try { await tx.rollback(); } catch (_) {}
-=======
-  return jsonResponse({ wallets: result }, 200, headers);
-}
-async function createWallet(request, env, headers) {
-  const { name } = await request.json();
-  if (!name) return jsonResponse({ error: 'اسم المحفظة مطلوب' }, 400, headers);
-  const client = getTursoClient(env);
-  const walletResult = await dbRun(client, "INSERT INTO wallets (name) VALUES (?)", [name]);
-  const walletId = walletResult.lastInsertRowid;
-  const currencies = await dbAll(client, "SELECT id FROM currencies WHERE code IN ('YER','SAR','USD')");
-  if (currencies.length < 3) return jsonResponse({ error: 'العملات الأساسية غير موجودة، أضفها أولاً' }, 400, headers);
-  for (const cur of currencies) {
-    await dbRun(client, "INSERT INTO wallet_balances (wallet_id, currency_id, balance) VALUES (?, ?, 0)", [walletId, cur.id]);
-  }
-  return jsonResponse({ success: true, id: walletId }, 200, headers);
-}
-async function exchangeCurrency(request, env, headers) {
-  const { wallet_id, from_currency_id, to_currency_id, amount, fee = 0 } = await request.json();
-  if (!wallet_id || !from_currency_id || !to_currency_id || !amount || amount <= 0) {
-    return jsonResponse({ error: 'بيانات غير صالحة' }, 400, headers);
-  }
-  if (from_currency_id === to_currency_id) return jsonResponse({ error: 'لا يمكن الصرف لنفس العملة' }, 400, headers);
-  if (fee < 0) return jsonResponse({ error: 'الرسوم لا يمكن أن تكون سالبة' }, 400, headers);
-  const client = getTursoClient(env);
-  const tx = await client.transaction();
-  try {
-    const fromRate = await getCurrencyRate(tx, from_currency_id);
-    const toRate = await getCurrencyRate(tx, to_currency_id);
-    if (!fromRate || !toRate) throw new Error('سعر الصرف غير متاح');
-    const amountInBase = convertToBase(amount, fromRate);
-    const amountTo = convertFromBase(amountInBase, toRate);
-    const totalFrom = amount + fee;
-    const fromBalance = await dbFirst(tx,
-      "SELECT balance FROM wallet_balances WHERE wallet_id = ? AND currency_id = ?",
-      [wallet_id, from_currency_id]
-    );
-    if (!fromBalance || fromBalance.balance < totalFrom) throw new Error('رصيد غير كافٍ');
-    await dbRun(tx,
-      "UPDATE wallet_balances SET balance = balance - ?, updated_at = CURRENT_TIMESTAMP WHERE wallet_id = ? AND currency_id = ?",
-      [totalFrom, wallet_id, from_currency_id]
-    );
-    await ensureWalletBalance(tx, wallet_id, to_currency_id);
-    await dbRun(tx,
-      "UPDATE wallet_balances SET balance = balance + ?, updated_at = CURRENT_TIMESTAMP WHERE wallet_id = ? AND currency_id = ?",
-      [amountTo, wallet_id, to_currency_id]
-    );
-    await dbRun(tx,
-      `INSERT INTO wallet_transactions (wallet_id, type, amount, currency_id, description)
-       VALUES (?, 'exchange_out', ?, ?, ?)`,
-      [wallet_id, totalFrom, from_currency_id, `صرف من ${from_currency_id} إلى ${to_currency_id} (رسوم: ${fee})`]
-    );
-    await dbRun(tx,
-      `INSERT INTO wallet_transactions (wallet_id, type, amount, currency_id, description)
-       VALUES (?, 'exchange_in', ?, ?, ?)`,
-      [wallet_id, amountTo, to_currency_id, `استلام من صرف من ${from_currency_id}`]
-    );
-    if (fee > 0) {
-      await dbRun(tx,
-        `INSERT INTO wallet_transactions (wallet_id, type, amount, currency_id, description)
-         VALUES (?, 'fee', ?, ?, ?)`,
-        [wallet_id, fee, from_currency_id, `رسوم صرف العملات`]
-      );
-    }
-    const entryDate = new Date().toISOString().split('T')[0];
-    const desc = `صرف عملة من ${from_currency_id} إلى ${to_currency_id} (رسوم: ${fee})`;
-    const walletAccountId = await getAccountId(tx, 'المحافظ');
-    const feeAccountId = await getOrCreateFeeAccount(tx);
-    const totalFromBase = convertToBase(totalFrom, fromRate);
-    const amountToBase = convertToBase(amountTo, toRate);
-    const journalDetails = [
-      { account_id: walletAccountId, debit: amountToBase, credit: 0 },
-      { account_id: walletAccountId, debit: 0, credit: totalFromBase }
-    ];
-    if (fee > 0) {
-      const feeBase = convertToBase(fee, fromRate);
-      journalDetails.push({ account_id: feeAccountId, debit: feeBase, credit: 0 });
-    }
-    const diff = totalFromBase - amountToBase - (fee > 0 ? convertToBase(fee, fromRate) : 0);
-    if (Math.abs(diff) > 0.001) {
-      if (diff > 0) {
-        const exchangeIncomeId = await getOrCreateAccount(tx, 'إيرادات صرف العملات', '4300', 'income');
-        journalDetails.push({ account_id: exchangeIncomeId, debit: 0, credit: diff });
-      } else {
-        const exchangeLossId = await getOrCreateAccount(tx, 'خسائر صرف العملات', '6300', 'expense');
-        journalDetails.push({ account_id: exchangeLossId, debit: -diff, credit: 0 });
-      }
-    }
-    checkBalance(journalDetails);
-    await createJournalEntry(tx, entryDate, desc, journalDetails, 'exchange', null);
-    await tx.commit();
-    return jsonResponse({ success: true, from_amount: amount, to_amount: amountTo, fee: fee }, 200, headers);
-  } catch (error) {
-    await tx.rollback();
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
     return jsonResponse({ error: error.message }, 400, headers);
   }
 }
 async function transferBetweenWallets(request, env, headers) {
-<<<<<<< HEAD
   const data = await request.json();
   const type = String(data.type || 'wallet').trim();
   const fromWalletId = Number(data.from_wallet_id || 0), toWalletId = Number(data.to_wallet_id || 0), walletId = Number(data.wallet_id || 0);
@@ -3983,87 +3249,6 @@ async function getCashTransactions(request, env, headers) {
   const visible = rows.slice(0, query.limit);
   return jsonResponse(listResponse({ history: visible, transactions: visible, summary: { count: Number(total?.total || 0) }, filters: { type: type || null, currency_id: currencyId || null, detail: detail || null } }, query, rows.length > query.limit, total?.total || 0), 200, headers);
 }
-=======
-  const { from_wallet_id, to_wallet_id, currency_id, amount, fee = 0 } = await request.json();
-  if (!from_wallet_id || !to_wallet_id || !currency_id || !amount || amount <= 0) {
-    return jsonResponse({ error: 'بيانات غير صالحة' }, 400, headers);
-  }
-  if (from_wallet_id === to_wallet_id) return jsonResponse({ error: 'لا يمكن التحويل لنفس المحفظة' }, 400, headers);
-  if (fee < 0) return jsonResponse({ error: 'الرسوم لا يمكن أن تكون سالبة' }, 400, headers);
-  const client = getTursoClient(env);
-  const tx = await client.transaction();
-  try {
-    const rate = await getCurrencyRate(tx, currency_id);
-    if (!rate) throw new Error('سعر الصرف غير متاح');
-    const totalFrom = amount + fee;
-    const fromBalance = await dbFirst(tx,
-      "SELECT balance FROM wallet_balances WHERE wallet_id = ? AND currency_id = ?",
-      [from_wallet_id, currency_id]
-    );
-    if (!fromBalance || fromBalance.balance < totalFrom) throw new Error('رصيد غير كافٍ');
-    await dbRun(tx,
-      "UPDATE wallet_balances SET balance = balance - ? WHERE wallet_id = ? AND currency_id = ?",
-      [totalFrom, from_wallet_id, currency_id]
-    );
-    await ensureWalletBalance(tx, to_wallet_id, currency_id);
-    await dbRun(tx,
-      "UPDATE wallet_balances SET balance = balance + ? WHERE wallet_id = ? AND currency_id = ?",
-      [amount, to_wallet_id, currency_id]
-    );
-    await dbRun(tx,
-      `INSERT INTO wallet_transactions (wallet_id, type, amount, currency_id, description)
-       VALUES (?, 'transfer_out', ?, ?, ?)`,
-      [from_wallet_id, totalFrom, currency_id, `تحويل إلى محفظة ${to_wallet_id} (رسوم: ${fee})`]
-    );
-    await dbRun(tx,
-      `INSERT INTO wallet_transactions (wallet_id, type, amount, currency_id, description)
-       VALUES (?, 'transfer_in', ?, ?, ?)`,
-      [to_wallet_id, amount, currency_id, `تحويل من محفظة ${from_wallet_id}`]
-    );
-    if (fee > 0) {
-      await dbRun(tx,
-        `INSERT INTO wallet_transactions (wallet_id, type, amount, currency_id, description)
-         VALUES (?, 'fee', ?, ?, ?)`,
-        [from_wallet_id, fee, currency_id, `رسوم تحويل`]
-      );
-    }
-    const entryDate = new Date().toISOString().split('T')[0];
-    const desc = `تحويل بين المحافظ ${from_wallet_id} -> ${to_wallet_id} (رسوم: ${fee})`;
-    const walletAccountId = await getAccountId(tx, 'المحافظ');
-    const feeAccountId = await getOrCreateFeeAccount(tx);
-    const totalFromBase = convertToBase(totalFrom, rate);
-    const amountBase = convertToBase(amount, rate);
-    const feeBase = convertToBase(fee, rate);
-    const journalDetails = [
-      { account_id: walletAccountId, debit: amountBase, credit: 0 },
-      { account_id: walletAccountId, debit: 0, credit: totalFromBase }
-    ];
-    if (fee > 0) {
-      journalDetails.push({ account_id: feeAccountId, debit: feeBase, credit: 0 });
-    }
-    checkBalance(journalDetails);
-    await createJournalEntry(tx, entryDate, desc, journalDetails, 'transfer', null);
-    await tx.commit();
-    return jsonResponse({ success: true, from_amount: totalFrom, to_amount: amount, fee: fee }, 200, headers);
-  } catch (error) {
-    await tx.rollback();
-    return jsonResponse({ error: error.message }, 400, headers);
-  }
-}
-async function getWalletTransactions(request, env, headers) {
-  const client = getTursoClient(env);
-  const rows = await dbAll(client, `
-    SELECT wt.*, w.name as wallet_name, c.code as currency_code
-    FROM wallet_transactions wt
-    JOIN wallets w ON w.id = wt.wallet_id
-    LEFT JOIN currencies c ON c.id = wt.currency_id
-    ORDER BY wt.created_at DESC LIMIT 100
-  `);
-  return jsonResponse({ transactions: rows }, 200, headers);
-}
-
-// ---- الصندوق ----
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
 async function getCashStatus(request, env, headers) {
   const client = getTursoClient(env);
   const history = await dbAll(client, `
@@ -4071,7 +3256,6 @@ async function getCashStatus(request, env, headers) {
     FROM cash_register cr JOIN currencies c ON c.id = cr.currency_id
     ORDER BY cr.created_at DESC LIMIT 1000
   `);
-<<<<<<< HEAD
   const balanceRows = await dbAll(client, `
     SELECT cr.currency_id, c.code, c.name,
       SUM(CASE WHEN cr.type IN ('deposit','open') THEN cr.amount ELSE -cr.amount END) AS amount,
@@ -4085,16 +3269,6 @@ async function getCashStatus(request, env, headers) {
     rate: null, balance_base: Number(row.amount_base_book || 0), balance_base_current: Number(row.amount_base_current || 0)
   }]));
   const totalBase = balanceRows.reduce((sum, row) => sum + Number(row.amount_base_book || 0), 0);
-=======
-  const balances = {};
-  let totalBase = 0;
-  history.forEach(h => {
-    const curId = h.currency_id;
-    if (!balances[curId]) balances[curId] = { amount: 0, code: h.currency_code, name: h.currency_name, rate: h.exchange_rate };
-    if (h.type === 'deposit' || h.type === 'open') { balances[curId].amount += h.amount; totalBase += convertToBase(h.amount, h.exchange_rate); }
-    else if (h.type === 'withdraw' || h.type === 'close') { balances[curId].amount -= h.amount; totalBase -= convertToBase(h.amount, h.exchange_rate); }
-  });
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
   const wallets = await dbAll(client, `
     SELECT w.id, w.name, wb.balance, c.id as currency_id, c.code, c.rate_to_base
     FROM wallets w JOIN wallet_balances wb ON wb.wallet_id = w.id JOIN currencies c ON c.id = wb.currency_id
@@ -4119,11 +3293,7 @@ async function addCashOperation(request, env, headers) {
     return jsonResponse({ error: 'نوع غير صحيح أو مبلغ غير صالح أو العملة غير محددة' }, 400, headers);
   }
   const client = getTursoClient(env);
-<<<<<<< HEAD
   await checkIfClosed(client, businessISODate());
-=======
-  await checkIfClosed(client, new Date().toISOString().slice(0, 10));
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
   const baseCurrency = await getBaseCurrency(client);
   if (!baseCurrency) throw new Error('لا توجد عملة أساسية');
   const tx = await client.transaction();
@@ -4136,11 +3306,7 @@ async function addCashOperation(request, env, headers) {
       [type, amount, currency_id, rate, note || 'عملية صندوق']
     );
     const cashAccountId = await getAccountId(tx, 'الصندوق');
-<<<<<<< HEAD
     const entryDate = businessISODate();
-=======
-    const entryDate = new Date().toISOString().split('T')[0];
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
     let journalDetails = [];
     let desc = note || (type === 'deposit' ? 'إيداع نقدي' : 'سحب نقدي');
     if (type === 'deposit') {
@@ -4177,7 +3343,6 @@ async function getCashHistory(request, env, headers) {
 async function getCashBalance(request, env, headers) {
   const client = getTursoClient(env);
   const rows = await dbAll(client, `
-<<<<<<< HEAD
     SELECT currency_id, c.code, c.rate_to_base,
       SUM(CASE WHEN type IN ('open','deposit') THEN amount ELSE -amount END) AS balance,
       SUM(CASE WHEN type IN ('open','deposit') THEN amount * COALESCE(cr.exchange_rate, c.rate_to_base, 1) ELSE -amount * COALESCE(cr.exchange_rate, c.rate_to_base, 1) END) AS balance_base_book,
@@ -4190,51 +3355,29 @@ async function getCashBalance(request, env, headers) {
     const bookBase = Number(r.balance_base_book || 0);
     totalBase += bookBase;
     return { currency_id: r.currency_id, code: r.code, balance: Number(r.balance || 0), balance_base: bookBase, balance_base_current: Number(r.balance_base_current || 0) };
-=======
-    SELECT currency_id,
-      SUM(CASE WHEN type IN ('open','deposit') THEN amount ELSE -amount END) as balance,
-      c.code, c.rate_to_base
-    FROM cash_register cr JOIN currencies c ON c.id = cr.currency_id
-    GROUP BY currency_id
-  `);
-  let totalBase = 0;
-  const balances = rows.map(r => {
-    const base = convertToBase(r.balance, r.rate_to_base);
-    totalBase += base;
-    return { currency_id: r.currency_id, code: r.code, balance: r.balance, balance_base: base };
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
   });
   return jsonResponse({ balances, total_base: totalBase }, 200, headers);
 }
 
 // ---- المصروفات ----
 async function addExpense(request, env, headers) {
-<<<<<<< HEAD
   const { name, amount, payment_method, wallet_id, note, currency_id, cash_amount, wallet_amount, expense_type = 'operating', expense_scope = 'general', department_id = null } = await request.json();
   if (!name || !amount || amount <= 0) return jsonResponse({ error: 'بيانات غير صالحة' }, 400, headers);
   if (!['operating', 'ga'].includes(expense_type)) return jsonResponse({ error: 'نوع المصروف غير صحيح' }, 400, headers);
   if (!['specific', 'general'].includes(expense_scope)) return jsonResponse({ error: 'نطاق المصروف غير صحيح' }, 400, headers);
   if (expense_scope === 'specific' && !department_id) return jsonResponse({ error: 'اختر القسم للمصروف المخصص' }, 400, headers);
   if (expense_scope === 'general' && department_id) return jsonResponse({ error: 'المصروف العام لا يرتبط بقسم' }, 400, headers);
-=======
-  const { name, amount, payment_method, wallet_id, note, currency_id, cash_amount, wallet_amount } = await request.json();
-  if (!name || !amount || amount <= 0) return jsonResponse({ error: 'بيانات غير صالحة' }, 400, headers);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
   
   if (!['cash', 'wallet', 'mixed'].includes(payment_method)) {
     return jsonResponse({ error: `طريقة الدفع "${payment_method}" غير مدعومة للمصروفات. الطرق المدعومة: cash, wallet, mixed` }, 400, headers);
   }
   
   const client = getTursoClient(env);
-<<<<<<< HEAD
   if (expense_scope === 'specific') {
     const department = await dbFirst(client, 'SELECT id FROM categories WHERE id = ? AND parent_id IS NULL', [Number(department_id)]);
     if (!department) return jsonResponse({ error: 'يجب اختيار قسم أب موجود' }, 400, headers);
   }
   await checkIfClosed(client, businessISODate());
-=======
-  await checkIfClosed(client, new Date().toISOString().slice(0, 10));
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
   const baseCurrency = await getBaseCurrency(client);
   if (!baseCurrency) throw new Error('لا توجد عملة أساسية');
   const useCurrencyId = currency_id || baseCurrency.id;
@@ -4243,7 +3386,6 @@ async function addExpense(request, env, headers) {
     const expenseAccountId = await getAccountId(tx, 'المصروفات');
     const cashAccountId = await getAccountId(tx, 'الصندوق');
     const walletAccountId = await getAccountId(tx, 'المحافظ');
-<<<<<<< HEAD
     const entryDate = businessISODate();
     const desc = `مصروف: ${name}`;
     const rate = await getCurrencyRate(tx, useCurrencyId);
@@ -4255,17 +3397,6 @@ async function addExpense(request, env, headers) {
       "INSERT INTO expenses (name, amount, payment_method, wallet_id, note, expense_type, expense_scope, department_id, currency_id, exchange_rate) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
       [name, numericAmount, payment_method, wallet_id || null, note || '', expense_type, expense_scope, expense_scope === 'specific' ? Number(department_id) : null, useCurrencyId, rate]
     );
-=======
-    const expenseResult = await dbRun(tx,
-      "INSERT INTO expenses (name, amount, payment_method, wallet_id, note) VALUES (?, ?, ?, ?, ?)",
-      [name, amount, payment_method, wallet_id || null, note || '']
-    );
-    const entryDate = new Date().toISOString().split('T')[0];
-    const desc = `مصروف: ${name}`;
-    const rate = await getCurrencyRate(tx, useCurrencyId);
-    if (!rate) throw new Error('سعر الصرف غير متاح');
-    const baseAmount = convertToBase(amount, rate);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
     
     if (payment_method === 'cash') {
       await dbRun(tx,
@@ -4355,7 +3486,6 @@ async function addExpense(request, env, headers) {
 }
 async function getExpenses(request, env, headers) {
   const client = getTursoClient(env);
-<<<<<<< HEAD
   const query = parseListQuery(request);
   const conditions = ['1=1'], args = [];
   appendDateRange(conditions, args, 'e.created_at', query.from, query.to);
@@ -4380,14 +3510,6 @@ async function getExpenses(request, env, headers) {
   const summary = await dbFirst(client, `SELECT COUNT(*) count, COALESCE(SUM(e.amount), 0) total_nominal, COALESCE(SUM(e.amount * COALESCE(e.exchange_rate, c.rate_to_base, 1)), 0) total_base FROM expenses e LEFT JOIN wallets w ON w.id=e.wallet_id LEFT JOIN categories d ON d.id=e.department_id LEFT JOIN currencies c ON c.id=e.currency_id WHERE ${conditions.join(' AND ')}`, args);
   const hasNext = rows.length > query.limit;
   return jsonResponse(listResponse({ expenses: rows.slice(0, query.limit), summary: { count: Number(summary?.count || 0), total: Number(summary?.total_base || 0), total_base: Number(summary?.total_base || 0), total_nominal: Number(summary?.total_nominal || 0) } }, query, hasNext, summary?.count || 0), 200, headers);
-=======
-  const rows = await dbAll(client, `
-    SELECT e.*, w.name as wallet_name
-    FROM expenses e LEFT JOIN wallets w ON w.id = e.wallet_id
-    ORDER BY e.created_at DESC LIMIT 2000
-  `);
-  return jsonResponse({ expenses: rows }, 200, headers);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
 }
 
 // ==================== التصفية والكاش للتقارير ====================
@@ -4415,7 +3537,6 @@ function cachedReport(key, ttlMs, producer) {
   return Promise.resolve(producer()).then(data => { reportCache.set(key, { data, expires: Date.now() + ttlMs }); return data; });
 }
 function invalidateReportCache() { reportCache.clear(); }
-<<<<<<< HEAD
 const POS_TIMEZONE_OFFSET_MINUTES = 180;
 const POS_SQL_UTC_SHIFT = '-03:00';
 function businessISODate(date = new Date()) {
@@ -4423,15 +3544,10 @@ function businessISODate(date = new Date()) {
 }
 function reportDateRange(url, period = 'month') {
   const now = new Date(); const to = url.searchParams.get('to') || businessISODate(now);
-=======
-function reportDateRange(url, period = 'month') {
-  const now = new Date(); const to = url.searchParams.get('to') || now.toISOString().slice(0, 10);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
   const explicitFrom = url.searchParams.get('from'); if (explicitFrom) return { from: explicitFrom, to };
   const d = new Date(to); if (period === 'today') return { from: to, to };
   const days = period === 'week' ? 6 : period === 'year' ? 364 : 29; d.setDate(d.getDate() - days); return { from: d.toISOString().slice(0, 10), to };
 }
-<<<<<<< HEAD
 function nextISODate(value) {
   const date = new Date(`${value}T00:00:00Z`);
   date.setUTCDate(date.getUTCDate() + 1);
@@ -4479,14 +3595,11 @@ function safeSort(url, allowed, fallback) {
   const sort = url.searchParams.get('sort_by');
   return allowed.includes(sort) ? sort : fallback;
 }
-=======
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
 async function checkIfClosed(client, operationDate) {
   const setting = await dbFirst(client, "SELECT value FROM settings WHERE key = 'closed_until_date'");
   const closed = setting?.value; if (closed && operationDate && String(operationDate).slice(0, 10) <= closed) throw new Error(`لا يمكن تعديل عمليات قبل تاريخ ${closed} (الفترة مغلقة محاسبياً)`);
 }
 
-<<<<<<< HEAD
 // ==================== التأسيس المحاسبي وجرد المخزون ====================
 function validISODate(value) {
   return /^\d{4}-\d{2}-\d{2}$/.test(String(value || ''));
@@ -4674,8 +3787,6 @@ async function adjustInventory(request, env, headers, userId = null) {
   }
 }
 
-=======
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
 // ==================== التقارير التحليلية المتقدمة ====================
 async function getTopSellingProducts(request, env, headers) {
   const url = new URL(request.url), period = url.searchParams.get('period') || 'month';
@@ -4714,7 +3825,6 @@ async function getMonthlyTrends(request, env, headers) {
   return jsonResponse(data, 200, headers);
 }
 async function getDriverPerformance(request, env, headers) { const url=new URL(request.url),{from,to}=reportDateRange(url,'month'); const key=`driver-performance:${url.search}`; const data=await cachedReport(key,600000,async()=>{const c=getTursoClient(env); const f=['date(o.created_at) BETWEEN ? AND ?']; const a=[from,to]; if(url.searchParams.get('driver_id')){f.push('o.assigned_driver_id=?');a.push(url.searchParams.get('driver_id'));} if(url.searchParams.get('status')){f.push('o.status=?');a.push(url.searchParams.get('status'));} const rows=await dbAll(c,`SELECT d.id driver_id,d.name driver_name,COUNT(o.id) order_count,COALESCE(SUM(CASE WHEN o.status='تم التسليم' THEN o.actual_collected ELSE 0 END),0) total_collected,COALESCE(SUM(o.delivery_fee),0) total_fees,AVG(CASE WHEN o.status='تم التسليم' THEN julianday(o.updated_at)-julianday(o.created_at) END) avg_delivery_days FROM online_orders o JOIN drivers d ON d.id=o.assigned_driver_id WHERE ${f.join(' AND ')} GROUP BY d.id,d.name ORDER BY total_collected DESC`,a); return {from,to,drivers:rows};}); return jsonResponse(data,200,headers); }
-<<<<<<< HEAD
 async function getPaymentMixReport(request, env, headers) {
   const url = new URL(request.url);
   const { from, to } = reportDateRange(url, 'month');
@@ -4873,13 +3983,6 @@ async function reopenAccounting(request, env, headers, userId) {
     return jsonResponse({ error: error.message || 'فشل إعادة فتح السنة' }, 400, headers);
   }
 }
-=======
-async function getAgingReport(request, env, headers) { const url=new URL(request.url),type=url.searchParams.get('type')==='suppliers'?'suppliers':'customers'; const key=`aging:${type}:${url.search}`; const data=await cachedReport(key,1800000,async()=>{const c=getTursoClient(env); const table=type==='customers'?'customers':'suppliers'; const rows=await dbAll(c,`SELECT id,name,phone,COALESCE(balance,0) balance,CASE WHEN COALESCE(balance,0)<=0 THEN 0 ELSE CAST(julianday('now')-julianday(COALESCE(created_at,'now')) AS INTEGER) END age_days FROM ${table} ORDER BY balance DESC`); return {type,rows:rows.map(r=>({...r,current:r.age_days<=30?r.balance:0,days_31_60:r.age_days>30&&r.age_days<=60?r.balance:0,days_61_90:r.age_days>60&&r.age_days<=90?r.balance:0,over_90:r.age_days>90?r.balance:0}))};}); return jsonResponse(data,200,headers); }
-
-// ==================== الإقفال المحاسبي ====================
-async function closeAccountingYear(request, env, headers, userId) { const body=await request.json(); const closingDate=body.closing_date; if(!/^\d{4}-\d{2}-\d{2}$/.test(closingDate||'')) return jsonResponse({error:'closing_date بصيغة YYYY-MM-DD مطلوب'},400,headers); const c=getTursoClient(env); const settings=await getSettingsCached(c); if(settings.closed_until_date) return jsonResponse({error:`يوجد إقفال سابق حتى ${settings.closed_until_date}. نفّذ إعادة الفتح أولاً`},409,headers); const tx=await c.transaction(); try { const accounts=await dbAll(tx,"SELECT id,name,type FROM accounts WHERE type IN ('income','expense')"); const details=[]; let net=0; for(const a of accounts){const b=await dbFirst(tx,'SELECT COALESCE(SUM(debit-credit),0) balance FROM journal_entry_details WHERE account_id=?',[a.id]); const balance=Number(b?.balance||0); if(Math.abs(balance)<0.001)continue; if(a.type==='income'){details.push({account_id:a.id,debit:Math.max(0,-balance),credit:Math.max(0,balance),notes:'إقفال الإيراد'});net-=balance;}else{details.push({account_id:a.id,debit:Math.max(0,balance),credit:Math.max(0,-balance),notes:'إقفال المصروف'});net+=balance;}} const retained=await dbFirst(tx,"SELECT id FROM accounts WHERE name IN ('الأرباح المحتجزة','الأرباح المرحلة','Retained Earnings') LIMIT 1"); if(!retained)throw new Error('حساب الأرباح المحتجزة غير موجود'); if(net>0)details.push({account_id:retained.id,debit:0,credit:net,notes:'صافي نتيجة الإقفال'}); else if(net<0)details.push({account_id:retained.id,debit:-net,credit:0,notes:'صافي نتيجة الإقفال'}); const entryId=await createJournalEntry(tx,closingDate,'إقفال نهاية العام المالي',details,'closing_entry',null); await dbRun(tx,"INSERT INTO accounting_closures (closing_date,entry_id,retained_earnings,closed_by) VALUES (?,?,?,?)",[closingDate,entryId,net,userId||null]); await dbRun(tx,"INSERT INTO settings (key,value) VALUES ('closed_until_date',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",[closingDate]); await tx.commit(); invalidateSettingsCache(); return jsonResponse({success:true,entry_id:entryId,retained_earnings:net},200,headers); }catch(e){await tx.rollback();return jsonResponse({error:e.message},400,headers);} }
-async function reopenAccounting(request, env, headers, userId) { const c=getTursoClient(env); const tx=await c.transaction(); try { const closure=await dbFirst(tx,'SELECT * FROM accounting_closures ORDER BY id DESC LIMIT 1'); if(!closure)return jsonResponse({error:'لا يوجد إقفال سابق'},404,headers); await dbRun(tx,'DELETE FROM journal_entry_details WHERE entry_id=?',[closure.entry_id]); await dbRun(tx,'DELETE FROM journal_entries WHERE id=? AND reference_type=\'closing_entry\'',[closure.entry_id]); await dbRun(tx,'DELETE FROM accounting_closures WHERE id=?',[closure.id]); await dbRun(tx,"INSERT INTO settings (key,value) VALUES ('closed_until_date','') ON CONFLICT(key) DO UPDATE SET value=''",[]); await tx.commit(); invalidateSettingsCache(); return jsonResponse({success:true,message:'تم فتح السنة المالية'},200,headers); }catch(e){await tx.rollback();return jsonResponse({error:e.message},400,headers);} }
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
 
 // ---- الحسابات والقيد ----
 async function getAccounts(request, env, headers) {
@@ -4900,20 +4003,16 @@ async function createAccount(request, env, headers) {
 }
 async function getJournalEntries(request, env, headers) {
   const client = getTursoClient(env);
-<<<<<<< HEAD
   const query = parseListQuery(request);
   const conditions = ['1=1'], args = [];
   if (query.from) { conditions.push('je.entry_date >= ?'); args.push(query.from); }
   if (query.to) { conditions.push('je.entry_date < ?'); args.push(nextISODate(query.to)); }
   const search = query.url.searchParams.get('search') || '';
   if (search) { conditions.push('je.description LIKE ?'); args.push(`%${search}%`); }
-=======
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
   const rows = await dbAll(client, `
     SELECT je.*,
       (SELECT json_group_array(json_object('account_id', jed.account_id, 'debit', jed.debit, 'credit', jed.credit, 'notes', jed.notes))
        FROM journal_entry_details jed WHERE jed.entry_id = je.id) as details
-<<<<<<< HEAD
     FROM journal_entries je WHERE ${conditions.join(' AND ')}
     ORDER BY je.entry_date DESC, je.created_at DESC, je.id DESC LIMIT ? OFFSET ?
   `, [...args, query.limit + 1, query.offset]);
@@ -4924,20 +4023,10 @@ async function getJournalEntries(request, env, headers) {
 async function createManualJournalEntry(request, env, headers) {
   const { entry_date, description, details } = await request.json();
   if (!validISODate(entry_date) || !String(description || '').trim() || !Array.isArray(details) || details.length < 2) {
-=======
-    FROM journal_entries je ORDER BY je.entry_date DESC, je.created_at DESC LIMIT 100
-  `);
-  return jsonResponse({ entries: rows }, 200, headers);
-}
-async function createManualJournalEntry(request, env, headers) {
-  const { entry_date, description, details } = await request.json();
-  if (!entry_date || !description || !details || !Array.isArray(details) || details.length === 0) {
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
     return jsonResponse({ error: 'بيانات القيد غير مكتملة' }, 400, headers);
   }
   const client = getTursoClient(env);
   await checkIfClosed(client, entry_date);
-<<<<<<< HEAD
   try {
     checkBalance(details);
   } catch (error) {
@@ -4952,19 +4041,11 @@ async function createManualJournalEntry(request, env, headers) {
     try { await tx.rollback(); } catch (_) {}
     return jsonResponse({ error: error.message || 'فشل حفظ القيد اليدوي' }, 400, headers);
   }
-=======
-  let totalDebit = 0, totalCredit = 0;
-  for (const d of details) { totalDebit += d.debit || 0; totalCredit += d.credit || 0; }
-  if (Math.abs(totalDebit - totalCredit) > 0.001) return jsonResponse({ error: 'القيد غير متوازن' }, 400, headers);
-  const entryId = await createJournalEntry(client, entry_date, description, details, 'manual', null);
-  return jsonResponse({ success: true, entry_id: entryId }, 200, headers);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
 }
 
 // ---- التقارير الأساسية ----
 async function getDailyReport(request, env, headers) {
   const client = getTursoClient(env);
-<<<<<<< HEAD
   const query = parseListQuery(request);
   const today = businessISODate();
   const from = query.from || today;
@@ -4974,23 +4055,12 @@ async function getDailyReport(request, env, headers) {
   const salesData = await dbFirst(client,
     "SELECT SUM(total_amount) as total_sales, COUNT(*) as invoices_count FROM sales WHERE created_at >= datetime(?, '-03:00') AND created_at < datetime(?, '-03:00') AND status='completed'",
     [reportFrom, reportTo]
-=======
-  const today = new Date().toISOString().split('T')[0];
-  const salesData = await dbFirst(client,
-    "SELECT SUM(total_amount) as total_sales, COUNT(*) as invoices_count FROM sales WHERE DATE(created_at) = ? AND status='completed'",
-    [today]
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
   );
   const totalSales = salesData?.total_sales || 0;
   const invoicesCount = salesData?.invoices_count || 0;
   const paymentSplit = await dbAll(client,
-<<<<<<< HEAD
     "SELECT payment_method, SUM(total_amount) as total FROM sales WHERE created_at >= datetime(?, '-03:00') AND created_at < datetime(?, '-03:00') AND status='completed' GROUP BY payment_method",
     [reportFrom, reportTo]
-=======
-    "SELECT payment_method, SUM(total_amount) as total FROM sales WHERE DATE(created_at) = ? AND status='completed' GROUP BY payment_method",
-    [today]
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
   );
   let cashSales = 0, walletSales = 0, creditSales = 0;
   paymentSplit.forEach(row => {
@@ -5007,7 +4077,6 @@ async function getDailyReport(request, env, headers) {
       FROM returned_sales
       GROUP BY sale_id, product_id
     ) rs ON rs.sale_id = si.sale_id AND rs.product_id = si.product_id
-<<<<<<< HEAD
     WHERE s.created_at >= datetime(?, '-03:00') AND s.created_at < datetime(?, '-03:00') AND s.status='completed'
   `, [reportFrom, reportTo]);
   const totalCost = costData?.total_cost || 0;
@@ -5019,19 +4088,6 @@ async function getDailyReport(request, env, headers) {
   const expensesData = await dbFirst(client,
     "SELECT SUM(e.amount * COALESCE(e.exchange_rate, c.rate_to_base, 1)) as total_expenses FROM expenses e LEFT JOIN currencies c ON c.id = e.currency_id WHERE datetime(e.created_at) >= datetime(?, '-03:00') AND datetime(e.created_at) < datetime(?, '-03:00')",
     [reportFrom, reportTo]
-=======
-    WHERE DATE(s.created_at) = ? AND s.status='completed'
-  `, [today]);
-  const totalCost = costData?.total_cost || 0;
-  const profitData = await dbFirst(client,
-    "SELECT SUM(profit) as total_profit FROM sales WHERE DATE(created_at) = ? AND status='completed'",
-    [today]
-  );
-  const grossProfit = profitData?.total_profit || 0;
-  const expensesData = await dbFirst(client,
-    "SELECT SUM(amount) as total_expenses FROM expenses WHERE DATE(created_at) = ?",
-    [today]
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
   );
   const totalExpenses = expensesData?.total_expenses || 0;
   const netProfit = grossProfit - totalExpenses;
@@ -5045,11 +4101,7 @@ async function getDailyReport(request, env, headers) {
     walletsGrouped[ws.name].push({ currency: ws.code, balance: ws.balance });
   });
   return jsonResponse({
-<<<<<<< HEAD
     date: from === to ? from : `${from} إلى ${to}`, from, to, total_sales: totalSales, invoices_count: invoicesCount,
-=======
-    date: today, total_sales: totalSales, invoices_count: invoicesCount,
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
     cash_sales: cashSales, wallet_sales: walletSales, credit_sales: creditSales,
     total_cost: totalCost, gross_profit: grossProfit, total_expenses: totalExpenses,
     net_profit: netProfit,
@@ -5058,7 +4110,6 @@ async function getDailyReport(request, env, headers) {
 }
 async function getTrialBalance(request, env, headers) {
   const client = getTursoClient(env);
-<<<<<<< HEAD
   const query = parseListQuery(request);
   const dateParts = [];
   const dateArgs = [];
@@ -5068,15 +4119,12 @@ async function getTrialBalance(request, env, headers) {
     if (query.to) { dateParts.push('DATE(je.entry_date) <= DATE(?)'); dateArgs.push(query.to); }
   }
   const dateClause = dateParts.length ? ` AND ${dateParts.join(' AND ')}` : '';
-=======
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
   const rows = await dbAll(client, `
     SELECT a.id, a.name, a.code, a.type,
       COALESCE(SUM(jed.debit), 0) as total_debit,
       COALESCE(SUM(jed.credit), 0) as total_credit
     FROM accounts a
     LEFT JOIN journal_entry_details jed ON jed.account_id = a.id
-<<<<<<< HEAD
     LEFT JOIN journal_entries je ON je.id = jed.entry_id
     WHERE 1=1 ${dateClause}
     GROUP BY a.id ORDER BY a.code
@@ -5095,22 +4143,12 @@ async function getIncomeStatement(request, env, headers) {
     if (query.to) { dateParts.push('DATE(je.entry_date) <= DATE(?)'); dateArgs.push(query.to); }
   }
   const dateClause = dateParts.length ? ` AND ${dateParts.join(' AND ')}` : '';
-=======
-    GROUP BY a.id ORDER BY a.code
-  `);
-  const trialBalance = rows.map(row => ({ ...row, balance: row.total_debit - row.total_credit, balance_type: row.total_debit > row.total_credit ? 'debit' : (row.total_credit > row.total_debit ? 'credit' : 'zero') }));
-  return jsonResponse({ trial_balance: trialBalance }, 200, headers);
-}
-async function getIncomeStatement(request, env, headers) {
-  const client = getTursoClient(env);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
   const incomeAccounts = await dbAll(client, "SELECT id FROM accounts WHERE type = 'income'");
   const expenseAccounts = await dbAll(client, "SELECT id FROM accounts WHERE type = 'expense'");
   const incomeIds = incomeAccounts.map(r => r.id).join(',');
   const expenseIds = expenseAccounts.map(r => r.id).join(',');
   let totalRevenue = 0, totalExpenses = 0;
   if (incomeIds) {
-<<<<<<< HEAD
     const rev = await dbFirst(client, `    SELECT COALESCE(SUM(jed.debit - jed.credit), 0) as total FROM journal_entry_details jed JOIN journal_entries je ON je.id = jed.entry_id WHERE jed.account_id IN (${incomeIds}) AND je.reference_type != 'closing_entry'${dateClause}
 `, dateArgs);
     totalRevenue = -Number(rev?.total || 0);
@@ -5129,25 +4167,10 @@ async function getBalanceSheet(request, env, headers) {
   const asOf = query.to || query.from || businessISODate();
   const dateClause = ' AND DATE(je.entry_date) <= DATE(?)';
   const dateArgs = [asOf];
-=======
-    const rev = await dbFirst(client, `SELECT COALESCE(SUM(debit - credit), 0) as total FROM journal_entry_details WHERE account_id IN (${incomeIds})`);
-    totalRevenue = Math.abs(rev?.total || 0);
-  }
-  if (expenseIds) {
-    const exp = await dbFirst(client, `SELECT COALESCE(SUM(debit - credit), 0) as total FROM journal_entry_details WHERE account_id IN (${expenseIds})`);
-    totalExpenses = exp?.total || 0;
-  }
-  const netIncome = totalRevenue - totalExpenses;
-  return jsonResponse({ total_revenue: totalRevenue, total_expenses: totalExpenses, net_income: netIncome }, 200, headers);
-}
-async function getBalanceSheet(request, env, headers) {
-  const client = getTursoClient(env);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
   const assetAccounts = await dbAll(client, "SELECT id FROM accounts WHERE type = 'asset'");
   const liabilityAccounts = await dbAll(client, "SELECT id FROM accounts WHERE type = 'liability'");
   const equityAccounts = await dbAll(client, "SELECT id FROM accounts WHERE type = 'equity'");
   
-<<<<<<< HEAD
   const getBalance = async (ids, normalSide) => {
     if (!ids.length) return 0;
     const idList = ids.map(r => r.id).join(',');
@@ -5159,50 +4182,25 @@ async function getBalanceSheet(request, env, headers) {
   const totalAssets = await getBalance(assetAccounts, 'debit');
   const totalLiabilities = await getBalance(liabilityAccounts, 'credit');
   const totalEquity = await getBalance(equityAccounts, 'credit');
-=======
-  const getBalance = async (ids) => {
-    if (!ids.length) return 0;
-    const idList = ids.map(r => r.id).join(',');
-    const result = await dbFirst(client, `SELECT COALESCE(SUM(debit - credit), 0) as total FROM journal_entry_details WHERE account_id IN (${idList})`);
-    return result?.total || 0;
-  };
-  
-  const totalAssets = await getBalance(assetAccounts);
-  const totalLiabilities = await getBalance(liabilityAccounts);
-  const totalEquity = await getBalance(equityAccounts);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
 
   const incomeAccountsForNet = await dbAll(client, "SELECT id FROM accounts WHERE type = 'income'");
   const expenseAccountsForNet = await dbAll(client, "SELECT id FROM accounts WHERE type = 'expense'");
   const incomeNetIds = incomeAccountsForNet.map(r => r.id).join(',');
   const expenseNetIds = expenseAccountsForNet.map(r => r.id).join(',');
-<<<<<<< HEAD
   const incomeNetRow = incomeNetIds ? await dbFirst(client, `SELECT COALESCE(SUM(jed.debit - jed.credit), 0) AS total FROM journal_entry_details jed JOIN journal_entries je ON je.id = jed.entry_id WHERE jed.account_id IN (${incomeNetIds}) AND je.reference_type != 'closing_entry'${dateClause}`, dateArgs) : { total: 0 };
   const expenseNetRow = expenseNetIds ? await dbFirst(client, `SELECT COALESCE(SUM(jed.debit - jed.credit), 0) AS total FROM journal_entry_details jed JOIN journal_entries je ON je.id = jed.entry_id WHERE jed.account_id IN (${expenseNetIds}) AND je.reference_type != 'closing_entry'${dateClause}`, dateArgs) : { total: 0 };
   const netIncome = -Number(incomeNetRow?.total || 0) - Number(expenseNetRow?.total || 0);
   const totalEquityWithNet = totalEquity + netIncome;
-=======
-  const incomeNetRow = incomeNetIds ? await dbFirst(client, `SELECT COALESCE(SUM(debit - credit), 0) AS total FROM journal_entry_details WHERE account_id IN (${incomeNetIds})`) : { total: 0 };
-  const expenseNetRow = expenseNetIds ? await dbFirst(client, `SELECT COALESCE(SUM(debit - credit), 0) AS total FROM journal_entry_details WHERE account_id IN (${expenseNetIds})`) : { total: 0 };
-  const netIncome = Math.abs(incomeNetRow?.total || 0) - (expenseNetRow?.total || 0);
-
-  const totalEquityWithNet = totalEquity + netIncome;
-
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
   const difference = totalAssets - (totalLiabilities + totalEquityWithNet);
 
   return jsonResponse({
     assets: totalAssets,
     liabilities: totalLiabilities,
     equity: totalEquityWithNet,
-<<<<<<< HEAD
     difference: difference,
     as_of: asOf,
     from: null,
     to: asOf
-=======
-    difference: difference
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
   }, 200, headers);
 }
 async function exportReport(request, env, headers) {
@@ -5213,7 +4211,6 @@ async function exportReport(request, env, headers) {
   if (!type || !from || !to) return jsonResponse({ error: 'نوع التقرير والتاريخ مطلوب' }, 400, headers);
   const client = getTursoClient(env);
   let results;
-<<<<<<< HEAD
   const exportFrom = `${from} 00:00:00`;
   const exportTo = `${nextISODate(to)} 00:00:00`;
   if (type === 'sales') {
@@ -5224,16 +4221,6 @@ async function exportReport(request, env, headers) {
     results = await dbAll(client, `SELECT date(datetime(created_at, '+03:00')) as date, SUM(profit) as daily_profit FROM sales WHERE created_at >= datetime(?, '-03:00') AND created_at < datetime(?, '-03:00') AND status='completed' GROUP BY date(datetime(created_at, '+03:00'))`, [exportFrom, exportTo]);
   } else if (type === 'expenses') {
     results = await dbAll(client, `SELECT e.*, e.amount * COALESCE(e.exchange_rate, c.rate_to_base, 1) AS amount_base, c.code AS currency_code FROM expenses e LEFT JOIN currencies c ON c.id = e.currency_id WHERE e.created_at >= datetime(?, '-03:00') AND e.created_at < datetime(?, '-03:00')`, [exportFrom, exportTo]);
-=======
-  if (type === 'sales') {
-    results = await dbAll(client, `SELECT s.*, c.name as customer_name FROM sales s LEFT JOIN customers c ON c.id = s.customer_id WHERE DATE(s.created_at) BETWEEN ? AND ? AND s.status='completed'`, [from, to]);
-  } else if (type === 'purchases') {
-    results = await dbAll(client, `SELECT pi.*, su.name as supplier_name FROM purchase_invoices pi JOIN suppliers su ON su.id = pi.supplier_id WHERE DATE(pi.created_at) BETWEEN ? AND ? AND pi.status='completed'`, [from, to]);
-  } else if (type === 'profits') {
-    results = await dbAll(client, `SELECT DATE(created_at) as date, SUM(profit) as daily_profit FROM sales WHERE DATE(created_at) BETWEEN ? AND ? AND status='completed' GROUP BY DATE(created_at)`, [from, to]);
-  } else if (type === 'expenses') {
-    results = await dbAll(client, `SELECT * FROM expenses WHERE DATE(created_at) BETWEEN ? AND ?`, [from, to]);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
   } else return jsonResponse({ error: 'نوع غير معروف' }, 400, headers);
   return jsonResponse({ report_type: type, from, to, data: results }, 200, headers);
 }
@@ -5248,7 +4235,6 @@ async function getSettings(request, env, headers) {
 }
 async function updateSettings(request, env, headers) {
   const data = await request.json();
-<<<<<<< HEAD
   if (Object.prototype.hasOwnProperty.call(data, 'system_initialized')) {
     return jsonResponse({ error: 'لا يمكن تغيير system_initialized من إعدادات النظام؛ يتم تفعيله تلقائيًا بعد قيد التأسيس' }, 400, headers);
   }
@@ -5274,12 +4260,6 @@ async function updateSettings(request, env, headers) {
   const statements = [];
   for (const [key, value] of Object.entries(data)) {
     statements.push({ sql: "INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP", args: [key, value == null ? '' : String(value)] });
-=======
-  const client = getTursoClient(env);
-  const statements = [];
-  for (const [key, value] of Object.entries(data)) {
-    statements.push({ sql: "INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP", args: [key, value] });
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
   }
   if (statements.length > 0) {
     await client.batch(statements);
@@ -5295,11 +4275,7 @@ async function addCashVoucher(request, env, headers) {
     return jsonResponse({ error: 'نوع غير صحيح أو مبلغ غير صالح أو العملة غير محددة' }, 400, headers);
   }
   const client = getTursoClient(env);
-<<<<<<< HEAD
   await checkIfClosed(client, businessISODate());
-=======
-  await checkIfClosed(client, new Date().toISOString().slice(0, 10));
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
   const baseCurrency = await getBaseCurrency(client);
   if (!baseCurrency) throw new Error('لا توجد عملة أساسية');
   const tx = await client.transaction();
@@ -5317,11 +4293,7 @@ async function addCashVoucher(request, env, headers) {
       [cashType, amount, currency_id, rate, `سند ${type} - ${reason || ''}`]
     );
     const cashAccountId = await getAccountId(tx, 'الصندوق');
-<<<<<<< HEAD
     const entryDate = businessISODate();
-=======
-    const entryDate = new Date().toISOString().split('T')[0];
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
     let journalDetails = [];
     if (type === 'receipt') {
       const receiptAccountId = await getAccountId(tx, 'إيرادات أخرى');
@@ -5347,7 +4319,6 @@ async function addCashVoucher(request, env, headers) {
 }
 async function getCashVouchers(request, env, headers) {
   const client = getTursoClient(env);
-<<<<<<< HEAD
   const query = parseListQuery(request);
   const conditions = ["COALESCE(cv.status, 'active') != 'cancelled'"], args = [];
   appendDateRange(conditions, args, 'cv.created_at', query.from, query.to);
@@ -5398,14 +4369,6 @@ async function getUnifiedVouchers(request, env, headers) {
   const count = await dbFirst(client, `SELECT COUNT(*) total FROM (${base})`, args);
   const summary = await dbFirst(client, `SELECT COALESCE(SUM(CASE WHEN type='receipt' THEN amount_base ELSE 0 END),0) receipts, COALESCE(SUM(CASE WHEN type='payment' THEN amount_base ELSE 0 END),0) payments FROM (${base})`, args);
   return jsonResponse(listResponse({ vouchers: rows.slice(0, query.limit), summary: { count: Number(count?.total || 0), receipts: Number(summary?.receipts || 0), payments: Number(summary?.payments || 0) } }, query, rows.length > query.limit, count?.total || 0), 200, headers);
-=======
-  const rows = await dbAll(client, `
-    SELECT cv.*, c.code as currency_code, c.name as currency_name
-    FROM cash_vouchers cv JOIN currencies c ON c.id = cv.currency_id
-    ORDER BY cv.created_at DESC LIMIT 2000
-  `);
-  return jsonResponse({ vouchers: rows }, 200, headers);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
 }
 async function cancelCashVoucher(request, env, headers) {
   const { voucher_id } = await request.json();
@@ -5421,7 +4384,6 @@ async function cancelCashVoucher(request, env, headers) {
        VALUES (?, ?, ?, ?, ?)`,
       [cashType, voucher.amount, voucher.currency_id, voucher.exchange_rate, `إلغاء سند #${voucher_id}`]
     );
-<<<<<<< HEAD
 
     const originalEntry = await dbFirst(tx,
       "SELECT id FROM journal_entries WHERE reference_type = 'cash_voucher' AND reference_id = ? ORDER BY id LIMIT 1",
@@ -5443,9 +4405,6 @@ async function cancelCashVoucher(request, env, headers) {
 
     // نحافظ على السند الأصلي كسجل تدقيقي ونمنع احتسابه مرة أخرى.
     await dbRun(tx, "UPDATE cash_vouchers SET status = 'cancelled' WHERE id = ?", [voucher_id]);
-=======
-    await dbRun(tx, "DELETE FROM cash_vouchers WHERE id = ?", [voucher_id]);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
     await tx.commit();
     return jsonResponse({ success: true }, 200, headers);
   } catch (error) {
@@ -5463,7 +4422,6 @@ async function cancelPayment(request, env, headers) {
   if (!baseCurrency) throw new Error('لا توجد عملة أساسية');
   const tx = await client.transaction();
   try {
-<<<<<<< HEAD
     const entryDate = businessISODate();
     if (payment_type === 'customer') {
       const payment = await dbFirst(tx, "SELECT * FROM customer_payments WHERE id = ?", [payment_id]);
@@ -5563,84 +4521,6 @@ async function cancelPayment(request, env, headers) {
       }
       const delta = payment.type === 'receipt' ? -reversedBaseAmount : reversedBaseAmount;
       await dbRun(tx, "UPDATE suppliers SET balance = balance + ? WHERE id = ?", [delta, payment.supplier_id]);
-=======
-    const entryDate = new Date().toISOString().split('T')[0];
-    if (payment_type === 'customer') {
-      const payment = await dbFirst(tx, "SELECT * FROM customer_payments WHERE id = ?", [payment_id]);
-      if (!payment) throw new Error('السند غير موجود');
-      const amount = parseFloat(payment.amount);
-      let currencyId = payment.currency_id || baseCurrency.id;
-      let rate = payment.exchange_rate || await getCurrencyRate(tx, currencyId) || 1;
-      if (payment.payment_method === 'cash') {
-        await dbRun(tx,
-          `INSERT INTO cash_register (type, amount, currency_id, exchange_rate, note)
-           VALUES ('withdraw', ?, ?, ?, ?)`,
-          [amount, currencyId, rate, `إلغاء سند قبض من العميل #${payment_id}`]
-        );
-      } else if (payment.payment_method === 'wallet' && payment.wallet_id) {
-        const walletTx = await dbFirst(tx,
-          "SELECT currency_id FROM wallet_transactions WHERE reference_id = ? AND type = 'deposit' ORDER BY id LIMIT 1",
-          [payment_id]
-        );
-        const walletCurrencyId = walletTx ? walletTx.currency_id : currencyId;
-        await dbRun(tx,
-          `INSERT INTO wallet_transactions (wallet_id, type, amount, currency_id, description, reference_id)
-           VALUES (?, 'withdraw', ?, ?, ?, ?)`,
-          [payment.wallet_id, amount, walletCurrencyId, `إلغاء سند قبض من العميل #${payment_id}`, payment_id]
-        );
-        await updateWalletBalance(tx, payment.wallet_id, walletCurrencyId, amount, 'subtract');
-        const baseAmount = amount * (await getCurrencyRate(tx, walletCurrencyId) || 1);
-        await dbRun(tx, "UPDATE customers SET balance = balance + ? WHERE id = ?", [baseAmount, payment.customer_id]);
-      } else {
-        const baseAmount = amount * rate;
-        await dbRun(tx, "UPDATE customers SET balance = balance + ? WHERE id = ?", [baseAmount, payment.customer_id]);
-      }
-      const originalEntry = await dbFirst(tx,
-        `SELECT je.id FROM journal_entries je WHERE je.reference_type = 'customer_payment' AND je.reference_id = ? ORDER BY je.id LIMIT 1`,
-        [payment_id]
-      );
-      if (originalEntry) {
-        const allDetails = await dbAll(tx,
-          `SELECT account_id, debit, credit FROM journal_entry_details WHERE entry_id = ?`,
-          [originalEntry.id]
-        );
-        const reversedJournal = allDetails.map(d => ({ account_id: d.account_id, debit: d.credit, credit: d.debit, notes: `عكس سند #${payment_id}` }));
-        checkBalance(reversedJournal);
-        await createJournalEntry(tx, entryDate, `إلغاء سند قبض عميل #${payment_id}`, reversedJournal, 'cancel_payment', payment_id);
-      }
-      await dbRun(tx, "DELETE FROM customer_payments WHERE id = ?", [payment_id]);
-    } else if (payment_type === 'supplier') {
-      const payment = await dbFirst(tx, "SELECT * FROM supplier_payments WHERE id = ?", [payment_id]);
-      if (!payment) throw new Error('السند غير موجود');
-      const amount = parseFloat(payment.amount);
-      let currencyId = payment.currency_id || baseCurrency.id;
-      let rate = payment.exchange_rate || await getCurrencyRate(tx, currencyId) || 1;
-      const baseAmount = amount * rate;
-      const delta = payment.type === 'receipt' ? -baseAmount : baseAmount;
-      await dbRun(tx, "UPDATE suppliers SET balance = balance + ? WHERE id = ?", [delta, payment.supplier_id]);
-      if (payment.payment_method === 'cash') {
-        const cashType = payment.type === 'receipt' ? 'withdraw' : 'deposit';
-        await dbRun(tx,
-          `INSERT INTO cash_register (type, amount, currency_id, exchange_rate, note)
-           VALUES (?, ?, ?, ?, ?)`,
-          [cashType, amount, currencyId, rate, `إلغاء سند #${payment_id}`]
-        );
-      } else if (payment.payment_method === 'wallet' && payment.wallet_id) {
-        const walletTx = await dbFirst(tx,
-          "SELECT currency_id FROM wallet_transactions WHERE reference_id = ? ORDER BY id LIMIT 1",
-          [payment_id]
-        );
-        const walletCurrencyId = walletTx ? walletTx.currency_id : currencyId;
-        const walletType = payment.type === 'receipt' ? 'withdraw' : 'deposit';
-        await dbRun(tx,
-          `INSERT INTO wallet_transactions (wallet_id, type, amount, currency_id, description, reference_id)
-           VALUES (?, ?, ?, ?, ?, ?)`,
-          [payment.wallet_id, walletType, amount, walletCurrencyId, `إلغاء سند #${payment_id}`, payment_id]
-        );
-        const walletDelta = payment.type === 'receipt' ? -amount : amount;
-        await updateWalletBalance(tx, payment.wallet_id, walletCurrencyId, Math.abs(walletDelta), walletDelta > 0 ? 'add' : 'subtract');
-      }
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
       const originalEntry = await dbFirst(tx,
         `SELECT je.id FROM journal_entries je WHERE je.reference_type = 'supplier_payment' AND je.reference_id = ? ORDER BY je.id LIMIT 1`,
         [payment_id]
@@ -5654,11 +4534,7 @@ async function cancelPayment(request, env, headers) {
         checkBalance(reversedJournal);
         await createJournalEntry(tx, entryDate, `إلغاء سند #${payment_id}`, reversedJournal, 'cancel_payment', payment_id);
       }
-<<<<<<< HEAD
       await dbRun(tx, "UPDATE supplier_payments SET status = 'cancelled' WHERE id = ?", [payment_id]);
-=======
-      await dbRun(tx, "DELETE FROM supplier_payments WHERE id = ?", [payment_id]);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
     } else throw new Error('نوع غير معروف');
     await tx.commit();
     return jsonResponse({ success: true }, 200, headers);
@@ -5672,11 +4548,7 @@ async function cancelPayment(request, env, headers) {
 async function getPendingProducts(request, env, headers) {
   const client = getTursoClient(env);
   const rows = await dbAll(client, `
-<<<<<<< HEAD
     SELECT pp.id as pending_id, p.id as product_id, p.name, p.price, p.description, p.category, p.barcode, p.product_code, p.site_product_id, p.stock_quantity, p.image_data, pp.created_at
-=======
-    SELECT pp.id as pending_id, p.id as product_id, p.name, p.price, p.description, p.category, p.barcode, p.stock_quantity, p.image_data, pp.created_at
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
     FROM pending_products pp JOIN products p ON p.id = pp.product_id
     WHERE pp.status = 'pending' ORDER BY pp.created_at DESC
   `);
@@ -5692,7 +4564,6 @@ async function confirmProductPublish(request, env, headers) {
   await dbRun(client, "UPDATE products SET site_product_id = ? WHERE id = ?", [site_product_id, pending.product_id]);
   return jsonResponse({ success: true }, 200, headers);
 }
-<<<<<<< HEAD
 async function linkProductByCode(request, env, headers) {
   const body = await request.json().catch(() => ({}));
   const productCode = String(body.product_code || '').trim();
@@ -5720,8 +4591,6 @@ async function linkProductByCode(request, env, headers) {
   }
   return jsonResponse({ success: true, already_linked: false, pos_product_id: product.id, site_product_id: siteProductId, product_code: product.product_code, stock_quantity: product.stock_quantity, sync }, 200, headers);
 }
-=======
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
 async function linkProduct(request, env, headers) {
   const { pos_product_id, site_product_id } = await request.json();
   if (!pos_product_id || !site_product_id) return jsonResponse({ error: 'pos_product_id and site_product_id required' }, 400, headers);
@@ -5730,7 +4599,6 @@ async function linkProduct(request, env, headers) {
   if (!product) return jsonResponse({ error: 'المنتج غير موجود' }, 404, headers);
   const existing = await dbFirst(client, "SELECT id FROM products WHERE site_product_id = ? AND id != ?", [site_product_id, pos_product_id]);
   if (existing) return jsonResponse({ error: 'هذا المعرف مستخدم لمنتج آخر' }, 400, headers);
-<<<<<<< HEAD
   await dbRun(client, "UPDATE products SET site_product_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", [site_product_id, pos_product_id]);
   let sync = { status: 'not_attempted', reason: 'إعدادات المتجر غير متاحة في Worker أو تتم المزامنة من صفحة الربط' };
   try {
@@ -5739,10 +4607,6 @@ async function linkProduct(request, env, headers) {
     sync = { status: 'error', reason: error.message, product_id: pos_product_id, site_product_id };
   }
   return jsonResponse({ success: true, pos_product_id, site_product_id, stock_quantity: product.stock_quantity, sync }, 200, headers);
-=======
-  await dbRun(client, "UPDATE products SET site_product_id = ? WHERE id = ?", [site_product_id, pos_product_id]);
-  return jsonResponse({ success: true }, 200, headers);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
 }
 async function addPendingProduct(request, env, headers) {
   const { product_id } = await request.json();
@@ -5767,11 +4631,7 @@ async function skipPendingProduct(request, env, headers) {
 async function getUnlinkedProducts(request, env, headers) {
   const client = getTursoClient(env);
   const rows = await dbAll(client, `
-<<<<<<< HEAD
     SELECT id, name, barcode, product_code, site_product_id, stock_quantity, price, cost, category
-=======
-    SELECT id, name, barcode, stock_quantity, price, cost, category
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
     FROM products WHERE (site_product_id IS NULL OR site_product_id = 0) AND is_active = 1 ORDER BY name
   `);
   return jsonResponse({ products: rows }, 200, headers);
@@ -5779,44 +4639,15 @@ async function getUnlinkedProducts(request, env, headers) {
 async function getLinkedProducts(request, env, headers) {
   const client = getTursoClient(env);
   const rows = await dbAll(client, `
-<<<<<<< HEAD
     SELECT id, name, barcode, product_code, stock_quantity, price, cost, category, site_product_id
-=======
-    SELECT id, name, barcode, stock_quantity, price, cost, category, site_product_id
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
     FROM products WHERE site_product_id IS NOT NULL AND site_product_id != 0 AND is_active = 1 ORDER BY name
   `);
   return jsonResponse({ products: rows }, 200, headers);
 }
 async function updateStock(request, env, headers) {
-<<<<<<< HEAD
   return jsonResponse({
     error: 'لا يمكن تعديل الكمية مباشرة، استخدم واجهة الجرد /inventory/adjust أو عمليات البيع والشراء'
   }, 400, headers);
-=======
-  const { product_id, quantity_change } = await request.json();
-  if (!product_id || quantity_change === undefined) return jsonResponse({ error: 'product_id and quantity_change required' }, 400, headers);
-  const client = getTursoClient(env);
-  try {
-    const product = await dbFirst(client, "SELECT id, site_product_id, stock_quantity, name FROM products WHERE id = ?", [product_id]);
-    if (!product) return jsonResponse({ error: 'المنتج غير موجود' }, 404, headers);
-    const newStock = Math.max(0, product.stock_quantity + quantity_change);
-    await dbRun(client, `UPDATE products SET stock_quantity = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`, [newStock, product_id]);
-    let synced = false;
-    if (product.site_product_id) {
-      try {
-        const siteUrl = `${env.SITE_BASE_URL}/products/${product.site_product_id}`;
-        const response = await fetch(siteUrl, {
-          method: 'PUT',
-          headers: { 'Authorization': `Bearer ${env.STOCK_API_TOKEN}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ stock_quantity: newStock })
-        });
-        synced = response.ok;
-      } catch (fetchError) { console.error('خطأ في الاتصال بالمتجر:', fetchError.message); }
-    }
-    return jsonResponse({ success: true, message: 'تم تحديث المخزون بنجاح', product_id, product_name: product.name, new_stock: newStock, synced_with_site: synced }, 200, headers);
-  } catch (error) { return jsonResponse({ error: error.message }, 500, headers); }
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
 }
 async function unlinkProduct(request, env, headers) {
   const { pos_product_id } = await request.json();
@@ -5837,7 +4668,6 @@ async function getSalesByCategory(request, env, headers) {
   const client = getTursoClient(env);
   let dateCondition = '';
   const args = [];
-<<<<<<< HEAD
   if (from) { dateCondition += " AND s.created_at >= datetime(?, '-03:00')"; args.push(`${from} 00:00:00`); }
   if (to) { dateCondition += " AND s.created_at < datetime(?, '-03:00')"; args.push(`${nextISODate(to)} 00:00:00`); }
   const rows = await dbAll(client, `
@@ -5864,31 +4694,10 @@ async function getSalesByCategory(request, env, headers) {
     ORDER BY total_sales DESC
   `, args);
   return jsonResponse({ sales_by_category: rows, group_by: 'parent' }, 200, headers);
-=======
-  if (from && to) { dateCondition = "AND DATE(s.created_at) BETWEEN ? AND ?"; args.push(from, to); }
-  else if (from) { dateCondition = "AND DATE(s.created_at) >= ?"; args.push(from); }
-  else if (to) { dateCondition = "AND DATE(s.created_at) <= ?"; args.push(to); }
-  const rows = await dbAll(client, `
-    SELECT cat.id, cat.name AS category_name,
-      COUNT(DISTINCT s.id) AS invoices_count,
-      SUM(si.quantity) AS items_sold,
-      SUM(si.total_price) AS total_sales,
-      SUM(si.cost_price * si.quantity) AS total_cost,
-      SUM(si.total_price) - SUM(si.cost_price * si.quantity) AS profit
-    FROM sale_items si
-    JOIN sales s ON s.id = si.sale_id
-    JOIN products p ON p.id = si.product_id
-    JOIN categories cat ON cat.id = p.category_id
-    WHERE s.status = 'completed' ${dateCondition}
-    GROUP BY cat.id ORDER BY total_sales DESC
-  `, args);
-  return jsonResponse({ sales_by_category: rows }, 200, headers);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
 }
 async function getProfitsByCategory(request, env, headers) {
   return await getSalesByCategory(request, env, headers);
 }
-<<<<<<< HEAD
 
 async function getDepartmentPnl(request, env, headers) {
   const url = new URL(request.url);
@@ -5985,20 +4794,6 @@ async function getInventoryByCategory(request, env, headers) {
     ORDER BY inventory_value DESC
   `);
   return jsonResponse({ inventory_by_category: rows, group_by: 'parent' }, 200, headers);
-=======
-async function getInventoryByCategory(request, env, headers) {
-  const client = getTursoClient(env);
-  const rows = await dbAll(client, `
-    SELECT cat.id, cat.name AS category_name,
-      COUNT(p.id) AS product_count,
-      SUM(p.stock_quantity) AS total_stock,
-      SUM(p.stock_quantity * p.cost) AS inventory_value
-    FROM products p JOIN categories cat ON cat.id = p.category_id
-    WHERE p.is_active = 1
-    GROUP BY cat.id ORDER BY inventory_value DESC
-  `);
-  return jsonResponse({ inventory_by_category: rows }, 200, headers);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
 }
 
 // ---- المندوبين ----
@@ -6079,7 +4874,6 @@ async function deleteDriver(request, env, headers) {
   await dbRun(client, "DELETE FROM driver_accounts WHERE driver_id = ?", [id]);
   return jsonResponse({ success: true }, 200, headers);
 }
-<<<<<<< HEAD
 async function getDriverUnreceivedOrders(request, env, headers) {
   const url = new URL(request.url);
   const driverId = Number(url.searchParams.get('driver_id') || 0);
@@ -6137,8 +4931,6 @@ async function receiveDriverOrders(request, env, ctx, headers) {
   return jsonResponse({ success: true, received_count: eligible.length, received_total: receivedTotal, order_ids: eligible.map(order => order.id), message: `تم استلام ${eligible.length} طلب من المندوب` }, 200, headers);
 }
 
-=======
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
 async function getDriversSummary(request, env, headers) {
   const client = getTursoClient(env);
   const rows = await dbAll(client, `
@@ -6148,14 +4940,10 @@ async function getDriversSummary(request, env, headers) {
       COALESCE(da.total_collected, 0) as total_collected,
       COALESCE(da.total_fees, 0) as total_fees,
       COALESCE(da.total_paid_to_shop, 0) as total_paid_to_shop,
-<<<<<<< HEAD
       COALESCE(da.last_settlement_date, '') as last_settlement_date,
       COALESCE((SELECT COUNT(*) FROM online_orders o LEFT JOIN driver_order_receipts dor ON dor.order_id = o.id WHERE o.assigned_driver_id = d.id AND dor.id IS NULL AND o.status NOT IN ('تم التسليم','تم التوصيل','ملغي','مرتجع جزئي','مرتجع كلي','مرتجع')), 0) AS unreceived_order_count,
       COALESCE((SELECT SUM(o.total_amount) FROM online_orders o LEFT JOIN driver_order_receipts dor ON dor.order_id = o.id WHERE o.assigned_driver_id = d.id AND dor.id IS NULL AND o.status NOT IN ('تم التسليم','تم التوصيل','ملغي','مرتجع جزئي','مرتجع كلي','مرتجع')), 0) AS unreceived_order_total,
       COALESCE((SELECT COUNT(*) FROM online_orders o LEFT JOIN driver_order_receipts dor ON dor.order_id = o.id WHERE o.assigned_driver_id = d.id AND dor.id IS NULL AND o.status IN ('فشل التسليم','فشل','failed','failed_delivery','delivery_failed')), 0) AS failed_order_count
-=======
-      COALESCE(da.last_settlement_date, '') as last_settlement_date
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
     FROM drivers d LEFT JOIN driver_accounts da ON d.id = da.driver_id
     WHERE d.is_active = 1 ORDER BY d.name
   `);
@@ -6163,7 +4951,6 @@ async function getDriversSummary(request, env, headers) {
 }
 // ==================== جلب حركة المخزون لمنتج ====================
 // ==================== جلب حركة المخزون لمنتج ====================
-<<<<<<< HEAD
 
 // ==================== فواتير المنتج المرتبطة لعمليات الإرجاع ====================
 async function getProductInvoiceHistory(request, env, headers) {
@@ -6211,8 +4998,6 @@ async function getProductInvoiceHistory(request, env, headers) {
   return await permissionResponse({ type, product_id: productId, invoices: rows }, request, env, headers);
 }
 
-=======
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
 async function getProductStockMovements(request, env, headers) {
   const url = new URL(request.url);
   // استخراج رقم المنتج من المسار: /products/123/stock-movements
@@ -6227,17 +5012,12 @@ async function getProductStockMovements(request, env, headers) {
 
   const client = getTursoClient(env);
   // تحقق من وجود المنتج
-<<<<<<< HEAD
   const product = await dbFirst(client, "SELECT id, name, barcode, product_code, stock_quantity FROM products WHERE id = ? AND is_active = 1", [productId]);
-=======
-  const product = await dbFirst(client, "SELECT id, name FROM products WHERE id = ? AND is_active = 1", [productId]);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
   if (!product) {
     return jsonResponse({ error: 'المنتج غير موجود' }, 404, headers);
   }
 
   // جلب حركة المخزون مع معلومات المستخدم والمورد
-<<<<<<< HEAD
   const query = parseListQuery(request);
   const conditions = ['sm.product_id = ?'];
   const args = [productId];
@@ -6257,34 +5037,6 @@ async function getProductStockMovements(request, env, headers) {
   const visibleMovements = movements.slice(0, query.limit);
   const latestOperation = visibleMovements[0] || null;
   return jsonResponse(listResponse({ product_id: product.id, product_name: product.name, barcode: product.barcode || null, product_code: product.product_code || null, current_stock: Number(product.stock_quantity || 0), closing_balance: Number(product.stock_quantity || latestOperation?.new_quantity || 0), latest_operation: latestOperation ? { id: latestOperation.id, created_at: latestOperation.created_at, new_quantity: Number(latestOperation.new_quantity || 0), reference_type: latestOperation.reference_type || null, reference_id: latestOperation.reference_id || null } : null, movements: visibleMovements }, query, hasNext, countRow?.total || 0), 200, headers);
-=======
-  const movements = await dbAll(client, `
-    SELECT 
-      sm.id,
-      sm.quantity_change,
-      sm.old_quantity,
-      sm.new_quantity,
-      sm.reference_type,
-      sm.reference_id,
-      sm.note,
-      sm.created_at,
-      sm.supplier_id,
-      u.username as created_by_name,
-      s.name as supplier_name
-    FROM stock_movements sm
-    LEFT JOIN users u ON u.id = sm.created_by
-    LEFT JOIN suppliers s ON s.id = sm.supplier_id
-    WHERE sm.product_id = ?
-    ORDER BY sm.created_at DESC
-    LIMIT 1000
-  `, [productId]);
-
-  return jsonResponse({
-    product_id: product.id,
-    product_name: product.name,
-    movements: movements
-  }, 200, headers);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
 }
 // ================================================================
 //  دوال الإرجاع (نظام المرحلتين) =================================
@@ -6332,27 +5084,17 @@ async function confirmReturn(returnId, confirmedBy, request, env, ctx, headers) 
   let totalRefund = parseFloat(returnRec.total_refund) || 0;
   let totalRefundCost = 0;
   const productCostMap = {};
-<<<<<<< HEAD
   const returnProductIds = [...new Set(returnItems.map(item => orderItems.find(oi => oi.id === item.order_item_id)?.product_id).filter(id => Number.isInteger(Number(id))).map(Number))];
   if (returnProductIds.length) {
     const costRows = await dbAll(client, `SELECT id, cost FROM products WHERE id IN (${returnProductIds.map(() => '?').join(',')})`, returnProductIds);
     costRows.forEach(row => { productCostMap[row.id] = Number(row.cost || 0); });
   }
-=======
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
 
   const itemsToReturn = [];
   for (const rItem of returnItems) {
     const orderItem = orderItems.find(oi => oi.id === rItem.order_item_id);
     if (!orderItem) continue;
-<<<<<<< HEAD
     if (productCostMap[orderItem.product_id] === undefined) productCostMap[orderItem.product_id] = 0;
-=======
-    if (!productCostMap[orderItem.product_id]) {
-      const prod = await dbFirst(client, "SELECT cost FROM products WHERE id = ?", [orderItem.product_id]);
-      productCostMap[orderItem.product_id] = prod ? prod.cost : 0;
-    }
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
     const costPrice = productCostMap[orderItem.product_id] || 0;
     totalRefundCost += rItem.quantity * costPrice;
     const saleItem = saleItems.find(si => si.product_id === orderItem.product_id);
@@ -6520,11 +5262,7 @@ async function confirmReturn(returnId, confirmedBy, request, env, ctx, headers) 
     });
 
     // القيد المحاسبي
-<<<<<<< HEAD
     const entryDate = businessISODate();
-=======
-    const entryDate = new Date().toISOString().split('T')[0];
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
     const desc = `تأكيد إرجاع طلب إنترنت #${order.id}`;
 
     const accounts = await dbAll(tx, "SELECT id, name FROM accounts");
@@ -6762,11 +5500,7 @@ async function cancelSaleInvoice(request, env, headers, userId) {
 
     const saleItems = await dbAll(client, `
       SELECT si.*, p.cost AS product_cost
-<<<<<<< HEAD
       FROM sale_items si LEFT JOIN products p ON p.id = si.product_id
-=======
-      FROM sale_items si JOIN products p ON p.id = si.product_id
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
       WHERE si.sale_id = ?
     `, [sale_id]);
 
@@ -6789,24 +5523,15 @@ async function cancelSaleInvoice(request, env, headers, userId) {
       return jsonResponse({ error: 'لا يمكن إلغاء فاتورة تحتوي على إرجاعات سابقة؛ اعكس الإرجاعات أولاً أو استخدم الإرجاع الكامل' }, 400, headers);
     }
 
-<<<<<<< HEAD
     const productIds = [...new Set(saleItems.map(item => Number(item.product_id)).filter(id => Number.isInteger(id) && id > 0))];
     const productPlaceholders = productIds.map(() => '?').join(',');
-=======
-    const productIds = saleItems.map(item => Number(item.product_id)).filter(Number.isInteger);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
     let supplierStocks = [];
     if (productIds.length > 0) {
       supplierStocks = await dbAll(client, `
         SELECT product_id, id, quantity, supplier_id
         FROM product_supplier_stock
-<<<<<<< HEAD
         WHERE product_id IN (${productPlaceholders})
       `, productIds);
-=======
-        WHERE product_id IN (${productIds.join(',')})
-      `);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
     }
     const stockMap = {};
     for (const stock of supplierStocks) {
@@ -6819,15 +5544,9 @@ async function cancelSaleInvoice(request, env, headers, userId) {
       const bestSuppliers = await dbAll(client, `
         SELECT product_id, supplier_id
         FROM product_supplier_stock
-<<<<<<< HEAD
         WHERE product_id IN (${productPlaceholders}) AND quantity > 0
         ORDER BY product_id, quantity DESC
       `, productIds);
-=======
-        WHERE product_id IN (${productIds.join(',')}) AND quantity > 0
-        ORDER BY product_id, quantity DESC
-      `);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
       for (const row of bestSuppliers) {
         if (!bestSupplierMap[row.product_id]) {
           bestSupplierMap[row.product_id] = row.supplier_id;
@@ -6901,16 +5620,10 @@ async function cancelSaleInvoice(request, env, headers, userId) {
         const remainingQty = item.quantity - returnedQty;
         if (remainingQty <= 0) continue;
 
-<<<<<<< HEAD
         const supplierId = item.supplier_id || bestSupplierMap[item.product_id] || null;
         await applyStockChange(tx, batchQueries, {
           productId: item.product_id,
           supplierId,
-=======
-        await applyStockChange(tx, batchQueries, {
-          productId: item.product_id,
-          supplierId: item.supplier_id || bestSupplierMap[item.product_id] || null,
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
           delta: remainingQty,
           referenceType: 'cancel_sale',
           referenceId: sale_id,
@@ -6918,10 +5631,7 @@ async function cancelSaleInvoice(request, env, headers, userId) {
           userId,
           stockCache
         });
-<<<<<<< HEAD
         await updateSupplierStock(tx, item.product_id, supplierId, remainingQty, batchQueries);
-=======
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
         totalCost += remainingQty * item.cost_price;
       }
 
@@ -6930,11 +5640,7 @@ async function cancelSaleInvoice(request, env, headers, userId) {
         args: [sale_id]
       });
 
-<<<<<<< HEAD
       const entryDate = businessISODate();
-=======
-      const entryDate = new Date().toISOString().split('T')[0];
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
       const desc = `إلغاء فاتورة مبيعات #${sale.invoice_number}`;
 
       const saleAccountId = getAccountIdFast('المبيعات');
@@ -7115,7 +5821,6 @@ async function returnSaleItem(request, env, headers, userId) {
       note: `إرجاع من فاتورة #${sale.invoice_number}`,
       userId
     });
-<<<<<<< HEAD
     await updateSupplierStock(tx, product_id, targetSupplierId, quantity, batchQueries);
     
     // توزيع الإرجاع على أساس القيمة الأساسية، ثم تحويل كل جزء إلى عملته الاسمية.
@@ -7145,28 +5850,6 @@ async function returnSaleItem(request, env, headers, userId) {
       refundCredit = refundAmount;
     }
     const totalRefundDistributedBase = refundCashBase + refundWalletBase + refundCredit;
-=======
-    
-    // ===== إصلاح #1: توزيع المبلغ المعاد وفق طريقة الدفع الأصلية للفاتورة بدل النسبة من المدفوع =====
-    const totalPaid = (sale.cash_paid || 0) + (sale.wallet_paid || 0);
-    let refundCash = 0, refundWallet = 0, refundCredit = 0;
-    if (sale.payment_method === 'credit') {
-      // فاتورة آجلة بالكامل: استرداد كامل إلى دين العميل، لا نقدي ولا محفظة
-      refundCredit = refundAmount;
-    } else if (sale.payment_method === 'cash') {
-      refundCash = refundAmount;
-    } else if (sale.payment_method === 'wallet') {
-      refundWallet = refundAmount;
-    } else if (totalPaid > 0) {
-      // مختلط: بنفس نسبة ما دفعه العميل فعليًا
-      refundCash = ((sale.cash_paid || 0) / totalPaid) * refundAmount;
-      refundWallet = ((sale.wallet_paid || 0) / totalPaid) * refundAmount;
-    } else {
-      // فاتورة مختلطة دون أي دفع مسجل: ارجع كاملًا إلى دين العميل
-      refundCredit = refundAmount;
-    }
-    const totalRefundDistributed = refundCash + refundWallet + refundCredit;
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
     
     const newTotal = sale.total_amount - refundAmount;
     const newTotalCost = sale.total_cost - costAmount;
@@ -7183,7 +5866,6 @@ async function returnSaleItem(request, env, headers, userId) {
       args: [newTotal, sale_id]
     });
     
-<<<<<<< HEAD
     const entryDate = businessISODate();
     const desc = `إرجاع من فاتورة #${sale.invoice_number}`;
     const journalDetails = [];
@@ -7194,18 +5876,6 @@ async function returnSaleItem(request, env, headers, userId) {
       const cashCurrencyId = cashCurrencyIdForRefund;
       const cashRate = cashRateForRefund;
       const baseAmount = refundCashBase;
-=======
-    const entryDate = new Date().toISOString().split('T')[0];
-    const desc = `إرجاع من فاتورة #${sale.invoice_number}`;
-    const journalDetails = [];
-    journalDetails.push({ account_id: saleAccountId, debit: totalRefundDistributed, credit: 0 });
-    
-    // ===== إصلاح #1: تنفيذ الاسترداد النقدي =====
-    if (refundCash > 0.01) {
-      const cashCurrencyId = cashInfo ? cashInfo.currency_id : baseCurrency.id;
-      const cashRate = cashInfo ? cashInfo.exchange_rate : baseCurrency.rate_to_base;
-      const baseAmount = convertToBase(refundCash, cashRate);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
       journalDetails.push({ account_id: cashAccountId, debit: 0, credit: baseAmount });
       batchQueries.push({
         sql: "INSERT INTO cash_register (type, amount, currency_id, exchange_rate, note) VALUES ('withdraw', ?, ?, ?, ?)",
@@ -7217,17 +5887,10 @@ async function returnSaleItem(request, env, headers, userId) {
     if (refundWallet > 0.01) {
       const refundWalletId = sale.wallet_id;
       if (!refundWalletId) throw new Error('محفظة الفاتورة غير مسجلة ولا يمكن استرداد المبلغ للمحفظة');
-<<<<<<< HEAD
       const walletCurrencyId = walletCurrencyIdForRefund;
       await ensureWalletBalance(tx, refundWalletId, walletCurrencyId);
       await updateWalletBalance(tx, refundWalletId, walletCurrencyId, refundWallet, 'add');
       const baseAmount = refundWalletBase;
-=======
-      const walletCurrencyId = walletInfo ? walletInfo.currency_id : baseCurrency.id;
-      await ensureWalletBalance(tx, refundWalletId, walletCurrencyId);
-      await updateWalletBalance(tx, refundWalletId, walletCurrencyId, refundWallet, 'add');
-      const baseAmount = convertToBase(refundWallet, walletRate);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
       journalDetails.push({ account_id: walletAccountId, debit: 0, credit: baseAmount });
       batchQueries.push({
         sql: "INSERT INTO wallet_transactions (wallet_id, type, amount, currency_id, description, reference_id) VALUES (?, 'deposit', ?, ?, ?, ?)",
@@ -7352,17 +6015,8 @@ async function cancelPurchaseInvoice(request, env, headers, userId) {
         const newQty = targetStock.quantity - item.quantity;
         if (newQty < 0) {
           throw new Error(`لا يمكن عكس فاتورة الشراء: مخزون المورد أقل من الكمية المطلوبة للمنتج ${item.product_id}`);
-<<<<<<< HEAD
         }
         await updateSupplierStock(tx, item.product_id, invoice.supplier_id, -item.quantity, batchQueries);
-=======
-        } else {
-          batchQueries.push({
-            sql: "UPDATE product_supplier_stock SET quantity = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
-            args: [newQty, targetStock.id]
-          });
-        }
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
       }
     }
 
@@ -7377,11 +6031,7 @@ async function cancelPurchaseInvoice(request, env, headers, userId) {
     const cashAccountId = await getAccountId(tx, 'الصندوق');
     const walletAccountId = await getAccountId(tx, 'المحافظ');
     const supplierAccountId = await getAccountId(tx, 'الذمم الدائنة (موردين)');
-<<<<<<< HEAD
     const entryDate = businessISODate();
-=======
-    const entryDate = new Date().toISOString().split('T')[0];
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
     const desc = `إلغاء فاتورة مشتريات #${invoice.invoice_number}`;
     const journalDetails = [];
 
@@ -7440,7 +6090,6 @@ async function cancelPurchaseInvoice(request, env, headers, userId) {
     }
 
     if (paymentMethod === 'credit') {
-<<<<<<< HEAD
       const totalAmountBase = Number(invoice.total_amount || 0) * (Number(invoice.exchange_rate) || 1);
       await dbRun(
         tx,
@@ -7449,16 +6098,6 @@ async function cancelPurchaseInvoice(request, env, headers, userId) {
       );
       journalDetails.push({ account_id: supplierAccountId, debit: totalAmountBase, credit: 0 });
       journalDetails.push({ account_id: inventoryAccountId, debit: 0, credit: totalAmountBase });
-=======
-      const totalAmount = invoice.total_amount;
-      await dbRun(
-        tx,
-        "UPDATE suppliers SET balance = balance - ? WHERE id = ?",
-        [totalAmount, invoice.supplier_id]
-      );
-      journalDetails.push({ account_id: supplierAccountId, debit: totalAmount, credit: 0 });
-      journalDetails.push({ account_id: inventoryAccountId, debit: 0, credit: totalAmount });
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
     }
 
     if (journalDetails.length > 0) {
@@ -7490,7 +6129,6 @@ async function returnPurchaseItem(request, env, headers, userId) {
   if (purchaseItem.quantity < quantity) {
     return jsonResponse({ error: 'الكمية المطلوبة للإرجاع أكبر من المشتراة' }, 400, headers);
   }
-<<<<<<< HEAD
   // purchase_invoice_items.unit_price مخزن بالفعل بالعملة الأساسية في createPurchase.
   const baseRefundAmount = Number(purchaseItem.unit_price || 0) * Number(quantity);
   const refundAmount = baseRefundAmount;
@@ -7502,35 +6140,10 @@ async function returnPurchaseItem(request, env, headers, userId) {
     const returnedRow = await dbFirst(tx, "SELECT COALESCE(SUM(quantity), 0) AS returned_quantity FROM returned_purchases WHERE purchase_invoice_id = ? AND product_id = ?", [purchase_invoice_id, product_id]);
     const alreadyReturned = Math.max(0, Number(returnedRow?.returned_quantity) || 0);
     const invoiceRemaining = Math.max(0, Number(purchaseItem.quantity || 0) - alreadyReturned);
-=======
-  const refundAmount = purchaseItem.unit_price * quantity;
-  const exchangeRate = invoice.exchange_rate || 1;
-  const baseRefundAmount = refundAmount * exchangeRate;
-  const tx = await client.transaction();
-  try {
-    await dbRun(tx,
-      "INSERT INTO returned_purchases (purchase_invoice_id, product_id, quantity, amount, reason) VALUES (?, ?, ?, ?, ?)",
-      [purchase_invoice_id, product_id, quantity, refundAmount, reason || '']
-    );
-    const product = await dbFirst(tx, "SELECT stock_quantity, cost FROM products WHERE id = ?", [product_id]);
-    if (!product) throw new Error(`المنتج ${product_id} غير موجود`);
-    const newStock = product.stock_quantity - quantity;
-    if (newStock < 0) throw new Error(`الكمية غير كافية للإرجاع`);
-    const newCost = newStock > 0 ? (product.stock_quantity * product.cost - quantity * purchaseItem.unit_price) / newStock : 0;
-    await dbRun(tx, "UPDATE products SET stock_quantity = ?, cost = ? WHERE id = ?", [newStock, newCost, product_id]);
-    // إضافة سجل حركة المخزون
-    await dbRun(tx,
-      `INSERT INTO stock_movements
-       (product_id, supplier_id, quantity_change, old_quantity, new_quantity, reference_type, reference_id, note, created_by)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [product_id, invoice.supplier_id, -quantity, product.stock_quantity, newStock, 'return_purchase', purchase_invoice_id, `إرجاع مشتريات من فاتورة #${invoice.invoice_number}`, userId]
-    );
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
     const supplierStock = await dbFirst(tx,
       "SELECT id, quantity FROM product_supplier_stock WHERE product_id = ? AND supplier_id = ?",
       [product_id, invoice.supplier_id]
     );
-<<<<<<< HEAD
     const supplierAvailable = supplierStock ? Math.max(0, Number(supplierStock.quantity) || 0) : productStock;
     const actualAvailable = Math.max(0, Math.min(invoiceRemaining, productStock, supplierAvailable));
     if (Number(quantity) > actualAvailable + 0.000001) {
@@ -7556,20 +6169,6 @@ async function returnPurchaseItem(request, env, headers, userId) {
       await updateSupplierStock(tx, product_id, invoice.supplier_id, -Number(quantity), batchQueries);
     }
     const entryDate = businessISODate();
-=======
-    if (supplierStock) {
-      const newQty = supplierStock.quantity - quantity;
-      if (newQty < 0) {
-        throw new Error('الكمية المرتجعة تتجاوز مخزون المورد المسجل');
-      } else {
-        await dbRun(tx,
-          "UPDATE product_supplier_stock SET quantity = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
-          [newQty, supplierStock.id]
-        );
-      }
-    }
-    const entryDate = new Date().toISOString().split('T')[0];
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
     const desc = `إرجاع مشتريات من فاتورة #${invoice.invoice_number}`;
     const inventoryAccountId = await getAccountId(tx, 'المخزون');
     const cashAccountId = await getAccountId(tx, 'الصندوق');
@@ -7611,14 +6210,9 @@ async function returnPurchaseItem(request, env, headers, userId) {
       checkBalance(journalDetails);
       await createJournalEntry(tx, entryDate, desc, journalDetails, 'return_purchase', purchase_invoice_id);
     }
-<<<<<<< HEAD
     await tx.batch(batchQueries, 'write');
     await tx.commit();
     return jsonResponse({ success: true, refund_amount: refundAmount, available_before_return: actualAvailable, available_after_return: Math.max(0, actualAvailable - Number(quantity)), message: 'تم إرجاع المنتج بنجاح' }, 200, headers);
-=======
-    await tx.commit();
-    return jsonResponse({ success: true, refund_amount: refundAmount, message: 'تم إرجاع المنتج بنجاح' }, 200, headers);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
   } catch (error) {
     await tx.rollback();
     return jsonResponse({ error: error.message }, 400, headers);
@@ -7630,11 +6224,7 @@ async function cancelOnlineOrder(request, env, headers, userId) {
   if (!order_id) return jsonResponse({ error: 'معرف الطلب مطلوب' }, 400, headers);
 
   const client = getTursoClient(env);
-<<<<<<< HEAD
   await checkIfClosed(client, businessISODate());
-=======
-  await checkIfClosed(client, new Date().toISOString().slice(0, 10));
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
   const baseCurrency = await getBaseCurrency(client);
   if (!baseCurrency) return jsonResponse({ error: 'لا توجد عملة أساسية' }, 400, headers);
 
@@ -7648,27 +6238,17 @@ async function cancelOnlineOrder(request, env, headers, userId) {
   }
 
   const items = await dbAll(client, "SELECT * FROM online_order_items WHERE order_id = ?", [order_id]);
-<<<<<<< HEAD
   const productIds = [...new Set(items.map(item => Number(item.product_id)).filter(id => Number.isInteger(id) && id > 0))];
   const productPlaceholders = productIds.map(() => '?').join(',');
-=======
-  const productIds = items.map(item => item.product_id).filter(id => id);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
 
   let bestSupplierMap = {};
   if (productIds.length > 0) {
     const bestSuppliers = await dbAll(client, `
       SELECT product_id, supplier_id
       FROM product_supplier_stock
-<<<<<<< HEAD
       WHERE product_id IN (${productPlaceholders}) AND quantity > 0
       ORDER BY product_id, quantity DESC
     `, productIds);
-=======
-      WHERE product_id IN (${productIds.join(',')}) AND quantity > 0
-      ORDER BY product_id, quantity DESC
-    `);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
     for (const row of bestSuppliers) {
       if (!bestSupplierMap[row.product_id]) {
         bestSupplierMap[row.product_id] = row.supplier_id;
@@ -7681,13 +6261,8 @@ async function cancelOnlineOrder(request, env, headers, userId) {
     existingStocks = await dbAll(client, `
       SELECT product_id, id, supplier_id
       FROM product_supplier_stock
-<<<<<<< HEAD
       WHERE product_id IN (${productPlaceholders})
     `, productIds);
-=======
-      WHERE product_id IN (${productIds.join(',')})
-    `);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
   }
   const stockMap = {};
   for (const stock of existingStocks) {
@@ -7699,14 +6274,11 @@ async function cancelOnlineOrder(request, env, headers, userId) {
   if (order.accounting_invoice_id) {
     sale = await dbFirst(client, "SELECT * FROM sales WHERE id = ?", [order.accounting_invoice_id]);
   }
-<<<<<<< HEAD
   const saleSupplierMap = {};
   if (sale) {
     const saleItems = await dbAll(client, "SELECT product_id, supplier_id FROM sale_items WHERE sale_id = ?", [sale.id]);
     for (const row of saleItems) if (row.supplier_id) saleSupplierMap[row.product_id] = row.supplier_id;
   }
-=======
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
 
   const tx = await client.transaction();
   try {
@@ -7726,16 +6298,10 @@ async function cancelOnlineOrder(request, env, headers, userId) {
 
     for (const item of items) {
       if (item.product_id && item.quantity > 0) {
-<<<<<<< HEAD
         const supplierId = saleSupplierMap[item.product_id] || bestSupplierMap[item.product_id] || null;
         await applyStockChange(tx, batchQueries, {
           productId: item.product_id,
           supplierId,
-=======
-        await applyStockChange(tx, batchQueries, {
-          productId: item.product_id,
-          supplierId: bestSupplierMap[item.product_id] || null,
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
           delta: item.quantity,
           referenceType: 'cancel_online_order',
           referenceId: order_id,
@@ -7743,10 +6309,7 @@ async function cancelOnlineOrder(request, env, headers, userId) {
           userId,
           stockCache
         });
-<<<<<<< HEAD
         await updateSupplierStock(tx, item.product_id, supplierId, item.quantity, batchQueries);
-=======
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
       }
     }
 
@@ -7790,11 +6353,7 @@ async function cancelOnlineOrder(request, env, headers, userId) {
     });
 
     if (shouldCancelSale) {
-<<<<<<< HEAD
       const entryDate = businessISODate();
-=======
-      const entryDate = new Date().toISOString().split('T')[0];
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
       const desc = `إلغاء طلب إنترنت #${order_id}`;
 
       // دعم القيود الجديدة والقديمة معًا، مع الاعتماد على sale.id للمرجع الموحد.
@@ -7876,25 +6435,16 @@ async function fullReturnSaleInvoice(request, env, headers, userId) {
     returnedMap[r.product_id] = r.returned_qty;
   }
 
-<<<<<<< HEAD
   const productIds = [...new Set(saleItems.map(item => Number(item.product_id)).filter(id => Number.isInteger(id) && id > 0))];
   const productPlaceholders = productIds.map(() => '?').join(',');
-=======
-  const productIds = saleItems.map(item => Number(item.product_id)).filter(Number.isInteger);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
 
   let allStocks = [];
   if (productIds.length > 0) {
     allStocks = await dbAll(client, `
       SELECT product_id, id, supplier_id, quantity
       FROM product_supplier_stock
-<<<<<<< HEAD
       WHERE product_id IN (${productPlaceholders})
     `, productIds);
-=======
-      WHERE product_id IN (${productIds.join(',')})
-    `);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
   }
   const stockMap = {};
   for (const stock of allStocks) {
@@ -7907,15 +6457,9 @@ async function fullReturnSaleInvoice(request, env, headers, userId) {
     const bestSuppliers = await dbAll(client, `
       SELECT product_id, supplier_id
       FROM product_supplier_stock
-<<<<<<< HEAD
       WHERE product_id IN (${productPlaceholders}) AND quantity > 0
       ORDER BY product_id, quantity DESC
     `, productIds);
-=======
-      WHERE product_id IN (${productIds.join(',')}) AND quantity > 0
-      ORDER BY product_id, quantity DESC
-    `);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
     for (const row of bestSuppliers) {
       if (!bestSupplierMap[row.product_id]) {
         bestSupplierMap[row.product_id] = row.supplier_id;
@@ -7983,16 +6527,10 @@ async function fullReturnSaleInvoice(request, env, headers, userId) {
         args: [sale_id, item.product_id, remainingQty, refundAmount, reason || 'مرتجع كلي']
       });
 
-<<<<<<< HEAD
       const supplierId = item.supplier_id || bestSupplierMap[item.product_id] || null;
       await applyStockChange(tx, batchQueries, {
         productId: item.product_id,
         supplierId,
-=======
-      await applyStockChange(tx, batchQueries, {
-        productId: item.product_id,
-        supplierId: item.supplier_id || bestSupplierMap[item.product_id] || null,
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
         delta: remainingQty,
         referenceType: 'full_return_sale',
         referenceId: sale_id,
@@ -8000,10 +6538,7 @@ async function fullReturnSaleInvoice(request, env, headers, userId) {
         userId,
         stockCache
       });
-<<<<<<< HEAD
       await updateSupplierStock(tx, item.product_id, supplierId, remainingQty, batchQueries);
-=======
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
     }
 
     const totalPaid = (sale.cash_paid || 0) + (sale.wallet_paid || 0);
@@ -8031,11 +6566,7 @@ async function fullReturnSaleInvoice(request, env, headers, userId) {
       });
     }
 
-<<<<<<< HEAD
     const entryDate = businessISODate();
-=======
-    const entryDate = new Date().toISOString().split('T')[0];
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
     const desc = `مرتجع كلي من فاتورة #${sale.invoice_number}`;
     const journalDetails = [];
     journalDetails.push({ account_id: saleAccountId, debit: totalRefund, credit: 0 });
@@ -8114,15 +6645,12 @@ async function undoCancelSaleInvoice(request, env, headers, userId) {
   const tx = await client.transaction();
   try {
     const saleItems = await dbAll(tx, "SELECT * FROM sale_items WHERE sale_id = ?", [sale_id]);
-<<<<<<< HEAD
     const bestSupplierMap = {};
     const saleProductIds = saleItems.map(item => item.product_id).filter(id => id);
     if (saleProductIds.length) {
       const supplierRows = await dbAll(tx, `SELECT product_id, supplier_id FROM product_supplier_stock WHERE product_id IN (${saleProductIds.map(() => '?').join(',')}) AND quantity > 0 ORDER BY product_id, quantity DESC`, saleProductIds);
       for (const row of supplierRows) if (!bestSupplierMap[row.product_id]) bestSupplierMap[row.product_id] = row.supplier_id;
     }
-=======
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
 
     // ===== جلب كميات المخزون دفعة واحدة =====
     const productIds = saleItems.map(item => item.product_id);
@@ -8140,16 +6668,10 @@ async function undoCancelSaleInvoice(request, env, headers, userId) {
     let totalCost = 0;
     const batchQueries = [];
     for (const item of saleItems) {
-<<<<<<< HEAD
       const supplierId = item.supplier_id || bestSupplierMap[item.product_id] || null;
       await applyStockChange(tx, batchQueries, {
         productId: item.product_id,
         supplierId,
-=======
-      await applyStockChange(tx, batchQueries, {
-        productId: item.product_id,
-        supplierId: item.supplier_id || null,
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
         delta: -item.quantity,
         referenceType: 'undo_cancel_sale',
         referenceId: sale_id,
@@ -8157,10 +6679,7 @@ async function undoCancelSaleInvoice(request, env, headers, userId) {
         userId,
         stockCache
       });
-<<<<<<< HEAD
       await updateSupplierStock(tx, item.product_id, supplierId, -item.quantity, batchQueries);
-=======
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
       totalCost += item.quantity * item.cost_price;
     }
     batchQueries.push({
@@ -8184,11 +6703,7 @@ async function undoCancelSaleInvoice(request, env, headers, userId) {
     if (undoWallet > 0.01 && sale.wallet_id) {
       const undoWalletInfo = await dbFirst(tx, "SELECT currency_id FROM wallet_transactions WHERE wallet_id = ? AND reference_id = ? AND type = 'withdraw' LIMIT 1", [sale.wallet_id, sale_id]);
       const undoCurrency = undoWalletInfo?.currency_id || baseCurrency.id;
-<<<<<<< HEAD
       await ensureWalletBalance(tx, sale.wallet_id, undoCurrency);
-=======
-      batchQueries.push({ sql: "INSERT OR IGNORE INTO wallet_balances (wallet_id, currency_id, balance) VALUES (?, ?, 0)", args: [sale.wallet_id, undoCurrency] });
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
       batchQueries.push({ sql: "UPDATE wallet_balances SET balance = balance + ? WHERE wallet_id = ? AND currency_id = ?", args: [undoWallet, sale.wallet_id, undoCurrency] });
       batchQueries.push({ sql: "INSERT INTO wallet_transactions (wallet_id, type, amount, currency_id, description, reference_id) VALUES (?, 'deposit', ?, ?, ?, ?)", args: [sale.wallet_id, undoWallet, undoCurrency, `استرجاع إلغاء فاتورة #${sale.invoice_number}`, sale_id] });
     }
@@ -8211,11 +6726,7 @@ async function undoCancelSaleInvoice(request, env, headers, userId) {
         credit: d.debit,
         notes: `عكس إلغاء فاتورة #${sale.invoice_number}`
       }));
-<<<<<<< HEAD
       const entryDate = businessISODate();
-=======
-      const entryDate = new Date().toISOString().split('T')[0];
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
       await createJournalEntry(tx, entryDate, `استرجاع فاتورة #${sale.invoice_number}`, reversedDetails, 'undo_cancel_sale', sale_id);
     }
     const cogsEntry = await dbFirst(tx,
@@ -8233,11 +6744,7 @@ async function undoCancelSaleInvoice(request, env, headers, userId) {
         credit: d.debit,
         notes: `عكس تكلفة إلغاء فاتورة #${sale.invoice_number}`
       }));
-<<<<<<< HEAD
       const entryDate = businessISODate();
-=======
-      const entryDate = new Date().toISOString().split('T')[0];
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
       await createJournalEntry(tx, entryDate, `استرجاع تكلفة فاتورة #${sale.invoice_number}`,
         reversedDetails, 'undo_cancel_sale_cogs', sale_id);
     }
@@ -8274,7 +6781,6 @@ async function undoReturnSaleItem(request, env, headers, userId) {
   try {
     const saleItem = await dbFirst(tx, "SELECT * FROM sale_items WHERE sale_id = ? AND product_id = ?", [sale.id, returnRecord.product_id]);
     const batchQueries = [];
-<<<<<<< HEAD
     let supplierId = saleItem ? saleItem.supplier_id : null;
     if (!supplierId) {
       const supplierRow = await dbFirst(tx, "SELECT supplier_id FROM product_supplier_stock WHERE product_id = ? ORDER BY quantity DESC LIMIT 1", [returnRecord.product_id]);
@@ -8283,21 +6789,13 @@ async function undoReturnSaleItem(request, env, headers, userId) {
     await applyStockChange(tx, batchQueries, {
       productId: returnRecord.product_id,
       supplierId,
-=======
-    await applyStockChange(tx, batchQueries, {
-      productId: returnRecord.product_id,
-      supplierId: saleItem ? saleItem.supplier_id : null,
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
       delta: -returnRecord.quantity,
       referenceType: 'undo_return_sale',
       referenceId: sale.id,
       note: `عكس إرجاع #${return_id}`,
       userId
     });
-<<<<<<< HEAD
     await updateSupplierStock(tx, returnRecord.product_id, supplierId, -returnRecord.quantity, batchQueries);
-=======
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
     const newTotal = sale.total_amount + returnRecord.amount;
     const newTotalCost = sale.total_cost + (returnRecord.quantity * (saleItem ? saleItem.cost_price : 0));
     const newPaidAmount = parseFloat(sale.cash_paid) + parseFloat(sale.wallet_paid);
@@ -8311,11 +6809,7 @@ async function undoReturnSaleItem(request, env, headers, userId) {
       args: [return_id]
     });
 
-<<<<<<< HEAD
     const entryDate = businessISODate();
-=======
-    const entryDate = new Date().toISOString().split('T')[0];
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
     const desc = `عكس إرجاع من فاتورة #${sale.invoice_number}`;
     const saleAccountId = await getAccountId(tx, 'المبيعات');
     const cogsAccountId = await getAccountId(tx, 'تكلفة البضاعة المباعة');
@@ -8524,11 +7018,7 @@ async function undoCancelPurchaseInvoice(request, env, headers, userId) {
     if (undoPaymentMethod === 'credit' && invoice.supplier_id) {
       batchQueries.push({ sql: "UPDATE suppliers SET balance = balance + ? WHERE id = ?", args: [totalInvoice, invoice.supplier_id] });
     }
-<<<<<<< HEAD
     const undoEntryDate = businessISODate();
-=======
-    const undoEntryDate = new Date().toISOString().split('T')[0];
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
     if (operationalReversalDetails.length > 0) {
       checkBalance(operationalReversalDetails);
       await createJournalEntry(tx, undoEntryDate, `عكس العمليات التشغيلية لإلغاء فاتورة مشتريات #${invoice.invoice_number} (استرجاع النقدية/المحفظة/دين المورد)`, operationalReversalDetails, 'undo_cancel_purchase_operational', purchase_invoice_id);
@@ -8549,11 +7039,7 @@ async function undoCancelPurchaseInvoice(request, env, headers, userId) {
         credit: d.debit,
         notes: `عكس إلغاء فاتورة مشتريات #${invoice.invoice_number}`
       }));
-<<<<<<< HEAD
       const entryDate = businessISODate();
-=======
-      const entryDate = new Date().toISOString().split('T')[0];
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
       await createJournalEntry(tx, entryDate, `استرجاع فاتورة مشتريات #${invoice.invoice_number}`,
         reversedDetails, 'undo_cancel_purchase', purchase_invoice_id);
     }
@@ -8644,14 +7130,11 @@ async function updateDeliveryStatus(request, env, ctx, headers, userId) {
     if (order.accounting_invoice_id) {
       sale = await qFirst(tx, "SELECT * FROM sales WHERE id = ?", [order.accounting_invoice_id]);
     }
-<<<<<<< HEAD
     const saleSupplierMap = {};
     if (sale) {
       const saleSupplierRows = await qAll(tx, "SELECT product_id, supplier_id FROM sale_items WHERE sale_id = ?", [sale.id]);
       for (const row of saleSupplierRows) if (row.supplier_id) saleSupplierMap[row.product_id] = row.supplier_id;
     }
-=======
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
     if (!sale) {
       const invoiceNumber = `INV-DRV-${await getNextInvoiceNumber(tx, 'delivery_sales')}`;
       subCount += 2;
@@ -8670,20 +7153,12 @@ async function updateDeliveryStatus(request, env, ctx, headers, userId) {
     }
 
     const orderItems = await qAll(tx, "SELECT * FROM online_order_items WHERE order_id = ?", [order_id]);
-<<<<<<< HEAD
     const productIds = [...new Set(orderItems.map(item => Number(item.product_id)).filter(id => Number.isInteger(id) && id > 0))];
     const productPlaceholders = productIds.map(() => '?').join(',');
 
     let productCostMap = {};
     if (productIds.length > 0) {
       const costs = await qAll(tx, `SELECT id, cost FROM products WHERE id IN (${productPlaceholders})`, productIds);
-=======
-    const productIds = orderItems.map(item => item.product_id).filter(id => id);
-
-    let productCostMap = {};
-    if (productIds.length > 0) {
-      const costs = await qAll(tx, `SELECT id, cost FROM products WHERE id IN (${productIds.join(',')})`);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
       for (const row of costs) {
         productCostMap[row.id] = row.cost || 0;
       }
@@ -8852,11 +7327,7 @@ async function updateDeliveryStatus(request, env, ctx, headers, userId) {
           args: [salePaymentMethod, cashCollectedVal || 0, finalWalletPaidToSave, finalWalletIdToSave, totalPaidAmount, sale.id]
         });
 
-<<<<<<< HEAD
         const entryDate = businessISODate();
-=======
-        const entryDate = new Date().toISOString().split('T')[0];
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
         const desc = `تسليم طلب إنترنت #${order_id}`;
         const saleAccountId = await getAccountFast('المبيعات', '4000', 'income');
         const deliveryFeeLiabilityId = await getAccountFast('رسوم التوصيل المستحقة', '2105', 'liability');
@@ -8911,11 +7382,7 @@ async function updateDeliveryStatus(request, env, ctx, headers, userId) {
         if (totalCost > 0) {
           const cogsAccountId = await getAccountFast('تكلفة البضاعة المباعة', '5000', 'expense');
           const inventoryAccountId = await getAccountFast('المخزون', '1300', 'asset');
-<<<<<<< HEAD
           const cogsEntryDate = businessISODate();
-=======
-          const cogsEntryDate = new Date().toISOString().split('T')[0];
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
           const cogsDesc = `تكلفة تسليم طلب #${order_id}`;
           const totalCostBase = convertToBase(totalCost, baseRate);
           const cogsJournal = [
@@ -8979,11 +7446,7 @@ async function updateDeliveryStatus(request, env, ctx, headers, userId) {
                 args: [deliveryFee, baseCurrency.id, 1, `تحصيل رسوم توصيل من الزبون للطلب #${order_id}`]
               });
 
-<<<<<<< HEAD
               const entryDate = businessISODate();
-=======
-              const entryDate = new Date().toISOString().split('T')[0];
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
               const desc = `تحصيل رسوم توصيل للطلب #${order_id}`;
               const cashAccountIdPrepaid = await getAccountFast('الصندوق', '1001', 'asset');
               const deliveryFeeLiabilityIdPrepaid = await getAccountFast('رسوم التوصيل المستحقة', '2105', 'liability');
@@ -9036,27 +7499,17 @@ async function updateDeliveryStatus(request, env, ctx, headers, userId) {
         [order_id, order.status, 'قيد التوصيل', 'قيد التوصيل', notes || '']);
 
     } else if (delivery_status === 'فشل') {
-<<<<<<< HEAD
       const productIdsFail = [...new Set(orderItems.map(item => Number(item.product_id)).filter(id => Number.isInteger(id) && id > 0))];
       const productIdsFailPlaceholders = productIdsFail.map(() => '?').join(',');
-=======
-      const productIdsFail = orderItems.map(item => item.product_id).filter(id => id);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
 
       let bestSupplierMapFail = {};
       if (productIdsFail.length > 0) {
         const bestSuppliers = await qAll(tx, `
           SELECT product_id, supplier_id
           FROM product_supplier_stock
-<<<<<<< HEAD
           WHERE product_id IN (${productIdsFailPlaceholders}) AND quantity > 0
           ORDER BY product_id, quantity DESC
         `, productIdsFail);
-=======
-          WHERE product_id IN (${productIdsFail.join(',')}) AND quantity > 0
-          ORDER BY product_id, quantity DESC
-        `);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
         for (const row of bestSuppliers) {
           if (!bestSupplierMapFail[row.product_id]) {
             bestSupplierMapFail[row.product_id] = row.supplier_id;
@@ -9078,16 +7531,10 @@ async function updateDeliveryStatus(request, env, ctx, headers, userId) {
       const restoreQueriesFail = [];
       for (const item of orderItems) {
         if (item.product_id && item.quantity > 0) {
-<<<<<<< HEAD
           const supplierId = saleSupplierMap[item.product_id] || bestSupplierMapFail[item.product_id] || null;
           await applyStockChange(tx, restoreQueriesFail, {
             productId: item.product_id,
             supplierId,
-=======
-          await applyStockChange(tx, restoreQueriesFail, {
-            productId: item.product_id,
-            supplierId: bestSupplierMapFail[item.product_id] || null,
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
             delta: item.quantity,
             referenceType: 'delivery_failed',
             referenceId: order_id,
@@ -9095,10 +7542,7 @@ async function updateDeliveryStatus(request, env, ctx, headers, userId) {
             userId,
             stockCache: deliveryFailStockCache
           });
-<<<<<<< HEAD
           await updateSupplierStock(tx, item.product_id, supplierId, item.quantity, restoreQueriesFail);
-=======
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
         }
       }
 
@@ -9134,11 +7578,7 @@ async function updateDeliveryStatus(request, env, ctx, headers, userId) {
           const cogsAccountIdFail = await getAccountFast('تكلفة البضاعة المباعة', '5000', 'expense');
           const inventoryAccountIdFail = await getAccountFast('المخزون', '1300', 'asset');
 
-<<<<<<< HEAD
           const entryDateFail = businessISODate();
-=======
-          const entryDateFail = new Date().toISOString().split('T')[0];
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
           const descFail = `إلغاء طلب إنترنت #${order_id} (مدفوع مسبقاً)`;
 
           const journalDetailsFail = [
@@ -9245,21 +7685,8 @@ async function updateDeliveryStatus(request, env, ctx, headers, userId) {
       console.error('⚠️ فشل التراجع (rollback):', rollbackErr.message);
     }
 
-<<<<<<< HEAD
     console.error('❌ خطأ في updateDeliveryStatus (قبل الحفظ):', error);
     return jsonResponse({ error: error.message || 'فشل تحديث حالة التوصيل' }, 400, headers);
-=======
-    console.error('❌ خطأ في updateDeliveryStatus (قبل الحفظ):', {
-      order_id, delivery_status, payment_method,
-      message: error.message,
-      stack: error.stack,
-      subrequest_count: subCount
-    });
-    return jsonResponse({
-      error: error.message,
-      debug: { order_id, delivery_status, payment_method, subrequest_count: subCount }
-    }, 400, headers);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
   }
 }
 
@@ -9282,7 +7709,6 @@ async function getReturnRequests(request, env, headers) {
     ORDER BY r.created_at DESC
   `, [driverId]);
 
-<<<<<<< HEAD
   const returnIds = [...new Set(rows.map(r => Number(r.id)).filter(id => Number.isInteger(id) && id > 0))];
   const returnIdPlaceholders = returnIds.map(() => '?').join(',');
   let itemsMap = {};
@@ -9290,14 +7716,6 @@ async function getReturnRequests(request, env, headers) {
     const items = await dbAll(client, `
       SELECT * FROM online_order_return_items WHERE return_id IN (${returnIdPlaceholders})
     `, returnIds);
-=======
-  const returnIds = rows.map(r => r.id);
-  let itemsMap = {};
-  if (returnIds.length > 0) {
-    const items = await dbAll(client, `
-      SELECT * FROM online_order_return_items WHERE return_id IN (${returnIds.join(',')})
-    `);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
     for (const item of items) {
       if (!itemsMap[item.return_id]) itemsMap[item.return_id] = [];
       itemsMap[item.return_id].push(item);
@@ -9489,11 +7907,7 @@ async function recordDriverPayment(request, env, headers) {
       [amount, driver_id]
     );
 
-<<<<<<< HEAD
     const entryDate = businessISODate();
-=======
-    const entryDate = new Date().toISOString().split('T')[0];
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
     const desc = `تسوية المندوب ${driver_id} (${isDriverPaysShop ? 'دفع' : 'استلام'})`;
     const cashAccountId = getAccountIdFast('الصندوق');
     const walletAccountId = getAccountIdFast('المحافظ');
@@ -9840,7 +8254,6 @@ async function driverReturnItems(request, env, headers) {
 
 // ---- المبيعات (معدلة) ----
 async function createSale(request, env, ctx, headers, userId) {
-<<<<<<< HEAD
   let { customer_id, items, payment_method, wallet_id, discount = 0, discount_type = 'fixed',
     cash_amount = 0, cash_currency_id = null, wallet_amount = 0, wallet_currency_id = null, note = '' } = await request.json();
   if (!Array.isArray(items) || items.length === 0) return jsonResponse({ error: 'السلة فارغة' }, 400, headers);
@@ -9854,14 +8267,6 @@ async function createSale(request, env, ctx, headers, userId) {
 
   const client = getTursoClient(env);
   await checkIfClosed(client, businessISODate());
-=======
-  const { customer_id, items, payment_method, wallet_id, discount = 0, discount_type = 'fixed',
-    cash_amount = 0, cash_currency_id = null, wallet_amount = 0, wallet_currency_id = null, note = '' } = await request.json();
-  if (!items || items.length === 0) return jsonResponse({ error: 'السلة فارغة' }, 400, headers); // قبل بدء المعاملة — آمن، لا تسريب
-
-  const client = getTursoClient(env);
-  await checkIfClosed(client, new Date().toISOString().slice(0, 10));
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
   const baseCurrency = await getBaseCurrency(client);
   if (!baseCurrency) throw new Error('لا توجد عملة أساسية');
 
@@ -9940,18 +8345,11 @@ async function createSale(request, env, ctx, headers, userId) {
     if (payment_method === 'wallet' && !wallet_id) throw new Error('اختر المحفظة');
     if (payment_method === 'credit' && !customer_id) throw new Error('يجب تحديد العميل للبيع الآجل');
 
-<<<<<<< HEAD
     const productIds = [...new Set(saleItemsData.map(item => Number(item.product_id)).filter(id => Number.isInteger(id) && id > 0))];
     const productPlaceholders = productIds.map(() => '?').join(',');
     let productsMap = {};
     if (productIds.length) {
       const productRows = await dbAll(tx, `SELECT id, stock_quantity, cost, price, expiry_date, unit_type, unit_symbol, is_decimal_allowed, weight_grams, is_set FROM products WHERE id IN (${productPlaceholders})`, productIds);
-=======
-    const productIds = saleItemsData.map(item => item.product_id).filter(id => id);
-    let productsMap = {};
-    if (productIds.length) {
-      const productRows = await dbAll(tx, `SELECT id, stock_quantity, cost, expiry_date, unit_type, unit_symbol, is_decimal_allowed, weight_grams FROM products WHERE id IN (${productIds.join(',')})`);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
       productsMap = productRows.reduce((acc, p) => { acc[p.id] = p; return acc; }, {});
     }
 
@@ -9960,7 +8358,6 @@ async function createSale(request, env, ctx, headers, userId) {
       allSupplierStocks = await dbAll(tx, `
         SELECT product_id, id, quantity, supplier_id, last_purchase_price
         FROM product_supplier_stock
-<<<<<<< HEAD
         WHERE product_id IN (${productPlaceholders}) AND quantity > 0
         ORDER BY product_id, id ASC
       `, productIds);
@@ -10019,29 +8416,6 @@ async function createSale(request, env, ctx, headers, userId) {
       for (const [variantId, required] of Object.entries(requiredByVariant)) {
         const variant = variantsById[Number(variantId)];
         if (variant && Number(variant.stock_quantity) < required) throw new Error(`الكمية الإجمالية المطلوبة للمقاس ${variant.label} غير متوفرة`);
-=======
-        WHERE product_id IN (${productIds.join(',')}) AND quantity > 0
-        ORDER BY product_id, id ASC
-      `);
-    }
-
-    const stockMap = {};
-    for (const stock of allSupplierStocks) {
-      if (!stockMap[stock.product_id]) stockMap[stock.product_id] = [];
-      stockMap[stock.product_id].push(stock);
-    }
-
-    for (const item of saleItemsData) {
-      const product = productsMap[item.product_id];
-      if (!product) throw new Error(`المنتج رقم ${item.product_id} غير موجود`);
-      // ===== إصلاح #7: رمي الخطأ بدل return مباشرة حتى يُنفَّذ tx.rollback() في catch =====
-      if (!allowBelowCost && item.unit_price < product.cost) {
-        throw new Error(`سعر البيع أقل من التكلفة للمنتج ${item.product_id}`);
-      }
-      const expiredNegativeAllowed = allowExpiredNegativeSales && isExpiredProductDate(product.expiry_date);
-      if (!allowNegativeStock && !expiredNegativeAllowed && product.stock_quantity < item.quantity) {
-        throw new Error(`الكمية غير كافية للمنتج ${item.product_id}`);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
       }
     }
 
@@ -10065,7 +8439,6 @@ async function createSale(request, env, ctx, headers, userId) {
       });
     }
 
-<<<<<<< HEAD
         const batchQueries = [];
     let totalCost = 0;
     for (const item of saleItemsData) {
@@ -10109,15 +8482,6 @@ async function createSale(request, env, ctx, headers, userId) {
         totalCost += costPrice * item.quantity;
         continue;
       }
-=======
-    const batchQueries = [];
-    let totalCost = 0;
-
-    for (const item of saleItemsData) {
-      const product = productsMap[item.product_id];
-      if (!product) throw new Error(`المنتج غير موجود`);
-      const costPrice = product.cost || 0;
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
       totalCost += costPrice * item.quantity;
 
       const stocks = stockMap[item.product_id] || [];
@@ -10158,24 +8522,14 @@ async function createSale(request, env, ctx, headers, userId) {
       });
 
       batchQueries.push({
-<<<<<<< HEAD
         sql: `INSERT INTO sale_items (sale_id, product_id, quantity, unit_price, total_price, cost_price, supplier_id, supplier_price, variant_id, variant_label)
               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         args: [saleId, item.product_id, item.quantity, item.unit_price, item.total_price, costPrice, supplierId, supplierPrice, item.variant_id || null, item.variant_label || null]
-=======
-        sql: `INSERT INTO sale_items (sale_id, product_id, quantity, unit_price, total_price, cost_price, supplier_id, supplier_price)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        args: [saleId, item.product_id, item.quantity, item.unit_price, item.total_price, costPrice, supplierId, supplierPrice]
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
       });
     }
 
     // ========== إضافة باقي الاستعلامات (المحاسبة، الصندوق، المحفظة، العملاء) ==========
-<<<<<<< HEAD
     const entryDate = businessISODate();
-=======
-    const entryDate = new Date().toISOString().split('T')[0];
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
     const desc = `فاتورة مبيعات #${invoiceNumber}`;
     const journalDetails = [];
 
@@ -10197,22 +8551,12 @@ async function createSale(request, env, ctx, headers, userId) {
       if (walletPaid > 0 && wallet_id) {
         const rate = getCurrencyRateFast(useWalletCurrencyId);
         const baseAmount = convertToBase(walletPaid, rate);
-<<<<<<< HEAD
         await ensureWalletBalance(tx, wallet_id, useWalletCurrencyId);
-=======
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
         batchQueries.push({
           sql: `UPDATE wallet_balances SET balance = balance + ?, updated_at = CURRENT_TIMESTAMP WHERE wallet_id = ? AND currency_id = ?`,
           args: [walletPaid, wallet_id, useWalletCurrencyId]
         });
         batchQueries.push({
-<<<<<<< HEAD
-=======
-          sql: "INSERT OR IGNORE INTO wallet_balances (wallet_id, currency_id, balance) VALUES (?, ?, 0)",
-          args: [wallet_id, useWalletCurrencyId]
-        });
-        batchQueries.push({
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
           sql: "INSERT INTO wallet_transactions (wallet_id, type, amount, currency_id, description, reference_id) VALUES (?, 'deposit', ?, ?, ?, ?)",
           args: [wallet_id, walletPaid, useWalletCurrencyId, `إيداع ${invoiceNumber}`, saleId]
         });
@@ -10299,7 +8643,6 @@ async function createSale(request, env, ctx, headers, userId) {
 
 async function getSales(request, env, headers) {
   const client = getTursoClient(env);
-<<<<<<< HEAD
   const query = parseListQuery(request);
   const conditions = ['1=1'], args = [];
   appendDateRange(conditions, args, 's.created_at', query.from, query.to);
@@ -10339,30 +8682,10 @@ async function getSaleDetails(request, env, headers) {
      ORDER BY CASE WHEN s.invoice_number = ? THEN 0 ELSE 1 END, s.id DESC
      LIMIT 1`,
     [...candidates, ...(allowInternalId ? [numericNumber] : []), rawNumber]
-=======
-  const rows = await dbAll(client, `
-    SELECT s.*, c.name as customer_name, w.name as wallet_name,
-      (SELECT GROUP_CONCAT(p.product_code) FROM sale_items si JOIN products p ON p.id = si.product_id WHERE si.sale_id = s.id) as product_codes,
-      (SELECT SUM(total_price) FROM sale_items WHERE sale_id = s.id) as subtotal
-    FROM sales s LEFT JOIN customers c ON c.id = s.customer_id LEFT JOIN wallets w ON w.id = s.wallet_id
-    ORDER BY s.created_at DESC LIMIT 100
-  `);
-  return jsonResponse({ sales: rows }, 200, headers);
-}
-async function getSaleDetails(request, env, headers) {
-  const id = parseInt(request.url.split('/').pop());
-  const client = getTursoClient(env);
-  const sale = await dbFirst(client,
-    `SELECT s.*, c.name as customer_name, w.name as wallet_name
-     FROM sales s LEFT JOIN customers c ON c.id = s.customer_id LEFT JOIN wallets w ON w.id = s.wallet_id
-     WHERE s.id = ?`,
-    [id]
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
   );
   if (!sale) return jsonResponse({ error: 'الفاتورة غير موجودة' }, 404, headers);
   const items = await dbAll(client,
     `SELECT si.*, p.name as product_name, p.product_code
-<<<<<<< HEAD
      FROM sale_items si LEFT JOIN products p ON p.id = si.product_id
      WHERE si.sale_id = ?`,
     [sale.id]
@@ -10374,19 +8697,10 @@ async function getSaleDetails(request, env, headers) {
   const returnedMap = Object.fromEntries(returned.map(row => [row.product_id, Number(row.returned_quantity || 0)]));
   sale.items = items.map(item => ({ ...item, returned_quantity: returnedMap[item.product_id] || 0, returnable_quantity: Math.max(0, Number(item.quantity || 0) - (returnedMap[item.product_id] || 0)) }));
   return await permissionResponse(sale, request, env, headers);
-=======
-     FROM sale_items si JOIN products p ON p.id = si.product_id
-     WHERE si.sale_id = ?`,
-    [id]
-  );
-  sale.items = items;
-  return jsonResponse(sale, 200, headers);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
 }
 
 async function updateSale(request, env, headers, userId) {
   const id = parseInt(request.url.split('/').pop());
-<<<<<<< HEAD
   let { customer_id, items, payment_method, wallet_id, discount = 0, discount_type = 'fixed',
     cash_amount = 0, cash_currency_id = null, wallet_amount = 0, wallet_currency_id = null, note = '' } = await request.json();
   const client = getTursoClient(env);
@@ -10401,15 +8715,6 @@ async function updateSale(request, env, headers, userId) {
     if (!Number.isInteger(productId) || productId <= 0 || !Number.isFinite(quantity) || quantity <= 0 || !Number.isFinite(unitPrice) || unitPrice < 0) throw new Error('بيانات المنتج أو السعر أو الكمية غير صالحة');
     return { ...item, product_id: productId, quantity, unit_price: unitPrice };
   });
-=======
-  const { customer_id, items, payment_method, wallet_id, discount = 0, discount_type = 'fixed',
-    cash_amount = 0, cash_currency_id = null, wallet_amount = 0, wallet_currency_id = null, note = '' } = await request.json();
-  const client = getTursoClient(env);
-  await checkIfClosed(client, new Date().toISOString().slice(0, 10));
-  const oldSale = await dbFirst(client, "SELECT * FROM sales WHERE id = ? AND status = 'completed'", [id]);
-  if (!oldSale) return jsonResponse({ error: 'الفاتورة غير موجودة أو ملغاة' }, 404, headers);
-  if (!items || items.length === 0) return jsonResponse({ error: 'السلة فارغة' }, 400, headers);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
 
   const baseCurrency = await getBaseCurrency(client);
   if (!baseCurrency) throw new Error('لا توجد عملة أساسية');
@@ -10441,14 +8746,11 @@ async function updateSale(request, env, headers, userId) {
     const oldItems = await dbAll(tx, "SELECT * FROM sale_items WHERE sale_id = ?", [id]);
     let oldTotalCost = 0;
     const oldProductIds = oldItems.map(item => item.product_id);
-<<<<<<< HEAD
     const oldBestSupplierMap = {};
     if (oldProductIds.length) {
       const oldSuppliers = await dbAll(tx, `SELECT product_id, supplier_id FROM product_supplier_stock WHERE product_id IN (${oldProductIds.map(() => '?').join(',')}) AND quantity > 0 ORDER BY product_id, quantity DESC`, oldProductIds);
       for (const row of oldSuppliers) if (!oldBestSupplierMap[row.product_id]) oldBestSupplierMap[row.product_id] = row.supplier_id;
     }
-=======
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
     
     // جلب كميات المخزون الحالية دفعة واحدة للاسترجاع
     const stockCacheRestore = {};
@@ -10465,16 +8767,10 @@ async function updateSale(request, env, headers, userId) {
     const restoreQueries = [];
     for (const item of oldItems) {
       oldTotalCost += item.cost_price * item.quantity;
-<<<<<<< HEAD
       const supplierId = item.supplier_id || oldBestSupplierMap[item.product_id] || null;
       await applyStockChange(tx, restoreQueries, {
         productId: item.product_id,
         supplierId,
-=======
-      await applyStockChange(tx, restoreQueries, {
-        productId: item.product_id,
-        supplierId: item.supplier_id || null,
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
         delta: item.quantity,
         referenceType: 'sale_update_revert',
         referenceId: id,
@@ -10482,10 +8778,7 @@ async function updateSale(request, env, headers, userId) {
         userId,
         stockCache: stockCacheRestore
       });
-<<<<<<< HEAD
       await updateSupplierStock(tx, item.product_id, supplierId, item.quantity, restoreQueries);
-=======
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
     }
     if (restoreQueries.length > 0) {
       await tx.batch(restoreQueries, 'write');
@@ -10533,18 +8826,11 @@ async function updateSale(request, env, headers, userId) {
     if (payment_method === 'credit' && !customer_id) throw new Error('يجب تحديد العميل للبيع الآجل');
 
     // ===== 3. تجهيز البيانات الجديدة =====
-<<<<<<< HEAD
     const newProductIds = [...new Set(newItemsData.map(item => Number(item.product_id)).filter(id => Number.isInteger(id) && id > 0))];
     const newProductPlaceholders = newProductIds.map(() => '?').join(',');
     let productsMap = {};
     if (newProductIds.length) {
       const productRows = await dbAll(tx, `SELECT id, stock_quantity, cost, expiry_date FROM products WHERE id IN (${newProductPlaceholders})`, newProductIds);
-=======
-    const newProductIds = newItemsData.map(item => item.product_id).filter(id => id);
-    let productsMap = {};
-    if (newProductIds.length) {
-      const productRows = await dbAll(tx, `SELECT id, stock_quantity, cost, expiry_date FROM products WHERE id IN (${newProductIds.join(',')})`);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
       productsMap = productRows.reduce((acc, p) => { acc[p.id] = p; return acc; }, {});
     }
 
@@ -10553,15 +8839,9 @@ async function updateSale(request, env, headers, userId) {
       newSupplierStocks = await dbAll(tx, `
         SELECT product_id, id, quantity, supplier_id, last_purchase_price
         FROM product_supplier_stock
-<<<<<<< HEAD
         WHERE product_id IN (${newProductPlaceholders}) AND quantity > 0
         ORDER BY product_id, id ASC
       `, newProductIds);
-=======
-        WHERE product_id IN (${newProductIds.join(',')}) AND quantity > 0
-        ORDER BY product_id, id ASC
-      `);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
     }
     const newStockMap = {};
     for (const stock of newSupplierStocks) {
@@ -10721,11 +9001,7 @@ async function updateSale(request, env, headers, userId) {
     });
 
     // ===== 8. القيود المحاسبية الجديدة =====
-<<<<<<< HEAD
     const entryDate = businessISODate();
-=======
-    const entryDate = new Date().toISOString().split('T')[0];
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
     const desc = `تعديل فاتورة #${oldSale.invoice_number}`;
     const journalDetails = [];
 
@@ -10746,14 +9022,7 @@ async function updateSale(request, env, headers, userId) {
       if (walletPaid > 0 && wallet_id) {
         const rate = getCurrencyRateFast(useWalletCurrencyId);
         const baseAmount = convertToBase(walletPaid, rate);
-<<<<<<< HEAD
         await ensureWalletBalance(tx, wallet_id, useWalletCurrencyId);
-=======
-        newBatchQueries.push({
-          sql: "INSERT OR IGNORE INTO wallet_balances (wallet_id, currency_id, balance) VALUES (?, ?, 0)",
-          args: [wallet_id, useWalletCurrencyId]
-        });
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
         newBatchQueries.push({
           sql: "UPDATE wallet_balances SET balance = balance + ? WHERE wallet_id = ? AND currency_id = ?",
           args: [walletPaid, wallet_id, useWalletCurrencyId]
@@ -10874,7 +9143,6 @@ async function getDriverTransactions(request, env, headers) {
 // ================================================================
 
 async function createPurchase(request, env, headers, userId) {
-<<<<<<< HEAD
   let { supplier_id, items, payment_method, wallet_id, discount = 0, note = '',
     cash_amount = 0, cash_currency_id = null, wallet_amount = 0, wallet_currency_id = null,
     currency_id, exchange_rate: providedExchangeRate } = await request.json();
@@ -10893,33 +9161,16 @@ async function createPurchase(request, env, headers, userId) {
 
   const client = getTursoClient(env);
   await checkIfClosed(client, businessISODate());
-=======
-  const { supplier_id, items, payment_method, wallet_id, discount = 0, note = '',
-    cash_amount = 0, cash_currency_id = null, wallet_amount = 0, wallet_currency_id = null,
-    currency_id, exchange_rate: providedExchangeRate } = await request.json();
-  if (!supplier_id || !items || items.length === 0) return jsonResponse({ error: 'المورد والمواد مطلوبان' }, 400, headers);
-
-  const client = getTursoClient(env);
-  await checkIfClosed(client, new Date().toISOString().slice(0, 10));
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
   const baseCurrency = await getBaseCurrency(client);
   if (!baseCurrency) throw new Error('لا توجد عملة أساسية');
 
   
 
   const useCurrencyId = currency_id || baseCurrency.id;
-<<<<<<< HEAD
   // سعر الصرف المحاسبي مصدره جدول العملات وقت التسجيل، ولا يُسمح للعميل بتغيير تكلفة المخزون أو القيد وحده.
   const rateFromDb = await getCurrencyRate(client, useCurrencyId);
   if (!rateFromDb || !Number.isFinite(Number(rateFromDb)) || Number(rateFromDb) <= 0) throw new Error('سعر صرف العملة غير متاح');
   const finalExchangeRate = Number(rateFromDb);
-=======
-  let finalExchangeRate = providedExchangeRate;
-  if (!finalExchangeRate || finalExchangeRate <= 0) {
-    const rateFromDb = await getCurrencyRate(client, useCurrencyId);
-    finalExchangeRate = rateFromDb || 1;
-  }
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
   const useCashCurrencyId = cash_currency_id || baseCurrency.id;
   const useWalletCurrencyId = wallet_currency_id || baseCurrency.id;
 
@@ -10971,7 +9222,6 @@ async function createPurchase(request, env, headers, userId) {
   finalCashPaid = isFinite(finalCashPaid) ? finalCashPaid : 0;
   finalWalletPaid = isFinite(finalWalletPaid) ? finalWalletPaid : 0;
 
-<<<<<<< HEAD
   const existingProductIds = [...new Set(purchaseItemsData.map(item => item.product_id).filter(id => Number.isInteger(Number(id)) && Number(id) > 0).map(Number))];
   const existingProductPlaceholders = existingProductIds.map(() => '?').join(',');
   let productsMap = {};
@@ -10984,22 +9234,11 @@ async function createPurchase(request, env, headers, userId) {
   if (existingProductIds.length) {
     const variantRows = await dbAll(client, `SELECT id, product_id, label, stock_quantity, cost, selling_price, barcode FROM product_variants WHERE product_id IN (${existingProductPlaceholders}) AND is_active = 1`, existingProductIds);
     variantsMap = variantRows.reduce((acc, v) => { if (!acc[v.product_id]) acc[v.product_id] = []; acc[v.product_id].push(v); return acc; }, {});
-=======
-  const existingProductIds = purchaseItemsData.map(item => item.product_id).filter(id => id);
-  let productsMap = {};
-  if (existingProductIds.length) {
-    const productRows = await dbAll(client, `SELECT id, stock_quantity, cost FROM products WHERE id IN (${existingProductIds.join(',')})`);
-    productsMap = productRows.reduce((acc, p) => { acc[p.id] = { id: p.id, stock_quantity: parseFloat(p.stock_quantity) || 0, cost: parseFloat(p.cost) || 0 }; return acc; }, {});
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
   }
 
   let supplierStocksMap = {};
   if (existingProductIds.length) {
-<<<<<<< HEAD
     const stocks = await dbAll(client, `SELECT product_id, id, quantity, supplier_id, last_purchase_price FROM product_supplier_stock WHERE product_id IN (${existingProductPlaceholders}) AND supplier_id = ?`, [...existingProductIds, supplier_id]);
-=======
-    const stocks = await dbAll(client, `SELECT product_id, id, quantity, supplier_id, last_purchase_price FROM product_supplier_stock WHERE product_id IN (${existingProductIds.join(',')}) AND supplier_id = ?`, [supplier_id]);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
     supplierStocksMap = stocks.reduce((acc, s) => { if (!acc[s.product_id]) acc[s.product_id] = []; acc[s.product_id].push(s); return acc; }, {});
   }
 
@@ -11040,15 +9279,10 @@ async function createPurchase(request, env, headers, userId) {
       let productId = item.product_id;
       const quantity = parseFloat(item.quantity) || 0;
       const costPrice = (parseFloat(item.unit_price) || 0) * finalExchangeRate;
-<<<<<<< HEAD
       const productName = String(item.name || '').trim() || 'منتج جديد';
       const sellingPrice = parseFloat(item.selling_price);
       if (!Number.isFinite(sellingPrice) || sellingPrice < 0) throw new Error(`سعر البيع غير صالح للمنتج ${productName}`);
       if (sellingPrice < costPrice) throw new Error(`لا يمكن أن يكون سعر بيع ${productName} أقل من التكلفة (${costPrice.toFixed(2)})`);
-=======
-      const productName = item.name || 'منتج جديد';
-      const sellingPrice = parseFloat(item.selling_price) || 0;
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
 
       let categoryId = item.category_id ? parseInt(item.category_id) : null;
       let categoryName = item.category || null;
@@ -11062,7 +9296,6 @@ async function createPurchase(request, env, headers, userId) {
       }
 
       if (!productId) {
-<<<<<<< HEAD
         const barcode = item.barcode || await generateUniqueProductBarcode(tx);
         const newSetDetails = item.is_set ? normalizeSetDetails(item.set_details_json || item.set_details) : [];
         const newSetPieceCount = item.is_set ? Math.max(1, parseInt(item.set_piece_count, 10) || newSetDetails.length || 1) : 1;
@@ -11080,20 +9313,10 @@ async function createPurchase(request, env, headers, userId) {
           }
           variantsMap[productId] = await dbAll(tx, 'SELECT id, product_id, label, stock_quantity, cost, selling_price, barcode FROM product_variants WHERE product_id = ? AND is_active = 1', [productId]);
         }
-=======
-        const barcode = item.barcode || Math.floor(100000000000 + Math.random() * 900000000000).toString();
-        const prodResult = await dbRun(tx,
-          "INSERT INTO products (barcode, name, price, cost, stock_quantity, category, category_id) VALUES (?, ?, ?, ?, 0, ?, ?)",
-          [barcode, productName, sellingPrice, costPrice, categoryName, categoryId]
-        );
-        productId = prodResult.lastInsertRowid;
-        productsMap[productId] = { id: productId, stock_quantity: 0, cost: 0 };
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
       }
 
       const currentProduct = productsMap[productId];
       if (!currentProduct) throw new Error(`المنتج رقم ${productId} غير موجود`);
-<<<<<<< HEAD
       const productVariants = variantsMap[productId] || [];
       const isSet = Number(currentProduct.is_set) === 1;
       const isWholeSetPurchase = isSet && (item.sale_mode === 'full_set' || (!item.variant_id && !item.variant_label));
@@ -11136,26 +9359,12 @@ async function createPurchase(request, env, headers, userId) {
         selectedVariant.selling_price = sellingPrice;
         selectedVariant.cost = costPrice;
       }
-=======
-      
-      const currentStock = parseFloat(currentProduct.stock_quantity) || 0;
-      const currentCost = parseFloat(currentProduct.cost) || 0;
-      const newStock = currentStock + quantity;
-      let newCost = newStock > 0 ? (currentStock * currentCost + quantity * costPrice) / newStock : currentCost;
-      if (!isFinite(newCost)) newCost = costPrice;
-
-      batchQueries.push({
-        sql: "UPDATE products SET stock_quantity = ?, cost = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
-        args: [newStock, newCost, productId]
-      });
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
 
       // إضافة سجل حركة المخزون
       batchQueries.push({
         sql: `INSERT INTO stock_movements
               (product_id, supplier_id, quantity_change, old_quantity, new_quantity, reference_type, reference_id, note, created_by)
               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-<<<<<<< HEAD
         args: [productId, supplier_id, parentDelta, currentStock, newStock, 'purchase', purchaseId, `فاتورة مشتريات #${invoiceNumber}${isWholeSetPurchase ? ' — طقم كامل' : (selectedVariant ? ` — مقاس ${selectedVariant.label}` : '')}`, userId]
       });
 
@@ -11165,16 +9374,6 @@ async function createPurchase(request, env, headers, userId) {
       });
 
       const addToSupplier = Math.max(0, quantity + Math.min(0, currentStock));
-=======
-        args: [productId, supplier_id, quantity, currentStock, newStock, 'purchase', purchaseId, `فاتورة مشتريات #${invoiceNumber}`, userId]
-      });
-
-      batchQueries.push({
-        sql: "INSERT INTO purchase_invoice_items (invoice_id, product_id, quantity, unit_price, total_price, selling_price, category) VALUES (?, ?, ?, ?, ?, ?, ?)",
-        args: [purchaseId, productId, quantity, costPrice, item.total_price, sellingPrice, item.category || '']
-      });
-
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
       let supplierSku = item.supplier_sku ? item.supplier_sku.trim() : null;
       if (!supplierSku) {
         supplierSku = prefix + String(seqCounter).padStart(4, '0');
@@ -11185,20 +9384,12 @@ async function createPurchase(request, env, headers, userId) {
       if (existingStock) {
         batchQueries.push({
           sql: "UPDATE product_supplier_stock SET quantity = quantity + ?, last_purchase_price = ?, total_purchased = total_purchased + ?, supplier_sku = COALESCE(?, supplier_sku), updated_at = CURRENT_TIMESTAMP WHERE id = ?",
-<<<<<<< HEAD
           args: [addToSupplier, costPrice, quantity, supplierSku, existingStock.id]
-=======
-          args: [quantity, costPrice, quantity, supplierSku, existingStock.id]
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
         });
       } else {
         batchQueries.push({
           sql: "INSERT INTO product_supplier_stock (product_id, supplier_id, quantity, last_purchase_price, total_purchased, supplier_sku) VALUES (?, ?, ?, ?, ?, ?)",
-<<<<<<< HEAD
           args: [productId, supplier_id, addToSupplier, costPrice, quantity, supplierSku]
-=======
-          args: [productId, supplier_id, quantity, costPrice, quantity, supplierSku]
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
         });
       }
     }
@@ -11210,11 +9401,7 @@ async function createPurchase(request, env, headers, userId) {
       }
     }
 
-<<<<<<< HEAD
     const entryDate = businessISODate();
-=======
-    const entryDate = new Date().toISOString().split('T')[0];
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
     const desc = `فاتورة مشتريات #${invoiceNumber}`;
     const journalDetails = [];
     const totalBase = convertToBase(total, finalExchangeRate);
@@ -11302,7 +9489,6 @@ async function createPurchase(request, env, headers, userId) {
 
 async function getPurchases(request, env, headers) {
   const client = getTursoClient(env);
-<<<<<<< HEAD
   const query = parseListQuery(request);
   const conditions = ['1=1'], args = [];
   appendDateRange(conditions, args, 'pi.created_at', query.from, query.to);
@@ -11373,35 +9559,6 @@ async function getPurchaseDetails(request, env, headers) {
   invoice.returns = returns;
   invoice.actual_stock_note = 'الكمية المتاحة للإرجاع هي الأقل بين المتبقي من الفاتورة والمخزون العام ومخزون المورد.';
   return await permissionResponse({ purchase: invoice }, request, env, headers);
-=======
-  const rows = await dbAll(client, `
-    SELECT pi.*, s.name as supplier_name, w.name as wallet_name
-    FROM purchase_invoices pi JOIN suppliers s ON s.id = pi.supplier_id LEFT JOIN wallets w ON w.id = pi.wallet_id
-    ORDER BY pi.created_at DESC LIMIT 100
-  `);
-  return jsonResponse({ purchases: rows }, 200, headers);
-}
-
-async function getPurchaseDetails(request, env, headers) {
-  const id = parseInt(request.url.split('/').pop());
-  const client = getTursoClient(env);
-  const invoice = await dbFirst(client, `
-    SELECT pi.*, s.name as supplier_name, w.name as wallet_name
-    FROM purchase_invoices pi JOIN suppliers s ON s.id = pi.supplier_id LEFT JOIN wallets w ON w.id = pi.wallet_id
-    WHERE pi.id = ?
-  `, [id]);
-  if (!invoice) return jsonResponse({ error: 'الفاتورة غير موجودة' }, 404, headers);
-  const items = await dbAll(client, `
-    SELECT pii.*, p.name as product_name, p.barcode as product_barcode, p.cost as current_cost, p.price as current_price, p.category as product_category
-    FROM purchase_invoice_items pii JOIN products p ON p.id = pii.product_id WHERE pii.invoice_id = ?
-  `, [id]);
-  const returns = await dbAll(client, `
-    SELECT rp.*, p.name as product_name
-    FROM returned_purchases rp JOIN products p ON p.id = rp.product_id WHERE rp.purchase_invoice_id = ?
-  `, [id]);
-  invoice.items = items; invoice.returns = returns;
-  return jsonResponse({ purchase: invoice }, 200, headers);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
 }
 
 async function updatePurchaseInvoice(request, env, headers) {
@@ -11424,11 +9581,7 @@ async function getDriverOrders(request, env, headers) {
   const offset = (page - 1) * limit;
 
   const client = getTursoClient(env);
-<<<<<<< HEAD
   await checkIfClosed(client, businessISODate());
-=======
-  await checkIfClosed(client, new Date().toISOString().slice(0, 10));
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
 
   let whereConditions = 'o.assigned_driver_id = ?';
   const params = [driverId];
@@ -11442,7 +9595,6 @@ async function getDriverOrders(request, env, headers) {
   if (period && period !== 'all') {
     const now = new Date();
     if (period === 'today') {
-<<<<<<< HEAD
       startDate = businessISODate(now);
     } else if (period === 'last2days') {
       const start = new Date(now);
@@ -11461,26 +9613,6 @@ async function getDriverOrders(request, env, headers) {
     if (startDate) {
       whereConditions += ` AND datetime(o.order_date) >= datetime(?, '${POS_SQL_UTC_SHIFT}')`;
       params.push(`${startDate} 00:00:00`);
-=======
-      startDate = now.toISOString().split('T')[0];
-    } else if (period === 'last2days') {
-      const start = new Date(now);
-      start.setDate(now.getDate() - 2);
-      startDate = start.toISOString().split('T')[0];
-    } else if (period === 'week') {
-      const start = new Date(now);
-      start.setDate(now.getDate() - 7);
-      startDate = start.toISOString().split('T')[0];
-    } else if (period === 'month') {
-      const start = new Date(now);
-      start.setDate(now.getDate() - 30);
-      startDate = start.toISOString().split('T')[0];
-    }
-    
-    if (startDate) {
-      whereConditions += ' AND DATE(o.order_date) >= ?';
-      params.push(startDate);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
     }
   }
 
@@ -11516,10 +9648,7 @@ async function getDriverOrders(request, env, headers) {
            s.discount, s.discount_type, s.cash_paid, s.wallet_paid,
            oi.id as item_id, oi.product_id as item_product_id, oi.product_name as item_product_name,
            oi.quantity as item_quantity, oi.unit_price as item_unit_price, oi.line_total as item_line_total,
-<<<<<<< HEAD
            oi.variant_id as item_variant_id, oi.variant_label as item_variant_label, oi.sale_mode as item_sale_mode,
-=======
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
            oi.note as item_note,
            p.name as product_name, p.barcode
     FROM online_orders o
@@ -11546,12 +9675,9 @@ async function getDriverOrders(request, env, headers) {
         quantity: row.item_quantity,
         unit_price: row.item_unit_price,
         line_total: row.item_line_total,
-<<<<<<< HEAD
         variant_id: row.item_variant_id,
         variant_label: row.item_variant_label,
         sale_mode: row.item_sale_mode,
-=======
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
         barcode: row.barcode,
         note: row.item_note
       });
@@ -11559,25 +9685,7 @@ async function getDriverOrders(request, env, headers) {
   }
   
   const ordersWithItems = Object.values(ordersMap).map(order => {
-<<<<<<< HEAD
     order.expected_cash = getExpectedCashForOrder(order);
-=======
-    // ===== حساب موحد للمبلغ النقدي المطلوب من المندوب =====
-    // (total_amount يتضمن رسوم التوصيل من لحظة إنشاء الطلب، فلا نضيفها مجدداً)
-    const orderTotalBase = parseFloat(order.total_amount) || 0;
-    let expectedCash = 0;
-    if (isMixedOrder(order)) {
-        expectedCash = parseFloat(order.cash_paid) || 0;
-    } else {
-        // 🌟 إزالة طرح المحفظة: منع المبالغ الوهمية في wallet_paid للطلبات النقدية القديمة
-        expectedCash = Math.max(0, orderTotalBase);
-    }
-    // إضافة رسوم التوصيل في حال كانت عند الاستلام — يُطبق على جميع الطلبات
-    if (order.delivery_fee_payment === 'عند الاستلام' && order.delivery_fee) {
-        expectedCash += parseFloat(order.delivery_fee) || 0;
-    }
-    order.expected_cash = expectedCash;
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
     delete order.item_id;
     delete order.item_product_id;
     delete order.item_product_name;
@@ -11632,18 +9740,13 @@ async function getDriverSummary(request, env, headers) {
 
   const client = getTursoClient(env);
   const now = new Date();
-<<<<<<< HEAD
   const today = businessISODate(now);
-=======
-  const today = now.toISOString().split('T')[0];
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
   let dateFrom = null;
   if (period === 'day') {
     dateFrom = today;
   } else if (period === 'last2days') {
     const start = new Date(now);
     start.setDate(now.getDate() - 2);
-<<<<<<< HEAD
     dateFrom = businessISODate(start);
   } else if (period === 'week') {
     const start = new Date(now);
@@ -11653,29 +9756,13 @@ async function getDriverSummary(request, env, headers) {
     const start = new Date(now);
     start.setDate(now.getDate() - 30);
     dateFrom = businessISODate(start);
-=======
-    dateFrom = start.toISOString().split('T')[0];
-  } else if (period === 'week') {
-    const start = new Date(now);
-    start.setDate(now.getDate() - 7);
-    dateFrom = start.toISOString().split('T')[0];
-  } else if (period === 'month') {
-    const start = new Date(now);
-    start.setDate(now.getDate() - 30);
-    dateFrom = start.toISOString().split('T')[0];
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
   }
 
   let dateCondition = '';
   const params = [driverId];
   if (dateFrom) {
-<<<<<<< HEAD
     dateCondition = `AND datetime(o.order_date) >= datetime(?, '${POS_SQL_UTC_SHIFT}')`;
     params.push(`${dateFrom} 00:00:00`);
-=======
-    dateCondition = 'AND DATE(o.order_date) >= ?';
-    params.push(dateFrom);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
   }
 
   const result = await dbFirst(
@@ -11736,17 +9823,10 @@ async function getOnlineOrders(request, env, headers) {
   const driver_id = url.searchParams.get('driver_id') || '';
   const payment_method = url.searchParams.get('payment_method') || '';
   const search = url.searchParams.get('search') || '';
-<<<<<<< HEAD
   const date_from = url.searchParams.get('date_from') || url.searchParams.get('from') || '';
   const date_to = url.searchParams.get('date_to') || url.searchParams.get('to') || '';
   const page = parseInt(url.searchParams.get('page')) || 1;
   const pageSize = Math.min(Math.max(parseInt(url.searchParams.get('page_size') || url.searchParams.get('limit')) || 20, 1), 100);
-=======
-  const date_from = url.searchParams.get('date_from') || '';
-  const date_to = url.searchParams.get('date_to') || '';
-  const page = parseInt(url.searchParams.get('page')) || 1;
-  const pageSize = parseInt(url.searchParams.get('page_size')) || 20;
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
 
   const offset = (page - 1) * pageSize;
 
@@ -11768,7 +9848,6 @@ async function getOnlineOrders(request, env, headers) {
     sql += " AND o.payment_method = ?"; args.push(payment_method);
     countSql += " AND payment_method = ?"; countArgs.push(payment_method);
   }
-<<<<<<< HEAD
   if (search) {
     sql += " AND (o.customer_name LIKE ? OR o.customer_phone LIKE ? OR CAST(o.id AS TEXT) LIKE ? OR COALESCE(o.invoice_number, '') LIKE ?)";
     args.push(`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`);
@@ -11790,29 +9869,6 @@ async function getOnlineOrders(request, env, headers) {
     args.push(`${nextISODate(date_to)} 00:00:00`);
     countSql += ` AND datetime(order_date) < datetime(?, '${POS_SQL_UTC_SHIFT}')`;
     countArgs.push(`${nextISODate(date_to)} 00:00:00`);
-=======
-  if (search) { 
-    sql += " AND (o.customer_name LIKE ? OR o.customer_phone LIKE ?)"; 
-    args.push(`%${search}%`, `%${search}%`);
-    countSql += " AND (customer_name LIKE ? OR customer_phone LIKE ?)"; 
-    countArgs.push(`%${search}%`, `%${search}%`);
-  }
-  if (date_from && date_to) {
-    sql += " AND DATE(o.order_date) BETWEEN ? AND ?";
-    args.push(date_from, date_to);
-    countSql += " AND DATE(order_date) BETWEEN ? AND ?";
-    countArgs.push(date_from, date_to);
-  } else if (date_from) {
-    sql += " AND DATE(o.order_date) >= ?";
-    args.push(date_from);
-    countSql += " AND DATE(order_date) >= ?";
-    countArgs.push(date_from);
-  } else if (date_to) {
-    sql += " AND DATE(o.order_date) <= ?";
-    args.push(date_to);
-    countSql += " AND DATE(order_date) <= ?";
-    countArgs.push(date_to);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
   }
 
   sql += " ORDER BY o.order_date DESC LIMIT ? OFFSET ?";
@@ -11822,27 +9878,7 @@ async function getOnlineOrders(request, env, headers) {
   const totalResult = await dbFirst(client, countSql, countArgs);
   const totalCount = totalResult ? totalResult.total : 0;
 
-<<<<<<< HEAD
   const orders = rows.map(o => ({ ...o, is_prepaid: isPrepaidOrder(o) ? 1 : 0, expected_cash: getExpectedCashForOrder(o) }));
-=======
-  const orders = rows.map(o => {
-    // ===== إصلاح #10: المبلغ النقدي المطلوب من المندوب — للطلب المختلط هو cash_paid من الفاتورة =====
-    const oTotal = parseFloat(o.total_amount) || 0;
-   let oExpectedCash = 0;
-if (isMixedOrder(o)) {
-    // المبلغ المطلوب مسجل جاهزاً من الفاتورة
-    oExpectedCash = parseFloat(o.cash_paid) || 0;
-} else {
-    // 🌟 إزالة طرح المحفظة: منع المبالغ الوهمية في wallet_paid للطلبات النقدية القديمة
-    oExpectedCash = Math.max(0, oTotal);
-}
-    // إضافة رسوم التوصيل في حال كانت عند الاستلام — يُطبق على جميع الطلبات
-    if (o.delivery_fee_payment === 'عند الاستلام' && o.delivery_fee) {
-        oExpectedCash += parseFloat(o.delivery_fee) || 0;
-    }
-    return { ...o, is_prepaid: isPrepaidOrder(o) ? 1 : 0, expected_cash: oExpectedCash };
-  });
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
   
   return jsonResponse({ 
     orders, 
@@ -11867,10 +9903,7 @@ async function getOnlineOrderDetails(request, env, headers) {
   const logs = await dbAll(client, "SELECT * FROM order_status_log WHERE order_id = ? ORDER BY change_date", [id]);
   order.status_log = logs;
   order.is_prepaid = isPrepaidOrder(order) ? 1 : 0;
-<<<<<<< HEAD
   order.expected_cash = getExpectedCashForOrder(order);
-=======
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
   if (order.online_customer_id) {
     const phones = await dbAll(client, "SELECT phone FROM online_customer_phones WHERE customer_id = ?", [order.online_customer_id]);
     order.customer_phones = phones.map(p => p.phone);
@@ -11952,11 +9985,7 @@ async function updateOrderStatus(request, env, ctx, headers) {
 // ================================================================
 
 async function createOnlineOrder(request, env, ctx, headers, userId) {
-<<<<<<< HEAD
   let {
-=======
-  const {
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
     customer_name,
     customer_phones,
     customer_address,
@@ -11989,7 +10018,6 @@ async function createOnlineOrder(request, env, ctx, headers, userId) {
   if (!customer_address) {
     return jsonResponse({ error: 'عنوان العميل مطلوب' }, 400, headers);
   }
-<<<<<<< HEAD
   if (!Array.isArray(items) || items.length === 0) {
     return jsonResponse({ error: 'السلة فارغة' }, 400, headers);
   }
@@ -12000,11 +10028,6 @@ async function createOnlineOrder(request, env, ctx, headers, userId) {
     if (!Number.isInteger(productId) || productId <= 0 || !Number.isFinite(quantity) || quantity <= 0 || !Number.isFinite(unitPrice) || unitPrice < 0) throw new Error('بيانات المنتج أو السعر أو الكمية غير صالحة');
     return { ...item, product_id: productId, quantity, unit_price: unitPrice };
   });
-=======
-  if (!items || items.length === 0) {
-    return jsonResponse({ error: 'السلة فارغة' }, 400, headers);
-  }
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
 
   const client = getTursoClient(env);
   const baseCurrency = await getBaseCurrency(client);
@@ -12076,7 +10099,6 @@ async function createOnlineOrder(request, env, ctx, headers, userId) {
     }
   }
 
-<<<<<<< HEAD
   // --- حساب الإجمالي من عناصر الطلب على الخادم؛ لا نثق في total_amount القادم من العميل ---
   const deliveryFeeValue = Number(delivery_fee) || 0;
   if (!Number.isFinite(deliveryFeeValue) || deliveryFeeValue < 0) throw new Error('رسوم التوصيل غير صالحة');
@@ -12086,14 +10108,6 @@ async function createOnlineOrder(request, env, ctx, headers, userId) {
   discount_amount = computedDiscountAmount;
   const total = Math.max(0, subtotal - computedDiscountAmount + (delivery_fee_payment === 'مع الطلب' ? deliveryFeeValue : 0));
   delivery_fee = deliveryFeeValue;
-=======
-  // --- حساب الإجمالي ---
-  let total = total_amount || 0;
-  if (!total) {
-    const subtotal = items.reduce((sum, item) => sum + (item.unit_price || 0) * (item.quantity || 0), 0);
-    total = subtotal + delivery_fee;
-  }
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
 
   // --- تطبيع طريقة الدفع وتحديد نوعها ---
   const normalizedPaymentMethod = normalizePaymentMethod(payment_method);
@@ -12195,7 +10209,6 @@ async function createOnlineOrder(request, env, ctx, headers, userId) {
     const allowExpiredNegativeSales = settings.allow_expired_negative_sales !== '0';
 
     // --- تحضير بيانات المنتجات والمخزون ---
-<<<<<<< HEAD
     const productIds = [...new Set(items.map(item => item.product_id).filter(id => Number.isInteger(id) && id > 0))];
     const productPlaceholders = productIds.map(() => '?').join(',');
     let productsMap = {};
@@ -12207,29 +10220,15 @@ async function createOnlineOrder(request, env, ctx, headers, userId) {
     const variantsById = Object.fromEntries(variantRows.map(v => [Number(v.id), v]));
     const variantsByProduct = {};
     for (const variant of variantRows) { (variantsByProduct[variant.product_id] ||= []).push(variant); }
-=======
-    const productIds = items.map(item => item.product_id).filter(id => id);
-    let productsMap = {};
-    if (productIds.length) {
-      const productRows = await dbAll(tx, `SELECT id, stock_quantity, cost, expiry_date FROM products WHERE id IN (${productIds.join(',')})`);
-      productsMap = productRows.reduce((acc, p) => { acc[p.id] = p; return acc; }, {});
-    }
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
 
     let allSupplierStocks = [];
     if (productIds.length) {
       allSupplierStocks = await dbAll(tx, `
         SELECT product_id, id, quantity, supplier_id, last_purchase_price
         FROM product_supplier_stock
-<<<<<<< HEAD
         WHERE product_id IN (${productPlaceholders}) AND quantity > 0
         ORDER BY product_id, id ASC
       `, productIds);
-=======
-        WHERE product_id IN (${productIds.join(',')}) AND quantity > 0
-        ORDER BY product_id, id ASC
-      `);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
     }
     const stockMap = {};
     for (const stock of allSupplierStocks) {
@@ -12237,7 +10236,6 @@ async function createOnlineOrder(request, env, ctx, headers, userId) {
       stockMap[stock.product_id].push(stock);
     }
 
-<<<<<<< HEAD
     // --- التحقق من صلاحية المنتجات والمقاسات ---
     const requiredByVariant = {};
     for (const item of items) {
@@ -12275,22 +10273,6 @@ async function createOnlineOrder(request, env, ctx, headers, userId) {
       for (const [variantId, required] of Object.entries(requiredByVariant)) {
         const variant = variantsById[Number(variantId)];
         if (variant && Number(variant.stock_quantity) < required && !(allowExpiredNegativeSales && isExpiredProductDate(productsMap[variant.product_id]?.expiry_date))) throw new Error(`الكمية الإجمالية المطلوبة للمقاس ${variant.label} غير متوفرة`);
-=======
-    // --- التحقق من صلاحية المنتجات (سعر أقل من التكلفة / مخزون) ---
-    for (const item of items) {
-      if (item.product_id) {
-        const product = productsMap[item.product_id];
-        if (!product) throw new Error(`المنتج ${item.product_id} غير موجود`);
-        if (!product.is_decimal_allowed && !Number.isInteger(Number(item.quantity))) throw new Error(`المنتج ${item.product_id} لا يسمح بالكميات العشرية`);
-        if (Number(item.quantity) <= 0) throw new Error(`الكمية يجب أن تكون أكبر من صفر للمنتج ${item.product_id}`);
-        if (!allowBelowCost && item.unit_price < product.cost) {
-          throw new Error(`سعر البيع أقل من التكلفة للمنتج ${item.product_name}`);
-        }
-        const expiredNegativeAllowed = allowExpiredNegativeSales && isExpiredProductDate(product.expiry_date);
-        if (!allowNegativeStock && !expiredNegativeAllowed && product.stock_quantity < item.quantity) {
-          throw new Error(`الكمية غير كافية للمنتج ${item.product_name}`);
-        }
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
       }
     }
 
@@ -12331,7 +10313,6 @@ async function createOnlineOrder(request, env, ctx, headers, userId) {
     const batchQueries = [];
     let totalCost = 0;
 
-<<<<<<< HEAD
     // إدراج عناصر الطلب وخصم المخزون مع دعم المقاس أو الطقم الكامل
     for (const item of items) {
       const product = productsMap[item.product_id];
@@ -12351,27 +10332,10 @@ async function createOnlineOrder(request, env, ctx, headers, userId) {
         sql: "INSERT INTO online_order_items (order_id, product_id, product_name, quantity, unit_price, line_total, note, discount, variant_id, variant_label, sale_mode) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         args: [orderId, item.product_id || null, displayName, item.quantity, item.unit_price, lineTotal, item.notes || item.note || item.product_note || '', item.discount || 0, selectedVariant?.id || null, variantLabel || null, saleMode]
       });
-=======
-    // إدراج عناصر الطلب
-    for (const item of items) {
-      batchQueries.push({
-        sql: "INSERT INTO online_order_items (order_id, product_id, product_name, quantity, unit_price, line_total, note, discount) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-        args: [orderId, item.product_id || null, item.product_name, item.quantity, item.unit_price, ((item.unit_price - (item.discount || 0)) * item.quantity), item.notes || item.note || item.product_note || '', item.discount || 0]
-      });
-    }
-
-    // خصم المخزون وتسجيل الحركة
-    for (const item of items) {
-      const product = productsMap[item.product_id];
-      if (!product) throw new Error(`المنتج ${item.product_id} غير موجود`);
-      const costPrice = product.cost || 0;
-      totalCost += costPrice * item.quantity;
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
 
       const stocks = stockMap[item.product_id] || [];
       let remaining = item.quantity;
       let supplierId = null;
-<<<<<<< HEAD
       let supplierPrice = unitCost;
       const updateStockQueries = [];
       for (const stock of stocks) {
@@ -12405,52 +10369,14 @@ async function createOnlineOrder(request, env, ctx, headers, userId) {
         referenceType: 'online_order',
         referenceId: orderId,
         note: `طلب إنترنت #${orderId}${variantLabel ? ` — ${variantLabel}` : ''}`,
-=======
-      let supplierPrice = costPrice;
-      const updateStockQueries = [];
-
-      for (const stock of stocks) {
-        if (remaining <= 0) break;
-        const deductQty = Math.min(stock.quantity, remaining);
-        updateStockQueries.push({
-          sql: "UPDATE product_supplier_stock SET quantity = quantity - ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
-          args: [deductQty, stock.id]
-        });
-        if (!supplierId) {
-          supplierId = stock.supplier_id;
-          supplierPrice = stock.last_purchase_price || costPrice;
-        }
-        remaining -= deductQty;
-      }
-
-      if (remaining > 0 && !allowNegativeStock) {
-        throw new Error(`الكمية غير كافية للمنتج ${item.product_name}`);
-      }
-
-      batchQueries.push(...updateStockQueries);
-
-      await applyStockChange(tx, batchQueries, {
-        productId: item.product_id,
-        supplierId,
-        delta: -item.quantity,
-        referenceType: 'online_order',
-        referenceId: orderId,
-        note: `طلب إنترنت #${orderId}`,
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
         userId,
         stockCache
       });
 
       batchQueries.push({
-<<<<<<< HEAD
         sql: `INSERT INTO sale_items (sale_id, product_id, quantity, unit_price, total_price, cost_price, supplier_id, supplier_price, discount, variant_id, variant_label)
               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         args: [saleId, item.product_id, item.quantity, item.unit_price, lineTotal, unitCost, supplierId, supplierPrice, item.discount || 0, selectedVariant?.id || null, variantLabel || null]
-=======
-        sql: `INSERT INTO sale_items (sale_id, product_id, quantity, unit_price, total_price, cost_price, supplier_id, supplier_price, discount)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        args: [saleId, item.product_id, item.quantity, item.unit_price, ((item.unit_price - (item.discount || 0)) * item.quantity), costPrice, supplierId, supplierPrice, item.discount || 0]
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
       });
     }
 
@@ -12478,11 +10404,7 @@ async function createOnlineOrder(request, env, ctx, headers, userId) {
     });
 
     // --- القيود المحاسبية ---
-<<<<<<< HEAD
     const entryDate = businessISODate();
-=======
-    const entryDate = new Date().toISOString().split('T')[0];
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
     if (isPrepaid && saleStatus === 'completed') {
       const desc = `فاتورة مبيعات ${invoiceNumber} (طلب إنترنت #${orderId}) مدفوع مسبقاً`;
       const journalDetails = [];
@@ -12490,14 +10412,7 @@ async function createOnlineOrder(request, env, ctx, headers, userId) {
       const baseAmount = convertToBase(walletPaid, rate);
       if (walletPaid > 0) {
         journalDetails.push({ account_id: walletAccountId, debit: baseAmount, credit: 0 });
-<<<<<<< HEAD
         await ensureWalletBalance(tx, walletId, useCurrencyId);
-=======
-        batchQueries.push({
-          sql: "INSERT OR IGNORE INTO wallet_balances (wallet_id, currency_id, balance) VALUES (?, ?, 0)",
-          args: [walletId, useCurrencyId]
-        });
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
         batchQueries.push({
           sql: "UPDATE wallet_balances SET balance = balance + ? WHERE wallet_id = ? AND currency_id = ?",
           args: [walletPaid, walletId, useCurrencyId]
@@ -12652,11 +10567,7 @@ async function createOnlineOrder(request, env, ctx, headers, userId) {
 }
 
 async function updateOnlineOrder(request, env, ctx, headers, orderId, userId) {
-<<<<<<< HEAD
   let {
-=======
-  const {
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
     customer_name,
     customer_phones,
     customer_address,
@@ -12685,7 +10596,6 @@ async function updateOnlineOrder(request, env, ctx, headers, orderId, userId) {
   if (!orderId) {
     return jsonResponse({ error: 'معرف الطلب مطلوب' }, 400, headers);
   }
-<<<<<<< HEAD
   if (!Array.isArray(items) || items.length === 0) {
     return jsonResponse({ error: 'السلة فارغة' }, 400, headers);
   }
@@ -12702,14 +10612,6 @@ async function updateOnlineOrder(request, env, ctx, headers, orderId, userId) {
 
   const client = getTursoClient(env);
   await checkIfClosed(client, businessISODate());
-=======
-  if (!items || items.length === 0) {
-    return jsonResponse({ error: 'السلة فارغة' }, 400, headers);
-  }
-
-  const client = getTursoClient(env);
-  await checkIfClosed(client, new Date().toISOString().slice(0, 10));
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
   const baseCurrency = await getBaseCurrency(client);
   if (!baseCurrency) {
     return jsonResponse({ error: 'لا توجد عملة أساسية' }, 400, headers);
@@ -12750,14 +10652,11 @@ async function updateOnlineOrder(request, env, ctx, headers, orderId, userId) {
     return jsonResponse({ error: 'الطلب غير موجود' }, 400, headers);
   }
 
-<<<<<<< HEAD
   const blockedEditStatuses = new Set(['تم التسليم', 'تم التوصيل', 'فشل التسليم', 'فشل', 'delivered', 'failed', 'failed_delivery', 'delivery_failed']);
   if (blockedEditStatuses.has(String(existingOrder.status || '').trim().toLowerCase())) {
     return jsonResponse({ error: 'لا يمكن تعديل طلب تم توصيله أو فشل تسليمه' }, 409, headers);
   }
 
-=======
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
   const sale = await dbFirst(client, "SELECT * FROM sales WHERE id = ?", [existingOrder.accounting_invoice_id]);
   if (!sale) {
     return jsonResponse({ error: 'الفاتورة غير موجودة' }, 400, headers);
@@ -12775,7 +10674,6 @@ async function updateOnlineOrder(request, env, ctx, headers, orderId, userId) {
     const allowExpiredNegativeSales = settings.allow_expired_negative_sales !== '0';
 
     // ===== إصلاح TDZ: تعريف المتغيرات في بداية النطاق قبل أي استخدام =====
-<<<<<<< HEAD
     // إعادة حساب الإجمالي من البيانات المطَبَّعة على الخادم؛ تجاهل total_amount القادم من العميل.
     const deliveryFeeValue = Number(delivery_fee) || 0;
     if (!Number.isFinite(deliveryFeeValue) || deliveryFeeValue < 0) throw new Error('رسوم التوصيل غير صالحة');
@@ -12785,9 +10683,6 @@ async function updateOnlineOrder(request, env, ctx, headers, orderId, userId) {
     discount_amount = computedDiscountAmount;
     const total = Math.max(0, subtotal - computedDiscountAmount + (delivery_fee_payment === 'مع الطلب' ? deliveryFeeValue : 0));
     delivery_fee = deliveryFeeValue;
-=======
-    const total = total_amount || items.reduce((sum, item) => sum + (item.unit_price * item.quantity), 0) + delivery_fee;
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
     const normalizedPaymentMethod = normalizePaymentMethod(payment_method);
     const isPrepaid = normalizedPaymentMethod === 'مدفوع مسبقاً';
     // تهيئة أولية لبقية المتغيرات حتى يمكن استخدامها في أي مكان لاحق داخل النطاق
@@ -12795,18 +10690,11 @@ async function updateOnlineOrder(request, env, ctx, headers, orderId, userId) {
     let saleStatus = isPrepaid ? 'completed' : 'pending';
     let salePaymentMethod = isPrepaid ? 'wallet' : 'pending';
 
-<<<<<<< HEAD
     const newProductIds = [...new Set(items.map(item => item.product_id).filter(id => Number.isInteger(id) && id > 0))];
     const newProductPlaceholders = newProductIds.map(() => '?').join(',');
     let productsMap = {};
     if (newProductIds.length) {
       const productRows = await dbAll(tx, `SELECT id, stock_quantity, cost, expiry_date FROM products WHERE id IN (${newProductPlaceholders})`, newProductIds);
-=======
-    const newProductIds = items.map(item => item.product_id).filter(id => id);
-    let productsMap = {};
-    if (newProductIds.length) {
-      const productRows = await dbAll(tx, `SELECT id, stock_quantity, cost, expiry_date FROM products WHERE id IN (${newProductIds.join(',')})`);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
       productsMap = productRows.reduce((acc, p) => { acc[p.id] = p; return acc; }, {});
     }
 
@@ -12815,15 +10703,9 @@ async function updateOnlineOrder(request, env, ctx, headers, orderId, userId) {
       allSupplierStocks = await dbAll(tx, `
         SELECT product_id, id, quantity, supplier_id, last_purchase_price
         FROM product_supplier_stock
-<<<<<<< HEAD
         WHERE product_id IN (${newProductPlaceholders}) AND quantity > 0
         ORDER BY product_id, id ASC
       `, newProductIds);
-=======
-        WHERE product_id IN (${newProductIds.join(',')}) AND quantity > 0
-        ORDER BY product_id, id ASC
-      `);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
     }
     const stockMap = {};
     for (const stock of allSupplierStocks) {
@@ -12927,7 +10809,6 @@ async function updateOnlineOrder(request, env, ctx, headers, orderId, userId) {
       );
     }
 
-<<<<<<< HEAD
     // لا نحذف القيود التاريخية عند تعديل الطلب؛ ننشئ قيودًا عكسية ثم نسجل القيود الجديدة.
     const oldJournalEntries = await dbAll(tx,
       "SELECT id, reference_type FROM journal_entries WHERE (reference_type IN ('sale', 'sale_cogs') AND reference_id = ?) OR (reference_type = 'online_order' AND reference_id = ?) ORDER BY id",
@@ -12944,13 +10825,6 @@ async function updateOnlineOrder(request, env, ctx, headers, orderId, userId) {
       }));
       await createJournalEntry(tx, businessISODate(), `عكس قيد سابق لتعديل الطلب #${orderId}`, reversalDetails, 'update_online_order_reversal', orderId);
     }
-=======
-    // حذف القيود القديمة
-    await dbRun(tx, "DELETE FROM journal_entry_details WHERE entry_id IN (SELECT id FROM journal_entries WHERE reference_type IN ('sale','sale_cogs') AND reference_id = ?)", [sale.id]);
-    await dbRun(tx, "DELETE FROM journal_entries WHERE reference_type IN ('sale','sale_cogs') AND reference_id = ?", [sale.id]);
-    await dbRun(tx, "DELETE FROM journal_entry_details WHERE entry_id IN (SELECT id FROM journal_entries WHERE reference_type = 'online_order' AND reference_id = ?)", [orderId]);
-    await dbRun(tx, "DELETE FROM journal_entries WHERE reference_type = 'online_order' AND reference_id = ?", [orderId]);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
 
     // ===== إصلاح #9 (تعديل الطلب): حماية مستقبلية لمسار الدفع الآجل عند تعديل الطلب أونلاين =====
     if (!isPrepaid && (normalizedPaymentMethod || '').toLowerCase().includes('credit')) {
@@ -12999,10 +10873,7 @@ if (isMixedUpdate) {
       walletPaid = convertFromBase(total, walletRate);
       walletId = prepaid_wallet_id;
       if (!walletId) throw new Error('معرف المحفظة مطلوب للدفع المسبق');
-<<<<<<< HEAD
       await ensureWalletBalance(tx, walletId, useCurrencyId);
-=======
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
       await dbRun(tx, "UPDATE wallet_balances SET balance = balance + ? WHERE wallet_id = ? AND currency_id = ?", [walletPaid, walletId, useCurrencyId]);
       await dbRun(tx, "INSERT INTO wallet_transactions (wallet_id, type, amount, currency_id, description, reference_id) VALUES (?, 'deposit', ?, ?, ?, ?)",
         [walletId, walletPaid, useCurrencyId, `تحديث طلب #${orderId}`, sale.id]);
@@ -13099,11 +10970,7 @@ if (isMixedUpdate) {
       args: [profit, totalCost, sale.id]
     });
 
-<<<<<<< HEAD
     const entryDate = businessISODate();
-=======
-    const entryDate = new Date().toISOString().split('T')[0];
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
     if (isPrepaid && saleStatus === 'completed') {
       const desc = `فاتورة مبيعات ${sale.invoice_number} (طلب إنترنت #${orderId}) مدفوع مسبقاً`;
       const journalDetails = [];
@@ -13240,12 +11107,7 @@ if (isMixedUpdate) {
 // ==================== Router الرئيسي =============================
 // ================================================================
 
-<<<<<<< HEAD
 async function handleRequest(request, env, ctx) {
-=======
-export default {
-  async fetch(request, env, ctx) {
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
     if (request.method === 'OPTIONS') {
       return new Response(null, { headers: corsHeaders });
     }
@@ -13261,7 +11123,6 @@ export default {
 
     // ---- نقاط عامة بدون مصادقة ----
     if (path === '/auth/login' && method === 'POST') return await handleLogin(request, env, corsHeaders);
-<<<<<<< HEAD
     if (path === '/auth/me' && method === 'GET') {
       const sessionUser = await getCurrentUserWithPermissions(request, env);
       if (!sessionUser) return jsonResponse({ error: 'الجلسة غير صالحة أو انتهت' }, 401, corsHeaders);
@@ -13277,12 +11138,6 @@ export default {
       const backupUser = await getCurrentUser(request, env);
       if (!backupUser) return jsonResponse({ error: 'غير مصرح' }, 401, corsHeaders);
       if (backupUser.role !== 'admin') return jsonResponse({ error: 'تتطلب صلاحية مدير' }, 403, corsHeaders);
-=======
-
-    if (path === '/export-data' && method === 'GET') {
-      const auth = await verifyToken(request, env);
-      if (!auth) return jsonResponse({ error: 'غير مصرح' }, 401, corsHeaders);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
       try {
         const client = getTursoClient(env);
         const tablesResult = await client.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE 'libsql_%'");
@@ -13300,41 +11155,28 @@ export default {
     }
 
     if (path === '/test-notification' && method === 'POST') {
-<<<<<<< HEAD
       const notificationUser = await getCurrentUserWithPermissions(request, env);
       if (!notificationUser) return jsonResponse({ error: 'غير مصرح' }, 401, corsHeaders);
       if (!permissionMatches(notificationUser.permissions, 'notifications.test')) return jsonResponse({ error: 'لا تملك الصلاحية اللازمة لهذه العملية' }, 403, corsHeaders);
-=======
-      if (!(await verifyToken(request, env))) return jsonResponse({ error: 'غير مصرح' }, 401, corsHeaders);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
       try {
         const { title, body, link } = await request.json();
         const result = await sendFCMNotification(env, title, body, null, link);
         return jsonResponse(result, result.success ? 200 : 500, corsHeaders);
       } catch (e) {
-<<<<<<< HEAD
         console.error('فشل اختبار الإشعار:', e);
         return jsonResponse({ error: e.message || 'فشل تنفيذ اختبار الإشعار' }, 500, corsHeaders);
-=======
-        return jsonResponse({ error: e.message, stack: e.stack }, 500, corsHeaders);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
       }
     }
 
     if (path === '/test-admin-notification' && method === 'POST') {
-<<<<<<< HEAD
       const notificationUser = await getCurrentUser(request, env);
       if (!notificationUser) return jsonResponse({ error: 'غير مصرح' }, 401, corsHeaders);
       if (notificationUser.role !== 'admin') return jsonResponse({ error: 'تتطلب صلاحية مدير' }, 403, corsHeaders);
-=======
-      if (!(await verifyToken(request, env))) return jsonResponse({ error: 'غير مصرح' }, 401, corsHeaders);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
       try {
         const { title, body, link } = await request.json();
         const result = await sendAdminFCMNotification(env, title, body, link);
         return jsonResponse(result, result.success ? 200 : 500, corsHeaders);
       } catch (e) {
-<<<<<<< HEAD
         console.error('فشل اختبار الإشعار:', e);
         return jsonResponse({ error: e.message || 'فشل تنفيذ اختبار الإشعار' }, 500, corsHeaders);
       }
@@ -13343,13 +11185,6 @@ export default {
       const notificationUser = await getCurrentUser(request, env);
       if (!notificationUser) return jsonResponse({ error: 'غير مصرح' }, 401, corsHeaders);
       if (notificationUser.role !== 'admin') return jsonResponse({ error: 'تتطلب صلاحية مدير' }, 403, corsHeaders);
-=======
-        return jsonResponse({ error: e.message, stack: e.stack }, 500, corsHeaders);
-      }
-    }
-    if (path === '/fcm-tokens' && method === 'GET') {
-      if (!(await verifyToken(request, env))) return jsonResponse({ error: 'غير مصرح' }, 401, corsHeaders);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
       const client = getTursoClient(env);
       const driverTokens = await dbAll(client, "SELECT id, driver_id, token, created_at FROM fcm_tokens");
       const adminTokens = await dbAll(client, "SELECT id, token, created_at FROM admin_fcm_tokens");
@@ -13360,19 +11195,15 @@ export default {
     const auth = await verifyToken(request, env);
     if (!auth) return jsonResponse({ error: 'غير مصرح' }, 401, corsHeaders);
     const currentUser = await getCurrentUser(request, env);
-<<<<<<< HEAD
     if (!currentUser) return jsonResponse({ error: 'الجلسة غير صالحة أو انتهت' }, 401, corsHeaders);
     const requiredPermission = routePermission(path, method);
     const currentPermissions = await loadUserPermissions(getTursoClient(env), currentUser.id, currentUser.role);
     const hasRequiredPermission = !requiredPermission || permissionMatches(currentPermissions, requiredPermission);
     if (!hasRequiredPermission) return jsonResponse({ error: 'لا تملك الصلاحية اللازمة لهذه العملية', required_permission: requiredPermission }, 403, corsHeaders);
-=======
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
     const isAdmin = currentUser?.role === 'admin';
     const isDriver = currentUser?.role === 'driver';
 
     try {
-<<<<<<< HEAD
       if (path === '/audit-logs/users' && method === 'GET') return await getAuditLogUsers(request, env, corsHeaders);
       if (path === '/audit-logs' && method === 'GET') return await getAuditLogs(request, env, corsHeaders);
       if (path === '/audit-logs/export' && method === 'GET') return await exportAuditLogs(request, env, corsHeaders);
@@ -13382,11 +11213,6 @@ export default {
       if (path.match(/^\/products\/\d+\/variants\/?$/) && method === 'GET') {
         return await getProductVariants(request, env, corsHeaders);
       }
-=======
-      if (path.match(/^\/products\/\d+\/stock-movements\/?$/) && method === 'GET') {
-  return await getProductStockMovements(request, env, corsHeaders);
-}
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
       // استعادة نسخة قاعدة البيانات — مدير فقط
       if (path === '/import-data' && method === 'POST') {
         if (!isAdmin) return jsonResponse({ error: 'تتطلب صلاحية مدير' }, 403, corsHeaders);
@@ -13427,12 +11253,6 @@ export default {
 
       // ===== تحديث طلب إنترنت (مع ctx) =====
       if (path.match(/^\/online-orders\/\d+\/?$/) && method === 'PUT') {
-<<<<<<< HEAD
-=======
-        if (!isAdmin && currentUser?.role !== 'cashier') {
-          return jsonResponse({ error: 'غير مصرح' }, 403, corsHeaders);
-        }
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
         const orderId = parseInt(path.split('/').pop(), 10);
         const __routeUser = await getCurrentUser(request, env);
         const __userId = __routeUser ? __routeUser.id : null;
@@ -13483,14 +11303,10 @@ export default {
       if (path.match(/^\/categories\/\d+\/?$/) && method === 'PUT') return await updateCategory(request, env, corsHeaders);
       if (path.match(/^\/categories\/\d+\/?$/) && method === 'DELETE') return await deleteCategory(request, env, corsHeaders);
 
-<<<<<<< HEAD
       if (path === '/operations/product-invoices' && method === 'GET') return await getProductInvoiceHistory(request, env, corsHeaders);
 
       // المنتجات
       if (path === '/products/export-negative-csv' && method === 'GET') return await exportNegativeStockCSV(request, env, corsHeaders);
-=======
-      // المنتجات
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
       if (path.match(/^\/products\/?$/) && method === 'GET') return await getProducts(request, env, corsHeaders);
       if (path.match(/^\/products\/?$/) && method === 'POST') return await addProduct(request, env, corsHeaders);
       if (path.match(/^\/products\/\d+\/?$/) && method === 'PUT') return await updateProduct(request, env, corsHeaders);
@@ -13532,10 +11348,7 @@ export default {
         if (!isAdmin) return jsonResponse({ error: 'تتطلب صلاحية مدير' }, 403, corsHeaders);
         return await assignProductsToSupplier(request, env, corsHeaders);
       }
-<<<<<<< HEAD
       if (path.match(/^\/suppliers\/returns\/\d+\/?$/) && method === 'GET') return await getSupplierReturnDetail(request, env, corsHeaders);
-=======
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
       if (path === '/suppliers/remaining-stock' && method === 'GET') {
         if (!isAdmin) return jsonResponse({ error: 'تتطلب صلاحية مدير' }, 403, corsHeaders);
         return await getSupplierRemainingStock(request, env, corsHeaders);
@@ -13552,11 +11365,7 @@ export default {
         return await createSale(request, env, ctx, corsHeaders, __userId);
       }
       if (path === '/sales' && method === 'GET') return await getSales(request, env, corsHeaders);
-<<<<<<< HEAD
       if (path.match(/^\/sales\/(?:\d+|INV-\d+)\/?$/i) && method === 'GET') return await getSaleDetails(request, env, corsHeaders);
-=======
-      if (path.match(/^\/sales\/\d+\/?$/) && method === 'GET') return await getSaleDetails(request, env, corsHeaders);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
       if (path.match(/^\/sales\/\d+\/?$/) && method === 'PUT') {
         const __routeUser = await getCurrentUser(request, env);
         const __userId = __routeUser ? __routeUser.id : null;
@@ -13570,11 +11379,7 @@ export default {
         return await createPurchase(request, env, corsHeaders, __userId);
       }
       if (path === '/purchases' && method === 'GET') return await getPurchases(request, env, corsHeaders);
-<<<<<<< HEAD
       if (path.match(/^\/purchases\/(?:\d+|PUR-\d+)\/?$/i) && method === 'GET') return await getPurchaseDetails(request, env, corsHeaders);
-=======
-      if (path.match(/^\/purchases\/\d+\/?$/) && method === 'GET') return await getPurchaseDetails(request, env, corsHeaders);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
       if (path.match(/^\/purchases\/\d+\/?$/) && method === 'PUT') return await updatePurchaseInvoice(request, env, corsHeaders);
 
       // المصروفات
@@ -13585,13 +11390,9 @@ export default {
       if (path === '/cash' && method === 'GET') return await getCashStatus(request, env, corsHeaders);
       if (path === '/cash' && method === 'POST') return await addCashOperation(request, env, corsHeaders);
       if (path === '/cash/history' && method === 'GET') return await getCashHistory(request, env, corsHeaders);
-<<<<<<< HEAD
       if (path === '/cash/transactions' && method === 'GET') return await getCashTransactions(request, env, corsHeaders);
       if (path === '/cash/balance' && method === 'GET') return await getCashBalance(request, env, corsHeaders);
       if (path === '/cash/exchange' && method === 'POST') return await transferBetweenWallets(request, env, corsHeaders);
-=======
-      if (path === '/cash/balance' && method === 'GET') return await getCashBalance(request, env, corsHeaders);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
 
       // المحافظ
       if (path === '/wallets' && method === 'GET') return await getWallets(request, env, corsHeaders);
@@ -13600,7 +11401,6 @@ export default {
       if (path === '/wallets/transfer' && method === 'POST') return await transferBetweenWallets(request, env, corsHeaders);
       if (path === '/wallets/transactions' && method === 'GET') return await getWalletTransactions(request, env, corsHeaders);
 
-<<<<<<< HEAD
       // التأسيس المحاسبي والجرد (للمدير فقط)
       if (path === '/accounting/initialize' && method === 'POST') {
         if (!isAdmin) return jsonResponse({ error: 'تتطلب صلاحية مدير' }, 403, corsHeaders);
@@ -13613,8 +11413,6 @@ export default {
         return await adjustInventory(request, env, corsHeaders, __routeUser?.id);
       }
 
-=======
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
       // الحسابات والقيد
       if (path === '/accounts' && method === 'GET') return await getAccounts(request, env, corsHeaders);
       if (path === '/accounts' && method === 'POST') return await createAccount(request, env, corsHeaders);
@@ -13626,10 +11424,7 @@ export default {
       if (path === '/reports/trial-balance' && method === 'GET') return await getTrialBalance(request, env, corsHeaders);
       if (path === '/reports/income-statement' && method === 'GET') return await getIncomeStatement(request, env, corsHeaders);
       if (path === '/reports/balance-sheet' && method === 'GET') return await getBalanceSheet(request, env, corsHeaders);
-<<<<<<< HEAD
       if (path === '/reports/opening-movement-closing' && method === 'GET') return await getOpeningMovementClosingReport(request, env, corsHeaders);
-=======
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
       if (path === '/reports/export' && method === 'GET') return await exportReport(request, env, corsHeaders);
 
       if (path === '/reports/top-products' && method === 'GET') return await getTopSellingProducts(request, env, corsHeaders);
@@ -13638,12 +11433,9 @@ export default {
       if (path === '/reports/monthly-trends' && method === 'GET') return await getMonthlyTrends(request, env, corsHeaders);
       if (path === '/reports/driver-performance' && method === 'GET') return await getDriverPerformance(request, env, corsHeaders);
       if (path === '/reports/aging' && method === 'GET') return await getAgingReport(request, env, corsHeaders);
-<<<<<<< HEAD
       if (path === '/reports/payment-mix' && method === 'GET') return await getPaymentMixReport(request, env, corsHeaders);
       if (path === '/reports/online-order-status' && method === 'GET') return await getOnlineOrderStatusReport(request, env, corsHeaders);
       if (path === '/reports/stock-alerts' && method === 'GET') return await getStockAlertsReport(request, env, corsHeaders);
-=======
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
       if (path === '/accounting/close-year' && method === 'POST') { if (!isAdmin) return jsonResponse({ error: 'تتطلب صلاحية مدير' }, 403, corsHeaders); const u = await getCurrentUser(request, env); return await closeAccountingYear(request, env, corsHeaders, u?.id); }
       if (path === '/accounting/reopen' && method === 'POST') { if (!isAdmin) return jsonResponse({ error: 'تتطلب صلاحية مدير' }, 403, corsHeaders); const u = await getCurrentUser(request, env); return await reopenAccounting(request, env, corsHeaders, u?.id); }
       // الإعدادات
@@ -13704,20 +11496,13 @@ export default {
         return await undoCancelPurchaseInvoice(request, env, corsHeaders, __userId);
       }
       if (path === '/online-orders/cancel' && method === 'POST') {
-<<<<<<< HEAD
-=======
-        if (!isAdmin) return jsonResponse({ error: 'تتطلب صلاحية مدير' }, 403, corsHeaders);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
         const __routeUser = await getCurrentUser(request, env);
         const __userId = __routeUser ? __routeUser.id : null;
         return await cancelOnlineOrder(request, env, corsHeaders, __userId);
       }
 
       // سندات القبض والصرف
-<<<<<<< HEAD
       if (path === '/vouchers/all' && method === 'GET') return await getUnifiedVouchers(request, env, corsHeaders);
-=======
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
       if (path === '/cash/voucher' && method === 'POST') {
         if (!isAdmin) return jsonResponse({ error: 'تتطلب صلاحية مدير' }, 403, corsHeaders);
         return await addCashVoucher(request, env, corsHeaders);
@@ -13731,7 +11516,6 @@ export default {
         return await cancelCashVoucher(request, env, corsHeaders);
       }
 
-<<<<<<< HEAD
       // مزامنة مخزون المتجر المرتبط – المدير فقط
       if (path === '/api/stock-sync/status' && method === 'GET') {
         if (!isAdmin) return jsonResponse({ error: 'تتطلب صلاحية مدير' }, 403, corsHeaders);
@@ -13751,19 +11535,14 @@ export default {
         return jsonResponse({ success: true, frequency }, 200, corsHeaders);
       }
 
-=======
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
       // المزامنة والربط
       if (path === '/api/pending-products' && method === 'GET') return await getPendingProducts(request, env, corsHeaders);
       if (path === '/api/confirm-product-publish' && method === 'POST') return await confirmProductPublish(request, env, corsHeaders);
       if (path === '/api/link-product' && method === 'POST') return await linkProduct(request, env, corsHeaders);
-<<<<<<< HEAD
       if (path === '/api/link-product-by-code' && method === 'POST') {
         if (!isAdmin) return jsonResponse({ error: 'تتطلب صلاحية مدير' }, 403, corsHeaders);
         return await linkProductByCode(request, env, corsHeaders);
       }
-=======
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
       if (path === '/api/add-pending-product' && method === 'POST') return await addPendingProduct(request, env, corsHeaders);
       if (path === '/api/skip-pending-product' && method === 'POST') return await skipPendingProduct(request, env, corsHeaders);
       if (path === '/api/pos-products-unlinked' && method === 'GET') return await getUnlinkedProducts(request, env, corsHeaders);
@@ -13774,15 +11553,11 @@ export default {
       // التقارير المتقدمة
       if (path === '/reports/sales-by-category' && method === 'GET') return await getSalesByCategory(request, env, corsHeaders);
       if (path === '/reports/profits-by-category' && method === 'GET') return await getProfitsByCategory(request, env, corsHeaders);
-<<<<<<< HEAD
       if (path === '/reports/department-pnl' && method === 'GET') return await getDepartmentPnl(request, env, corsHeaders);
-=======
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
       if (path === '/reports/inventory-by-category' && method === 'GET') return await getInventoryByCategory(request, env, corsHeaders);
 
       // المندوبين
       if (path.match(/^\/drivers\/?$/) && method === 'GET') {
-<<<<<<< HEAD
         return await getDrivers(request, env, corsHeaders);
       }
       if (path.match(/^\/drivers\/?$/) && method === 'POST') {
@@ -13807,33 +11582,6 @@ export default {
         return await recordDriverPayment(request, env, corsHeaders);
       }
       if (path === '/drivers/transactions' && method === 'GET') {
-=======
-        if (!isAdmin) return jsonResponse({ error: 'تتطلب صلاحية مدير' }, 403, corsHeaders);
-        return await getDrivers(request, env, corsHeaders);
-      }
-      if (path.match(/^\/drivers\/?$/) && method === 'POST') {
-        if (!isAdmin) return jsonResponse({ error: 'تتطلب صلاحية مدير' }, 403, corsHeaders);
-        return await createDriver(request, env, corsHeaders);
-      }
-      if (path.match(/^\/drivers\/\d+\/?$/) && method === 'PUT') {
-        if (!isAdmin) return jsonResponse({ error: 'تتطلب صلاحية مدير' }, 403, corsHeaders);
-        return await updateDriver(request, env, corsHeaders);
-      }
-      if (path.match(/^\/drivers\/\d+\/?$/) && method === 'DELETE') {
-        if (!isAdmin) return jsonResponse({ error: 'تتطلب صلاحية مدير' }, 403, corsHeaders);
-        return await deleteDriver(request, env, corsHeaders);
-      }
-      if (path === '/drivers/summary' && method === 'GET') {
-        if (!isAdmin) return jsonResponse({ error: 'تتطلب صلاحية مدير' }, 403, corsHeaders);
-        return await getDriversSummary(request, env, corsHeaders);
-      }
-      if (path === '/drivers/payment' && method === 'POST') {
-        if (!isAdmin) return jsonResponse({ error: 'تتطلب صلاحية مدير' }, 403, corsHeaders);
-        return await recordDriverPayment(request, env, corsHeaders);
-      }
-      if (path === '/drivers/transactions' && method === 'GET') {
-        if (!isAdmin) return jsonResponse({ error: 'تتطلب صلاحية مدير' }, 403, corsHeaders);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
         return await getDriverTransactions(request, env, corsHeaders);
       }
 
@@ -13847,17 +11595,9 @@ export default {
       if (path.match(/^\/online-orders\/\d+\/?$/) && method === 'GET') return await getOnlineOrderDetails(request, env, corsHeaders);
       if (path === '/online-customers/by-phone' && method === 'GET') return await getOnlineCustomerByPhone(request, env, corsHeaders);
       if (path === '/online-orders/assign-driver' && method === 'POST') {
-<<<<<<< HEAD
         return await assignDriverToOrder(request, env, ctx, corsHeaders);
       }
       if (path === '/online-orders/update-status' && method === 'POST') {
-=======
-        if (!isAdmin) return jsonResponse({ error: 'تتطلب صلاحية مدير' }, 403, corsHeaders);
-        return await assignDriverToOrder(request, env, ctx, corsHeaders);
-      }
-      if (path === '/online-orders/update-status' && method === 'POST') {
-        if (!isAdmin) return jsonResponse({ error: 'تتطلب صلاحية مدير' }, 403, corsHeaders);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
         return await updateOrderStatus(request, env, ctx, corsHeaders);
       }
 
@@ -13916,10 +11656,7 @@ export default {
 
       // ===== تسجيل FCM =====
       if (path === '/api/register-fcm-token' && method === 'POST') {
-<<<<<<< HEAD
         if (!isAdmin && !isDriver) return jsonResponse({ error: 'تتطلب صلاحية مندوب أو مدير' }, 403, corsHeaders);
-=======
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
         try {
           const { token, driver_id, device_info } = await request.json();
           if (!token) {
@@ -13927,16 +11664,12 @@ export default {
           }
 
           const client = getTursoClient(env);
-<<<<<<< HEAD
           let driverId = driver_id == null || driver_id === '' ? null : Number(driver_id);
           if (driverId !== null && (!Number.isInteger(driverId) || driverId <= 0)) return jsonResponse({ error: 'معرف المندوب غير صالح' }, 400, corsHeaders);
           if (isDriver) {
             if (driverId !== null && driverId !== Number(currentUser.id)) return jsonResponse({ error: 'لا يمكنك تسجيل توكن لمندوب آخر' }, 403, corsHeaders);
             driverId = Number(currentUser.id);
           }
-=======
-          const driverId = driver_id ? parseInt(driver_id, 10) : null;
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
 
           // 1. تحقق من وجود التوكن مسبقاً
           const existing = await dbFirst(client, "SELECT id FROM fcm_tokens WHERE token = ?", [token]);
@@ -13962,23 +11695,13 @@ export default {
 
         } catch (error) {
           console.error('❌ خطأ في تسجيل FCM:', error);
-<<<<<<< HEAD
           console.error('فشل تسجيل FCM:', error);
           return jsonResponse({ error: error.message || 'فشل تسجيل التوكن' }, 500, corsHeaders);
-=======
-          return jsonResponse({
-            error: error.message || 'فشل تسجيل التوكن',
-            stack: error.stack
-          }, 500, corsHeaders);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
         }
       }
 
       if (path === '/api/register-admin-fcm-token' && method === 'POST') {
-<<<<<<< HEAD
         if (!isAdmin) return jsonResponse({ error: 'تتطلب صلاحية مدير' }, 403, corsHeaders);
-=======
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
         const { token, device_info } = await request.json();
         if (!token) return jsonResponse({ error: 'التوكن مطلوب' }, 400, corsHeaders);
         const client = getTursoClient(env);
@@ -13993,7 +11716,6 @@ export default {
       return jsonResponse({ error: 'المسار غير موجود' }, 404, corsHeaders);
     } catch (error) {
       console.error('خطأ:', error);
-<<<<<<< HEAD
       return jsonResponse({ error: 'حدث خطأ داخلي في الخادم' }, 500, corsHeaders);
     }
   }
@@ -14130,17 +11852,3 @@ export default {
   },
   scheduled
 };
-=======
-      return jsonResponse({ error: error.message || 'خطأ داخلي في الخادم' }, 500, corsHeaders);
-    }
-  },
-
-  async scheduled(event, env, ctx) {
-    console.log("⏰ تم تشغيل المجدول في:", new Date().toISOString());
-    ctx.waitUntil((async () => {
-      await sendDailySummary(env);
-      try { const c = getTursoClient(env); await updateDailyProductStats(c); await updateMonthlySummary(c); await updateAgingSummary(c); } catch (e) { console.error('فشل تحديث الجداول الملخصة:', e.message); }
-    })());
-  }
-};
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0

@@ -868,13 +868,8 @@
                     <button class="btn btn-primary btn-sm" onclick="printInvoice()"><i class="fas fa-print"></i> طباعة</button>
                     <button class="btn btn-danger btn-sm" id="modalCancelBtn" onclick="cancelInvoice()"><i class="fas fa-times"></i> إلغاء الفاتورة</button>
                     <button class="btn btn-warning btn-sm" id="modalReturnBtn" onclick="returnInvoice()"><i class="fas fa-undo"></i> إرجاع</button>
-<<<<<<< HEAD
                     
                     
-=======
-                    <button class="btn btn-outline btn-sm no-print" onclick="exportSalesInvoicePDF()"><i class="fas fa-file-pdf"></i> PDF</button>
-                    <button class="btn btn-outline btn-sm no-print" onclick="exportSalesInvoiceExcel()"><i class="fas fa-file-excel"></i> Excel</button>
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
                 </div>
             </div>
         </div>
@@ -1078,7 +1073,6 @@
         //  STATS
         // ============================================================
         function updateStats() {
-<<<<<<< HEAD
             const total = Number(salesMeta.count ?? salesMeta.total ?? filteredSales.length);
             const activeSales = filteredSales.filter(s => !['cancelled', 'returned'].includes(s.status));
             const revenue = Number(salesMeta.revenue ?? activeSales.reduce((sum, s) => sum + Number(s.total_amount || 0), 0));
@@ -1086,15 +1080,6 @@
             const today = POSDate.today();
             const todayRevenue = activeSales
                 .filter(s => posDate(s.created_at) === today)
-=======
-            const total = filteredSales.length;
-            const activeSales = filteredSales.filter(s => !['cancelled', 'returned'].includes(s.status));
-            const revenue = activeSales.reduce((sum, s) => sum + Number(s.total_amount || 0), 0);
-            const pending = filteredSales.filter(s => s.status === 'pending' || s.status === 'credit').length;
-            const today = new Date().toDateString();
-            const todayRevenue = activeSales
-                .filter(s => new Date(s.created_at).toDateString() === today)
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
                 .reduce((sum, s) => sum + Number(s.total_amount || 0), 0);
 
             document.getElementById('statTotal').textContent = total;
@@ -1157,11 +1142,7 @@
                             <td><strong>${s.invoice_number || '#' + s.id}</strong></td>
                             <td>${escapeHtml(customer)}</td>
                             <td style="font-size:0.85rem;">${escapeHtml(formatDate(s.created_at))}</td>
-<<<<<<< HEAD
                             <td><strong>${formatPosMoney(Number(s.total_amount || 0))}</strong> ر.ي</td>
-=======
-                            <td><strong>${Number(s.total_amount || 0).toFixed(2)}</strong> ر.ي</td>
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
                             <td>${escapeHtml(payLabel)}</td>
                             <td>${statusBadge}</td>
                             <td style="text-align:center;">
@@ -1386,7 +1367,6 @@
         //  PRINT INVOICE
         // ============================================================
         function exportSalesInvoicePDF() {
-<<<<<<< HEAD
             if (!window._salesInvoiceData) return showToast('لا توجد فاتورة محددة', 'warning');
             if (window.POSDocs) POSDocs.exportInvoicePDF(window._salesInvoiceData, {title:'فاتورة مبيعات', filename:`فاتورة-مبيعات-${currentSaleId || 'مستند'}.pdf`}).then(()=>showToast('تم تنزيل PDF','success')).catch(x=>showToast(x.message,'error'));
         }
@@ -1400,42 +1380,6 @@
             POSDocs.printInvoiceData(window._salesInvoiceData, { title:'فاتورة مبيعات' })
                 .then(() => showToast('تم تجهيز الفاتورة للطباعة', 'success'))
                 .catch(e => showToast(e.message, 'error'));
-=======
-            const e = document.getElementById('modalBody');
-            if (window.POSDocs && e) POSDocs.exportInvoicePDF(window._salesInvoiceData || {type:'sale',items:[]}, {title:'فاتورة مبيعات', filename:`فاتورة-مبيعات-${currentSaleId||'مستند'}.pdf`}).then(()=>showToast('تم تنزيل PDF','success')).catch(x=>showToast(x.message,'error'));
-        }
-        function exportSalesInvoiceExcel() {
-            const e = document.getElementById('modalBody');
-            if (window.POSDocs && e) POSDocs.exportExcel(e, {filename:`فاتورة-مبيعات-${currentSaleId||'مستند'}.xlsx`}).then(()=>showToast('تم تنزيل Excel','success')).catch(x=>showToast(x.message,'error'));
-        }
-        function printInvoice() {
-            const content = document.getElementById('modalBody');
-            if (!content) return;
-            if (window.POSDocs) { POSDocs.printInvoiceData(window._salesInvoiceData || {type:'sale', items:[]}, { title:'فاتورة مبيعات' }).then(() => showToast('تم تجهيز الفاتورة للطباعة', 'success')).catch(e => showToast(e.message, 'error')); return; }
-            const win = window.open('', '_blank', 'width=800,height=600');
-            if (!win) {
-                showToast('الرجاء السماح للنوافذ المنبثقة', 'warning');
-                return;
-            }
-            const styles = document.querySelector('style').innerHTML;
-            win.document.write(`
-                <html dir="rtl" lang="ar">
-                <head><meta charset="UTF-8"><title>فاتورة</title>
-                <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap" rel="stylesheet">
-                <style>${styles} body { padding:20px; background:white; } .modal-box { max-width:100%; box-shadow:none; padding:0; } .modal-overlay { position:static; background:white; } .modal-box .modal-header { border-bottom:2px solid #e2e8f0; } .btn { display:none; } .modal-close { display:none; } #modalCancelBtn, #modalReturnBtn { display:none !important; } .detail-row { border-bottom:1px solid #f1f5f9; } .items-table { border:1px solid #e2e8f0; } .items-table th { background:#f8fafc; } .totals-box { border-top:2px solid #e2e8f0; } .stat-card, .filter-bar, .pagination, .card-section .flex-between { display:none; } </style>
-                </head>
-                <body>
-                    <div class="modal-box" style="max-width:100%;margin:0 auto;">
-                        ${content.innerHTML}
-                    </div>
-                    <script>
-                        window.onload = function() { window.print(); }
-                    <\/script>
-                </body>
-                </html>
-            `);
-            win.document.close();
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
         }
 
         // ============================================================
@@ -1489,10 +1433,7 @@
     </script>
 
     <script src="document-utils.js"></script>
-<<<<<<< HEAD
     <script src="sidebar-config.js"></script>
     <script src="notification-center-v3.js"></script>
-=======
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
 </body>
 </html>

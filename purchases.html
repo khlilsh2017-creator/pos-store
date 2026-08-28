@@ -152,11 +152,7 @@
                 <span style="float:left;display:flex;gap:6px;flex-wrap:wrap;">
                     <button class="btn btn-outline btn-sm" onclick="savePurchaseDraft()"><i class="fas fa-file-alt"></i> مسودة</button>
                     <button class="btn btn-outline btn-sm" onclick="openPurchaseDrafts()"><i class="fas fa-folder-open"></i> المسودات</button>
-<<<<<<< HEAD
                     <button class="btn btn-outline btn-sm" onclick="printPurchasesReport()"><i class="fas fa-print"></i> طباعة المشتريات</button>
-=======
-                    <button class="btn btn-outline btn-sm" onclick="exportPurchasesCSV()"><i class="fas fa-file-csv"></i> تصدير</button>
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
                 </span>
             </h2>
 
@@ -888,11 +884,7 @@
             const drafts = JSON.parse(localStorage.getItem('pos_purchase_drafts') || '[]');
             if (!drafts.length) return showToast('لا توجد مسودات مشتريات', 'info');
             const overlay = document.createElement('div'); overlay.className = 'modal-overlay active'; overlay.id = 'purchaseDraftOverlay';
-<<<<<<< HEAD
             overlay.innerHTML = `<div class="modal" style="max-width:700px"><button class="close-btn" onclick="this.closest('.modal-overlay').remove()">&times;</button><h3>مسودات المشتريات</h3>${drafts.map(d => `<div class="card" style="margin:8px 0;display:flex;justify-content:space-between;align-items:center;gap:8px"><span>${posDateTime(d.created_at)} · ${formatPosQuantity(d.items.length)} أصناف</span><span><button class="btn btn-sm btn-primary" onclick="loadPurchaseDraft(${d.id})">استرجاع</button><button class="btn btn-sm btn-danger" onclick="deletePurchaseDraft(${d.id})">حذف</button></span></div>`).join('')}</div>`;
-=======
-            overlay.innerHTML = `<div class="modal" style="max-width:700px"><button class="close-btn" onclick="this.closest('.modal-overlay').remove()">&times;</button><h3>مسودات المشتريات</h3>${drafts.map(d => `<div class="card" style="margin:8px 0;display:flex;justify-content:space-between;align-items:center;gap:8px"><span>${new Date(d.created_at).toLocaleString('ar-SA')} · ${d.items.length} أصناف</span><span><button class="btn btn-sm btn-primary" onclick="loadPurchaseDraft(${d.id})">استرجاع</button><button class="btn btn-sm btn-danger" onclick="deletePurchaseDraft(${d.id})">حذف</button></span></div>`).join('')}</div>`;
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
             document.body.appendChild(overlay);
         }
 
@@ -917,7 +909,6 @@
             localStorage.setItem('pos_purchase_drafts', JSON.stringify(drafts)); activePurchaseDraftId = null;
         }
 
-<<<<<<< HEAD
         function printPurchasesReport() {
             const rows = Array.isArray(allPurchasesLog) ? allPurchasesLog : [];
             if (!rows.length || !window.POSDocs) return showToast('لا توجد مشتريات جاهزة للطباعة', 'warning');
@@ -927,8 +918,6 @@
             POSDocs.printReport(holder.firstElementChild, { title: 'سجل المشتريات' }).catch(e => showToast(e.message, 'error'));
         }
 
-=======
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
         function exportPurchasesCSV() {
             if (!allPurchasesLog.length) return showToast('لا توجد مشتريات للتصدير', 'warning');
             const keys = ['id','invoice_number','supplier_name','created_at','total_amount','payment_method','status'];
@@ -1940,7 +1929,6 @@
             const total = parseFloat(invoice.total_amount || 0).toFixed(2);
             const totalCost = parseFloat(invoice.total_cost || 0).toFixed(2);
             const items = invoice.items || [];
-            window._purchaseInvoiceData = { type:'purchase', number:invNumber, date, party:supplier, items, total:Number(invoice.total_amount||0), discount:Number(invoice.discount||0), paid:Number(invoice.paid_amount||0), payment_method:method, status, notes:invoice.note||'' };
             const status = invoice.status === 'cancelled' ? 'ملغاة' : 'نشطة';
             window._purchaseInvoiceData = { type:'purchase', number:invNumber, date, party:supplier, items, total:Number(invoice.total_amount||0), discount:Number(invoice.discount||0), paid:Number(invoice.paid_amount||0), payment_method:method, status, notes:invoice.note||'' };
 
@@ -1971,13 +1959,8 @@
                 </div>
                 <div class="flex-row mt-20 no-print">
                     <button class="btn btn-primary" onclick="POSDocs ? POSDocs.printInvoiceData(window._purchaseInvoiceData || {type:'purchase',items:[]}, {title:'فاتورة شراء'}).catch(e => showToast(e.message, 'error')) : window.print()"><i class="fas fa-print"></i> طباعة</button>
-<<<<<<< HEAD
                     
                     
-=======
-                    <button class="btn btn-outline" onclick="POSDocs && POSDocs.exportInvoicePDF(window._purchaseInvoiceData || {type:'purchase',items:[]}, {title:'فاتورة شراء',filename:'فاتورة-شراء.pdf'}).catch(e=>showToast(e.message,'error'))"><i class="fas fa-file-pdf"></i> PDF</button>
-                    <button class="btn btn-outline" onclick="POSDocs && POSDocs.exportExcel(document.querySelector('#details-content .print-area'), {filename:'فاتورة-شراء.xlsx'}).catch(e=>showToast(e.message,'error'))"><i class="fas fa-file-excel"></i> Excel</button>
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
                     <button class="btn btn-outline" onclick="closeModal('details-modal')">إغلاق</button>
                 </div>
             `;
@@ -2038,10 +2021,7 @@
         };
     </script>
     <script src="document-utils.js"></script>
-<<<<<<< HEAD
     <script src="sidebar-config.js"></script>
     <script src="notification-center-v3.js"></script>
-=======
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
 </body>
 </html>

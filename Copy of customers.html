@@ -253,10 +253,6 @@
             min-width: 150px;
         }
     </style>
-    <script src="number-utils.js"></script>
-    <script src="permissions.js"></script>
-    <link rel="stylesheet" href="sidebar-v4.css" />
-    <script src="/offline-sync.js"></script>
 </head>
 <body>
     <div class="container">
@@ -285,7 +281,7 @@
         <div class="form-group">
             <label>📌 نوع الإشعار</label>
             <select id="notificationType">
-                <option value="driver">🚚 للمندوبين (واجهة المندوب)</option>
+                <option value="driver">🚚 للمندوبين (driver.html)</option>
                 <option value="admin">👤 للمشرفين (orders.html)</option>
             </select>
         </div>
@@ -303,7 +299,7 @@
         <div class="form-row">
             <div class="form-group">
                 <label>🔗 الرابط (اختياري)</label>
-                <input type="text" id="notifLink" placeholder="https://pos.ibnalmukhtar.com/..." value="https://pos.ibnalmukhtar.com/driver/">
+                <input type="text" id="notifLink" placeholder="https://pos.ibnalmukhtar.com/..." value="https://pos.ibnalmukhtar.com/driver.html">
             </div>
         </div>
 
@@ -342,7 +338,7 @@
         // ============================================================
         async function loadTokensStats() {
             try {
-                const token = localStorage.getItem('pos_token') || localStorage.getItem('driverToken') || prompt('أدخل التوكن الخاص بك (Bearer Token):');
+                const token = localStorage.getItem('driverToken') || prompt('أدخل التوكن الخاص بك (Bearer Token):');
                 if (!token) {
                     alert('مطلوب توكن للمصادقة');
                     return;
@@ -385,7 +381,7 @@
                 html = '<div style="color:#94a3b8; padding:12px;">⚠️ لا توجد توكنات مسجلة</div>';
             } else {
                 if (driverTokens.length > 0) {
-                    html += `<div style="font-weight:600; margin:8px 0 4px;">🚚 المندوبين (${formatPosQuantity(driverTokens.length)})</div>`;
+                    html += `<div style="font-weight:600; margin:8px 0 4px;">🚚 المندوبين (${driverTokens.length})</div>`;
                     driverTokens.forEach(t => {
                         html += `<div class="token-item">
                             <span class="token-preview">${t.token.substring(0, 40)}...</span>
@@ -394,7 +390,7 @@
                     });
                 }
                 if (adminTokens.length > 0) {
-                    html += `<div style="font-weight:600; margin:8px 0 4px;">👤 المشرفين (${formatPosQuantity(adminTokens.length)})</div>`;
+                    html += `<div style="font-weight:600; margin:8px 0 4px;">👤 المشرفين (${adminTokens.length})</div>`;
                     adminTokens.forEach(t => {
                         html += `<div class="token-item">
                             <span class="token-preview">${t.token.substring(0, 40)}...</span>
@@ -413,7 +409,7 @@
             const btn = document.getElementById('sendBtn');
             const title = document.getElementById('notifTitle').value.trim() || '🧪 إشعار تجريبي';
             const body = document.getElementById('notifBody').value.trim() || 'هذا إشعار اختبار';
-            const link = document.getElementById('notifLink').value.trim() || 'https://pos.ibnalmukhtar.com/driver/';
+            const link = document.getElementById('notifLink').value.trim() || 'https://pos.ibnalmukhtar.com/driver.html';
             const type = document.getElementById('notificationType').value;
 
             if (!title || !body) {
@@ -428,7 +424,7 @@
             const startTime = new Date();
 
             try {
-                const token = (type === 'admin' ? localStorage.getItem('pos_token') : localStorage.getItem('driverToken')) || prompt('أدخل التوكن الخاص بك (Bearer Token):');
+                const token = localStorage.getItem('driverToken') || prompt('أدخل التوكن الخاص بك (Bearer Token):');
                 if (!token) {
                     throw new Error('مطلوب توكن للمصادقة');
                 }
@@ -460,7 +456,7 @@
                     responseData = { raw: responseText };
                 }
 
-                const elapsed = formatPosNumber((new Date() - startTime) / 1000, 2);
+                const elapsed = ((new Date() - startTime) / 1000).toFixed(2);
                 logLines.push(`⏱️ الزمن: ${elapsed} ثانية`);
                 logLines.push(`📊 حالة HTTP: ${res.status} ${res.statusText}`);
 
@@ -512,17 +508,14 @@
         // 4. التهيئة
         // ============================================================
         window.addEventListener('load', () => {
-            // تحميل واحد عند فتح الصفحة؛ التحديث اللاحق يدوي لتقليل استهلاك قاعدة البيانات.
             loadTokensStats();
+            // تحديث كل 30 ثانية
+            setInterval(loadTokensStats, 30000);
         });
 
         // تصدير الدوال إلى النافذة
         window.sendTestNotification = sendTestNotification;
         window.loadTokensStats = loadTokensStats;
     </script>
-<div id="sidebar-container"></div>
-    <script src="document-utils.js"></script>
-    <script src="sidebar-config.js"></script>
-    <script src="notification-center-v3.js"></script>
 </body>
 </html>

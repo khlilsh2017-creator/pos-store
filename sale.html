@@ -1477,11 +1477,7 @@
                     </button>
                     <button class="btn btn-sm btn-outline" onclick="saveSaleDraft()"><i class="fas fa-file-alt"></i> مسودة</button>
                     <button class="btn btn-sm btn-outline" onclick="openSaleDrafts()"><i class="fas fa-folder-open"></i> المسودات</button>
-<<<<<<< HEAD
                     <button class="btn btn-sm btn-outline" onclick="printSaleReport()"><i class="fas fa-print"></i> طباعة</button>
-=======
-                    <button class="btn btn-sm btn-outline" onclick="exportSalesCSV()"><i class="fas fa-file-csv"></i> تصدير</button>
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
                     <button class="btn btn-sm btn-outline" onclick="fetchProducts()">
                         <i class="fas fa-sync-alt"></i> تحديث
                     </button>
@@ -1981,11 +1977,7 @@
         function isExpiredProduct(product) {
             if (!product?.expiry_date) return false;
             const value = String(product.expiry_date);
-<<<<<<< HEAD
             const date = new Date(value.length <= 10 ? `${formatPosMoney(value)}T23:59:59` : value);
-=======
-            const date = new Date(value.length <= 10 ? `${value}T23:59:59` : value);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
             return !Number.isNaN(date.getTime()) && date.getTime() < Date.now();
         }
 
@@ -2324,10 +2316,7 @@
         function quickAddToCart(productId) {
             const product = productsCache.find(p => p.id === productId);
             if (!product) return showToast('المنتج غير موجود', 'error');
-<<<<<<< HEAD
             if (Number(product.is_set) === 1) return openAddToCartModal(productId);
-=======
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
             if ((product.stock_quantity || 0) <= 0 && !canSellBeyondStock(product)) return showToast('⚠️ المنتج غير متوفر', 'warning');
             addToCart(product.id, product.name || 'بدون اسم', product.price || 0, product.cost || 0, 1);
             showToast(`✅ تمت إضافة ${product.name}`, 'success');
@@ -2344,11 +2333,7 @@
             const product = productsCache.find(p => p.barcode === code);
             if (product) {
                 const stock = product.stock_quantity || 0;
-<<<<<<< HEAD
                 if (Number(product.is_set) !== 1 && stock <= 0 && !canSellBeyondStock(product)) {
-=======
-                if (stock <= 0 && !canSellBeyondStock(product)) {
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
                     showToast('⚠️ المنتج غير متوفر', 'warning');
                     input.value = '';
                     input.focus();
@@ -2623,7 +2608,6 @@
             const content = document.getElementById('add-to-cart-content');
             const cost = Number(product.cost) || 0;
             const name = product.name || 'بدون اسم';
-<<<<<<< HEAD
             let variants = [];
             if (Number(product.is_set) === 1) {
                 try {
@@ -2639,30 +2623,6 @@
             const modeHtml = Number(product.is_set) === 1 ? `<div class="form-group"><label>طريقة البيع</label><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;"><button type="button" id="sale-mode-full" class="btn btn-outline" onclick="selectSaleMode('full_set')">بيع الطقم كاملًا<br><strong>${formatPosMoney(defaultPrice)} ريال</strong></button><button type="button" id="sale-mode-size" class="btn btn-outline" onclick="selectSaleMode('size')">بيع مقاس واحد</button></div></div>` : '';
             const variantHtml = Number(product.is_set) === 1 ? `<div id="sale-variant-container" class="form-group" style="display:none;"><label>اختر المقاس</label><div id="sale-variant-options" style="display:grid;gap:6px;">${variants.map((v, i) => `<button type="button" class="btn btn-outline sale-variant-option" data-index="${i}" onclick="selectSaleVariant(${i})"><strong>${escapeHTML(v.label)}</strong> — مخزون ${formatPosQuantity(v.stock_quantity)} — ${formatPosMoney(v.selling_price ?? defaultPrice)} ريال</button>`).join('')}</div></div>` : '';
             content.innerHTML = `<div style="text-align:center;margin-bottom:10px;"><strong style="font-size:1.05rem;">${escapeHTML(name)}</strong><div style="font-size:0.8rem;color:var(--muted);">سعر التكلفة: <span id="modal-sale-cost">${formatPosMoney(cost)}</span> ريال</div></div>${Number(product.is_set) === 1 ? '' : `<div class="stock-info"><span>المخزون المتاح</span><span class="stock-value">${formatPosQuantity(stock)}${isExpiredProduct(product) ? ' · منتهي الصلاحية' : ''}</span></div>`}${modeHtml}${variantHtml}<div class="form-group"><label>سعر البيع (للفاتورة الحالية)</label><input type="number" id="modal-sale-price" class="input-field" step="0.01" value="${defaultPrice}" min="0" /><div id="price-warning" class="warning-text">⚠️ السعر أقل من سعر التكلفة</div></div><div class="form-group"><label>الكمية</label><input type="number" id="modal-quantity" class="input-field" step="${Number(product.is_decimal_allowed) === 1 ? '0.001' : '1'}" value="1" min="${Number(product.is_decimal_allowed) === 1 ? '0.001' : '1'}" max="${canSellBeyondStock(product) ? 999999 : Math.max(1, Number(product.is_set) === 1 ? 0 : stock)}" /></div><div class="modal-actions"><button class="btn btn-outline" onclick="closeModal('add-to-cart-modal')">إلغاء</button><button class="btn btn-success" onclick="confirmAddToCart()">إضافة</button></div>`;
-=======
-            const stock = product.stock_quantity || 0;
-
-            content.innerHTML = `
-                    <div style="text-align:center;margin-bottom:10px;">
-                        <strong style="font-size:1.05rem;">${escapeHTML(name)}</strong>
-                        <div style="font-size:0.8rem;color:var(--muted);">سعر التكلفة: ${cost.toFixed(2)} ريال</div>
-                    </div>
-                    <div class="stock-info"><span>المخزون المتاح</span><span class="stock-value">${stock}${isExpiredProduct(product) ? ' · منتهي الصلاحية' : ''}</span></div>
-                    <div class="form-group">
-                        <label>سعر البيع (للفاتورة الحالية)</label>
-                        <input type="number" id="modal-sale-price" class="input-field" step="0.01" value="${defaultPrice}" min="0" />
-                        <div id="price-warning" class="warning-text">⚠️ السعر أقل من سعر التكلفة (${cost.toFixed(2)} ريال)</div>
-                    </div>
-                    <div class="form-group">
-                        <label>الكمية</label>
-                        <input type="number" id="modal-quantity" class="input-field" step="${Number(product.is_decimal_allowed) === 1 ? '0.001' : '1'}" value="1" min="${Number(product.is_decimal_allowed) === 1 ? '0.001' : '1'}" max="${canSellBeyondStock(product) ? 999999 : Math.max(1, stock)}" />
-                    </div>
-                    <div class="modal-actions">
-                        <button class="btn btn-outline" onclick="closeModal('add-to-cart-modal')">إلغاء</button>
-                        <button class="btn btn-success" onclick="confirmAddToCart()">إضافة</button>
-                    </div>
-                `;
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
             const priceInput = document.getElementById('modal-sale-price');
             const warning = document.getElementById('price-warning');
             priceInput.addEventListener('input', () => warning.classList.toggle('active', (parseFloat(priceInput.value) || 0) < (currentSaleVariant ? Number(currentSaleVariant.cost ?? cost) : cost)));
@@ -2715,15 +2675,8 @@
         }
 
         function confirmAddToCart() {
-<<<<<<< HEAD
             const price = parseFloat(document.getElementById('modal-sale-price').value) || 0;
             const qty = parseFloat(document.getElementById('modal-quantity').value) || 1;
-=======
-            const priceInput = document.getElementById('modal-sale-price');
-            const qtyInput = document.getElementById('modal-quantity');
-            const price = parseFloat(priceInput.value) || 0;
-            const qty = parseFloat(qtyInput.value) || 1;
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
             const product = currentProductForCart;
             if (!product) return;
             const isSet = Number(product.is_set) === 1;
@@ -2734,19 +2687,10 @@
             const stock = isWholeSet ? Math.min(...(window.currentSaleVariants || []).map(v => Number(v.stock_quantity) || 0)) : (variant ? Number(variant.stock_quantity) || 0 : Number(product.stock_quantity) || 0);
             if (qty <= 0) return showToast('الكمية يجب أن تكون أكبر من صفر', 'warning');
             if (Number(product.is_decimal_allowed) !== 1 && !Number.isInteger(qty)) return showToast('هذا المنتج لا يسمح بالكمية العشرية', 'warning');
-<<<<<<< HEAD
             if (qty > stock && !canSellBeyondStock(product)) return showToast(`الكمية المطلوبة (${formatPosQuantity(qty)}) أكبر من المخزون (${formatPosQuantity(stock)})`, 'warning');
             const cost = isWholeSet ? (Number(product.cost) || 0) : (Number(variant?.cost ?? product.cost) || 0);
             if (price < cost && !saleRules.allowBelowCost) return showToast('لا يمكن البيع بأقل من التكلفة', 'warning');
             addToCart(product.id, product.name || 'بدون اسم', price, cost, qty, variant?.id || null, isWholeSet ? 'طقم كامل' : (variant?.label || null), stock, isWholeSet ? 'full_set' : 'size');
-=======
-            if (qty > stock && !canSellBeyondStock(product)) return showToast(`الكمية المطلوبة (${qty}) أكبر من المخزون (${stock})`, 'warning');
-            const cost = product.cost || 0;
-            if (price < cost && !saleRules.allowBelowCost) {
-                if (!confirm(`⚠️ السعر (${price.toFixed(2)}) أقل من سعر التكلفة (${cost.toFixed(2)}). هل تريد المتابعة؟`)) return;
-            }
-            addToCart(product.id, product.name || 'بدون اسم', price, cost, qty);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
             closeModal('add-to-cart-modal');
             showToast(`✅ تم إضافة ${product.name}${isWholeSet ? ' — طقم كامل' : ` — مقاس ${variant.label}`} (${formatPosQuantity(qty)})`, 'success');
         }
@@ -2768,11 +2712,7 @@
                         <strong style="font-size:1.05rem;">${escapeHTML(item.name || 'بدون اسم')}</strong>
                         <div style="font-size:0.8rem;color:var(--muted);">سعر التكلفة: ${formatPosMoney((item.cost || 0))} ريال</div>
                     </div>
-<<<<<<< HEAD
                     <div class="stock-info"><span>المخزون المتاح</span><span class="stock-value">${formatPosQuantity(stock)}${isExpiredProduct(product) ? ' · منتهي الصلاحية' : ''}</span></div>
-=======
-                    <div class="stock-info"><span>المخزون المتاح</span><span class="stock-value">${stock}${isExpiredProduct(product) ? ' · منتهي الصلاحية' : ''}</span></div>
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
                     <div class="form-group">
                         <label>سعر البيع</label>
                         <input type="number" id="edit-sale-price" class="input-field" step="0.01" value="${item.price}" min="0" />
@@ -2781,7 +2721,6 @@
                     <div class="form-group">
                         <label>الكمية</label>
                         <input type="number" id="edit-quantity" class="input-field" step="${Number(product?.is_decimal_allowed) === 1 ? '0.001' : '1'}" value="${item.quantity}" min="${Number(product?.is_decimal_allowed) === 1 ? '0.001' : '1'}" max="${canSellBeyondStock(product) ? 999999 : Math.max(1, stock)}" />
-<<<<<<< HEAD
                     </div>
                     <div class="form-group">
                         <label>خصم هذا المنتج</label>
@@ -2790,8 +2729,6 @@
                     <div class="form-group">
                         <label>ملاحظة المنتج</label>
                         <input type="text" id="edit-item-notes" class="input-field" value="${escapeHTML(item.notes || item.note || '')}" placeholder="ملاحظة تظهر في الفاتورة" />
-=======
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
                     </div>
                     <div class="modal-actions">
                         <button class="btn btn-outline" onclick="closeModal('edit-cart-item-modal')">إلغاء</button>
@@ -2818,11 +2755,8 @@
             const notesInput = document.getElementById('edit-item-notes');
             const price = parseFloat(priceInput.value) || 0;
             const qty = parseFloat(qtyInput.value) || 1;
-<<<<<<< HEAD
             const discount = Math.max(0, parseFloat(discountInput?.value) || 0);
             const notes = notesInput?.value.trim() || '';
-=======
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
             const index = editingCartIndex;
             if (index < 0 || index >= cart.length) return showToast('خطأ في التعديل', 'error');
             const item = cart[index];
@@ -2830,18 +2764,11 @@
             const stock = product ? product.stock_quantity || 0 : 999;
             if (qty <= 0) return showToast('الكمية يجب أن تكون أكبر من صفر', 'warning');
             if (product && Number(product.is_decimal_allowed) !== 1 && !Number.isInteger(qty)) return showToast('هذا المنتج لا يسمح بالكمية العشرية', 'warning');
-<<<<<<< HEAD
             if (qty > stock && !canSellBeyondStock(product)) return showToast(`الكمية المطلوبة (${formatPosQuantity(qty)}) أكبر من المخزون (${formatPosQuantity(stock)})`, 'warning');
             if (discount > price) return showToast('خصم المنتج لا يمكن أن يتجاوز سعر البيع', 'warning');
             const cost = item.cost || 0;
             if ((price - discount) < cost && !saleRules.allowBelowCost) {
                 if (!confirm(`⚠️ السعر بعد الخصم (${formatPosMoney(price - discount)}) أقل من سعر التكلفة (${formatPosMoney(cost)}). هل تريد المتابعة؟`)) return;
-=======
-            if (qty > stock && !canSellBeyondStock(product)) return showToast(`الكمية المطلوبة (${qty}) أكبر من المخزون (${stock})`, 'warning');
-            const cost = item.cost || 0;
-            if (price < cost && !saleRules.allowBelowCost) {
-                if (!confirm(`⚠️ السعر (${price.toFixed(2)}) أقل من سعر التكلفة (${cost.toFixed(2)}). هل تريد المتابعة؟`)) return;
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
             }
             cart[index].price = price;
             cart[index].quantity = qty;
@@ -2886,11 +2813,7 @@
         function openSaleDrafts() {
             const drafts = JSON.parse(localStorage.getItem('pos_sale_drafts') || '[]');
             if (!drafts.length) return showToast('لا توجد مسودات بيع', 'info');
-<<<<<<< HEAD
             const list = drafts.map(d => `<div class="card" style="margin:8px 0;display:flex;justify-content:space-between;gap:8px;align-items:center;"><span>${posDateTime(d.created_at)} · ${formatPosQuantity(d.cart.length)} أصناف</span><button class="btn btn-sm btn-primary" onclick="loadSaleDraft(${d.id})">استرجاع</button></div>`).join('');
-=======
-            const list = drafts.map(d => `<div class="card" style="margin:8px 0;display:flex;justify-content:space-between;gap:8px;align-items:center;"><span>${new Date(d.created_at).toLocaleString('ar-SA')} · ${d.cart.length} أصناف</span><button class="btn btn-sm btn-primary" onclick="loadSaleDraft(${d.id})">استرجاع</button></div>`).join('');
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
             const overlay = document.createElement('div'); overlay.className = 'modal-overlay active'; overlay.id = 'saleDraftOverlay';
             overlay.innerHTML = `<div class="modal-box"><div class="modal-header"><h3>مسودات البيع</h3><button class="close-btn" onclick="this.closest('.modal-overlay').remove()">×</button></div>${list}</div>`;
             document.body.appendChild(overlay);
@@ -2905,15 +2828,12 @@
             window.activeSaleDraftId = d.id; renderCart(); updateTotals(); document.getElementById('saleDraftOverlay')?.remove(); showToast('تم استرجاع مسودة البيع', 'success');
         }
 
-<<<<<<< HEAD
         function printSaleReport() {
             const root = document.querySelector('.main-content') || document.querySelector('main');
             if (!root || !window.POSDocs) return showToast('تعذر تجهيز صفحة البيع للطباعة', 'error');
             POSDocs.printReport(root, { title: 'تقرير المبيعات' }).catch(e => showToast(e.message, 'error'));
         }
 
-=======
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
         async function exportSalesCSV() {
             try {
                 const res = await fetch(`${API}/sales?limit=1000&sort=desc`, { headers: { 'Authorization': `Bearer ${token}` } });
@@ -2937,18 +2857,12 @@
             renderCart();
         }
 
-<<<<<<< HEAD
         function addToCart(id, name, price, cost, quantity = 1, variantId = null, variantLabel = null, variantStock = null, saleMode = 'size') {
             const existing = cart.find(i => i.id === id && Number(i.variant_id || 0) === Number(variantId || 0) && (i.sale_mode || 'size') === saleMode);
-=======
-        function addToCart(id, name, price, cost, quantity = 1) {
-            const existing = cart.find(i => i.id === id);
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
             const product = productsCache.find(p => p.id === id);
             if (product && price < (cost || 0) && !saleRules.allowBelowCost) {
                 if (!confirm(`⚠️ السعر أقل من التكلفة للمنتج ${name}. هل تريد المتابعة؟`)) return;
             }
-<<<<<<< HEAD
             if (existing && variantId && variantStock !== null && variantStock !== undefined && existing.quantity + quantity > Number(variantStock) && !canSellBeyondStock(product)) {
                 return showToast(`الكمية المطلوبة للمقاس ${variantLabel || ''} أكبر من المخزون`, 'warning');
             }
@@ -2959,12 +2873,6 @@
                 existing.unit_type = product?.unit_type || existing.unit_type || 'piece'; existing.unit_symbol = product?.unit_symbol || existing.unit_symbol || 'قطعة';
                 existing.is_set = Number(product?.is_set) === 1; existing.set_piece_count = Number(product?.set_piece_count || existing.set_piece_count || 1); existing.set_details_json = product?.set_details_json || existing.set_details_json || '[]'; existing.variant_id = variantId || existing.variant_id || null; existing.variant_label = variantLabel || existing.variant_label || null; existing.variant_stock = variantStock ?? existing.variant_stock; existing.sale_mode = saleMode;
             } else { cart.push({ id, name, price, cost, quantity, variant_id: variantId || null, variant_label: variantLabel || null, variant_stock: variantStock, sale_mode: saleMode, expiry_date: product?.expiry_date || null, unit_type: product?.unit_type || 'piece', unit_symbol: product?.unit_symbol || 'قطعة', is_set: Number(product?.is_set) === 1, set_piece_count: Number(product?.set_piece_count || 1), set_details_json: product?.set_details_json || '[]' }); }
-=======
-            if (existing) { existing.quantity += quantity;
-                existing.price = price;
-                existing.cost = cost;
-                existing.expiry_date = product?.expiry_date || existing.expiry_date || null; } else { cart.push({ id, name, price, cost, quantity, expiry_date: product?.expiry_date || null }); }
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
             saveCartToLocal();
             renderCart();
             document.getElementById('barcode-input').focus();
@@ -2978,11 +2886,7 @@
             if (newQty < 1) { cart.splice(index, 1);
                 saveCartToLocal();
                 renderCart(); return; }
-<<<<<<< HEAD
             if (newQty > stock && !canSellBeyondStock(product)) return showToast(`الكمية المطلوبة (${formatPosQuantity(newQty)}) أكبر من المخزون (${formatPosQuantity(stock)})`, 'warning');
-=======
-            if (newQty > stock && !canSellBeyondStock(product)) return showToast(`الكمية المطلوبة (${newQty}) أكبر من المخزون (${stock})`, 'warning');
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
             item.quantity = newQty;
             saveCartToLocal();
             renderCart();
@@ -4231,10 +4135,7 @@
         console.log('📌 تم إضافة عرض رقم التصنيف (product_code) والموردين في تفاصيل المنتج، والفرز حسب المورد.');
     </script>
     <script src="document-utils.js"></script>
-<<<<<<< HEAD
     <script src="sidebar-config.js"></script>
     <script src="notification-center-v3.js"></script>
-=======
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
 </body>
 </html>

@@ -1098,11 +1098,7 @@
                     <button class="theme-toggle" onclick="toggleTheme()" title="تبديل الوضع">
                         <i class="fas fa-moon" id="theme-icon"></i>
                     </button>
-<<<<<<< HEAD
                     <button class="btn btn-outline" onclick="printCustomersList()"><i class="fas fa-print"></i> طباعة الكشوف</button>
-=======
-                    <button class="btn btn-outline" onclick="exportCustomersCSV()"><i class="fas fa-file-csv"></i> تصدير الكشوف</button>
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
                     <button class="btn btn-primary" onclick="openAddCustomerModal()">
                         <i class="fas fa-plus"></i> عميل جديد
                     </button>
@@ -1180,11 +1176,7 @@
                         <h4><i class="fas fa-table"></i> قائمة العملاء</h4>
                         <div style="display:flex;gap:8px;flex-wrap:wrap;">
                             <button class="btn btn-outline btn-sm" onclick="refreshCustomers()"><i class="fas fa-sync-alt"></i> تحديث</button>
-<<<<<<< HEAD
                             <button class="btn btn-outline btn-sm" onclick="printCustomersList()"><i class="fas fa-print"></i> طباعة</button>
-=======
-                            <button class="btn btn-outline btn-sm" onclick="exportCustomersCSV()"><i class="fas fa-download"></i> CSV</button>
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
                         </div>
                     </div>
                     <div class="table-wrapper">
@@ -1428,13 +1420,8 @@
             <div id="statement-details-area">جاري التحميل...</div>
             <div class="modal-actions">
                 <button class="btn btn-primary btn-sm no-print" onclick="printCustomerStatement()"><i class="fas fa-print"></i> طباعة الكشف</button>
-<<<<<<< HEAD
                 
                 
-=======
-                <button class="btn btn-outline btn-sm no-print" onclick="exportCustomerStatementPDF()"><i class="fas fa-file-pdf"></i> PDF</button>
-                <button class="btn btn-outline btn-sm no-print" onclick="exportCustomerStatementExcel()"><i class="fas fa-file-excel"></i> Excel</button>
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
                 <button class="btn btn-outline btn-sm" onclick="closeModal('modal-statement')">إغلاق</button>
             </div>
         </div>
@@ -2226,7 +2213,6 @@
             } catch (e) { showToast('تعذر تصدير كشف العميل', 'error'); }
         }
 
-<<<<<<< HEAD
         function printCustomerStatement(customerId) {
             const element = document.getElementById('statement-details-area');
             if (!element || !window.POSDocs) return showToast('تعذر تجهيز كشف العميل للطباعة', 'error');
@@ -2258,25 +2244,6 @@
             if (!table || !window.POSDocs) return showToast('تعذر تجهيز قائمة العملاء للطباعة', 'error');
             POSDocs.printReport(table, { title: 'قائمة العملاء' }).catch(e => showToast(e.message, 'error'));
         }
-=======
-<<<<<<< HEAD
-        function printCustomerStatement(customerId) {
-            const element = document.getElementById('statement-details-area');
-            if (window.POSDocs && element) POSDocs.printElement(element, { title: `كشف حساب العميل ${customerId || ''}` }).then(() => showToast('تم تجهيز كشف العميل للطباعة', 'success')).catch(e => showToast(e.message, 'error'));
-            else window.print();
-        }
-        function exportCustomerStatementPDF() {
-            const e = document.getElementById('statement-details-area');
-            if (window.POSDocs && e) POSDocs.exportPDF(e, {title:'كشف حساب العميل', filename:'كشف-حساب-العميل.pdf'}).then(()=>showToast('تم تنزيل PDF','success')).catch(x=>showToast(x.message,'error'));
-        }
-        function exportCustomerStatementExcel() {
-            const e = document.getElementById('statement-details-area');
-            if (window.POSDocs && e) POSDocs.exportExcel(e, {filename:'كشف-حساب-العميل.xlsx'}).then(()=>showToast('تم تنزيل Excel','success')).catch(x=>showToast(x.message,'error'));
-        }
-=======
-        function printCustomerStatement(customerId) { window.print(); }
->>>>>>> 3577be6f8f8599b5bfc9830fc31e600baca4bb58
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
 
         async function exportCustomersCSV() {
             try {
@@ -2284,11 +2251,7 @@
                 const total = rows.reduce((sum, c) => sum + Math.max(0, Number(c.balance) || 0), 0);
                 const keys = ['id','name','phone','address','balance'];
                 const csv = '\ufeff' + [keys, ...rows.map(r => keys.map(k => r[k] ?? ''))].map(row => row.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\\n');
-<<<<<<< HEAD
                 const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv;charset=utf-8'})); a.download = `كشوف-العملاء-${new Date().toISOString().slice(0,10)}.csv`; a.click(); URL.revokeObjectURL(a.href); showToast(`تم تصدير ${formatPosQuantity(rows.length)} عميلاً بإجمالي ديون ${formatPosMoney(total)} ريال`, 'success');
-=======
-                const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv;charset=utf-8'})); a.download = `كشوف-العملاء-${new Date().toISOString().slice(0,10)}.csv`; a.click(); URL.revokeObjectURL(a.href); showToast(`تم تصدير ${rows.length} عميلاً بإجمالي ديون ${total.toFixed(2)} ريال`, 'success');
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
             } catch (e) { showToast('تعذر تصدير كشوف العملاء', 'error'); }
         }
 
@@ -2403,11 +2366,7 @@
                 };
                 const customerName = data.customer_name || data.customer?.name || `#${customerId}`;
                 const content = `
-<<<<<<< HEAD
                     <div class="print-header" style="display:flex;justify-content:space-between;align-items:center;gap:8px;">كشف حساب العميل: ${customerName} <small>رقم العميل: ${customerId}</small><button class="btn btn-outline btn-sm no-print" onclick="printCustomerStatement(${customerId})"><i class="fas fa-print"></i> طباعة</button></div>
-=======
-                    <div class="print-header" style="display:flex;justify-content:space-between;align-items:center;gap:8px;">كشف حساب العميل <small>رقم العميل: ${customerId}</small><button class="btn btn-outline btn-sm no-print" onclick="printCustomerStatement(${customerId})"><i class="fas fa-print"></i> طباعة</button><button class="btn btn-outline btn-sm no-print" onclick="exportCustomerStatement(${customerId})"><i class="fas fa-file-csv"></i> CSV</button></div>
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
                     <div style="margin-bottom:16px;padding:16px;background:var(--bg);border-radius:var(--radius-sm);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;">
                         <div style="display:flex;flex-direction:column;gap:4px;"><strong style="font-size:1.1rem;">العميل: ${customerName}</strong><small>الرصيد السابق قبل الفترة: ${formatPosMoney(openingBalance)} ريال</small></div><strong style="font-size:1.1rem;">الرصيد النهائي المستحق:</strong>
                         <span class="badge ${finalBalance > 0.01 ? 'badge-debt' : 'badge-credit'}" style="font-size:1.2rem;padding:8px 20px;">${formatPosMoney(finalBalance)} ريال</span>
@@ -2617,11 +2576,7 @@
     </script>
     <script src="document-utils.js"></script>
     <script src="sidebar-config.js"></script>
-<<<<<<< HEAD
     <script src="notification-center-v3.js"></script>
-=======
-    <script src="document-utils.js"></script>
->>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
 </body>
 </html>
 ```
