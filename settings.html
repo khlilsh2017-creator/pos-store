@@ -81,6 +81,7 @@
                 <div><h4><i class="fas fa-signal"></i> حالة الاتصال</h4><p class="text-muted" id="connection-detail">جاري فحص الاتصال بالخادم...</p></div>
                 <span id="connection-badge" class="btn btn-warning btn-sm"><i class="fas fa-spinner fa-spin"></i> فحص</span>
             </div>
+<<<<<<< HEAD
 
             <!-- مركز إشعارات النظام واختبار الإرسال -->
             <div class="card-section" id="notificationSettingsCard" data-permission="notifications.test">
@@ -111,6 +112,8 @@
                     </div>
                 </details>
             </div>
+=======
+>>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
             <!-- إعدادات النظام الأساسية -->
             <div class="card-section">
                 <h4><i class="fas fa-cog"></i> إعدادات النظام</h4>
@@ -153,7 +156,11 @@
                         <div class="flex-1 toggle-group">
                             <span class="toggle-label">السماح بالبيع أقل من التكلفة</span>
                             <label class="toggle-switch">
+<<<<<<< HEAD
                                 <input type="checkbox" data-permission="settings.manage" id="setting-allow-below-cost" />
+=======
+                                <input type="checkbox" id="setting-allow-below-cost" />
+>>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
                                 <span class="toggle-slider"></span>
                             </label>
                         </div>
@@ -195,6 +202,7 @@
                 </form>
             </div>
 
+<<<<<<< HEAD
             <!-- التأسيس المحاسبي الآلي -->
             <div class="card-section" id="initialization-card" data-permission="accounting.initialize">
                 <h4><i class="fas fa-magic"></i> التأسيس المحاسبي الآلي</h4>
@@ -207,6 +215,10 @@
             </div>
             <!-- الإقفال المحاسبي -->
             <div class="card-section" id="accounting-card" data-permission="accounting.close">
+=======
+            <!-- الإقفال المحاسبي -->
+            <div class="card-section" id="accounting-card" data-admin-only="true">
+>>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
                 <h4><i class="fas fa-lock"></i> الإقفال المحاسبي</h4>
                 <p class="text-muted">يقفل التعديلات المالية حتى التاريخ المحدد وينشئ قيدًا عكسيًا للإيرادات والمصروفات. هذه العملية متاحة للمدير فقط.</p>
                 <div class="flex-row mt-10" style="align-items:end;gap:12px;">
@@ -220,7 +232,11 @@
             </div>
 
             <!-- النسخ الاحتياطي والاستعادة -->
+<<<<<<< HEAD
             <div class="card-section" id="backup-card">
+=======
+            <div class="card-section" id="backup-card" data-admin-only="true">
+>>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
                 <h4><i class="fas fa-database"></i> النسخ الاحتياطي للبيانات</h4>
                 <p class="text-muted">حفظ نسخة من النظام أو استعادتها. (يتم تحميل نسخة تلقائياً الساعة 10:00 مساءً إذا كان النظام مفتوحاً).</p>
                 <div class="flex-row mt-10">
@@ -266,7 +282,11 @@
             </div>
 
             <!-- إدارة المستخدمين -->
+<<<<<<< HEAD
             <div class="card-section" id="users-card" data-permission="settings.users.manage">
+=======
+            <div class="card-section" id="users-card" data-admin-only="true">
+>>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
                 <h4><i class="fas fa-users-cog"></i> إدارة المستخدمين</h4>
                 <p class="text-muted">يمكنك إنشاء مستخدم بدور مدير أو كاشير أو مستخدم مخصص، ثم تحديد كل صفحة وكل عملية مسموحة له، بما في ذلك إظهار أو إخفاء التكلفة.</p>
                 
@@ -321,8 +341,11 @@
         let token = localStorage.getItem('pos_token') || '';
         const currentUser = JSON.parse(localStorage.getItem('pos_user') || '{}');
         const isAdmin = currentUser.role === 'admin';
+<<<<<<< HEAD
         const canManageUsers = () => window.POSPermissions?.can('settings.users.manage') || false;
         const canManageSettings = () => window.POSPermissions?.can('settings.manage') || false;
+=======
+>>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
         if (!token) window.location.href = 'index.html';
 
         function showToast(msg, type='info') {
@@ -334,6 +357,7 @@
             c.appendChild(t);
             setTimeout(() => t.remove(), 4000);
         }
+<<<<<<< HEAD
         function logout() {
             window.POSPermissions?.recordLogout?.(); if(confirm('تأكيد الخروج?')) { localStorage.removeItem('pos_token'); localStorage.removeItem('pos_user'); window.location.href='index.html'; } }
 
@@ -341,13 +365,24 @@
             window.POSPermissions?.refresh();
             if (!canManageSettings()) document.querySelectorAll('#settings-form input, #settings-form select, #settings-form button[type="submit"]').forEach(el => el.disabled = true);
             if (!window.POSPermissions?.can('settings.invoice_numbers.manage')) document.querySelectorAll('#invoice-numbers-form input, #invoice-numbers-form select, #invoice-numbers-form button').forEach(el => el.disabled = true);
+=======
+        function logout() { if(confirm('تأكيد الخروج?')) { localStorage.removeItem('pos_token'); localStorage.removeItem('pos_user'); window.location.href='index.html'; } }
+
+        function applySettingsPermissions() {
+            document.querySelectorAll('[data-admin-only="true"]').forEach(el => { if (!isAdmin) el.style.display = 'none'; });
+            if (!isAdmin) document.querySelectorAll('#settings-form input, #settings-form select, #settings-form button[type="submit"], #invoice-numbers-form input, #invoice-numbers-form select, #invoice-numbers-form button').forEach(el => el.disabled = true);
+>>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
         }
 
         async function checkConnection() {
             const badge = document.getElementById('connection-badge'); const detail = document.getElementById('connection-detail');
             if (!navigator.onLine) { badge.className = 'btn btn-danger btn-sm'; badge.innerHTML = '<i class="fas fa-wifi-slash"></i> غير متصل'; detail.textContent = 'لا يوجد اتصال بالشبكة'; return false; }
             const controller = new AbortController(); const timer = setTimeout(() => controller.abort(), 6000);
+<<<<<<< HEAD
             try { const started = performance.now(); const res = await fetch(`${API}/settings`, { headers:{'Authorization': `Bearer ${token}`}, signal: controller.signal }); clearTimeout(timer); if (!res.ok) throw new Error('HTTP ' + res.status); badge.className = 'btn btn-success btn-sm'; badge.innerHTML = '<i class="fas fa-check-circle"></i> متصل'; detail.textContent = `Worker متصل · زمن الاستجابة ${formatPosNumber(Math.round(performance.now()-started))}ms`; return true; }
+=======
+            try { const started = performance.now(); const res = await fetch(`${API}/settings`, { headers:{'Authorization': `Bearer ${token}`}, signal: controller.signal }); clearTimeout(timer); if (!res.ok) throw new Error('HTTP ' + res.status); badge.className = 'btn btn-success btn-sm'; badge.innerHTML = '<i class="fas fa-check-circle"></i> متصل'; detail.textContent = `Worker متصل · زمن الاستجابة ${Math.round(performance.now()-started)}ms`; return true; }
+>>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
             catch (e) { clearTimeout(timer); badge.className = 'btn btn-danger btn-sm'; badge.innerHTML = '<i class="fas fa-exclamation-circle"></i> تعذر الاتصال'; detail.textContent = 'تحقق من عنوان API أو صلاحية الجلسة'; return false; }
         }
 
@@ -376,6 +411,7 @@
                 document.getElementById('setting-allow-expired-negative').checked = s.allow_expired_negative_sales === undefined || s.allow_expired_negative_sales === '1';
                 document.getElementById('setting-next-product-code').value = s.next_product_code || 1;
                 const closed = s.closed_until_date || '';
+<<<<<<< HEAD
                 const initialized = String(s.system_initialized || '0') === '1';
                 const initializationStatus = document.getElementById('system-initialization-status');
                 const initializationButton = document.getElementById('initialize-system-btn');
@@ -387,6 +423,8 @@
                     initializationButton.disabled = initialized || !window.POSPermissions?.can('accounting.initialize');
                     initializationButton.innerHTML = initialized ? '<i class="fas fa-check-circle"></i> تم تنفيذ التأسيس' : '<i class="fas fa-play-circle"></i> تنفيذ التأسيس الآلي مرة واحدة';
                 }
+=======
+>>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
                 document.getElementById('closed-until-date').value = closed;
                 document.getElementById('accounting-lock-status').textContent = closed ? `الفترة مغلقة حتى ${closed}` : 'الفترة المحاسبية مفتوحة';
                 document.getElementById('accounting-lock-status').style.color = closed ? 'var(--danger)' : 'var(--success)';
@@ -410,8 +448,12 @@
                 allow_below_cost: document.getElementById('setting-allow-below-cost').checked ? '1' : '0',
                 allow_negative_stock: document.getElementById('setting-allow-negative-stock').checked ? '1' : '0',
                 allow_expired_negative_sales: document.getElementById('setting-allow-expired-negative').checked ? '1' : '0',
+<<<<<<< HEAD
                 next_product_code: parseInt(document.getElementById('setting-next-product-code').value) || 1,
                 nav_style: document.getElementById('setting-nav-style').value
+=======
+                next_product_code: parseInt(document.getElementById('setting-next-product-code').value) || 1
+>>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
             };
             try {
                 const res = await fetch(`${API}/settings`, {
@@ -429,6 +471,7 @@
             } catch { showToast('خطأ', 'error'); }
         }
 
+<<<<<<< HEAD
         function previewBrandLogo() {
             const url = document.getElementById('setting-shop-logo')?.value.trim();
             const box = document.getElementById('brand-logo-preview');
@@ -470,6 +513,10 @@
 
         async function closeAccountingYear() {
             if (!window.POSPermissions?.can('accounting.close')) return showToast('لا تملك صلاحية الإقفال المحاسبي', 'error');
+=======
+        async function closeAccountingYear() {
+            if (!isAdmin) return showToast('تتطلب صلاحية مدير', 'error');
+>>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
             const date = document.getElementById('closed-until-date').value;
             if (!date) return showToast('حدد تاريخ الإقفال أولاً', 'warning');
             if (!confirm(`سيتم إنشاء قيد إقفال ومنع التعديلات حتى ${date}. هل تريد المتابعة؟`)) return;
@@ -480,7 +527,11 @@
             } catch (e) { showToast(e.message, 'error'); }
         }
         async function reopenAccounting() {
+<<<<<<< HEAD
             if (!window.POSPermissions?.can('accounting.close')) return showToast('لا تملك صلاحية إعادة الفتح', 'error');
+=======
+            if (!isAdmin) return showToast('تتطلب صلاحية مدير', 'error');
+>>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
             if (!confirm('سيتم حذف قيد آخر إقفال وفتح الفترة. هل تريد المتابعة؟')) return;
             try {
                 const res = await fetch(`${API}/accounting/reopen`, { method:'POST', headers:{'Authorization':`Bearer ${token}`,'Content-Type':'application/json'}, body:'{}' });
@@ -544,7 +595,11 @@
 
         async function importData() {
             const fileInput = document.getElementById('import-file');
+<<<<<<< HEAD
             if (!window.POSPermissions?.can('backup.restore')) return showToast('لا تملك صلاحية استعادة البيانات', 'warning');
+=======
+            if (!isAdmin) return showToast('استعادة البيانات متاحة للمدير فقط', 'warning');
+>>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
             if (!fileInput.files.length) return showToast('الرجاء اختيار ملف النسخة الاحتياطية (JSON) أولاً', 'warning');
             const file = fileInput.files[0];
             if (file.size > 20 * 1024 * 1024) return showToast('حجم النسخة يتجاوز الحد الآمن 20MB', 'warning');
@@ -712,7 +767,11 @@
         window.onload = function() {
             checkConnection();
             loadSettings();
+<<<<<<< HEAD
             if (canManageUsers()) loadUsers();
+=======
+            if (isAdmin) loadUsers();
+>>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
             loadInvoiceNumbers();
             setupAutoBackup();
         };
@@ -721,8 +780,11 @@
         setInterval(checkConnection, 60000);
     </script>
     <script src="document-utils.js"></script>
+<<<<<<< HEAD
     <script src="sidebar-config.js"></script>
     <script src="notification-center-v3.js"></script>
     <script src="notification-settings-v3.js"></script>
+=======
+>>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
 </body>
 </html>

@@ -3,6 +3,7 @@
  * مصدر الروابط الوحيد هو NAV_GROUPS، وتدعم الواجهة ثلاثة أنماط قابلة للتبديل.
  */
 
+<<<<<<< HEAD
 const NAV_GROUPS = [
   {
     id: 'sales', icon: 'fa-cash-register', label: 'المبيعات والطلبات',
@@ -59,6 +60,32 @@ const NAV_GROUPS = [
       { icon: 'fa-shield-halved', label: 'سجل النشاط', href: 'audit-logs.html' },
     ],
   },
+=======
+// قائمة الروابط (أضف أو احذف الصفحات من هنا)
+const SIDEBAR_LINKS = [
+  { icon: 'fa-th-large', label: 'لوحة التحكم', href: 'index.html' },
+  { icon: 'fa-globe', label: 'طلب إنترنت', href: 'add_order.html' },
+  { icon: 'fa-list-alt', label: 'إدارة الطلبات والمندوبين', href: 'orders.html' },
+  { icon: 'fa-truck-moving', label: 'واجهة المندوب', href: 'driver/index.html' },
+  { icon: 'fa-chart-line', label: 'تقارير الإنترنت', href: 'online-reports.html' },
+  { icon: 'fa-cash-register', label: 'البيع', href: 'sale.html' },
+  { icon: 'fa-boxes', label: 'المنتجات', href: 'products.html' },
+  { icon: 'fa-history', label: 'حركة المخزون', href: 'stock-movements.html' },
+  { icon: 'fa-users', label: 'العملاء', href: 'customers.html' },
+  { icon: 'fa-truck', label: 'الموردين', href: 'suppliers.html' },
+  { icon: 'fa-shopping-cart', label: 'المشتريات', href: 'purchases.html' },
+  { icon: 'fa-receipt', label: 'المصروفات', href: 'expenses.html' },
+  { icon: 'fa-hand-holding-usd', label: 'سندات', href: 'payments.html' },
+  { icon: 'fa-wallet', label: 'المحافظ', href: 'cash-wallets.html' },
+  { icon: 'fa-coins', label: 'الصندوق', href: 'cash-wallets.html' }, // نفس الصفحة للمحافظ والصندوق
+  { icon: 'fa-file-invoice', label: 'الفواتير', href: 'invoices.html' },
+  { icon: 'fa-book', label: 'القيود', href: 'journal.html' },
+  { icon: 'fa-chart-pie', label: 'التقارير', href: 'reports.html' },
+  { icon: 'fa-tools', label: 'عمليات', href: 'operations.html' },
+  { icon: 'fa-cog', label: 'إعدادات', href: 'settings.html' },
+  { icon: 'fa-print', label: 'طباعة باركود', href: 'barcode-print.html' },
+  { icon: 'fa-bell', label: 'اختبار الإشعارات', href: 'notification-test.html' }
+>>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
 ];
 
 const HOME_LINK = { icon: 'fa-th-large', label: 'لوحة التحكم', href: 'index.html' };

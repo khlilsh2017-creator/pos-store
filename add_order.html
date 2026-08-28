@@ -1,6 +1,7 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ar" dir="rtl">
 <head>
+<<<<<<< HEAD
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>طلب إنترنت - النظام المحاسبي</title>
@@ -3180,5 +3181,23 @@
 
         console.log('🚀 صفحة طلبات الإنترنت – تم إضافة جميع التحسينات المطلوبة (رقم التصنيف، الموردين، الفرز، الطلب السريع، الطباعة المتطورة، وعرض الأرقام، وإزالة خيار الآجل، ودعم البيع بالسالب)');
     </script>
+=======
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>تحويل إلى صفحة الطلبات الحديثة</title>
+  <meta http-equiv="refresh" content="0; url=add_order_ph.html">
+  <style>body{font-family:Arial,sans-serif;display:grid;place-items:center;min-height:100vh;background:#f7f8fa;color:#1f2937}main{text-align:center}a{color:#2563eb}</style>
+</head>
+<body>
+  <main>
+    <p>جاري فتح صفحة الطلبات الحديثة...</p>
+    <p><a id="fallback" href="add_order_ph.html">اضغط هنا إذا لم يتم التحويل تلقائيًا</a></p>
+  </main>
+  <script>
+    const target = 'add_order_ph.html' + window.location.search + window.location.hash;
+    document.getElementById('fallback').href = target;
+    window.location.replace(target);
+  </script>
+>>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
 </body>
 </html>

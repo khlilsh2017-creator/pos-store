@@ -638,12 +638,15 @@
                     <div class="form-group"><label>رمز الوحدة</label><input type="text" id="pUnitSymbol" class="input-field" value="قطعة" placeholder="قطعة، كجم، متر..." /></div>
                     <div class="form-group toggle-group"><span class="toggle-label">السماح بالكمية العشرية</span><label class="toggle-switch"><input type="checkbox" id="pDecimalAllowed" /><span class="toggle-slider"></span></label></div>
                     <div class="form-group"><label>الوزن بالغرام (اختياري)</label><input type="number" id="pWeightGrams" class="input-field" min="0" step="0.01" placeholder="مثال: 250" /></div>
+<<<<<<< HEAD
                     <div class="form-group toggle-group"><span class="toggle-label">المنتج طقم / مجموعة</span><label class="toggle-switch"><input type="checkbox" id="pIsSet" onchange="toggleSetFields('p')" /><span class="toggle-slider"></span></label></div>
                     <div id="pSetFields" style="display:none;border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:10px;">
                         <label>عدد المقاسات</label><input type="number" id="pSetPieceCount" class="input-field" min="1" step="1" value="1" onchange="syncSetRows('p')" />
                         <div id="pSetDetailsRows"></div><button type="button" class="btn btn-sm btn-outline" onclick="addSetDetailRow('p')">+ إضافة مقاس</button>
                         <small style="display:block;color:var(--text-muted);margin-top:5px;">اكتب اسم كل مقاس فقط. سعر المقاس اختياري؛ اتركه فارغًا ليستخدم السعر الأساسي تلقائيًا. يتم تسجيل مخزون كل مقاس من خلال المشتريات.</small>
                     </div>
+=======
+>>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
                     <div class="form-group">
                         <label>تاريخ انتهاء الصلاحية <small style="color:var(--text-muted);font-weight:400;">(اختياري)</small></label>
                         <input type="date" id="pExpiryDate" class="input-field" />
@@ -692,7 +695,10 @@
             </div>
         </div>
     <div style="margin:12px 0;"><a class="btn btn-outline btn-sm" href="stock-movements.html"><i class="fas fa-history"></i> فتح حركة المخزون</a></div>
+<<<<<<< HEAD
     <div style="margin:12px 0;"><button class="btn btn-danger btn-sm" onclick="printNegativeStockReport()"><i class="fas fa-print"></i> عرض وطباعة المنتجات السالبة</button></div>
+=======
+>>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
         </main>
 
     <!-- ========== المودالات ========== -->
@@ -1633,9 +1639,12 @@
                 const unitSymbol = document.getElementById('pUnitSymbol').value.trim() || 'قطعة';
                 const decimalAllowed = document.getElementById('pDecimalAllowed').checked;
                 const weightGrams = parseFloat(document.getElementById('pWeightGrams').value) || null;
+<<<<<<< HEAD
                 const isSet = document.getElementById('pIsSet').checked;
                 const setDetails = isSet ? collectSetDetails('p') : [];
                 const setPieceCount = isSet ? Math.max(1, setDetails.length) : 1;
+=======
+>>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
 
             if (!name) return showToast('الاسم مطلوب', 'warning');
             if (isNaN(price) || price <= 0) return showToast('السعر يجب أن يكون أكبر من 0', 'warning');
@@ -1660,6 +1669,7 @@
                 category_id: categoryId ? parseInt(categoryId) : null,
                 price,
                 cost,
+<<<<<<< HEAD
                 stock_quantity: isSet ? (editId && existingProduct ? Number(existingProduct.stock_quantity || 0) : 0) : (editId && existingProduct ? Number(existingProduct.stock_quantity || 0) : qty),
                 expiry_date: expiryDate,
                 unit_type: isSet ? 'set' : unitType,
@@ -1669,6 +1679,14 @@
                 is_set: isSet ? 1 : 0,
                 set_piece_count: setPieceCount,
                 set_details_json: JSON.stringify(setDetails)
+=======
+                stock_quantity: qty,
+                expiry_date: expiryDate,
+                unit_type: unitType,
+                unit_symbol: unitSymbol,
+                is_decimal_allowed: decimalAllowed ? 1 : 0,
+                weight_grams: weightGrams
+>>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
             };
 
             await saveLocalProduct(product);
@@ -1697,9 +1715,12 @@
             const unitSymbol = document.getElementById('pUnitSymbol').value.trim() || 'قطعة';
             const decimalAllowed = document.getElementById('pDecimalAllowed').checked;
             const weightGrams = parseFloat(document.getElementById('pWeightGrams').value) || null;
+<<<<<<< HEAD
             const isSet = document.getElementById('pIsSet').checked;
             const setDetails = isSet ? collectSetDetails('p') : [];
             const setPieceCount = isSet ? Math.max(1, setDetails.length) : 1;
+=======
+>>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
 
             if (!name) {
                 showToast('الاسم مطلوب', 'warning');
@@ -1729,6 +1750,7 @@
                 product_code: productCode,
                 category_id: categoryId ? parseInt(categoryId) : null,
                 expiry_date: expiryDate,
+<<<<<<< HEAD
                 unit_type: isSet ? 'set' : unitType,
                 unit_symbol: isSet ? 'طقم' : unitSymbol,
                 is_decimal_allowed: decimalAllowed ? 1 : 0,
@@ -1736,6 +1758,12 @@
                 is_set: isSet ? 1 : 0,
                 set_piece_count: setPieceCount,
                 set_details_json: JSON.stringify(setDetails)
+=======
+                unit_type: unitType,
+                unit_symbol: unitSymbol,
+                is_decimal_allowed: decimalAllowed ? 1 : 0,
+                weight_grams: weightGrams
+>>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
             };
 
             try {
@@ -1793,12 +1821,16 @@
                 document.getElementById('pPrice').value = p.price || 0;
                 document.getElementById('pCost').value = p.cost || 0;
                 document.getElementById('pQty').value = p.stock_quantity || 0;
+<<<<<<< HEAD
                 document.getElementById('pQty').disabled = true;
+=======
+>>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
                 document.getElementById('pExpiryDate').value = p.expiry_date ? String(p.expiry_date).slice(0, 10) : '';
                 document.getElementById('pUnitType').value = p.unit_type || 'piece';
                 document.getElementById('pUnitSymbol').value = p.unit_symbol || 'قطعة';
                 document.getElementById('pDecimalAllowed').checked = Number(p.is_decimal_allowed) === 1;
                 document.getElementById('pWeightGrams').value = p.weight_grams || '';
+<<<<<<< HEAD
                 document.getElementById('pIsSet').checked = Number(p.is_set) === 1;
                 let setDetails = parseSetDetailsValue(p.set_details_json);
                 if (Number(p.is_set) === 1) {
@@ -1812,6 +1844,8 @@
                 document.getElementById('pSetDetailsRows').innerHTML = '';
                 setDetails.forEach(detail => addSetDetailRow('p', detail));
                 toggleSetFields('p');
+=======
+>>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
                 document.getElementById('formTitle').innerHTML = '<i class="fas fa-edit"></i> تعديل المنتج';
                 document.getElementById('cancelBtn').style.display = 'inline-flex';
                 window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1902,9 +1936,15 @@
                 <div class="detail-row"><span class="detail-label">المورد</span><span class="detail-value" style="font-weight:600;color:var(--primary);">${supplierName}</span></div>
                 <div class="detail-row"><span class="detail-label">سعر البيع</span><span class="detail-value" style="color:var(--primary);">${formatNumber(p.price)} ريال</span></div>
                 <div class="detail-row"><span class="detail-label">التكلفة</span><span class="detail-value">${formatNumber(p.cost)} ريال</span></div>
+<<<<<<< HEAD
                 <div class="detail-row"><span class="detail-label">الربح المتوقع</span><span class="detail-value" style="color:${profit >= 0 ? 'var(--success)' : 'var(--danger)'};">${formatNumber(profit)} ريال (${formatPosNumber(profitMargin, 1)}%)</span></div>
                 <div class="detail-row"><span class="detail-label">الكمية المباعة</span><span class="detail-value">${formatPosQuantity(p.sold_quantity || 0)}</span></div>
                 <div class="detail-row"><span class="detail-label">المخزون الحالي</span><span class="detail-value"><strong>${formatPosQuantity(p.stock_quantity || 0)}</strong></span></div>
+=======
+                <div class="detail-row"><span class="detail-label">الربح المتوقع</span><span class="detail-value" style="color:${profit >= 0 ? 'var(--success)' : 'var(--danger)'};">${formatNumber(profit)} ريال (${profitMargin.toFixed(1)}%)</span></div>
+                <div class="detail-row"><span class="detail-label">الكمية المباعة</span><span class="detail-value">${p.sold_quantity || 0}</span></div>
+                <div class="detail-row"><span class="detail-label">المخزون الحالي</span><span class="detail-value"><strong>${p.stock_quantity || 0}</strong></span></div>
+>>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
                 <div class="detail-row"><span class="detail-label">انتهاء الصلاحية</span><span class="detail-value" style="color:${p.expiry_date && new Date(String(p.expiry_date).slice(0,10) + 'T23:59:59') < new Date() ? 'var(--danger)' : 'inherit'};">${p.expiry_date || 'غير محدد'}</span></div>
                 <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap;">
                     <button class="btn btn-sm btn-primary" onclick="editProduct(${p.id});closeDetail();"><i class="fas fa-edit"></i> تعديل</button>
@@ -1934,10 +1974,13 @@
             document.getElementById('pUnitSymbol').value = 'قطعة';
             document.getElementById('pDecimalAllowed').checked = false;
             document.getElementById('pWeightGrams').value = '';
+<<<<<<< HEAD
             document.getElementById('pIsSet').checked = false;
             document.getElementById('pSetPieceCount').value = 1;
             document.getElementById('pSetDetailsRows').innerHTML = '';
             toggleSetFields('p');
+=======
+>>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
             document.getElementById('formTitle').innerHTML = '<i class="fas fa-plus-circle"></i> إضافة منتج جديد';
             document.getElementById('cancelBtn').style.display = 'none';
             closeDuplicateModal();
@@ -1978,7 +2021,11 @@
             allProducts.forEach(p => {
                 const catName = p.category_name || p.category || '';
                 const supplier = productSupplierMap[p.id] || 'غير معين';
+<<<<<<< HEAD
                 csv += `${p.id},"${p.name || ''}",${p.barcode || ''},"${p.product_code || ''}","${catName}",${formatPosMoney(p.price || 0)},${formatPosMoney(p.cost || 0)},${formatPosQuantity(p.stock_quantity || 0)},"${p.expiry_date || ''}","${supplier}"\n`;
+=======
+                csv += `${p.id},"${p.name || ''}",${p.barcode || ''},"${p.product_code || ''}","${catName}",${p.price || 0},${p.cost || 0},${p.stock_quantity || 0},"${p.expiry_date || ''}","${supplier}"\n`;
+>>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
             });
             const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement('a');
@@ -2831,7 +2878,10 @@
         };
     </script>
     <script src="document-utils.js"></script>
+<<<<<<< HEAD
     <script src="sidebar-config.js"></script>
     <script src="notification-center-v3.js"></script>
+=======
+>>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
 </body>
 </html>

@@ -2549,6 +2549,9 @@ console.log('📦 Payload المرسل للتوصيل:', JSON.stringify(operatio
             if (pendingCount > 0) {
                 showToast(`📴 بقيت ${formatPosQuantity(pendingCount)} عملية معلقة لإعادة المحاولة`);
             }
+            if (pendingCount > 0) {
+                showToast(`📴 بقيت ${pendingCount} عملية معلقة لإعادة المحاولة`);
+            }
 
             isSyncing = false;
         }

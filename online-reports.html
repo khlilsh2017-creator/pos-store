@@ -965,7 +965,11 @@
             const badge = document.getElementById('report-connection-badge');
             if (!navigator.onLine) { badge.className = 'status-badge cancelled'; badge.innerHTML = '<i class="fas fa-wifi-slash"></i> غير متصل'; return false; }
             const controller = new AbortController(); const timer = setTimeout(() => controller.abort(), 6000); const started = performance.now();
+<<<<<<< HEAD
             try { const res = await fetch(`${API}/settings`, { headers:{'Authorization': `Bearer ${token}`}, signal: controller.signal }); clearTimeout(timer); if (!res.ok) throw new Error(); badge.className = 'status-badge delivered'; badge.innerHTML = `<i class="fas fa-check-circle"></i> متصل ${formatPosNumber(Math.round(performance.now()-started))}ms`; return true; }
+=======
+            try { const res = await fetch(`${API}/settings`, { headers:{'Authorization': `Bearer ${token}`}, signal: controller.signal }); clearTimeout(timer); if (!res.ok) throw new Error(); badge.className = 'status-badge delivered'; badge.innerHTML = `<i class="fas fa-check-circle"></i> متصل ${Math.round(performance.now()-started)}ms`; return true; }
+>>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
             catch (e) { clearTimeout(timer); badge.className = 'status-badge cancelled'; badge.innerHTML = '<i class="fas fa-exclamation-circle"></i> الخادم غير متاح'; return false; }
         }
 
@@ -1501,7 +1505,10 @@
         };
     </script>
     <script src="document-utils.js"></script>
+<<<<<<< HEAD
     <script src="sidebar-config.js"></script>
     <script src="notification-center-v3.js"></script>
+=======
+>>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
 </body>
 </html>

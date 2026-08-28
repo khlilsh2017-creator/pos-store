@@ -33,12 +33,17 @@ const STATIC_ASSETS = [
     '/phone/sw_phone.js',
     '/barcode-print.html',
     '/stock-movements.html',
+<<<<<<< HEAD
     '/inventory.html',
     '/notification-test.html',
     '/driver/',
     '/driver/index.html',
     '/driver/sw_driver.js',
     '/driver/db.js',
+=======
+    '/notification-test.html',
+    '/driver/',
+>>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
     '/online-reports.html',
     '/orders.html',
     '/db.js',

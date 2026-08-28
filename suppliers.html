@@ -498,7 +498,11 @@
             <div class="card-section">
                 <div class="flex-row" style="justify-content:space-between;">
                     <h4><i class="fas fa-truck"></i> قائمة الموردين</h4>
+<<<<<<< HEAD
                     <button class="btn btn-outline" onclick="printSuppliersList()"><i class="fas fa-print"></i> طباعة الكشوف</button>
+=======
+                    <button class="btn btn-outline" onclick="exportSuppliersCSV()"><i class="fas fa-file-csv"></i> تصدير الكشوف</button>
+>>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
                     <button class="btn btn-primary" onclick="openAddSupplierModal()"><i class="fas fa-user-plus"></i> إضافة مورد</button>
                 </div>
                 <div class="search-bar">
@@ -510,7 +514,11 @@
                         <option value="zero">رصيد صفر</option>
                     </select>
                         <button class="btn btn-outline" onclick="loadSuppliers(1)"><i class="fas fa-sync-alt"></i> تحديث</button>
+<<<<<<< HEAD
                         <button class="btn btn-outline" onclick="printSuppliersList()"><i class="fas fa-print"></i> طباعة</button>
+=======
+                        <button class="btn btn-outline" onclick="exportSuppliersCSV()"><i class="fas fa-download"></i> CSV</button>
+>>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
                 </div>
                 <div style="overflow-x:auto;">
                     <table class="supplier-table" id="supplier-table">
@@ -629,9 +637,20 @@
                 <div id="tab-statement" class="tab-content">
                     <div class="statement-container" id="statement-list"></div>
                     <div class="statement-actions">
+<<<<<<< HEAD
                         <button class="btn btn-primary btn-sm no-print" onclick="printStatement()"><i class="fas fa-print"></i> طباعة كشف الحساب</button>
                         
                         
+=======
+                        <button class="btn btn-primary btn-sm" onclick="printStatement()"><i class="fas fa-print"></i> طباعة كشف الحساب</button>
+<<<<<<< HEAD
+                        <button class="btn btn-outline btn-sm" onclick="exportSupplierStatement(currentSupplierId)"><i class="fas fa-file-csv"></i> CSV</button>
+                        <button class="btn btn-outline btn-sm" onclick="exportSupplierStatementPDF()"><i class="fas fa-file-pdf"></i> PDF</button>
+                        <button class="btn btn-outline btn-sm" onclick="exportSupplierStatementExcel()"><i class="fas fa-file-excel"></i> Excel</button>
+=======
+                        <button class="btn btn-outline btn-sm" onclick="exportSupplierStatement(currentSupplierId)"><i class="fas fa-file-csv"></i> تصدير CSV</button>
+>>>>>>> 3577be6f8f8599b5bfc9830fc31e600baca4bb58
+>>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
                     </div>
                 </div>
                 <div id="tab-returns" class="tab-content">
@@ -656,8 +675,16 @@
                 <div id="invoice-details-body"></div>
                 <div style="display:flex; gap:10px; margin-top:20px; flex-wrap:wrap;">
                     <button class="btn btn-gold" onclick="printInvoice()"><i class="fas fa-print"></i> طباعة الفاتورة</button>
+<<<<<<< HEAD
                     
                     
+=======
+<<<<<<< HEAD
+                    <button class="btn btn-outline" onclick="exportSupplierInvoicePDF()"><i class="fas fa-file-pdf"></i> PDF</button>
+                    <button class="btn btn-outline" onclick="exportSupplierInvoiceExcel()"><i class="fas fa-file-excel"></i> Excel</button>
+=======
+>>>>>>> 3577be6f8f8599b5bfc9830fc31e600baca4bb58
+>>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
                     <button class="btn btn-danger" id="btn-cancel-purchase-invoice" onclick="cancelSupplierInvoice()" style="display:none;"><i class="fas fa-times"></i> إلغاء الفاتورة</button>
                     <button class="btn btn-warning" id="btn-undo-purchase-invoice" onclick="undoSupplierInvoice()" style="display:none;"><i class="fas fa-undo"></i> عكس الإلغاء</button>
                     <button class="btn btn-outline" onclick="closeModal('invoiceModal')">إغلاق</button>
@@ -999,11 +1026,19 @@
 
         function updateStats(data) {
             document.getElementById('total-suppliers').innerText = data.total || 0;
+<<<<<<< HEAD
             document.getElementById('total-debt').innerText = formatPosMoney(Number(data.total_debt || 0), 2);
             const avg = data.total > 0 ? formatPosMoney(Number(data.total_debt || 0) / data.total) : formatPosMoney(0);
             document.getElementById('avg-balance').innerText = avg;
             fetch(`${API}/suppliers/total-debt`, { headers: { 'Authorization': `Bearer ${token}` } }).then(r => r.json()).then(d => {
                 const total = Number(d.total_debt ?? d.total ?? NaN); if (Number.isFinite(total)) document.getElementById('total-debt').innerText = formatPosMoney(total, 2);
+=======
+            document.getElementById('total-debt').innerText = Number(data.total_debt || 0).toFixed(2);
+            const avg = data.total > 0 ? (Number(data.total_debt || 0) / data.total).toFixed(2) : '0.00';
+            document.getElementById('avg-balance').innerText = avg;
+            fetch(`${API}/suppliers/total-debt`, { headers: { 'Authorization': `Bearer ${token}` } }).then(r => r.json()).then(d => {
+                const total = Number(d.total_debt ?? d.total ?? NaN); if (Number.isFinite(total)) document.getElementById('total-debt').innerText = total.toFixed(2);
+>>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
             }).catch(() => {});
         }
 
@@ -1210,7 +1245,11 @@
                     document.getElementById('btn-cancel-purchase-invoice').style.display = canReverseSupplierOperations && !isCancelledInvoice ? 'inline-flex' : 'none';
                     document.getElementById('btn-undo-purchase-invoice').style.display = canReverseSupplierOperations && isCancelledInvoice ? 'inline-flex' : 'none';
                     const items = inv.items || [];
+<<<<<<< HEAD
                     window._supplierInvoiceData = { type:'purchase', number:inv.invoice_number || inv.id, date:posDateTime(inv.created_at), party:inv.supplier_name || 'مورد', items, total:inv.total_amount || 0, discount:inv.discount || 0, paid:inv.paid_amount || 0, payment_method:inv.payment_method || 'نقدي', status:inv.status || 'مكتملة', notes:inv.note || '' };
+=======
+                    window._supplierInvoiceData = { type:'purchase', number:inv.invoice_number || inv.id, date:new Date(inv.created_at).toLocaleString(), party:inv.supplier_name || 'مورد', items, total:inv.total_amount || 0, discount:inv.discount || 0, paid:inv.paid_amount || 0, payment_method:inv.payment_method || 'نقدي', status:inv.status || 'مكتملة', notes:inv.note || '' };
+>>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
                     const total = inv.total_amount || 0;
                     const discount = inv.discount || 0;
                     const net = total - discount;
@@ -1288,12 +1327,49 @@
         }
 
         function printInvoice() {
+<<<<<<< HEAD
             const content = document.getElementById('invoice-details-body')?.innerHTML || '';
             if (!content.trim()) { showToast('لا توجد بيانات للطباعة', 'warning'); return; }
             if (!window.POSDocs || !window._supplierInvoiceData) { showToast('تعذر تجهيز الفاتورة للطباعة', 'error'); return; }
             POSDocs.printInvoiceData(window._supplierInvoiceData, { title: document.getElementById('invoice-modal-title').innerText })
                 .then(() => showToast('تم تجهيز فاتورة الشراء للطباعة', 'success'))
                 .catch(e => showToast(e.message, 'error'));
+=======
+            const content = document.getElementById('invoice-details-body').innerHTML;
+            if (!content) { showToast('لا توجد بيانات للطباعة', 'warning'); return; }
+            if (window.POSDocs) { POSDocs.printInvoiceData(window._supplierInvoiceData || {type:'purchase',items:[]}, { title: document.getElementById('invoice-modal-title').innerText }).then(() => showToast('تم تجهيز فاتورة الشراء للطباعة', 'success')).catch(e => showToast(e.message, 'error')); return; }
+            const title = document.getElementById('invoice-modal-title').innerText;
+            const win = window.open('', '_blank');
+            win.document.write(`
+                <html dir="rtl"><head><title>${title}</title>
+                <style>
+                    body{font-family:Cairo,sans-serif;padding:30px;background:#fff;}
+                    .invoice-wrapper{max-width:800px;margin:0 auto;}
+                    .invoice-header{display:flex;justify-content:space-between;border-bottom:3px solid #c9a96e;padding-bottom:15px;margin-bottom:20px;}
+                    .brand-title{font-size:1.8rem;font-weight:800;color:#1a56db;}
+                    .brand-title i{color:#c9a96e;}
+                    .invoice-number{font-size:1.2rem;background:#f5f0e6;padding:6px 18px;border-radius:30px;font-weight:700;}
+                    .invoice-details-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:15px;background:#f1f5f9;padding:15px;border-radius:12px;margin-bottom:20px;}
+                    .detail-item .label{font-size:0.8rem;color:#64748b;font-weight:600;}
+                    .detail-item .value{font-size:1rem;font-weight:600;}
+                    .invoice-items-table{width:100%;border-collapse:collapse;margin-bottom:20px;}
+                    .invoice-items-table th{background:#f5f0e6;padding:10px 8px;text-align:right;border-bottom:2px solid #c9a96e;font-weight:700;}
+                    .invoice-items-table td{padding:10px 8px;border-bottom:1px solid #e2e8f0;}
+                    .invoice-totals{background:#f5f0e6;padding:15px 20px;border-radius:12px;display:flex;flex-direction:column;align-items:flex-end;gap:8px;}
+                    .total-line{display:flex;justify-content:space-between;width:100%;max-width:300px;font-weight:600;}
+                    .total-line.grand{font-size:1.3rem;font-weight:800;color:#1a56db;border-top:2px solid #c9a96e;padding-top:8px;}
+                    .print-footer{margin-top:30px;text-align:center;color:#94a3b8;font-size:0.8rem;border-top:1px solid #e2e8f0;padding-top:15px;}
+                </style>
+                </head><body>
+                <div class="invoice-wrapper">
+                    ${content}
+                    <div class="print-footer">تم الطباعة بتاريخ: ${new Date().toLocaleString()}</div>
+                </div>
+                </body></html>
+            `);
+            win.document.close();
+            win.print();
+>>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
         }
 
         function editPurchaseInvoice(invoiceId) {
@@ -1399,12 +1475,15 @@
             }
         }
 
+<<<<<<< HEAD
         function printSuppliersList() {
             const table = document.getElementById('supplier-table');
             if (!table || !window.POSDocs) return showToast('تعذر تجهيز قائمة الموردين للطباعة', 'error');
             POSDocs.printReport(table, { title: 'قائمة الموردين' }).catch(e => showToast(e.message, 'error'));
         }
 
+=======
+>>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
         async function exportSuppliersCSV() {
             try {
                 const res = await fetch(`${API}/suppliers?limit=10000`, { headers: { 'Authorization': `Bearer ${token}` } }); const data = await res.json(); const rows = data.suppliers || [];
@@ -1425,6 +1504,7 @@
             } catch (e) { showToast('تعذر تصدير كشف المورد', 'error'); }
         }
 
+<<<<<<< HEAD
         function exportSupplierStatementPDF() {
             if (window.POSDocs && window._supplierStatementData) {
                 POSDocs.exportStatementPDF(window._supplierStatementData, {title:`كشف حساب المورد: ${window._supplierStatementData.party || ''}`,filename:`كشف-مورد-${window._supplierStatementData.party || currentSupplierId || ''}.pdf`}).then(()=>showToast('تم تنزيل PDF','success')).catch(x=>showToast(x.message,'error'));
@@ -1441,10 +1521,26 @@
             } else {
                 showToast('لا توجد بيانات للفاتورة', 'warning');
             }
+=======
+<<<<<<< HEAD
+        function exportSupplierStatementPDF() {
+            const e=document.getElementById('statement-list'); if(window.POSDocs&&e) POSDocs.exportPDF(e,{title:'كشف حساب المورد',filename:`كشف-مورد-${currentSupplierId||''}.pdf`}).then(()=>showToast('تم تنزيل PDF','success')).catch(x=>showToast(x.message,'error'));
+        }
+        function exportSupplierStatementExcel() {
+            const e=document.getElementById('statement-list'); if(window.POSDocs&&e) POSDocs.exportExcel(e,{filename:`كشف-مورد-${currentSupplierId||''}.xlsx`}).then(()=>showToast('تم تنزيل Excel','success')).catch(x=>showToast(x.message,'error'));
+        }
+        function exportSupplierInvoicePDF() {
+            const e=document.getElementById('invoice-details-body'); if(window.POSDocs&&e) POSDocs.exportInvoicePDF(window._supplierInvoiceData || {type:'purchase',items:[]},{title:'فاتورة شراء',filename:'فاتورة-شراء.pdf'}).then(()=>showToast('تم تنزيل PDF','success')).catch(x=>showToast(x.message,'error'));
+>>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
         }
         function exportSupplierInvoiceExcel() {
             const e=document.getElementById('invoice-details-body'); if(window.POSDocs&&e) POSDocs.exportExcel(e,{filename:'فاتورة-شراء.xlsx'}).then(()=>showToast('تم تنزيل Excel','success')).catch(x=>showToast(x.message,'error'));
         }
+<<<<<<< HEAD
+=======
+=======
+>>>>>>> 3577be6f8f8599b5bfc9830fc31e600baca4bb58
+>>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
         function printStatement() {
             const element = document.getElementById('statement-list');
             const content = element ? element.innerHTML : '';
@@ -1452,6 +1548,7 @@
                 showToast('لا توجد بيانات للطباعة', 'warning');
                 return;
             }
+<<<<<<< HEAD
             if (!window.POSDocs) {
                 showToast('تعذر تجهيز كشف المورد للطباعة', 'error');
                 return;
@@ -1462,6 +1559,9 @@
                 .catch(e => showToast(e.message, 'error'));
             return;
             /* مسار قديم غير مستخدم */
+=======
+            if (window.POSDocs) { POSDocs.printElement(document.getElementById('statement-list'), { title: 'كشف حساب المورد' }).then(() => showToast('تم تجهيز كشف المورد للطباعة', 'success')).catch(e => showToast(e.message, 'error')); return; }
+>>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
             const supplierName = document.querySelector('#supplier-info-display p:nth-child(1)').textContent.replace('الاسم:', '').trim();
             const win = window.open('', '_blank');
             win.document.write(`
@@ -1779,7 +1879,10 @@
         };
     </script>
     <script src="document-utils.js"></script>
+<<<<<<< HEAD
     <script src="sidebar-config.js"></script>
     <script src="notification-center-v3.js"></script>
+=======
+>>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
 </body>
 </html>

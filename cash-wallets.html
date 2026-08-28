@@ -353,6 +353,7 @@
         if (!token) window.location.href = 'index.html';
 
         function escapeHtml(value) { return String(value ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
+<<<<<<< HEAD
         function clean(value) { return escapeHtml(value); }
 
         function operationDetailLabel(value) { return ({ open:'فتح الصندوق', close:'إغلاق الصندوق', cash_in:'إيداع من الصندوق', cash_out:'سحب إلى الصندوق', cash_wallet_transfer:'تحويل صندوق/محفظة', wallet_transfer_in:'تحويل وارد من محفظة', wallet_transfer_out:'تحويل صادر إلى محفظة', exchange:'مصارفة', sale:'مبيعات', purchase:'مشتريات', expense:'مصروف', customer_payment:'سند عميل', supplier_payment:'سند مورد', fee:'رسوم/خسائر صرف', manual:'عملية يدوية', other:'أخرى' }[value] || value || 'أخرى'); }
@@ -361,6 +362,9 @@
         function deriveOperationDetail(type, note) { const text = String(note || ''); if (type === 'open') return 'open'; if (type === 'close') return 'close'; if (/مصارفة/.test(text)) return 'exchange'; if (/محفظة|تحويل/.test(text)) return 'cash_wallet_transfer'; if (/بيع|مبيعات/.test(text)) return 'sale'; if (/شراء|مشتريات/.test(text)) return 'purchase'; if (/مصروف|نفقات/.test(text)) return 'expense'; if (/عميل/.test(text)) return 'customer_payment'; if (/مورد/.test(text)) return 'supplier_payment'; if (/رسوم|خسائر صرف/.test(text)) return 'fee'; if (/يدوي|إيداع|سحب/.test(text)) return 'manual'; return 'other'; }
         function toggleLedgerFilter(kind) { const panel = document.getElementById(kind === 'cash' ? 'cash-ledger-filters' : 'wallet-ledger-filters'); if (!panel) return; panel.hidden = !panel.hidden; }
         async function loadUnifiedLedgers() { await Promise.allSettled([loadCashLedger(), loadWalletLedger()]); }
+=======
+
+>>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
         function showToast(msg, type='info') {
             const c = document.getElementById('toast-container');
             const t = document.createElement('div');
@@ -383,8 +387,13 @@
                     <tr>
                         <td>${escapeHtml(c.code)}</td>
                         <td>${escapeHtml(c.name)}</td>
+<<<<<<< HEAD
                         <td>${formatPosNumber(Number(c.rate_to_base || 0), 4)}</td>
                         <td>${formatPosNumber(c.is_base ? '✅' : '')}</td>
+=======
+                        <td>${Number(c.rate_to_base || 0).toFixed(4)}</td>
+                        <td>${c.is_base ? '✅' : ''}</td>
+>>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
                         <td>
                             ${!c.is_base ? `<span data-permission="settings.currencies.manage"><button class="btn btn-sm btn-primary" onclick="editCurrencyRate(${c.id}, '${c.code}')"><i class="fas fa-edit"></i> تعديل</button>
                             <button class="btn btn-sm btn-danger" onclick="deleteCurrency(${c.id})"><i class="fas fa-trash"></i> حذف</button></span>` : ''}
@@ -556,10 +565,17 @@
                 const container = document.getElementById('wallets-list');
                 container.innerHTML = data.wallets.map(w => {
                     let balancesHtml = '';
+<<<<<<< HEAD
                     if (window.POSPermissions?.can('wallets.balance.view') && w.balances && w.balances.length) {
                         balancesHtml = w.balances.map(b => `<span>${escapeHtml(b.code)}: ${formatPosMoney(Number(b.balance || 0))}</span>`).join('');
                     }
                     return `<div class="wallet-card"><div><strong>${escapeHtml(w.name)}</strong></div><div class="balances">${balancesHtml || '<span class="muted-balance">الرصيد غير معروض</span>'}</div></div>`;
+=======
+                    if (w.balances && w.balances.length) {
+                        balancesHtml = w.balances.map(b => `<span>${escapeHtml(b.code)}: ${Number(b.balance || 0).toFixed(2)}</span>`).join('');
+                    }
+                    return `<div class="wallet-card"><div><strong>${escapeHtml(w.name)}</strong></div><div class="balances">${balancesHtml || '<span>لا يوجد رصيد</span>'}</div></div>`;
+>>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
                 }).join('') || '<p class="text-muted">لا توجد محافظ</p>';
                 // تحديث القوائم المنسدلة للتحويل
                 const fromSel = document.getElementById('from-wallet');
@@ -730,7 +746,11 @@
                     container.innerHTML = data.vouchers.slice(0, 20).map(v => `
                         <div class="voucher-item">
                             <div>
+<<<<<<< HEAD
                                 <strong>${v.type === 'receipt' ? 'قبض' : 'صرف'}</strong> | ${formatPosMoney(Number(v.amount || 0))} ${escapeHtml(v.currency_code || '')} | الأساس: ${formatPosMoney(Number(v.amount || 0) * (Number(v.exchange_rate) || 1))} | ${escapeHtml(v.reason || '')}
+=======
+                                <strong>${v.type === 'receipt' ? 'قبض' : 'صرف'}</strong> | ${Number(v.amount || 0).toFixed(2)} ${escapeHtml(v.currency_code || '')} | ${escapeHtml(v.reason || '')}
+>>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
                                 <br><small>${escapeHtml(new Date(v.created_at).toLocaleString('ar-YE'))}</small>
                             </div>
                             <button class="btn btn-sm btn-danger" onclick="cancelVoucher(${v.id})">إلغاء</button>

@@ -966,11 +966,16 @@
             if (!navigator.onLine) { updateOnlineStatus(); return false; }
             statusText.textContent = 'جاري الفحص...';
             const controller = new AbortController(); const timer = setTimeout(() => controller.abort(), 6000); const started = performance.now();
+<<<<<<< HEAD
             try { const res = await fetch(`${API}/settings`, { headers:{'Authorization': `Bearer ${token}`}, signal: controller.signal }); clearTimeout(timer); if (!res.ok) throw new Error('HTTP ' + res.status); statusText.textContent = 'متصل'; statusText.style.color = 'var(--success)'; latency.textContent = `(${formatPosNumber(Math.round(performance.now()-started))}ms)`; return true; }
+=======
+            try { const res = await fetch(`${API}/settings`, { headers:{'Authorization': `Bearer ${token}`}, signal: controller.signal }); clearTimeout(timer); if (!res.ok) throw new Error('HTTP ' + res.status); statusText.textContent = 'متصل'; statusText.style.color = 'var(--success)'; latency.textContent = `(${Math.round(performance.now()-started)}ms)`; return true; }
+>>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
             catch (e) { clearTimeout(timer); statusText.textContent = 'الخادم غير متاح'; statusText.style.color = 'var(--danger)'; latency.textContent = ''; document.getElementById('data-source').textContent = 'محلي فقط'; return false; }
         }
 
         function applyDashboardPermissions() {
+<<<<<<< HEAD
             const canCashView = window.POSPermissions?.can('cash.view') || false;
             const backup = document.getElementById('dashboard-backup-btn');
             if (backup) backup.style.display = window.POSPermissions?.can('backup.export') ? 'inline-flex' : 'none';
@@ -984,6 +989,14 @@
 
         async function downloadDashboardBackup() {
             if (!window.POSPermissions?.can('backup.export')) return showToast('لا تملك صلاحية النسخ الاحتياطي', 'warning');
+=======
+            const backup = document.getElementById('dashboard-backup-btn');
+            if (backup) backup.style.display = currentUser?.role === 'admin' ? 'inline-flex' : 'none';
+        }
+
+        async function downloadDashboardBackup() {
+            if (currentUser?.role !== 'admin') return showToast('النسخ الاحتياطي متاح للمدير فقط', 'warning');
+>>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
             try { const res = await fetch(`${API}/export-data`, { headers:{'Authorization': `Bearer ${token}`} }); if (!res.ok) throw new Error('فشل التصدير'); const blob = await res.blob(); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `backup-dashboard-${new Date().toISOString().slice(0,10)}.json`; a.click(); URL.revokeObjectURL(a.href); showToast('تم تنزيل النسخة الاحتياطية', 'success'); }
             catch (e) { showToast('تعذر تنزيل النسخة الاحتياطية', 'error'); }
         }
@@ -1107,7 +1120,10 @@
             document.getElementById('app-screen').style.display = 'flex';
 
             if (currentUser) {
+<<<<<<< HEAD
                 if (window.POSPermissions?.refresh) window.POSPermissions.refresh();
+=======
+>>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
                 applyDashboardPermissions();
                 document.getElementById('user-display').textContent = currentUser.username || 'admin';
                 document.getElementById('role-display').textContent = currentUser.role === 'admin' ? 'مدير' : 'موظف';

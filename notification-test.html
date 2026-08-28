@@ -253,10 +253,13 @@
             min-width: 150px;
         }
     </style>
+<<<<<<< HEAD
     <script src="number-utils.js"></script>
     <script src="permissions.js"></script>
     <link rel="stylesheet" href="sidebar-v4.css" />
     <script src="/offline-sync.js"></script>
+=======
+>>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
 </head>
 <body>
     <div class="container">
@@ -342,7 +345,11 @@
         // ============================================================
         async function loadTokensStats() {
             try {
+<<<<<<< HEAD
                 const token = localStorage.getItem('pos_token') || localStorage.getItem('driverToken') || prompt('أدخل التوكن الخاص بك (Bearer Token):');
+=======
+                const token = localStorage.getItem('driverToken') || prompt('أدخل التوكن الخاص بك (Bearer Token):');
+>>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
                 if (!token) {
                     alert('مطلوب توكن للمصادقة');
                     return;
@@ -385,7 +392,11 @@
                 html = '<div style="color:#94a3b8; padding:12px;">⚠️ لا توجد توكنات مسجلة</div>';
             } else {
                 if (driverTokens.length > 0) {
+<<<<<<< HEAD
                     html += `<div style="font-weight:600; margin:8px 0 4px;">🚚 المندوبين (${formatPosQuantity(driverTokens.length)})</div>`;
+=======
+                    html += `<div style="font-weight:600; margin:8px 0 4px;">🚚 المندوبين (${driverTokens.length})</div>`;
+>>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
                     driverTokens.forEach(t => {
                         html += `<div class="token-item">
                             <span class="token-preview">${t.token.substring(0, 40)}...</span>
@@ -394,7 +405,11 @@
                     });
                 }
                 if (adminTokens.length > 0) {
+<<<<<<< HEAD
                     html += `<div style="font-weight:600; margin:8px 0 4px;">👤 المشرفين (${formatPosQuantity(adminTokens.length)})</div>`;
+=======
+                    html += `<div style="font-weight:600; margin:8px 0 4px;">👤 المشرفين (${adminTokens.length})</div>`;
+>>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
                     adminTokens.forEach(t => {
                         html += `<div class="token-item">
                             <span class="token-preview">${t.token.substring(0, 40)}...</span>
@@ -428,7 +443,11 @@
             const startTime = new Date();
 
             try {
+<<<<<<< HEAD
                 const token = (type === 'admin' ? localStorage.getItem('pos_token') : localStorage.getItem('driverToken')) || prompt('أدخل التوكن الخاص بك (Bearer Token):');
+=======
+                const token = localStorage.getItem('driverToken') || prompt('أدخل التوكن الخاص بك (Bearer Token):');
+>>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
                 if (!token) {
                     throw new Error('مطلوب توكن للمصادقة');
                 }
@@ -460,7 +479,11 @@
                     responseData = { raw: responseText };
                 }
 
+<<<<<<< HEAD
                 const elapsed = formatPosNumber((new Date() - startTime) / 1000, 2);
+=======
+                const elapsed = ((new Date() - startTime) / 1000).toFixed(2);
+>>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
                 logLines.push(`⏱️ الزمن: ${elapsed} ثانية`);
                 logLines.push(`📊 حالة HTTP: ${res.status} ${res.statusText}`);
 
@@ -512,17 +535,26 @@
         // 4. التهيئة
         // ============================================================
         window.addEventListener('load', () => {
+<<<<<<< HEAD
             // تحميل واحد عند فتح الصفحة؛ التحديث اللاحق يدوي لتقليل استهلاك قاعدة البيانات.
             loadTokensStats();
+=======
+            loadTokensStats();
+            // تحديث كل 30 ثانية
+            setInterval(loadTokensStats, 30000);
+>>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
         });
 
         // تصدير الدوال إلى النافذة
         window.sendTestNotification = sendTestNotification;
         window.loadTokensStats = loadTokensStats;
     </script>
+<<<<<<< HEAD
 <div id="sidebar-container"></div>
     <script src="document-utils.js"></script>
     <script src="sidebar-config.js"></script>
     <script src="notification-center-v3.js"></script>
+=======
+>>>>>>> a7bfa5387fc16a5b92da97c93c6d3dd8dfecc8c0
 </body>
 </html>
