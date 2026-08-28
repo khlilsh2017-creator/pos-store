@@ -2,7 +2,6 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-    <link rel="stylesheet" href="sidebar.css" />
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>نظام العملاء المتقدم – الفواتير والمدفوعات</title>
@@ -1074,6 +1073,12 @@
             display: none;
         }
     </style>
+    <script src="date-utils.js"></script>
+    <script src="number-utils.js"></script>
+    <script src="permissions.js"></script>
+    <script src="filter-utils.js"></script>
+    <link rel="stylesheet" href="sidebar-v4.css" />
+    <script src="/offline-sync.js"></script>
 </head>
 <body>
 
@@ -1093,6 +1098,7 @@
                     <button class="theme-toggle" onclick="toggleTheme()" title="تبديل الوضع">
                         <i class="fas fa-moon" id="theme-icon"></i>
                     </button>
+                    <button class="btn btn-outline" onclick="printCustomersList()"><i class="fas fa-print"></i> طباعة الكشوف</button>
                     <button class="btn btn-primary" onclick="openAddCustomerModal()">
                         <i class="fas fa-plus"></i> عميل جديد
                     </button>
@@ -1170,6 +1176,7 @@
                         <h4><i class="fas fa-table"></i> قائمة العملاء</h4>
                         <div style="display:flex;gap:8px;flex-wrap:wrap;">
                             <button class="btn btn-outline btn-sm" onclick="refreshCustomers()"><i class="fas fa-sync-alt"></i> تحديث</button>
+                            <button class="btn btn-outline btn-sm" onclick="printCustomersList()"><i class="fas fa-print"></i> طباعة</button>
                         </div>
                     </div>
                     <div class="table-wrapper">
@@ -1368,7 +1375,8 @@
             <div class="modal-title"><i class="fas fa-file-invoice"></i> تفاصيل سند القبض</div>
             <div id="payment-details-area">جاري التحميل...</div>
             <div class="modal-actions">
-                <button class="btn btn-primary btn-sm no-print" onclick="window.print()"><i class="fas fa-print"></i> طباعة</button>
+                <button class="btn btn-primary btn-sm no-print" onclick="window.POSDocs ? POSDocs.printVoucherData(window._customerPaymentData || {type:'receipt',amount:0}, {title:'سند قبض'}).catch(e=>showToast(e.message,'error')) : window.print()"><i class="fas fa-print"></i> طباعة</button>
+                
                 <button class="btn btn-outline btn-sm" onclick="closeModal('modal-payment')">إغلاق</button>
             </div>
         </div>
@@ -1393,9 +1401,12 @@
             <div class="modal-title"><i class="fas fa-receipt"></i> تفاصيل الفاتورة</div>
             <div id="invoice-details-area">جاري التحميل...</div>
             <div class="modal-actions">
-                <button class="btn btn-primary btn-sm no-print" onclick="window.print()"><i class="fas fa-print"></i> طباعة</button>
+                <button class="btn btn-primary btn-sm no-print" onclick="window.POSDocs ? POSDocs.printInvoiceData(window._customerInvoiceData || {type:'sale',items:[]}, {title:'فاتورة مبيعات'}).catch(e=>showToast(e.message,'error')) : window.print()"><i class="fas fa-print"></i> طباعة</button>
+                
+                
                 <button class="btn btn-warning btn-sm no-print" id="btn-edit-invoice" onclick="editInvoice()"><i class="fas fa-edit"></i> تعديل</button>
                 <button class="btn btn-danger btn-sm no-print" id="btn-cancel-invoice" onclick="cancelInvoice()"><i class="fas fa-times-circle"></i> إلغاء</button>
+                <button class="btn btn-warning btn-sm no-print" id="btn-undo-cancel-invoice" onclick="undoCancelInvoice()" style="display:none;"><i class="fas fa-undo"></i> عكس الإلغاء</button>
                 <button class="btn btn-outline btn-sm" onclick="closeModal('modal-invoice')">إغلاق</button>
             </div>
         </div>
@@ -1408,7 +1419,9 @@
             <div class="modal-title"><i class="fas fa-chart-line"></i> كشف حساب العميل</div>
             <div id="statement-details-area">جاري التحميل...</div>
             <div class="modal-actions">
-                <button class="btn btn-primary btn-sm no-print" onclick="window.print()"><i class="fas fa-print"></i> طباعة الكشف</button>
+                <button class="btn btn-primary btn-sm no-print" onclick="printCustomerStatement()"><i class="fas fa-print"></i> طباعة الكشف</button>
+                
+                
                 <button class="btn btn-outline btn-sm" onclick="closeModal('modal-statement')">إغلاق</button>
             </div>
         </div>
@@ -1473,6 +1486,8 @@
     <script>
         // ===== CONFIG =====
         const API = 'https://api.ibnalmukhtar.com';
+        const currentUser = JSON.parse(localStorage.getItem('pos_user') || '{}');
+        const canReverseCustomerOperations = currentUser.role === 'admin';
         let token = localStorage.getItem('pos_token') || '';
         let currentInvoiceId = null;
         let selectedPaymentMethod = 'cash';
@@ -1531,11 +1546,11 @@
                 const rate = getCurrencyRate(currencyId);
                 const code = getCurrencyCode(currencyId);
                 document.getElementById('pay-currency-rate').textContent =
-                    `سعر الصرف: 1 ${code} = ${rate.toFixed(4)} ريال`;
+                    `سعر الصرف: 1 ${code} = ${formatPosNumber(rate, 4)} ريال`;
                 document.getElementById('cash-currency-rate').textContent =
-                    `سعر الصرف: 1 ${code} = ${rate.toFixed(4)} ريال`;
+                    `سعر الصرف: 1 ${code} = ${formatPosNumber(rate, 4)} ريال`;
                 document.getElementById('wallet-currency-rate').textContent =
-                    `سعر الصرف: 1 ${code} = ${rate.toFixed(4)} ريال`;
+                    `سعر الصرف: 1 ${code} = ${formatPosNumber(rate, 4)} ريال`;
                 updateWalletBalanceDisplay();
             }
         }
@@ -1582,7 +1597,7 @@
                     const balances = wallet.balances || [];
                     const balance = balances.find(b => b.currency_id === currencyId);
                     if (balance) {
-                        singleBalanceDiv.textContent = `رصيد المحفظة: ${balance.balance.toFixed(2)} ${getCurrencyCode(currencyId)}`;
+                        singleBalanceDiv.textContent = `رصيد المحفظة: ${formatPosMoney(balance.balance)} ${getCurrencyCode(currencyId)}`;
                     } else {
                         singleBalanceDiv.textContent = `رصيد المحفظة: 0.00 ${getCurrencyCode(currencyId)}`;
                     }
@@ -1600,7 +1615,7 @@
                     const balances = wallet.balances || [];
                     const balance = balances.find(b => b.currency_id === currencyId);
                     if (balance) {
-                        mixedBalanceDiv.textContent = `رصيد المحفظة: ${balance.balance.toFixed(2)} ${getCurrencyCode(currencyId)}`;
+                        mixedBalanceDiv.textContent = `رصيد المحفظة: ${formatPosMoney(balance.balance)} ${getCurrencyCode(currencyId)}`;
                     } else {
                         mixedBalanceDiv.textContent = `رصيد المحفظة: 0.00 ${getCurrencyCode(currencyId)}`;
                     }
@@ -1650,10 +1665,7 @@
         function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 
         function formatDate(dateStr) {
-            return new Date(dateStr).toLocaleDateString('ar-EG') + ' ' + new Date(dateStr).toLocaleTimeString('ar-EG', {
-                hour: '2-digit',
-                minute: '2-digit'
-            });
+            return POSDate.localized(dateStr, { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false });
         }
 
         // ===== TABS =====
@@ -1712,12 +1724,13 @@
             const wallet = parseFloat(document.getElementById('pay-wallet-amount').value) || 0;
             const total = cash + wallet;
             document.getElementById('pay-amount').value = total.toFixed(2);
-            document.getElementById('mixed-total-display').textContent = total.toFixed(2);
+            document.getElementById('mixed-total-display').textContent = formatPosMoney(total, 2);
             return total;
         }
 
         // ===== LOGOUT =====
         function logout() {
+            window.POSPermissions?.recordLogout?.();
             if (confirm('تأكيد الخروج؟')) {
                 localStorage.removeItem('pos_token');
                 window.location.href = 'index.html';
@@ -1740,10 +1753,10 @@
                     if (bal > 0) totalDebt += bal;
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
-                        <td>${idx + 1}</td>
+                        <td>${formatPosNumber(idx + 1)}</td>
                         <td><strong>${c.name}</strong></td>
                         <td>${c.phone || '-'}</td>
-                        <td><span class="badge ${bal > 0 ? 'badge-debt' : 'badge-credit'}">${bal.toFixed(2)} ريال</span></td>
+                        <td><span class="badge ${bal > 0 ? 'badge-debt' : 'badge-credit'}">${formatPosMoney(bal, 2)} ريال</span></td>
                         <td>
                             <div class="actions-cell">
                                 <button class="btn btn-info btn-xs" onclick="viewCustomerStatement(${c.id})" title="كشف حساب"><i class="fas fa-file-alt"></i> كشف</button>
@@ -1764,6 +1777,12 @@
                 document.getElementById('stat-total-customers').textContent = data.customers.length;
                 document.getElementById('stat-total-debt').innerHTML = totalDebt.toFixed(2) +
                     ' <small style="font-size:0.6rem;font-weight:400;">ريال</small>';
+                try {
+                    const debtRes = await fetch(`${API}/customers/total-debt`, { headers: { 'Authorization': `Bearer ${token}` } });
+                    const debtData = await debtRes.json();
+                    const serverDebt = Number(debtData.total_debt ?? debtData.total ?? NaN);
+                    if (Number.isFinite(serverDebt)) document.getElementById('stat-total-debt').innerHTML = serverDebt.toFixed(2) + ' <small style="font-size:0.6rem;font-weight:400;">ريال</small>';
+                } catch (_) {}
 
                 await loadStats();
                 await loadPendingInvoices();
@@ -1782,9 +1801,8 @@
                 const debtCount = data.customers.filter(c => parseFloat(c.balance || 0) > 0).length;
                 document.getElementById('stat-pending-invoices').textContent = debtCount;
                 const trend = document.getElementById('stat-debt-trend');
-                const up = Math.random() > 0.5;
-                trend.className = 'stat-trend' + (up ? '' : ' down');
-                trend.innerHTML = `<i class="fas fa-arrow-${up ? 'up' : 'down'}"></i> ${(Math.random() * 20 + 2).toFixed(0)}%`;
+                trend.className = 'stat-trend';
+                trend.innerHTML = `<i class="fas fa-database"></i> مباشر`;
             } catch {}
         }
 
@@ -1818,7 +1836,7 @@
                     const paid = parseFloat(inv.paid_amount) || 0;
                     const remaining = total - paid;
                     totalPending += remaining;
-                    const invDate = new Date(inv.created_at);
+                    const invDate = POSDate.toDate(inv.created_at);
                     const daysDiff = (now - invDate) / (1000 * 60 * 60 * 24);
                     const isOverdue = daysDiff > 30 && remaining > 0.01;
                     if (isOverdue) overdueCount++;
@@ -1828,10 +1846,10 @@
                             <td><strong>#${inv.invoice_number || inv.id}</strong></td>
                             <td>${inv.customer_name || 'غير معروف'}</td>
                             <td>${formatDate(inv.created_at)}</td>
-                            <td>${total.toFixed(2)}</td>
-                            <td>${paid.toFixed(2)}</td>
-                            <td><span class="badge badge-debt">${remaining.toFixed(2)}</span></td>
-                            <td><span class="badge ${isOverdue ? 'badge-danger' : 'badge-warning'}">${isOverdue ? 'متأخرة' : 'معلقة'}</span></td>
+                            <td>${formatPosMoney(total)}</td>
+                            <td>${formatPosMoney(paid)}</td>
+                            <td><span class="badge badge-debt">${formatPosMoney(remaining)}</span></td>
+                            <td><span class="badge ${formatPosMoney(isOverdue ? 'badge-danger' : 'badge-warning')}">${formatPosMoney(isOverdue ? 'متأخرة' : 'معلقة')}</span></td>
                             <td>
                                 <button class="btn btn-info btn-xs" onclick="viewInvoiceDetails(${inv.id})"><i class="fas fa-eye"></i> عرض</button>
                             </td>
@@ -1841,7 +1859,7 @@
 
                 tbody.innerHTML = rows;
                 document.getElementById('pending-invoices-count').textContent = pending.length + ' فاتورة';
-                document.getElementById('pending-total-amount').textContent = totalPending.toFixed(2);
+                document.getElementById('pending-total-amount').textContent = formatPosMoney(totalPending, 2);
                 document.getElementById('pending-overdue-count').textContent = overdueCount;
                 document.getElementById('stat-pending-invoices').textContent = pending.length;
                 document.getElementById('stat-total-invoices').textContent = allSales.length;
@@ -1869,7 +1887,7 @@
                 tbody.innerHTML = data.payments.map(p => `
                     <tr>
                         <td>${p.customer_name || 'غير معروف'}</td>
-                        <td><strong>${parseFloat(p.amount).toFixed(2)} ريال</strong></td>
+                        <td><strong>${formatPosMoney(parseFloat(p.amount))} ريال</strong></td>
                         <td><span class="badge badge-info">${p.payment_method || 'نقداً'}</span></td>
                         <td>${formatDate(p.created_at)}</td>
                     </tr>
@@ -1892,7 +1910,7 @@
                 const count = data.count || 0;
                 document.getElementById('stat-paid-today').innerHTML = total.toFixed(2) +
                     ' <small style="font-size:0.6rem;font-weight:400;">ريال</small>';
-                document.getElementById('today-payments-total').textContent = total.toFixed(2);
+                document.getElementById('today-payments-total').textContent = formatPosMoney(total, 2);
                 document.getElementById('today-payments-count').textContent = count;
             } catch {
                 try {
@@ -1901,14 +1919,12 @@
                     });
                     const data2 = await res2.json();
                     if (data2.payments) {
-                        const today = new Date().toDateString();
-                        const todayPayments = data2.payments.filter(p =>
-                            new Date(p.created_at).toDateString() === today
-                        );
+                            const today = POSDate.today();
+                        const todayPayments = data2.payments.filter(p => POSDate.date(p.created_at) === today);
                         const total = todayPayments.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
                         document.getElementById('stat-paid-today').innerHTML = total.toFixed(2) +
                             ' <small style="font-size:0.6rem;font-weight:400;">ريال</small>';
-                        document.getElementById('today-payments-total').textContent = total.toFixed(2);
+                        document.getElementById('today-payments-total').textContent = formatPosMoney(total, 2);
                         document.getElementById('today-payments-count').textContent = todayPayments.length;
                     }
                 } catch {}
@@ -2000,14 +2016,14 @@
                     const method = p.payment_method || 'نقداً';
                     html += `
                         <tr>
-                            <td>${idx+1}</td>
-                            <td><strong>${parseFloat(p.amount).toFixed(2)}</strong></td>
+                            <td>${formatPosNumber(idx+1)}</td>
+                            <td><strong>${formatPosMoney(parseFloat(p.amount))}</strong></td>
                             <td><span class="badge badge-info">${currencyCode} (${currencyName})</span></td>
                             <td>${method}</td>
-                            <td>${walletName}</td>
+                            <td>${formatPosMoney(walletName)}</td>
                             <td>${formatDate(p.created_at)}</td>
                             <td>${p.note || ''}</td>
-                            <td><button class="btn btn-danger btn-xs" onclick="cancelCustomerPayment(${p.id}, ${customerId})"><i class="fas fa-times"></i></button></td>
+                            <td>${canReverseCustomerOperations ? `<button class="btn btn-danger btn-xs" onclick="cancelCustomerPayment(${p.id}, ${customerId})" title="للمدير فقط"><i class="fas fa-undo"></i></button>` : '<span class="text-muted" title="يتطلب صلاحية المدير">للقراءة فقط</span>'}</td>
                         </tr>
                     `;
                 });
@@ -2132,7 +2148,7 @@
                 const data = await res.json();
                 if (res.ok) {
                     const currencyName = getCurrencyName(currency_id);
-                    showToast(`تم استلام ${totalAmount.toFixed(2)} ${currencyName} بنجاح. رقم السند: ${data.payment_id}`, 'success');
+                    showToast(`تم استلام ${formatPosMoney(totalAmount)} ${currencyName} بنجاح. رقم السند: ${data.payment_id}`, 'success');
                     document.getElementById('pay-amount').value = '';
                     document.getElementById('pay-note').value = '';
                     document.getElementById('pay-cash-amount').value = '0';
@@ -2162,13 +2178,14 @@
                     const currencyCode = getCurrencyCode(currencyId);
                     const currencyName = getCurrencyName(currencyId);
                     const walletDisplay = slip.wallet_name ? ` (المحفظة: ${slip.wallet_name})` : '';
+                    window._customerPaymentData = { type:'receipt', id:slip.id, number:slip.id, date:formatDate(slip.created_at), amount:Number(slip.amount || 0), currency:currencyCode, reason:slip.note || '', status:'تم الاستلام', party: data.customer_name || data.customer?.name || `#${customerId}`, customer_name: data.customer_name || data.customer?.name || `#${customerId}` };
                     document.getElementById('payment-details-area').innerHTML = `
-                        <div class="print-header">سند قبض <small>رقم السند: #${slip.id}</small></div>
+                        <div class="print-header">سند قبض — العميل: ${data.customer_name || data.customer?.name || `#${customerId}`} <small>رقم السند: #${slip.id}</small></div>
                         <div style="border:3px dashed var(--primary); padding:24px; text-align:center; border-radius:12px; margin:8px 0; background:var(--bg);">
                             <h3 style="font-size:1.8rem;font-weight:900;color:var(--primary);">سند قبض</h3>
                             <p><strong>رقم السند:</strong> #${slip.id}</p>
-                            <p><strong>المبلغ:</strong> <span style="font-size:1.6rem;font-weight:900;color:var(--success);">${parseFloat(slip.amount).toFixed(2)}</span> ${currencyCode} (${currencyName})</p>
-                            <p><strong>طريقة الدفع:</strong> ${slip.payment_method || 'نقداً'} ${walletDisplay}</p>
+                            <p><strong>المبلغ:</strong> <span style="font-size:1.6rem;font-weight:900;color:var(--success);">${formatPosMoney(parseFloat(slip.amount))}</span> ${currencyCode} (${currencyName})</p>
+                            <p><strong>طريقة الدفع:</strong> ${slip.payment_method || 'نقداً'} ${formatPosMoney(walletDisplay)}</p>
                             <p><strong>التاريخ:</strong> ${formatDate(slip.created_at)}</p>
                             ${slip.note ? `<p><strong>ملاحظة:</strong> ${slip.note}</p>` : ''}
                             <hr style="margin:16px 0;border-color:var(--border);">
@@ -2183,6 +2200,59 @@
                 document.getElementById('payment-details-area').innerHTML =
                     '<p class="text-danger text-center">خطأ في عرض السند</p>';
             }
+        }
+
+        async function exportCustomerStatement(customerId) {
+            try {
+                const res = await fetch(`${API}/customers/statement?customer_id=${customerId}`, { headers: { 'Authorization': `Bearer ${token}` } });
+                const data = await res.json(); const rows = data.statement || [];
+                if (!rows.length) return showToast('لا توجد حركات لتصديرها', 'warning');
+                const keys = ['created_at','type','invoice_number','amount','total_amount','payment_method','note'];
+                const csv = '\ufeff' + [keys, ...rows.map(r => keys.map(k => r[k] ?? ''))].map(row => row.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\\n');
+                const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv;charset=utf-8'})); a.download = `كشف-عميل-${customerId}-${new Date().toISOString().slice(0,10)}.csv`; a.click(); URL.revokeObjectURL(a.href); showToast('تم تصدير كشف العميل', 'success');
+            } catch (e) { showToast('تعذر تصدير كشف العميل', 'error'); }
+        }
+
+        function printCustomerStatement(customerId) {
+            const element = document.getElementById('statement-details-area');
+            if (!element || !window.POSDocs) return showToast('تعذر تجهيز كشف العميل للطباعة', 'error');
+            const party = window._customerStatementData?.party || document.querySelector('#customer-name')?.textContent?.trim() || `#${customerId || ''}`;
+            const options = { title: `كشف حساب العميل: ${party}` };
+            const job = POSDocs.printReport(element, options);
+            job.then(() => showToast('تم تجهيز كشف العميل للطباعة', 'success')).catch(e => showToast(e.message, 'error'));
+        }
+        function exportCustomerStatementPDF() {
+            const e = document.getElementById('statement-details-area');
+            if (window.POSDocs && e) (window._customerStatementData ? POSDocs.exportStatementPDF(window._customerStatementData, {title:`كشف حساب العميل: ${window._customerStatementData.party || ''}`, filename:`كشف-حساب-العميل-${window._customerStatementData.party || window._customerStatementData.number || 'جهة'}.pdf`}) : POSDocs.exportReportPDF(e, {title:`كشف حساب العميل: ${window._customerStatementData?.party || ''}`, filename:`كشف-حساب-العميل-${window._customerStatementData?.party || 'جهة'}.pdf`})).then(()=>showToast('تم تنزيل PDF','success')).catch(x=>showToast(x.message,'error'));
+        }
+        function exportCustomerStatementExcel() {
+            const e = document.getElementById('statement-details-area');
+            if (window.POSDocs && e) POSDocs.exportExcel(e, {filename:`كشف-حساب-العميل-${window._customerStatementData?.party || window._customerStatementData?.number || 'جهة'}.xlsx`}).then(()=>showToast('تم تنزيل Excel','success')).catch(x=>showToast(x.message,'error'));
+        }
+
+        function exportSalesInvoicePDF() {
+            if (!window._customerInvoiceData) return showToast('لا توجد فاتورة محددة', 'warning');
+            if (window.POSDocs) POSDocs.exportInvoicePDF(window._customerInvoiceData, {title:'فاتورة مبيعات', filename:`فاتورة-مبيعات-${currentInvoiceId || ''}.pdf`}).then(()=>showToast('تم تنزيل PDF','success')).catch(e=>showToast(e.message,'error'));
+        }
+        function exportSalesInvoiceExcel() {
+            const e = document.getElementById('invoice-details-area');
+            if (window.POSDocs && e) POSDocs.exportExcel(e, {filename:`فاتورة-مبيعات-${currentInvoiceId || ''}.xlsx`}).then(()=>showToast('تم تنزيل Excel','success')).catch(e=>showToast(e.message,'error'));
+        }
+
+        function printCustomersList() {
+            const table = document.getElementById('customers-table');
+            if (!table || !window.POSDocs) return showToast('تعذر تجهيز قائمة العملاء للطباعة', 'error');
+            POSDocs.printReport(table, { title: 'قائمة العملاء' }).catch(e => showToast(e.message, 'error'));
+        }
+
+        async function exportCustomersCSV() {
+            try {
+                const res = await fetch(`${API}/customers`, { headers: { 'Authorization': `Bearer ${token}` } }); const data = await res.json(); const rows = data.customers || [];
+                const total = rows.reduce((sum, c) => sum + Math.max(0, Number(c.balance) || 0), 0);
+                const keys = ['id','name','phone','address','balance'];
+                const csv = '\ufeff' + [keys, ...rows.map(r => keys.map(k => r[k] ?? ''))].map(row => row.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\\n');
+                const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv;charset=utf-8'})); a.download = `كشوف-العملاء-${new Date().toISOString().slice(0,10)}.csv`; a.click(); URL.revokeObjectURL(a.href); showToast(`تم تصدير ${formatPosQuantity(rows.length)} عميلاً بإجمالي ديون ${formatPosMoney(total)} ريال`, 'success');
+            } catch (e) { showToast('تعذر تصدير كشوف العملاء', 'error'); }
         }
 
         // ===== VIEW CUSTOMER STATEMENT (with currency) =====
@@ -2252,7 +2322,9 @@
 
                 displayMovements.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
 
-                let balance = 0;
+                let balance = Number(data.summary?.opening_balance ?? 0);
+                const openingBalance = balance;
+                const statementItems = [];
                 let rows = '';
                 if (displayMovements.length === 0) {
                     rows = `<tr><td colspan="7" class="text-center text-muted">لا توجد حركات (فواتير آجلة أو مدفوعات) لهذا العميل</td></tr>`;
@@ -2268,25 +2340,36 @@
                             balance -= credit;
                         }
                         const currencyDisplay = m.currency_code ? `${m.currency_code}` : 'YER';
+                        statementItems.push({ date: formatDate(m.created_at), description: `${m.isSale ? 'فاتورة #' + m.invoice_number : 'سند قبض #' + m.id} — ${m.displayType}`, debit, credit, balance });
                         return `
-                            <tr>
+                            <tr data-pos-filter-row data-date="${String(m.created_at || '').slice(0,10)}">
                                 <td>${formatDate(m.created_at)}</td>
-                                <td>${m.displayType}</td>
+                                <td>${formatPosNumber(m.displayType)}</td>
                                 <td>${m.isSale ? 'فاتورة #'+m.invoice_number : 'سند قبض #'+m.id}</td>
-                                <td style="text-align:left;color:${m.isSale ? 'var(--danger)' : 'var(--success)'};">${m.amount.toFixed(2)} ${currencyDisplay}</td>
-                                <td style="text-align:left;">${m.isSale ? 'مدين' : 'دائن'}</td>
-                                <td style="text-align:left;"><span class="badge ${balance > 0.01 ? 'badge-debt' : 'badge-credit'}">${balance.toFixed(2)} ريال</span></td>
+                                <td style="text-align:left;color:${m.isSale ? 'var(--danger)' : 'var(--success)'};">${formatPosMoney(m.amount)} ${currencyDisplay}</td>
+                                <td style="text-align:left;">${formatPosNumber(m.isSale ? 'مدين' : 'دائن')}</td>
+                                <td style="text-align:left;"><span class="badge ${balance > 0.01 ? 'badge-debt' : 'badge-credit'}">${formatPosMoney(balance)} ريال</span></td>
                             </tr>
                         `;
                     }).join('');
                 }
 
                 const finalBalance = balance;
+                window._customerStatementData = {
+                    title: `كشف حساب العميل: ${data.customer_name || data.customer?.name || `#${customerId}`}`, number: customerId, party_type: 'customer',
+                    party: data.customer_name || data.customer?.name || `#${customerId}`, customer_name: data.customer_name || data.customer?.name || `#${customerId}`, currency: 'ريال',
+                    date_from: data.from || '', date_to: data.to || '', opening_balance: Number(data.summary?.opening_balance ?? 0),
+                    items: statementItems,
+                    total_debit: Number(data.summary?.total_debit ?? statementItems.reduce((sum, item) => sum + Number(item.debit || 0), 0)),
+                    total_credit: Number(data.summary?.total_credit ?? statementItems.reduce((sum, item) => sum + Number(item.credit || 0), 0)),
+                    final_balance: Number(data.summary?.final_balance ?? finalBalance)
+                };
+                const customerName = data.customer_name || data.customer?.name || `#${customerId}`;
                 const content = `
-                    <div class="print-header">كشف حساب العميل <small>رقم العميل: ${customerId}</small></div>
+                    <div class="print-header" style="display:flex;justify-content:space-between;align-items:center;gap:8px;">كشف حساب العميل: ${customerName} <small>رقم العميل: ${customerId}</small><button class="btn btn-outline btn-sm no-print" onclick="printCustomerStatement(${customerId})"><i class="fas fa-print"></i> طباعة</button></div>
                     <div style="margin-bottom:16px;padding:16px;background:var(--bg);border-radius:var(--radius-sm);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;">
-                        <strong style="font-size:1.1rem;">الرصيد النهائي المستحق:</strong>
-                        <span class="badge ${finalBalance > 0.01 ? 'badge-debt' : 'badge-credit'}" style="font-size:1.2rem;padding:8px 20px;">${finalBalance.toFixed(2)} ريال</span>
+                        <div style="display:flex;flex-direction:column;gap:4px;"><strong style="font-size:1.1rem;">العميل: ${customerName}</strong><small>الرصيد السابق قبل الفترة: ${formatPosMoney(openingBalance)} ريال</small></div><strong style="font-size:1.1rem;">الرصيد النهائي المستحق:</strong>
+                        <span class="badge ${finalBalance > 0.01 ? 'badge-debt' : 'badge-credit'}" style="font-size:1.2rem;padding:8px 20px;">${formatPosMoney(finalBalance)} ريال</span>
                     </div>
                     <div class="table-wrapper">
                         <table class="table">
@@ -2308,7 +2391,9 @@
                     </div>
                 `;
 
-                document.getElementById('statement-details-area').innerHTML = content;
+                const statementArea = document.getElementById('statement-details-area');
+                statementArea.innerHTML = content;
+
             } catch (error) {
                 document.getElementById('statement-details-area').innerHTML =
                     `<p class="text-danger text-center">خطأ في تحميل الكشف: ${error.message}</p>`;
@@ -2324,20 +2409,30 @@
                 '<div class="text-center"><i class="fas fa-spinner fa-spin fa-2x"></i><br>جاري التحميل...</div>';
             document.getElementById('btn-cancel-invoice').disabled = false;
             document.getElementById('btn-edit-invoice').disabled = false;
+            document.getElementById('btn-undo-cancel-invoice').style.display = canReverseCustomerOperations ? 'inline-flex' : 'none';
 
             try {
                 const res = await fetch(`${API}/sales/${invoiceId}`, { headers: { 'Authorization': `Bearer ${token}` } });
                 if (!res.ok) throw new Error('الفاتورة غير موجودة');
                 const inv = await res.json();
+                window._customerInvoiceData = {
+                    type:'sale', number:inv.invoice_number || invoiceId, id:inv.id || invoiceId,
+                    date:inv.created_at || new Date().toLocaleString('ar-SA'),
+                    party:inv.customer_name || 'عميل نقدي', payment_method:inv.payment_method || 'نقدي',
+                    status:inv.status || 'مكتملة', currency_code:inv.currency_code || inv.currency || 'ريال',
+                    items:(inv.items || []).map(i => ({name:i.product_name || i.name || 'منتج', product_code:i.product_code || '', quantity:Number(i.quantity || 0), unit_price:Number(i.unit_price || i.price || 0), discount:Number(i.discount || i.discount_amount || 0), note:i.note || i.notes || '', line_total:Number(i.line_total ?? i.total_price ?? 0)})),
+                    total:Number(inv.total_amount || inv.total || 0), discount:Number(inv.discount_amount || inv.discount || 0),
+                    paid:Number(inv.paid_amount || inv.paid || 0), notes:inv.notes || inv.note || ''
+                };
 
                 let itemsHtml = '';
                 if (inv.items && inv.items.length > 0) {
                     itemsHtml = inv.items.map(i => `
                         <tr>
-                            <td>${i.product_name || 'منتج'}</td>
-                            <td>${i.quantity}</td>
-                            <td>${parseFloat(i.unit_price).toFixed(2)}</td>
-                            <td style="font-weight:700;">${parseFloat(i.total_price).toFixed(2)}</td>
+                            <td>${i.product_name || 'منتج'}${Number(i.discount || i.discount_amount || 0) > 0 ? `<small style="display:block;color:var(--danger);">خصم المنتج: ${formatPosMoney(Number(i.discount || i.discount_amount || 0))}</small>` : ''}${i.note || i.notes ? `<small style="display:block;color:var(--muted);">ملاحظة: ${escapeHtml(i.note || i.notes)}</small>` : ''}</td>
+                            <td>${formatPosQuantity(i.quantity)}</td>
+                            <td>${formatPosMoney(i.unit_price)}</td>
+                            <td style="font-weight:700;">${formatPosMoney(parseFloat(i.total_price ?? i.line_total ?? 0))}</td>
                         </tr>
                     `).join('');
                 } else {
@@ -2346,21 +2441,24 @@
                 }
 
                 const walletDisplay = inv.wallet_name ? ` (المحفظة: ${inv.wallet_name})` : '';
+                const isCancelledInvoice = ['cancelled','canceled','ملغاة','ملغي'].includes(String(inv.status || '').toLowerCase());
+                document.getElementById('btn-cancel-invoice').style.display = isCancelledInvoice ? 'none' : 'inline-flex';
+                document.getElementById('btn-undo-cancel-invoice').style.display = canReverseCustomerOperations && isCancelledInvoice ? 'inline-flex' : 'none';
                 document.getElementById('invoice-details-area').innerHTML = `
                     <div class="print-header">فاتورة #${inv.invoice_number || invoiceId}</div>
                     <div style="border:2px solid var(--border);padding:20px;border-radius:var(--radius-sm);background:var(--bg);">
                         <div style="display:flex;justify-content:space-between;flex-wrap:wrap;margin-bottom:12px;">
                             <h4 style="font-size:1.3rem;">فاتورة #${inv.invoice_number || invoiceId}</h4>
-                            <span class="badge badge-info">${inv.payment_method || 'نقداً'} ${walletDisplay}</span>
+                            <span class="badge badge-info">${inv.payment_method || 'نقداً'} ${formatPosMoney(walletDisplay)}</span>
                         </div>
                         <p><strong>العميل:</strong> ${inv.customer_name || 'نقدي'}</p>
-                        <p><strong>الخصم:</strong> ${parseFloat(inv.discount || 0).toFixed(2)} ريال</p>
+                        <p><strong>الخصم:</strong> ${formatPosMoney(parseFloat(inv.discount || 0))} ريال</p>
                         <hr style="border-color:var(--border);margin:12px 0;">
                         <div class="table-wrapper">
                             <table class="table"><thead><tr><th>المنتج</th><th>الكمية</th><th>السعر</th><th style="text-align:left;">الإجمالي</th></tr></thead><tbody>${itemsHtml}</tbody></table>
                         </div>
                         <div style="margin-top:16px;text-align:left;font-size:1.3rem;font-weight:900;padding:12px 16px;background:var(--card);border-radius:var(--radius-sm);border:2px solid var(--primary);">
-                            الإجمالي الكلي: ${parseFloat(inv.total_amount || 0).toFixed(2)} ريال
+                            الإجمالي الكلي: ${formatPosMoney(parseFloat(inv.total_amount || 0))} ريال
                         </div>
                         <div style="margin-top:8px;color:var(--text-muted);font-size:0.8rem;">التاريخ: ${formatDate(inv.created_at)}</div>
                     </div>
@@ -2375,6 +2473,7 @@
 
         // ===== CANCEL INVOICE =====
         async function cancelInvoice() {
+            if (!canReverseCustomerOperations) return showToast('إلغاء الفواتير متاح للمدير فقط', 'warning');
             if (!currentInvoiceId) return showToast('لا توجد فاتورة محددة', 'error');
             if (!confirm('هل أنت متأكد من إلغاء هذه الفاتورة؟ سيتم استرجاع المخزون وعكس القيود المحاسبية.')) return;
             try {
@@ -2399,6 +2498,16 @@
             window.location.href = `sale.html?edit=${currentInvoiceId}`;
         }
 
+        async function undoCancelInvoice() {
+            if (!canReverseCustomerOperations) return showToast('هذه العملية متاحة للمدير فقط', 'warning');
+            if (!currentInvoiceId || !confirm('هل تريد عكس إلغاء الفاتورة وإعادتها؟')) return;
+            try {
+                const res = await fetch(`${API}/sales/cancel/undo`, { method:'POST', headers:{'Authorization': `Bearer ${token}`, 'Content-Type':'application/json'}, body:JSON.stringify({ sale_id: currentInvoiceId }) });
+                const data = await res.json(); if (!res.ok) throw new Error(data.error || 'فشل عكس الإلغاء');
+                showToast('تم عكس إلغاء الفاتورة', 'success'); closeModal('modal-invoice'); loadCustomers();
+            } catch (e) { showToast(e.message, 'error'); }
+        }
+
         // ===== VIEW CUSTOMER PURCHASES =====
         async function viewCustomerPurchases(customerId) {
             openModal('modal-purchases');
@@ -2420,7 +2529,7 @@
                     <tr>
                         <td>#${p.invoice_number || p.id}</td>
                         <td>${formatDate(p.created_at)}</td>
-                        <td>${parseFloat(p.total_amount || 0).toFixed(2)} ريال</td>
+                        <td>${formatPosMoney(parseFloat(p.total_amount || 0))} ريال</td>
                         <td><span class="badge badge-info">${p.payment_method || 'نقداً'}</span></td>
                         <td><button class="btn btn-info btn-xs" onclick="viewInvoiceDetails(${p.id})"><i class="fas fa-eye"></i> عرض</button></td>
                     </tr>
@@ -2465,7 +2574,9 @@
             }
         });
     </script>
+    <script src="document-utils.js"></script>
     <script src="sidebar-config.js"></script>
+    <script src="notification-center-v3.js"></script>
 </body>
 </html>
 ```

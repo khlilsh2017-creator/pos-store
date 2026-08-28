@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧪 اختبار الإشعارات - ابن مختار</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Cairo', sans-serif;
+            background: #f0f4ff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 24px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.08);
+        }
+        h1 {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: #1e293b;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .subtitle {
+            color: #64748b;
+            font-size: 0.9rem;
+            margin-bottom: 24px;
+        }
+        .form-group {
+            margin-bottom: 18px;
+        }
+        label {
+            display: block;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 6px;
+            font-size: 0.85rem;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e9edf2;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            font-family: 'Cairo', sans-serif;
+            transition: border-color 0.2s;
+            background: #f8fafc;
+        }
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #3498db;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(52,152,219,0.1);
+        }
+        textarea {
+            resize: vertical;
+            min-height: 70px;
+        }
+        .btn {
+            padding: 14px 28px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 700;
+            font-family: 'Cairo', sans-serif;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #2980b9;
+            transform: scale(1.01);
+        }
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .btn-success {
+            background: #22c55e;
+            color: white;
+        }
+        .btn-success:hover {
+            background: #16a34a;
+        }
+        .btn-danger {
+            background: #dc2626;
+            color: white;
+        }
+        .btn-danger:hover {
+            background: #b91c1c;
+        }
+        .btn-outline {
+            background: transparent;
+            border: 2px solid #e9edf2;
+            color: #1e293b;
+        }
+        .btn-outline:hover {
+            border-color: #3498db;
+            background: #f8fafc;
+        }
+        .row-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .row-actions .btn {
+            flex: 1;
+            min-width: 120px;
+        }
+        .result-box {
+            margin-top: 20px;
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 16px;
+            border: 1px solid #e9edf2;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.8rem;
+            white-space: pre-wrap;
+            direction: ltr;
+            text-align: left;
+            color: #1e293b;
+        }
+        .result-box.error {
+            border-color: #dc2626;
+            background: #fef2f2;
+        }
+        .result-box.success {
+            border-color: #22c55e;
+            background: #f0fdf4;
+        }
+        .result-box .log-line {
+            padding: 2px 0;
+            border-bottom: 1px solid #e9edf2;
+        }
+        .result-box .log-line .time {
+            color: #94a3b8;
+            font-size: 0.7rem;
+        }
+        .badge {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+        .badge-success { background: #dcfce7; color: #166534; }
+        .badge-danger { background: #fee2e2; color: #991b1b; }
+        .badge-warning { background: #fef3c7; color: #b45309; }
+        .badge-info { background: #e0f2fe; color: #0284c7; }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 16px 0;
+        }
+        .stat-card {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 14px;
+            border: 1px solid #e9edf2;
+            text-align: center;
+        }
+        .stat-card .number {
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: #1e293b;
+        }
+        .stat-card .label {
+            font-size: 0.7rem;
+            color: #64748b;
+        }
+        .status-dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 6px;
+        }
+        .status-dot.online { background: #22c55e; }
+        .status-dot.offline { background: #dc2626; }
+        .status-dot.loading { background: #f59e0b; animation: pulse 1s infinite; }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+        .token-list {
+            margin-top: 12px;
+            background: white;
+            border-radius: 8px;
+            padding: 10px;
+            border: 1px solid #e9edf2;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        .token-item {
+            font-size: 0.7rem;
+            padding: 4px 8px;
+            border-bottom: 1px solid #f1f5f9;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+        }
+        .token-item .token-preview {
+            color: #64748b;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 200px;
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #94a3b8;
+        }
+        @media (max-width: 480px) {
+            .container { padding: 16px; }
+            .stats-grid { grid-template-columns: 1fr; }
+            .row-actions .btn { min-width: 100px; }
+            .token-item .token-preview { max-width: 100px; }
+        }
+        .form-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .form-row .form-group {
+            flex: 1;
+            min-width: 150px;
+        }
+    </style>
+    <script src="number-utils.js"></script>
+    <script src="permissions.js"></script>
+    <link rel="stylesheet" href="sidebar-v4.css" />
+    <script src="/offline-sync.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 اختبار الإشعارات</h1>
+        <p class="subtitle">أرسل إشعاراً تجريبياً للمندوبين أو المشرفين المسجلين</p>
+
+        <!-- حالة الاتصال -->
+        <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px; flex-wrap:wrap;">
+            <span>🔗 الخادم: <span id="serverStatus" class="badge badge-success">متصل</span></span>
+            <span>📱 FCM: <span id="fcmStatus" class="badge badge-info">جارِ التحقق...</span></span>
+        </div>
+
+        <!-- الإحصائيات -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="number" id="driverTokensCount">0</div>
+                <div class="label">🚚 توكنات المندوبين</div>
+            </div>
+            <div class="stat-card">
+                <div class="number" id="adminTokensCount">0</div>
+                <div class="label">👤 توكنات المشرفين</div>
+            </div>
+        </div>
+
+        <!-- نموذج الإرسال -->
+        <div class="form-group">
+            <label>📌 نوع الإشعار</label>
+            <select id="notificationType">
+                <option value="driver">🚚 للمندوبين (واجهة المندوب)</option>
+                <option value="admin">👤 للمشرفين (orders.html)</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>📝 العنوان</label>
+            <input type="text" id="notifTitle" placeholder="مثال: 📦 طلب جديد" value="🧪 إشعار تجريبي">
+        </div>
+
+        <div class="form-group">
+            <label>📄 النص</label>
+            <input type="text" id="notifBody" placeholder="محتوى الإشعار" value="هذا إشعار اختبار من نظام ابن مختار">
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label>🔗 الرابط (اختياري)</label>
+                <input type="text" id="notifLink" placeholder="https://pos.ibnalmukhtar.com/..." value="https://pos.ibnalmukhtar.com/driver/">
+            </div>
+        </div>
+
+        <div class="row-actions" style="margin-top:12px;">
+            <button class="btn btn-primary" id="sendBtn" onclick="sendTestNotification()">
+                📨 إرسال الإشعار
+            </button>
+            <button class="btn btn-outline" onclick="loadTokensStats()">
+                🔄 تحديث الإحصائيات
+            </button>
+        </div>
+
+        <!-- سجل النتائج -->
+        <div id="resultContainer" style="margin-top:16px;">
+            <div class="result-box" id="resultBox">
+                <span style="color:#94a3b8;">⏳ انتظر إرسال إشعار لرؤية النتائج...</span>
+            </div>
+        </div>
+
+        <!-- عرض التوكنات -->
+        <details style="margin-top:16px;">
+            <summary style="cursor:pointer; font-weight:600; color:#1e293b;">📋 عرض التوكنات المسجلة</summary>
+            <div id="tokensList" class="token-list">
+                <div class="loading">⏳ جاري التحميل...</div>
+            </div>
+        </details>
+    </div>
+
+    <script>
+        const API_BASE = 'https://api.ibnalmukhtar.com';
+        let driverTokens = [];
+        let adminTokens = [];
+
+        // ============================================================
+        // 1. جلب إحصائيات التوكنات
+        // ============================================================
+        async function loadTokensStats() {
+            try {
+                const token = localStorage.getItem('pos_token') || localStorage.getItem('driverToken') || prompt('أدخل التوكن الخاص بك (Bearer Token):');
+                if (!token) {
+                    alert('مطلوب توكن للمصادقة');
+                    return;
+                }
+
+                const res = await fetch(`${API_BASE}/fcm-tokens`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (!res.ok) {
+                    const error = await res.text();
+                    throw new Error(`خطأ ${res.status}: ${error}`);
+                }
+
+                const data = await res.json();
+                driverTokens = data.driver_tokens || [];
+                adminTokens = data.admin_tokens || [];
+
+                document.getElementById('driverTokensCount').textContent = driverTokens.length;
+                document.getElementById('adminTokensCount').textContent = adminTokens.length;
+                document.getElementById('fcmStatus').textContent = '✅ جاهز';
+                document.getElementById('fcmStatus').className = 'badge badge-success';
+
+                renderTokensList(driverTokens, adminTokens);
+
+            } catch (err) {
+                document.getElementById('fcmStatus').textContent = '❌ فشل';
+                document.getElementById('fcmStatus').className = 'badge badge-danger';
+                console.error('❌ فشل جلب الإحصائيات:', err);
+                showResult(`❌ فشل جلب الإحصائيات: ${err.message}`, 'error');
+            }
+        }
+
+        function renderTokensList(driverTokens, adminTokens) {
+            const container = document.getElementById('tokensList');
+            if (!container) return;
+            let html = '';
+
+            if (driverTokens.length === 0 && adminTokens.length === 0) {
+                html = '<div style="color:#94a3b8; padding:12px;">⚠️ لا توجد توكنات مسجلة</div>';
+            } else {
+                if (driverTokens.length > 0) {
+                    html += `<div style="font-weight:600; margin:8px 0 4px;">🚚 المندوبين (${formatPosQuantity(driverTokens.length)})</div>`;
+                    driverTokens.forEach(t => {
+                        html += `<div class="token-item">
+                            <span class="token-preview">${t.token.substring(0, 40)}...</span>
+                            <span class="badge badge-info">مندوب #${t.driver_id}</span>
+                        </div>`;
+                    });
+                }
+                if (adminTokens.length > 0) {
+                    html += `<div style="font-weight:600; margin:8px 0 4px;">👤 المشرفين (${formatPosQuantity(adminTokens.length)})</div>`;
+                    adminTokens.forEach(t => {
+                        html += `<div class="token-item">
+                            <span class="token-preview">${t.token.substring(0, 40)}...</span>
+                            <span class="badge badge-info">مشرف</span>
+                        </div>`;
+                    });
+                }
+            }
+            container.innerHTML = html;
+        }
+
+        // ============================================================
+        // 2. إرسال إشعار اختبار
+        // ============================================================
+        async function sendTestNotification() {
+            const btn = document.getElementById('sendBtn');
+            const title = document.getElementById('notifTitle').value.trim() || '🧪 إشعار تجريبي';
+            const body = document.getElementById('notifBody').value.trim() || 'هذا إشعار اختبار';
+            const link = document.getElementById('notifLink').value.trim() || 'https://pos.ibnalmukhtar.com/driver/';
+            const type = document.getElementById('notificationType').value;
+
+            if (!title || !body) {
+                showResult('⚠️ الرجاء إدخال عنوان ونص للإشعار', 'error');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = '⏳ جاري الإرسال...';
+
+            const logLines = [];
+            const startTime = new Date();
+
+            try {
+                const token = (type === 'admin' ? localStorage.getItem('pos_token') : localStorage.getItem('driverToken')) || prompt('أدخل التوكن الخاص بك (Bearer Token):');
+                if (!token) {
+                    throw new Error('مطلوب توكن للمصادقة');
+                }
+
+                logLines.push(`📨 إرسال إشعار (${type}) في ${startTime.toLocaleTimeString()}`);
+                logLines.push(`📌 العنوان: ${title}`);
+                logLines.push(`📄 النص: ${body}`);
+                logLines.push(`🔗 الرابط: ${link}`);
+                logLines.push(`👥 المستلمون: ${type === 'driver' ? 'المندوبين' : 'المشرفين'}`);
+                logLines.push('---');
+
+                const payload = { title, body, link };
+                const endpoint = type === 'driver' ? '/test-notification' : '/test-admin-notification';
+
+                const res = await fetch(`${API_BASE}${endpoint}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const responseText = await res.text();
+                let responseData;
+                try {
+                    responseData = JSON.parse(responseText);
+                } catch {
+                    responseData = { raw: responseText };
+                }
+
+                const elapsed = formatPosNumber((new Date() - startTime) / 1000, 2);
+                logLines.push(`⏱️ الزمن: ${elapsed} ثانية`);
+                logLines.push(`📊 حالة HTTP: ${res.status} ${res.statusText}`);
+
+                if (res.ok) {
+                    logLines.push('✅ نجاح!');
+                    logLines.push(`📦 الاستجابة: ${JSON.stringify(responseData, null, 2)}`);
+                    showResult(logLines.join('\n'), 'success');
+                } else {
+                    logLines.push('❌ فشل!');
+                    logLines.push(`📦 التفاصيل: ${JSON.stringify(responseData, null, 2)}`);
+                    showResult(logLines.join('\n'), 'error');
+                }
+
+                // تحديث الإحصائيات تلقائياً
+                await loadTokensStats();
+
+            } catch (err) {
+                logLines.push(`❌ خطأ: ${err.message}`);
+                showResult(logLines.join('\n'), 'error');
+                console.error('❌ خطأ في الإرسال:', err);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '📨 إرسال الإشعار';
+            }
+        }
+
+        // ============================================================
+        // 3. عرض النتائج
+        // ============================================================
+        function showResult(text, type = 'info') {
+            const box = document.getElementById('resultBox');
+            box.className = 'result-box ' + (type === 'error' ? 'error' : (type === 'success' ? 'success' : ''));
+            const lines = text.split('\n').map(line => {
+                const time = new Date().toLocaleTimeString();
+                return `<div class="log-line"><span class="time">[${time}]</span> ${escapeHtml(line)}</div>`;
+            }).join('');
+            box.innerHTML = lines;
+            // تمرير للأسفل تلقائياً
+            box.scrollTop = box.scrollHeight;
+        }
+
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        // ============================================================
+        // 4. التهيئة
+        // ============================================================
+        window.addEventListener('load', () => {
+            // تحميل واحد عند فتح الصفحة؛ التحديث اللاحق يدوي لتقليل استهلاك قاعدة البيانات.
+            loadTokensStats();
+        });
+
+        // تصدير الدوال إلى النافذة
+        window.sendTestNotification = sendTestNotification;
+        window.loadTokensStats = loadTokensStats;
+    </script>
+<div id="sidebar-container"></div>
+    <script src="document-utils.js"></script>
+    <script src="sidebar-config.js"></script>
+    <script src="notification-center-v3.js"></script>
+</body>
+</html>

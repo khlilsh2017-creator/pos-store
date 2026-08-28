@@ -472,29 +472,18 @@
             .sidebar .nav-link { justify-content: center; padding: 12px 0; }
         }
     </style>
+    <script src="number-utils.js"></script>
+    <script src="permissions.js"></script>
+    <script src="date-utils.js"></script>
+    <script src="filter-utils.js"></script>
+    <script>function clean(value){return String(value ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c] || c));}</script>
+    <script src="/offline-sync.js"></script>
+<link rel="stylesheet" href="sidebar-v4.css" />
 </head>
 <body>
     <div class="app-wrapper">
         <!-- ===== القائمة الجانبية ===== -->
-        <nav class="sidebar">
-            <div class="brand"><i class="fas fa-store-alt"></i><span>ابن المختار</span></div>
-            <a class="nav-link" href="index.html"><i class="fas fa-th-large"></i> <span>لوحة التحكم</span></a>
-            <a class="nav-link" href="sale.html"><i class="fas fa-cash-register"></i> <span>البيع</span></a>
-            <a class="nav-link" href="products.html"><i class="fas fa-boxes"></i> <span>المنتجات</span></a>
-            <a class="nav-link" href="customers.html"><i class="fas fa-users"></i> <span>العملاء</span></a>
-            <a class="nav-link active" href="suppliers.html"><i class="fas fa-truck"></i> <span>الموردين</span></a>
-            <a class="nav-link" href="purchases.html"><i class="fas fa-shopping-cart"></i> <span>المشتريات</span></a>
-            <a class="nav-link" href="expenses.html"><i class="fas fa-receipt"></i> <span>المصروفات</span></a>
-            <a class="nav-link" href="payments.html"><i class="fas fa-hand-holding-usd"></i> <span>سندات</span></a>
-            <a class="nav-link" href="cash-wallets.html"><i class="fas fa-wallet"></i> <span>المحافظ</span></a>
-            <a class="nav-link" href="cash-wallets.html"><i class="fas fa-coins"></i> <span>الصندوق</span></a>
-            <a class="nav-link" href="invoices.html"><i class="fas fa-file-invoice"></i> <span>الفواتير</span></a>
-            <a class="nav-link" href="journal.html"><i class="fas fa-book"></i> <span>القيود</span></a>
-            <a class="nav-link" href="reports.html"><i class="fas fa-chart-pie"></i> <span>التقارير</span></a>
-            <a class="nav-link" href="operations.html"><i class="fas fa-tools"></i> <span>عمليات</span></a>
-            <a class="nav-link" href="settings.html"><i class="fas fa-cog"></i> <span>إعدادات</span></a>
-            <div class="logout-btn"><div class="nav-link" onclick="logout()" style="color:var(--danger);"><i class="fas fa-sign-out-alt"></i> <span>خروج</span></div></div>
-        </nav>
+        <div id="sidebar-container"></div>
 
         <!-- ===== المحتوى الرئيسي ===== -->
         <main class="main-content">
@@ -509,6 +498,7 @@
             <div class="card-section">
                 <div class="flex-row" style="justify-content:space-between;">
                     <h4><i class="fas fa-truck"></i> قائمة الموردين</h4>
+                    <button class="btn btn-outline" onclick="printSuppliersList()"><i class="fas fa-print"></i> طباعة الكشوف</button>
                     <button class="btn btn-primary" onclick="openAddSupplierModal()"><i class="fas fa-user-plus"></i> إضافة مورد</button>
                 </div>
                 <div class="search-bar">
@@ -519,7 +509,8 @@
                         <option value="negative">رصيد سالب (لنا)</option>
                         <option value="zero">رصيد صفر</option>
                     </select>
-                    <button class="btn btn-outline" onclick="loadSuppliers(1)"><i class="fas fa-sync-alt"></i> تحديث</button>
+                        <button class="btn btn-outline" onclick="loadSuppliers(1)"><i class="fas fa-sync-alt"></i> تحديث</button>
+                        <button class="btn btn-outline" onclick="printSuppliersList()"><i class="fas fa-print"></i> طباعة</button>
                 </div>
                 <div style="overflow-x:auto;">
                     <table class="supplier-table" id="supplier-table">
@@ -604,6 +595,8 @@
                             </select>
                         </div>
                         <div class="flex-1"><label>المبلغ</label><input type="number" id="detail-pay-amount" class="input-field" step="0.01" oninput="updatePaymentTotals()" /></div>
+                        <div class="flex-1"><label for="detail-pay-fee">رسوم التحويل (اختياري)</label><input type="number" id="detail-pay-fee" class="input-field" min="0" step="0.01" value="0" oninput="updatePaymentTotals()" /></div>
+                        <div class="flex-1" style="display:flex;align-items:center;gap:7px"><input type="checkbox" id="detail-pay-fee-deducted" /><label for="detail-pay-fee-deducted">خصم الرسوم من المبلغ المحدد</label></div>
                         <div class="flex-1"><label>طريقة الدفع</label>
                             <select id="detail-pay-method" class="input-field" onchange="toggleDetailPayWallet(); updatePaymentTotals();">
                                 <option value="cash">نقداً</option>
@@ -627,7 +620,7 @@
                         </div>
                     </div>
                     <div id="detail-converted-amount" class="converted-amount-display" style="margin-top:6px;">
-                        💵 المبلغ المستحق بالريال: <span class="amount" id="detail-due-amount">0.00</span> <span class="currency" id="detail-due-currency">ريال</span>
+                        💵 المبلغ المؤثر على ذمة المورد بالريال: <span class="amount" id="detail-due-amount">0.00</span> <span class="currency" id="detail-due-currency">ريال</span>
                         <span class="rate" id="detail-due-rate"></span>
                     </div>
                     <label>ملاحظة</label><input type="text" id="detail-pay-note" class="input-field" />
@@ -636,7 +629,9 @@
                 <div id="tab-statement" class="tab-content">
                     <div class="statement-container" id="statement-list"></div>
                     <div class="statement-actions">
-                        <button class="btn btn-primary btn-sm" onclick="printStatement()"><i class="fas fa-print"></i> طباعة كشف الحساب</button>
+                        <button class="btn btn-primary btn-sm no-print" onclick="printStatement()"><i class="fas fa-print"></i> طباعة كشف الحساب</button>
+                        
+                        
                     </div>
                 </div>
                 <div id="tab-returns" class="tab-content">
@@ -661,6 +656,10 @@
                 <div id="invoice-details-body"></div>
                 <div style="display:flex; gap:10px; margin-top:20px; flex-wrap:wrap;">
                     <button class="btn btn-gold" onclick="printInvoice()"><i class="fas fa-print"></i> طباعة الفاتورة</button>
+                    
+                    
+                    <button class="btn btn-danger" id="btn-cancel-purchase-invoice" onclick="cancelSupplierInvoice()" style="display:none;"><i class="fas fa-times"></i> إلغاء الفاتورة</button>
+                    <button class="btn btn-warning" id="btn-undo-purchase-invoice" onclick="undoSupplierInvoice()" style="display:none;"><i class="fas fa-undo"></i> عكس الإلغاء</button>
                     <button class="btn btn-outline" onclick="closeModal('invoiceModal')">إغلاق</button>
                 </div>
             </div>
@@ -716,6 +715,8 @@
         // ================================================================
         const API = 'https://api.ibnalmukhtar.com';
         let token = localStorage.getItem('pos_token') || '';
+        const currentUser = JSON.parse(localStorage.getItem('pos_user') || '{}');
+        const canReverseSupplierOperations = currentUser.role === 'admin';
         if (!token) window.location.href = 'index.html';
 
         function showToast(msg, type = 'info') {
@@ -729,6 +730,7 @@
         }
 
         function logout() {
+            window.POSPermissions?.recordLogout?.();
             if (confirm('تأكيد الخروج?')) {
                 localStorage.removeItem('pos_token');
                 window.location.href = 'index.html';
@@ -851,7 +853,7 @@
             if (cashDisplay && currencyId) {
                 const balance = cashBalances[currencyId];
                 if (balance) {
-                    cashDisplay.textContent = `💰 رصيد الصندوق: ${balance.amount.toFixed(2)} ${balance.code}`;
+                    cashDisplay.textContent = `💰 رصيد الصندوق: ${formatPosMoney(balance.amount)} ${balance.code}`;
                 } else {
                     cashDisplay.textContent = '💰 رصيد الصندوق: 0.00';
                 }
@@ -877,7 +879,7 @@
                 return;
             }
             const displayText = balances.map(b =>
-                `${b.code}: ${b.balance.toFixed(2)}`
+                `${b.code}: ${formatPosMoney(b.balance)}`
             ).join(' | ');
             display.textContent = `رصيد المحفظة: ${displayText}`;
         }
@@ -895,15 +897,18 @@
 
         function updatePaymentTotals() {
             const amount = parseFloat(document.getElementById('detail-pay-amount').value) || 0;
+            const transferFee = parseFloat(document.getElementById('detail-pay-fee').value) || 0;
+            const feeDeducted = document.getElementById('detail-pay-fee-deducted').checked;
+            const settlementAmount = feeDeducted ? Math.max(0, amount - transferFee) : amount;
             const currencyId = parseInt(document.getElementById('detail-pay-currency').value);
             if (currencyId && amount > 0) {
                 const rate = getCurrencyRate(currencyId);
-                const converted = amount * rate;
-                document.getElementById('detail-due-amount').textContent = converted.toFixed(2);
+                const converted = settlementAmount * rate;
+                document.getElementById('detail-due-amount').textContent = formatPosMoney(converted, 2);
                 document.getElementById('detail-due-currency').textContent = 'ريال';
                 document.getElementById('detail-due-rate').textContent = `(سعر الصرف: 1 ${getCurrencyCode(currencyId)} = ${rate} ريال)`;
             } else {
-                document.getElementById('detail-due-amount').textContent = amount.toFixed(2);
+                document.getElementById('detail-due-amount').textContent = formatPosMoney(settlementAmount, 2);
                 document.getElementById('detail-due-currency').textContent = 'ريال';
                 document.getElementById('detail-due-rate').textContent = '';
             }
@@ -929,6 +934,7 @@
         const pageSize = 10;
         let totalSuppliers = 0;
         let currentSupplierId = null;
+        let currentPurchaseInvoiceId = null;
         let currentSupplierData = null; // لتخزين بيانات المورد الحالي
 
         // ================================================================
@@ -965,14 +971,14 @@
             }
             tbody.innerHTML = suppliers.map((s, i) => `
                 <tr>
-                    <td>${(currentPage-1)*pageSize + i + 1}</td>
+                    <td>${formatPosNumber((currentPage-1)*pageSize + i + 1)}</td>
                     <td><strong>${s.name}</strong></td>
                     <td>${s.phone || '-'}</td>
                     <td>${s.address || '-'}</td>
-                    <td style="color:${s.balance > 0 ? 'var(--danger)' : s.balance < 0 ? 'var(--success)' : 'var(--muted)'}">${s.balance}</td>
+                    <td style="color:${s.balance > 0 ? 'var(--danger)' : s.balance < 0 ? 'var(--success)' : 'var(--muted)'}">${formatPosMoney(s.balance)}</td>
                     <td class="actions-cell">
                         <button class="btn btn-sm btn-outline" onclick="viewSupplier(${s.id})"><i class="fas fa-eye"></i></button>
-                        <button class="btn btn-sm btn-warning" onclick="openEditModal(${s.id}, '${s.name}', '${s.phone||''}', '${s.address||''}', ${s.balance}, '${s.sku_prefix||''}')"><i class="fas fa-edit"></i></button>
+                        <button class="btn btn-sm btn-warning" onclick="openEditModal(${s.id}, '${s.name}', '${s.phone||''}', '${s.address||''}', ${s.balance}, '${formatPosNumber(s.sku_prefix||'')}')"><i class="fas fa-edit"></i></button>
                         <button class="btn btn-sm btn-danger" onclick="deleteSupplier(${s.id})"><i class="fas fa-trash"></i></button>
                     </td>
                 </tr>
@@ -993,9 +999,12 @@
 
         function updateStats(data) {
             document.getElementById('total-suppliers').innerText = data.total || 0;
-            document.getElementById('total-debt').innerText = data.total_debt || 0;
-            const avg = data.total > 0 ? (data.total_debt / data.total).toFixed(2) : 0;
+            document.getElementById('total-debt').innerText = formatPosMoney(Number(data.total_debt || 0), 2);
+            const avg = data.total > 0 ? formatPosMoney(Number(data.total_debt || 0) / data.total) : formatPosMoney(0);
             document.getElementById('avg-balance').innerText = avg;
+            fetch(`${API}/suppliers/total-debt`, { headers: { 'Authorization': `Bearer ${token}` } }).then(r => r.json()).then(d => {
+                const total = Number(d.total_debt ?? d.total ?? NaN); if (Number.isFinite(total)) document.getElementById('total-debt').innerText = formatPosMoney(total, 2);
+            }).catch(() => {});
         }
 
         // ================================================================
@@ -1101,8 +1110,8 @@
                         <p><strong>الاسم:</strong> ${s.name}</p>
                         <p><strong>الهاتف:</strong> ${s.phone || '-'}</p>
                         <p><strong>العنوان:</strong> ${s.address || '-'}</p>
-                        <p><strong>بادئة SKU:</strong> ${s.sku_prefix || 'غير محددة'}</p>
-                        <p><strong>الرصيد الحالي:</strong> <span style="color:${s.balance > 0 ? 'var(--danger)' : s.balance < 0 ? 'var(--success)' : 'var(--muted)'}">${s.balance}</span></p>
+                        <p><strong>بادئة SKU:</strong> ${formatPosNumber(s.sku_prefix || 'غير محددة')}</p>
+                        <p><strong>الرصيد الحالي:</strong> <span style="color:${s.balance > 0 ? 'var(--danger)' : s.balance < 0 ? 'var(--success)' : 'var(--muted)'}">${formatPosMoney(s.balance)}</span></p>
                     `;
                 } else {
                     showToast(data.error || 'فشل تحميل التفاصيل', 'error');
@@ -1173,12 +1182,12 @@
                 container.innerHTML = data.invoices.map(inv => `
                     <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border); flex-wrap:wrap; gap:5px; align-items:center;">
                         <span><a href="#" onclick="viewInvoice(${inv.id}); return false;" style="font-weight:600;color:var(--primary);">${inv.invoice_number}</a></span>
-                        <span>${inv.total_amount} ريال</span>
-                        <span>${new Date(inv.created_at).toLocaleDateString()}</span>
+                        <span>${formatPosMoney(inv.total_amount)} ريال</span>
+                        <span>${posDate(inv.created_at)}</span>
                         <span style="display:flex; gap:5px;">
                             <button class="btn btn-sm btn-outline" onclick="viewInvoice(${inv.id})"><i class="fas fa-eye"></i> عرض</button>
                             <button class="btn btn-sm btn-warning" onclick="editPurchaseInvoice(${inv.id})"><i class="fas fa-edit"></i> تعديل</button>
-                            <button class="btn btn-sm btn-danger" onclick="returnPurchaseItem(${inv.id})"><i class="fas fa-undo-alt"></i> إرجاع</button>
+                            ${canReverseSupplierOperations ? `<button class="btn btn-sm btn-danger" onclick="returnPurchaseItem(${inv.id})"><i class="fas fa-undo-alt"></i> إرجاع</button>` : '<span class="text-muted" title="يتطلب صلاحية المدير">للقراءة فقط</span>'}
                         </span>
                     </div>
                 `).join('');
@@ -1196,7 +1205,12 @@
                 const data = await res.json();
                 if (res.ok && data.purchase) {
                     const inv = data.purchase;
+                    currentPurchaseInvoiceId = inv.id || invoiceId;
+                    const isCancelledInvoice = ['cancelled','canceled','ملغاة','ملغي'].includes(String(inv.status || '').toLowerCase());
+                    document.getElementById('btn-cancel-purchase-invoice').style.display = canReverseSupplierOperations && !isCancelledInvoice ? 'inline-flex' : 'none';
+                    document.getElementById('btn-undo-purchase-invoice').style.display = canReverseSupplierOperations && isCancelledInvoice ? 'inline-flex' : 'none';
                     const items = inv.items || [];
+                    window._supplierInvoiceData = { type:'purchase', number:inv.invoice_number || inv.id, date:posDateTime(inv.created_at), party:inv.supplier_name || 'مورد', items, total:inv.total_amount || 0, discount:inv.discount || 0, paid:inv.paid_amount || 0, payment_method:inv.payment_method || 'نقدي', status:inv.status || 'مكتملة', notes:inv.note || '' };
                     const total = inv.total_amount || 0;
                     const discount = inv.discount || 0;
                     const net = total - discount;
@@ -1209,7 +1223,7 @@
                         </div>
                         <div class="invoice-details-grid">
                             <div class="detail-item"><span class="label">المورد</span><span class="value">${supplierName}</span></div>
-                            <div class="detail-item"><span class="label">التاريخ</span><span class="value">${new Date(inv.created_at).toLocaleString()}</span></div>
+                            <div class="detail-item"><span class="label">التاريخ</span><span class="value">${posDateTime(inv.created_at)}</span></div>
                             <div class="detail-item"><span class="label">طريقة الدفع</span><span class="value">${inv.payment_method || 'نقدي'}</span></div>
                             <div class="detail-item"><span class="label">الحالة</span><span class="value">${inv.status || 'مكتملة'}</span></div>
                             ${inv.wallet_name ? `<div class="detail-item"><span class="label">المحفظة</span><span class="value">${inv.wallet_name}</span></div>` : ''}
@@ -1228,17 +1242,17 @@
                                 ${items.map(item => `
                                     <tr>
                                         <td>${item.product_name || 'منتج'}</td>
-                                        <td>${item.quantity}</td>
-                                        <td>${item.unit_price}</td>
-                                        <td>${item.total_price}</td>
+                                        <td>${formatPosQuantity(item.quantity)}</td>
+                                        <td>${formatPosMoney(item.unit_price)}</td>
+                                        <td>${formatPosMoney(item.total_price)}</td>
                                     </tr>
                                 `).join('')}
                             </tbody>
                         </table>
                         <div class="invoice-totals">
-                            <div class="total-line"><span>الإجمالي</span><span>${total.toFixed(2)} ريال</span></div>
-                            ${discount > 0 ? `<div class="total-line"><span>الخصم</span><span>- ${discount.toFixed(2)} ريال</span></div>` : ''}
-                            <div class="total-line grand"><span>الصافي</span><span>${net.toFixed(2)} ريال</span></div>
+                            <div class="total-line"><span>الإجمالي</span><span>${formatPosMoney(total)} ريال</span></div>
+                            ${discount > 0 ? `<div class="total-line"><span>الخصم</span><span>- ${formatPosMoney(discount)} ريال</span></div>` : ''}
+                            <div class="total-line grand"><span>الصافي</span><span>${formatPosMoney(net)} ريال</span></div>
                         </div>
                     `;
                     document.getElementById('invoice-details-body').innerHTML = html;
@@ -1253,40 +1267,33 @@
             }
         }
 
+        async function cancelSupplierInvoice() {
+            if (!canReverseSupplierOperations) return showToast('هذه العملية متاحة للمدير فقط', 'warning');
+            if (!currentPurchaseInvoiceId || !confirm('سيتم إلغاء فاتورة الشراء وعكس المخزون والقيود. هل تريد المتابعة؟')) return;
+            try {
+                const res = await fetch(`${API}/purchases/cancel`, { method:'POST', headers:{'Authorization': `Bearer ${token}`, 'Content-Type':'application/json'}, body:JSON.stringify({ purchase_invoice_id: currentPurchaseInvoiceId }) });
+                const data = await res.json(); if (!res.ok) throw new Error(data.error || 'فشل إلغاء الفاتورة');
+                showToast('تم إلغاء فاتورة الشراء', 'success'); closeModal('invoiceModal'); loadSuppliers(currentPage); if (currentSupplierId) loadTabContent('purchases', currentSupplierId);
+            } catch (e) { showToast(e.message, 'error'); }
+        }
+
+        async function undoSupplierInvoice() {
+            if (!canReverseSupplierOperations) return showToast('هذه العملية متاحة للمدير فقط', 'warning');
+            if (!currentPurchaseInvoiceId || !confirm('هل تريد عكس إلغاء فاتورة الشراء؟')) return;
+            try {
+                const res = await fetch(`${API}/purchases/cancel/undo`, { method:'POST', headers:{'Authorization': `Bearer ${token}`, 'Content-Type':'application/json'}, body:JSON.stringify({ purchase_invoice_id: currentPurchaseInvoiceId }) });
+                const data = await res.json(); if (!res.ok) throw new Error(data.error || 'فشل عكس الإلغاء');
+                showToast('تم عكس إلغاء الفاتورة', 'success'); closeModal('invoiceModal'); loadSuppliers(currentPage); if (currentSupplierId) loadTabContent('purchases', currentSupplierId);
+            } catch (e) { showToast(e.message, 'error'); }
+        }
+
         function printInvoice() {
-            const content = document.getElementById('invoice-details-body').innerHTML;
-            if (!content) { showToast('لا توجد بيانات للطباعة', 'warning'); return; }
-            const title = document.getElementById('invoice-modal-title').innerText;
-            const win = window.open('', '_blank');
-            win.document.write(`
-                <html dir="rtl"><head><title>${title}</title>
-                <style>
-                    body{font-family:Cairo,sans-serif;padding:30px;background:#fff;}
-                    .invoice-wrapper{max-width:800px;margin:0 auto;}
-                    .invoice-header{display:flex;justify-content:space-between;border-bottom:3px solid #c9a96e;padding-bottom:15px;margin-bottom:20px;}
-                    .brand-title{font-size:1.8rem;font-weight:800;color:#1a56db;}
-                    .brand-title i{color:#c9a96e;}
-                    .invoice-number{font-size:1.2rem;background:#f5f0e6;padding:6px 18px;border-radius:30px;font-weight:700;}
-                    .invoice-details-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:15px;background:#f1f5f9;padding:15px;border-radius:12px;margin-bottom:20px;}
-                    .detail-item .label{font-size:0.8rem;color:#64748b;font-weight:600;}
-                    .detail-item .value{font-size:1rem;font-weight:600;}
-                    .invoice-items-table{width:100%;border-collapse:collapse;margin-bottom:20px;}
-                    .invoice-items-table th{background:#f5f0e6;padding:10px 8px;text-align:right;border-bottom:2px solid #c9a96e;font-weight:700;}
-                    .invoice-items-table td{padding:10px 8px;border-bottom:1px solid #e2e8f0;}
-                    .invoice-totals{background:#f5f0e6;padding:15px 20px;border-radius:12px;display:flex;flex-direction:column;align-items:flex-end;gap:8px;}
-                    .total-line{display:flex;justify-content:space-between;width:100%;max-width:300px;font-weight:600;}
-                    .total-line.grand{font-size:1.3rem;font-weight:800;color:#1a56db;border-top:2px solid #c9a96e;padding-top:8px;}
-                    .print-footer{margin-top:30px;text-align:center;color:#94a3b8;font-size:0.8rem;border-top:1px solid #e2e8f0;padding-top:15px;}
-                </style>
-                </head><body>
-                <div class="invoice-wrapper">
-                    ${content}
-                    <div class="print-footer">تم الطباعة بتاريخ: ${new Date().toLocaleString()}</div>
-                </div>
-                </body></html>
-            `);
-            win.document.close();
-            win.print();
+            const content = document.getElementById('invoice-details-body')?.innerHTML || '';
+            if (!content.trim()) { showToast('لا توجد بيانات للطباعة', 'warning'); return; }
+            if (!window.POSDocs || !window._supplierInvoiceData) { showToast('تعذر تجهيز الفاتورة للطباعة', 'error'); return; }
+            POSDocs.printInvoiceData(window._supplierInvoiceData, { title: document.getElementById('invoice-modal-title').innerText })
+                .then(() => showToast('تم تجهيز فاتورة الشراء للطباعة', 'success'))
+                .catch(e => showToast(e.message, 'error'));
         }
 
         function editPurchaseInvoice(invoiceId) {
@@ -1312,7 +1319,7 @@
                     const currencyCode = p.currency_code || getCurrencyCode(p.currency_id) || 'YER';
                     const currencyName = p.currency_name || getCurrencyName(p.currency_id) || 'ريال يمني';
                     const currencyDisplay = `${currencyCode} (${currencyName})`;
-                    const rateInfo = p.exchange_rate ? `سعر الصرف: ${p.exchange_rate}` : '';
+                    const rateInfo = p.exchange_rate ? `سعر الصرف: ${formatPosNumber(p.exchange_rate)}` : '';
                     return `
                         <div style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid var(--border); flex-wrap:wrap; gap:5px; align-items:center;">
                             <span>
@@ -1321,11 +1328,11 @@
                                 ${rateInfo ? `<span class="rate-badge">${rateInfo}</span>` : ''}
                             </span>
                             <span style="color:${isReceipt ? 'var(--success)' : 'var(--danger)'}">
-                                ${isReceipt ? '+' : '-'} ${p.amount} ${currencyCode}
+                                ${formatPosNumber(isReceipt ? '+' : '-')} ${formatPosMoney(p.amount)} ${currencyCode}
                             </span>
-                            <span>${new Date(p.created_at).toLocaleDateString()}</span>
+                            <span>${posDate(p.created_at)}</span>
                             <span>${p.note || ''}</span>
-                            <button class="btn btn-sm btn-danger" onclick="cancelPayment('supplier', ${p.id})"><i class="fas fa-times"></i> إلغاء</button>
+                            ${canReverseSupplierOperations ? `<button class="btn btn-sm btn-danger" onclick="cancelPayment('supplier', ${p.id})" title="للمدير فقط"><i class="fas fa-undo"></i> عكس</button>` : '<span class="text-muted" title="يتطلب صلاحية المدير">للقراءة فقط</span>'}
                         </div>
                     `;
                 }).join('');
@@ -1342,85 +1349,119 @@
                 const res = await fetch(`${API}/suppliers/statement?supplier_id=${supplierId}`, { headers: { 'Authorization': `Bearer ${token}` } });
                 const data = await res.json();
                 const container = document.getElementById('statement-list');
+                const clean = value => String(value ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c] || c));
+                const records = Array.isArray(data.statement) ? data.statement : [];
 
-                if (!data.statement || data.statement.length === 0) {
+                if (records.length === 0) {
+                    window._supplierStatementData = null;
                     container.innerHTML = '<p class="text-muted">لا توجد حركات</p>';
                     return;
                 }
 
-                const sorted = data.statement.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-                let runningBalance = 0;
-
-                container.innerHTML = sorted.map(item => {
-                    let typeLabel = '', badgeClass = '', amountSign = '', amountClass = '';
-                    let originalAmount = parseFloat(item.amount || item.total_amount || item.total || 0);
+                const sorted = [...records].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+                let runningBalance = Number(data.summary?.opening_balance ?? 0);
+                const openingBalance = runningBalance;
+                const statementItems = [];
+                const htmlRows = sorted.map(item => {
+                    const originalAmount = parseFloat(item.amount || item.total_amount || item.total || 0) || 0;
                     let rate = parseFloat(item.exchange_rate);
-                    if (isNaN(rate) || rate <= 0) {
-                        rate = item.currency_id ? getCurrencyRate(item.currency_id) : 1;
-                    }
-                    let localAmount = originalAmount * rate;
+                    if (!Number.isFinite(rate) || rate <= 0) rate = item.currency_id ? getCurrencyRate(item.currency_id) : 1;
+                    const localAmount = originalAmount * rate;
                     const currencyCode = item.currency_code || getCurrencyCode(item.currency_id) || 'YER';
                     const currencyName = item.currency_name || getCurrencyName(item.currency_id) || 'ريال يمني';
-                    const currencyDisplay = `${currencyCode} (${currencyName})`;
-                    const rateInfo = rate !== 1 ? `سعر الصرف: ${rate.toFixed(4)}` : '';
-
-                    if (item.type === 'purchase') {
-                        typeLabel = `فاتورة شراء ${item.invoice_number || ''}`;
-                        badgeClass = 'badge-purchase';
-                        runningBalance += localAmount;
-                        amountSign = '+';
-                        amountClass = 'positive';
-                    } else if (item.type === 'payment') {
-                        typeLabel = 'سند صرف';
-                        badgeClass = 'badge-payment';
-                        runningBalance -= localAmount;
-                        amountSign = '-';
-                        amountClass = 'negative';
-                    } else if (item.type === 'receipt') {
-                        typeLabel = 'سند قبض';
-                        badgeClass = 'badge-receipt';
-                        runningBalance += localAmount;
-                        amountSign = '+';
-                        amountClass = 'positive';
-                    } else if (item.type === 'return') {
-                        typeLabel = 'مرتجع مشتريات';
-                        badgeClass = 'badge-return';
-                        runningBalance -= localAmount;
-                        amountSign = '-';
-                        amountClass = 'negative';
-                    } else {
-                        typeLabel = item.type || 'حركة';
-                    }
-
-                    const walletInfo = item.wallet_name ? `محفظة: ${item.wallet_name}` : '';
-
-                    return `
-                        <div class="statement-item">
-                            <span class="type">
-                                <span class="badge ${badgeClass}">${typeLabel}</span>
-                                ${walletInfo}
-                                <span class="currency-badge">${currencyDisplay}</span>
-                                ${rateInfo ? `<span class="rate-badge">${rateInfo}</span>` : ''}
-                            </span>
-                            <span class="amount ${amountClass}">${amountSign} ${originalAmount.toFixed(2)} ${currencyCode}</span>
-                            <span>${new Date(item.created_at).toLocaleDateString()}</span>
-                            <span>${item.note || ''}</span>
-                            <span class="balance">الرصيد: ${runningBalance.toFixed(2)} ريال</span>
-                        </div>
-                    `;
+                    let typeLabel = item.type || 'حركة';
+                    let badgeClass = 'badge-info';
+                    let amountSign = '';
+                    let amountClass = '';
+                    if (item.type === 'purchase') { typeLabel = `فاتورة شراء ${item.invoice_number || ''}`; badgeClass = 'badge-purchase'; runningBalance += localAmount; amountSign = '+'; amountClass = 'positive'; }
+                    else if (item.type === 'payment') { typeLabel = 'سند صرف'; badgeClass = 'badge-payment'; runningBalance -= localAmount; amountSign = '-'; amountClass = 'negative'; }
+                    else if (item.type === 'receipt') { typeLabel = 'سند قبض'; badgeClass = 'badge-receipt'; runningBalance += localAmount; amountSign = '+'; amountClass = 'positive'; }
+                    else if (item.type === 'return') { typeLabel = 'مرتجع مشتريات'; badgeClass = 'badge-return'; runningBalance -= localAmount; amountSign = '-'; amountClass = 'negative'; }
+                    const debit = ['payment', 'return'].includes(item.type) ? localAmount : 0;
+                    const credit = ['purchase', 'receipt'].includes(item.type) ? localAmount : 0;
+                    const dateValue = item.created_at ? new Date(item.created_at).toISOString().slice(0, 10) : '';
+                    statementItems.push({ date: dateValue, description: typeLabel, debit, credit, balance: runningBalance });
+                    return `<tr data-pos-filter-row data-date="${clean(dateValue)}"><td>${clean(dateValue || '-')}</td><td><span class="badge ${badgeClass}">${clean(typeLabel)}</span></td><td>${clean(item.note || item.wallet_name || '-')}</td><td class="${amountClass}" dir="ltr">${amountSign} ${formatPosMoney(originalAmount)} ${clean(currencyCode)}</td><td dir="ltr">${formatPosMoney(debit)}</td><td dir="ltr">${formatPosMoney(credit)}</td><td dir="ltr">${formatPosMoney(runningBalance)} ريال</td><td>${clean(currencyName)}${rate !== 1 ? `<br><small>سعر الصرف: ${formatPosNumber(rate, 4)}</small>` : ''}</td></tr>`;
                 }).join('');
+
+                const supplierName = document.querySelector('#supplier-info-display p:nth-child(1)')?.textContent?.replace('الاسم:', '').trim() || `#${supplierId}`;
+                window._supplierStatementData = {
+                    title: 'كشف حساب المورد', number: supplierId, party_type: 'supplier', party: supplierName,
+                    currency: 'ريال', date_from: data.from || '', date_to: data.to || '', opening_balance: openingBalance, items: statementItems,
+                    total_debit: Number(data.summary?.total_debit ?? statementItems.reduce((sum, row) => sum + Number(row.debit || 0), 0)),
+                    total_credit: Number(data.summary?.total_credit ?? statementItems.reduce((sum, row) => sum + Number(row.credit || 0), 0)), final_balance: Number(data.summary?.final_balance ?? runningBalance)
+                };
+                container.innerHTML = `<div class="print-header supplier-statement-heading"><strong>كشف حساب المورد: ${clean(supplierName)}</strong><small>رقم المورد: ${clean(supplierId)} — الرصيد السابق: ${formatPosMoney(openingBalance)} ريال</small></div><div class="table-wrap"><table class="table supplier-statement-table"><thead><tr><th>التاريخ</th><th>نوع الحركة</th><th>البيان</th><th>المبلغ</th><th>مدين</th><th>دائن</th><th>الرصيد</th><th>العملة / الصرف</th></tr></thead><tbody>${htmlRows}</tbody></table></div>`;
+
             } catch (e) {
                 showToast('خطأ في تحميل كشف الحساب', 'error');
                 console.error(e);
             }
         }
 
+        function printSuppliersList() {
+            const table = document.getElementById('supplier-table');
+            if (!table || !window.POSDocs) return showToast('تعذر تجهيز قائمة الموردين للطباعة', 'error');
+            POSDocs.printReport(table, { title: 'قائمة الموردين' }).catch(e => showToast(e.message, 'error'));
+        }
+
+        async function exportSuppliersCSV() {
+            try {
+                const res = await fetch(`${API}/suppliers?limit=10000`, { headers: { 'Authorization': `Bearer ${token}` } }); const data = await res.json(); const rows = data.suppliers || [];
+                const keys = ['id','name','phone','address','balance'];
+                const csv = '\ufeff' + [keys, ...rows.map(r => keys.map(k => r[k] ?? ''))].map(row => row.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\\n');
+                const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv;charset=utf-8'})); a.download = `كشوف-الموردين-${new Date().toISOString().slice(0,10)}.csv`; a.click(); URL.revokeObjectURL(a.href); showToast('تم تصدير كشوف الموردين', 'success');
+            } catch (e) { showToast('تعذر تصدير كشوف الموردين', 'error'); }
+        }
+
+        async function exportSupplierStatement(supplierId) {
+            if (!supplierId) return showToast('اختر موردًا أولًا', 'warning');
+            try {
+                const res = await fetch(`${API}/suppliers/statement?supplier_id=${supplierId}`, { headers: { 'Authorization': `Bearer ${token}` } }); const data = await res.json(); const rows = data.statement || [];
+                if (!rows.length) return showToast('لا توجد حركات لتصديرها', 'warning');
+                const keys = ['created_at','type','invoice_number','amount','total_amount','currency_code','exchange_rate','note'];
+                const csv = '\ufeff' + [keys, ...rows.map(r => keys.map(k => r[k] ?? ''))].map(row => row.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\\n');
+                const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv;charset=utf-8'})); a.download = `كشف-مورد-${supplierId}-${new Date().toISOString().slice(0,10)}.csv`; a.click(); URL.revokeObjectURL(a.href); showToast('تم تصدير كشف المورد', 'success');
+            } catch (e) { showToast('تعذر تصدير كشف المورد', 'error'); }
+        }
+
+        function exportSupplierStatementPDF() {
+            if (window.POSDocs && window._supplierStatementData) {
+                POSDocs.exportStatementPDF(window._supplierStatementData, {title:`كشف حساب المورد: ${window._supplierStatementData.party || ''}`,filename:`كشف-مورد-${window._supplierStatementData.party || currentSupplierId || ''}.pdf`}).then(()=>showToast('تم تنزيل PDF','success')).catch(x=>showToast(x.message,'error'));
+            } else {
+                showToast('لا توجد بيانات للكشف', 'warning');
+            }
+        }
+        function exportSupplierStatementExcel() {
+            const e=document.getElementById('statement-list'); if(window.POSDocs&&e) POSDocs.exportExcel(e,{filename:`كشف-مورد-${window._supplierStatementData?.party || currentSupplierId || ''}.xlsx`}).then(()=>showToast('تم تنزيل Excel','success')).catch(x=>showToast(x.message,'error'));
+        }
+        function exportSupplierInvoicePDF() {
+            if (window.POSDocs && window._supplierInvoiceData) {
+                POSDocs.exportInvoicePDF(window._supplierInvoiceData, {title:'فاتورة شراء',filename:'فاتورة-شراء.pdf'}).then(()=>showToast('تم تنزيل PDF','success')).catch(x=>showToast(x.message,'error'));
+            } else {
+                showToast('لا توجد بيانات للفاتورة', 'warning');
+            }
+        }
+        function exportSupplierInvoiceExcel() {
+            const e=document.getElementById('invoice-details-body'); if(window.POSDocs&&e) POSDocs.exportExcel(e,{filename:'فاتورة-شراء.xlsx'}).then(()=>showToast('تم تنزيل Excel','success')).catch(x=>showToast(x.message,'error'));
+        }
         function printStatement() {
-            const content = document.getElementById('statement-list').innerHTML;
-            if (!content || content.includes('لا توجد حركات')) {
+            const element = document.getElementById('statement-list');
+            const content = element ? element.innerHTML : '';
+            if (!element || !content.trim() || content.includes('لا توجد حركات')) {
                 showToast('لا توجد بيانات للطباعة', 'warning');
                 return;
             }
+            if (!window.POSDocs) {
+                showToast('تعذر تجهيز كشف المورد للطباعة', 'error');
+                return;
+            }
+            const party = window._supplierStatementData?.party || document.querySelector('#supplier-info-display p:nth-child(1)')?.textContent?.replace('الاسم:', '').trim() || `#${currentSupplierId || ''}`;
+            POSDocs.printReport(element, { title: `كشف حساب المورد: ${party}` })
+                .then(() => showToast('تم تجهيز كشف المورد للطباعة', 'success'))
+                .catch(e => showToast(e.message, 'error'));
+            return;
+            /* مسار قديم غير مستخدم */
             const supplierName = document.querySelector('#supplier-info-display p:nth-child(1)').textContent.replace('الاسم:', '').trim();
             const win = window.open('', '_blank');
             win.document.write(`
@@ -1445,7 +1486,7 @@
                         const date = el.querySelector('span:nth-child(3)')?.textContent?.trim() || '';
                         const note = el.querySelector('span:nth-child(4)')?.textContent?.trim() || '';
                         const balance = el.querySelector('.balance')?.textContent?.trim() || '';
-                        return `<tr><td>${type}</td><td class="${amount.includes('-')?'negative':'positive'}">${amount}</td><td>${currencyBadge}</td><td>${rateBadge}</td><td>${date}</td><td>${note}</td><td>${balance}</td></tr>`;
+                        return `<tr><td>${type}</td><td class="${formatPosMoney(amount.includes('-')?'negative':'positive')}">${formatPosMoney(amount)}</td><td>${currencyBadge}</td><td>${rateBadge}</td><td>${date}</td><td>${note}</td><td>${formatPosMoney(balance)}</td></tr>`;
                     }).join('')}
                 </table>
                 <p>تاريخ الطباعة: ${new Date().toLocaleString()}</p>
@@ -1474,9 +1515,9 @@
                     const currencyDisplay = `${currencyCode} (${currencyName})`;
                     return `
                         <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border); flex-wrap:wrap; gap:5px; align-items:center;">
-                            <span><span class="badge badge-return">مرتجع #${idx+1}</span> ${r.reason || ''}</span>
-                            <span style="color:var(--danger)">- ${r.amount || 0} ${currencyCode}</span>
-                            <span>${new Date(r.created_at).toLocaleDateString()}</span>
+                            <span><span class="badge badge-return">مرتجع #${formatPosNumber(idx+1)}</span> ${r.reason || ''}</span>
+                            <span style="color:var(--danger)">- ${formatPosMoney(r.amount || 0)} ${currencyCode}</span>
+                            <span>${posDate(r.created_at)}</span>
                             <span>${r.note || ''}</span>
                             <button class="btn btn-sm btn-outline" onclick="viewReturnDetail(${idx})"><i class="fas fa-eye"></i> تفاصيل</button>
                         </div>
@@ -1488,52 +1529,38 @@
             }
         }
 
-        function viewReturnDetail(index) {
+        async function viewReturnDetail(index) {
             const returns = window._returnsData || [];
             if (index >= returns.length) { showToast('بيانات غير موجودة', 'error'); return; }
             const r = returns[index];
-            const currencyCode = r.currency_code || getCurrencyCode(r.currency_id) || 'YER';
-            const currencyName = r.currency_name || getCurrencyName(r.currency_id) || 'ريال يمني';
-            const currencyDisplay = `${currencyCode} (${currencyName})`;
-            let html = `
-                <div style="padding:10px 0;">
-                    <p><strong>رقم المرتجع:</strong> #${index+1}</p>
-                    <p><strong>التاريخ:</strong> ${new Date(r.created_at).toLocaleString()}</p>
-                    <p><strong>المبلغ:</strong> <span style="color:var(--danger);font-weight:700;">- ${r.amount || 0} ${currencyDisplay}</span></p>
-                    <p><strong>السبب:</strong> ${r.reason || 'غير محدد'}</p>
-                    <p><strong>ملاحظة:</strong> ${r.note || ''}</p>
-                    <p><strong>المنتجات:</strong> (غير متوفرة حالياً)</p>
-                    <div class="return-product-list">
-                        <p class="text-muted">لا توجد تفاصيل إضافية للمنتجات المرتجعة من الـ API.</p>
-                    </div>
-                </div>
-            `;
-            document.getElementById('return-detail-body').innerHTML = html;
-            document.getElementById('return-detail-title').innerText = `تفاصيل المرتجع #${index+1}`;
-            document.getElementById('returnDetailModal').classList.add('active');
-            window._returnDetailData = { html, title: `مرتجع #${index+1}` };
+            const supplierName = window._supplierStatementData?.party || document.querySelector('#supplier-info-display p:nth-child(1)')?.textContent?.replace('الاسم:', '').trim() || `#${currentSupplierId || ''}`;
+            try {
+                const res = await fetch(`${API}/suppliers/returns/${r.id}?supplier_id=${currentSupplierId || ''}`, { headers: { 'Authorization': `Bearer ${token}` } });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'تعذر تحميل تفاصيل المرتجع');
+                const ret = data.return || r;
+                const items = data.items || [];
+                const currencyCode = ret.currency_code || getCurrencyCode(ret.currency_id) || 'YER';
+                const currencyName = ret.currency_name || getCurrencyName(ret.currency_id) || 'ريال يمني';
+                const currencyDisplay = `${currencyCode} (${currencyName})`;
+                const rows = items.length ? items.map(item => `<tr><td>${clean(item.product_name || '-')}</td><td>${clean(item.product_code || item.barcode || '-')}</td><td>${formatPosQuantity(item.quantity || 0)}</td><td>${formatPosMoney(item.unit_price || 0)} ${currencyCode}</td><td>${formatPosMoney(item.amount || 0)} ${currencyCode}</td></tr>`).join('') : '<tr><td colspan="5" class="text-muted">لا توجد أسطر منتجات لهذا المرتجع.</td></tr>';
+                const html = `<div style="padding:10px 0;"><p><strong>المورد:</strong> ${clean(ret.supplier_name || supplierName)}</p><p><strong>رقم المرتجع:</strong> #${formatPosNumber(ret.id)}</p><p><strong>فاتورة الشراء:</strong> ${clean(ret.invoice_number || `#${ret.purchase_invoice_id || '-'}`)}</p><p><strong>التاريخ:</strong> ${posDateTime(ret.created_at)}</p><p><strong>المبلغ:</strong> <span style="color:var(--danger);font-weight:700;">- ${formatPosMoney(ret.amount || 0)} ${currencyDisplay}</span></p><p><strong>السبب:</strong> ${clean(ret.reason || 'غير محدد')}</p><div class="table-wrap"><table class="supplier-table"><thead><tr><th>المنتج</th><th>الكود / الباركود</th><th>الكمية</th><th>سعر الوحدة</th><th>الإجمالي</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+                document.getElementById('return-detail-body').innerHTML = html;
+                document.getElementById('return-detail-title').innerText = `تفاصيل مرتجع المورد: ${supplierName} — #${formatPosNumber(ret.id)}`;
+                document.getElementById('returnDetailModal').classList.add('active');
+                window._returnDetailData = { return: ret, items, html, title: `مرتجع المورد: ${supplierName} — #${formatPosNumber(ret.id)}` };
+            } catch (e) {
+                showToast(e.message || 'تعذر تحميل تفاصيل المرتجع', 'error');
+            }
         }
 
         function printReturnDetail() {
-            const content = document.getElementById('return-detail-body').innerHTML;
-            if (!content) { showToast('لا توجد بيانات للطباعة', 'warning'); return; }
-            const title = document.getElementById('return-detail-title').innerText;
-            const win = window.open('', '_blank');
-            win.document.write(`
-                <html dir="rtl"><head><title>${title}</title>
-                <style>
-                    body{font-family:Cairo,sans-serif;padding:20px;}
-                    p{margin:8px 0;}
-                    .return-product-list{background:#f8fafc;padding:10px;border-radius:8px;margin-top:10px;}
-                </style>
-                </head><body>
-                <h2>${title}</h2>
-                ${content}
-                <p style="margin-top:30px;color:#94a3b8;border-top:1px solid #e2e8f0;padding-top:15px;">تم الطباعة بتاريخ: ${new Date().toLocaleString()}</p>
-                </body></html>
-            `);
-            win.document.close();
-            win.print();
+            const element = document.getElementById('return-detail-body');
+            if (!element || !element.innerHTML.trim()) { showToast('لا توجد بيانات للطباعة', 'warning'); return; }
+            if (!window.POSDocs) { showToast('تعذر تجهيز المستند للطباعة', 'error'); return; }
+            POSDocs.printReport(element, { title: document.getElementById('return-detail-title').innerText })
+                .then(() => showToast('تم تجهيز المرتجع للطباعة', 'success'))
+                .catch(e => showToast(e.message, 'error'));
         }
 
         // ================================================================
@@ -1543,6 +1570,8 @@
             const supplier_id = currentSupplierId;
             const type = document.getElementById('detail-pay-type').value;
             const amount = parseFloat(document.getElementById('detail-pay-amount').value);
+            const transfer_fee = parseFloat(document.getElementById('detail-pay-fee').value) || 0;
+            const fee_deducted_from_amount = document.getElementById('detail-pay-fee-deducted').checked;
             const method = document.getElementById('detail-pay-method').value;
             const wallet_id = method === 'wallet' ? document.getElementById('detail-pay-wallet').value : null;
             const note = document.getElementById('detail-pay-note').value;
@@ -1550,6 +1579,7 @@
             const exchange_rate = currency_id ? getCurrencyRate(currency_id) : 1;
 
             if (!supplier_id || !amount || amount <= 0) { showToast('أدخل مبلغاً صحيحاً', 'warning'); return; }
+            if (transfer_fee < 0 || (fee_deducted_from_amount && transfer_fee >= amount)) { showToast('رسوم التحويل يجب أن تكون أقل من المبلغ عند الخصم منه', 'warning'); return; }
             if (method === 'wallet' && !wallet_id) { showToast('اختر محفظة', 'warning'); return; }
 
             try {
@@ -1561,7 +1591,9 @@
                     note,
                     type,
                     currency_id: currency_id || null,
-                    exchange_rate: exchange_rate
+                    exchange_rate: exchange_rate,
+                    transfer_fee,
+                    fee_deducted_from_amount
                 };
                 console.log('📤 إرسال سند:', body);
                 const res = await fetch(`${API}/suppliers/payments`, {
@@ -1574,6 +1606,8 @@
                     const currencyName = currency_id ? getCurrencyName(currency_id) : 'ريال يمني';
                     showToast(`تم ${type === 'receipt' ? 'القبض' : 'الصرف'} بنجاح (${currencyName})`, 'success');
                     document.getElementById('detail-pay-amount').value = '';
+                    document.getElementById('detail-pay-fee').value = '0';
+                    document.getElementById('detail-pay-fee-deducted').checked = false;
                     document.getElementById('detail-pay-note').value = '';
                     loadSupplierDetails(currentSupplierId);
                     loadTabContent('payments', currentSupplierId);
@@ -1635,7 +1669,7 @@
                 if (res.ok && data.purchase && data.purchase.items) {
                     const select = document.getElementById('return-product-id');
                     select.innerHTML = data.purchase.items.map(item => `
-                        <option value="${item.product_id}" data-max="${item.quantity}">${item.product_name} (الكمية: ${item.quantity})</option>
+                        <option value="${item.product_id}" data-max="${item.quantity}">${item.product_name} (الكمية: ${formatPosQuantity(item.quantity)})</option>
                     `).join('');
                 } else {
                     showToast('فشل تحميل المنتجات', 'error');
@@ -1678,7 +1712,7 @@
                 });
                 const data = await res.json();
                 if (res.ok) {
-                    showToast(`تم الإرجاع: ${data.refund_amount} ريال`, 'success');
+                    showToast(`تم الإرجاع: ${formatPosMoney(data.refund_amount)} ريال`, 'success');
                     closeModal('returnModal');
                     loadTabContent('purchases', currentSupplierId);
                     loadTabContent('statement', currentSupplierId);
@@ -1699,31 +1733,36 @@
         async function loadSupplierStock(supplierId) {
             const container = document.getElementById('stock-list');
             try {
-                const res = await fetch(`${API}/suppliers/remaining-stock?supplier_id=${supplierId}`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const res = await fetch(`${API}/suppliers/remaining-stock?supplier_id=${supplierId}`, { headers: { 'Authorization': `Bearer ${token}` } });
                 const data = await res.json();
-                if (res.ok && data.stock && data.stock.length > 0) {
-                    let html = `<table class="supplier-table">
-                        <thead><tr><th>المنتج</th><th>الكمية المتبقية</th><th>آخر سعر شراء</th><th>SKU المورد</th></tr></thead>
-                        <tbody>`;
-                    data.stock.forEach(item => {
-                        html += `<tr>
-                            <td>${item.product_name}</td>
-                            <td>${item.quantity}</td>
-                            <td>${item.last_purchase_price || '-'}</td>
-                            <td>${item.supplier_sku || '-'}</td>
-                        </tr>`;
+                if (!res.ok) throw new Error(data.error || 'تعذر تحميل المخزون المتبقي');
+                const rows = data.stock || [];
+                const totalValue = Number(data.summary?.total_value || rows.reduce((sum, item) => sum + Number(item.remaining_value || (Number(item.quantity || 0) * Number(item.last_purchase_price || 0))), 0));
+                const supplierName = window._supplierStatementData?.party || document.querySelector('#supplier-info-display p:nth-child(1)')?.textContent?.replace('الاسم:', '').trim() || `#${supplierId}`;
+                window._supplierStockPrintTitle = `المخزون المتبقي للمورد: ${supplierName}`;
+                if (rows.length > 0) {
+                    let html = `<div class="print-header supplier-statement-heading"><strong>${clean(window._supplierStockPrintTitle)}</strong><small>إجمالي قيمة المتبقي: <b>${formatPosMoney(totalValue)}</b></small></div><div class="statement-actions"><button class="btn btn-primary btn-sm no-print" onclick="printSupplierStock()"><i class="fas fa-print"></i> طباعة</button></div><table class="supplier-table"><thead><tr><th>المنتج</th><th>الكمية المتبقية</th><th>آخر سعر شراء</th><th>قيمة المتبقي</th><th>SKU المورد</th></tr></thead><tbody>`;
+                    rows.forEach(item => {
+                        html += `<tr><td>${clean(item.product_name || '-')}</td><td>${formatPosQuantity(item.quantity || 0)}</td><td>${formatPosMoney(item.last_purchase_price || 0)}</td><td>${formatPosMoney(item.remaining_value || 0)}</td><td>${clean(item.supplier_sku || '-')}</td></tr>`;
                     });
-                    html += `</tbody></table>`;
+                    html += `</tbody><tfoot><tr><th colspan="3">إجمالي قيمة المخزون المتبقي</th><th>${formatPosMoney(totalValue)}</th><th></th></tr></tfoot></table>`;
                     container.innerHTML = html;
                 } else {
-                    container.innerHTML = '<p class="text-muted">لا توجد منتجات مخزنة لهذا المورد.</p>';
+                    container.innerHTML = `<div class="print-header supplier-statement-heading"><strong>${clean(window._supplierStockPrintTitle)}</strong><small>إجمالي قيمة المتبقي: <b>0.00</b></small></div><p class="text-muted">لا توجد منتجات مخزنة لهذا المورد.</p>`;
                 }
             } catch (e) {
-                showToast('خطأ في تحميل المخزون', 'error');
+                showToast(e.message || 'خطأ في تحميل المخزون', 'error');
                 container.innerHTML = '<p class="text-muted">حدث خطأ أثناء تحميل البيانات.</p>';
             }
+        }
+
+        function printSupplierStock() {
+            const element = document.getElementById('stock-list');
+            if (!element || !element.innerHTML.trim()) { showToast('لا توجد بيانات للطباعة', 'warning'); return; }
+            if (!window.POSDocs) { showToast('تعذر تجهيز التقرير للطباعة', 'error'); return; }
+            POSDocs.printReport(element, { title: window._supplierStockPrintTitle || 'المخزون المتبقي للمورد' })
+                .then(() => showToast('تم تجهيز تقرير المخزون للطباعة', 'success'))
+                .catch(e => showToast(e.message, 'error'));
         }
 
         // ================================================================
@@ -1739,5 +1778,8 @@
             loadSuppliers(1);
         };
     </script>
+    <script src="document-utils.js"></script>
+    <script src="sidebar-config.js"></script>
+    <script src="notification-center-v3.js"></script>
 </body>
 </html>

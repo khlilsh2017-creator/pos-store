@@ -7,7 +7,6 @@
     <title>النظام المحاسبي - الرئيسية</title>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
-    <link rel="stylesheet" href="sidebar.css" />
 
     <!-- ===== مكتبات Firebase للإشعارات ===== -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js">
@@ -549,6 +548,10 @@
             }
         }
     </style>
+    <script src="number-utils.js"></script>
+    <script src="permissions.js"></script>
+    <link rel="stylesheet" href="sidebar-v4.css" />
+    <script src="/offline-sync.js"></script>
 </head>
 <body>
 
@@ -558,8 +561,8 @@
             <div class="logo">🏠</div>
             <h2>النظام المحاسبي</h2>
             <div class="sub" id="login-shop-name">ابن المختار للأدوات المنزلية</div>
-            <input type="text" id="login-username" class="input-field" placeholder="اسم المستخدم" value="admin" />
-            <input type="password" id="login-password" class="input-field" placeholder="كلمة المرور" value="admin123" />
+            <input type="text" id="login-username" class="input-field" placeholder="اسم المستخدم" autocomplete="username" />
+            <input type="password" id="login-password" class="input-field" placeholder="كلمة المرور" autocomplete="current-password" />
             <button class="btn" onclick="attemptLogin()"><i class="fas fa-sign-in-alt"></i> دخول</button>
             <div id="login-error" class="error"></div>
         </div>
@@ -660,10 +663,11 @@
                 <div class="card-section">
                     <h4><i class="fas fa-info-circle"></i> حالة النظام</h4>
                     <div class="flex-row">
-                        <div class="flex-1"><span class="text-muted">حالة الاتصال:</span> <strong id="status-text">متصل</strong></div>
+                        <div class="flex-1"><span class="text-muted">حالة الاتصال:</span> <strong id="status-text">متصل</strong> <small id="server-latency" class="text-muted"></small></div>
                         <div class="flex-1"><span class="text-muted">المستخدم:</span> <strong id="user-display">admin</strong></div>
                         <div class="flex-1"><span class="text-muted">الدور:</span> <strong id="role-display">مدير</strong></div>
                         <div class="flex-1"><span class="text-muted">مصدر البيانات:</span> <strong id="data-source">الخادم</strong></div>
+                        <div class="flex-1" style="display:flex;gap:8px;flex-wrap:wrap;"><button class="btn btn-outline" id="dashboard-connection-btn" onclick="checkServerConnection()"><i class="fas fa-signal"></i> فحص الخادم</button><button class="btn btn-outline" id="dashboard-backup-btn" onclick="downloadDashboardBackup()" style="display:none;"><i class="fas fa-download"></i> نسخة احتياطية</button></div>
                     </div>
                     <div class="flex-row mt-10">
                         <div class="flex-1"><span class="text-muted">المنتجات المحلية:</span> <strong id="local-products-count">0</strong></div>
@@ -683,8 +687,6 @@
     <!-- ===== سكربتات التطبيق ===== -->
     <!-- ================================================================ -->
 
-    <script src="sidebar-config.js"></script>
-
     <script>
         // ================================================================
         //  1. CONFIG
@@ -693,11 +695,6 @@
         let token = localStorage.getItem('pos_token') || '';
         let currentUser = null;
 
-        document.addEventListener('DOMContentLoaded', function() {
-            if (document.getElementById('sidebar-container')) {
-                renderSidebar('sidebar-container');
-            }
-        });
 
         // ================================================================
         //  2. INDEXEDDB – (مختصرة، كما في الأصل)
@@ -894,7 +891,7 @@
 
                 const walletRes = await fetch(`${API}/wallets`, { headers: { 'Authorization': `Bearer ${token}` } });
                 const walletData = await walletRes.json();
-                if (walletData.wallets) await saveLocalWallets(walletData.wallets);
+                if (window.POSPermissions?.can('cash.view') && window.POSPermissions?.can('wallets.balance.view') && walletData.wallets) await saveLocalWallets(walletData.wallets);
 
             } catch (err) { console.warn('refreshDataFromServer error:', err); }
         }
@@ -917,6 +914,7 @@
 
         window.logout = function() {
             if (confirm('هل أنت متأكد من الخروج؟')) {
+                window.POSPermissions?.recordLogout?.();
                 localStorage.removeItem('pos_token');
                 localStorage.removeItem('pos_user');
                 window.location.href = 'index.html';
@@ -963,6 +961,33 @@
             }
         }
 
+        async function checkServerConnection() {
+            const statusText = document.getElementById('status-text'); const latency = document.getElementById('server-latency');
+            if (!navigator.onLine) { updateOnlineStatus(); return false; }
+            statusText.textContent = 'جاري الفحص...';
+            const controller = new AbortController(); const timer = setTimeout(() => controller.abort(), 6000); const started = performance.now();
+            try { const res = await fetch(`${API}/settings`, { headers:{'Authorization': `Bearer ${token}`}, signal: controller.signal }); clearTimeout(timer); if (!res.ok) throw new Error('HTTP ' + res.status); statusText.textContent = 'متصل'; statusText.style.color = 'var(--success)'; latency.textContent = `(${formatPosNumber(Math.round(performance.now()-started))}ms)`; return true; }
+            catch (e) { clearTimeout(timer); statusText.textContent = 'الخادم غير متاح'; statusText.style.color = 'var(--danger)'; latency.textContent = ''; document.getElementById('data-source').textContent = 'محلي فقط'; return false; }
+        }
+
+        function applyDashboardPermissions() {
+            const canCashView = window.POSPermissions?.can('cash.view') || false;
+            const backup = document.getElementById('dashboard-backup-btn');
+            if (backup) backup.style.display = window.POSPermissions?.can('backup.export') ? 'inline-flex' : 'none';
+            const financial = document.getElementById('financial-summary');
+            if (financial) financial.style.display = canCashView ? '' : 'none';
+            const walletContainer = document.getElementById('wallets-detail-container');
+            const walletSection = walletContainer?.closest('.card-section, .card, section');
+            if (walletSection) walletSection.style.display = canCashView ? '' : 'none';
+            if (!canCashView) document.querySelectorAll('a[href="cash-wallets.html"]').forEach(link => { link.style.display = 'none'; });
+        }
+
+        async function downloadDashboardBackup() {
+            if (!window.POSPermissions?.can('backup.export')) return showToast('لا تملك صلاحية النسخ الاحتياطي', 'warning');
+            try { const res = await fetch(`${API}/export-data`, { headers:{'Authorization': `Bearer ${token}`} }); if (!res.ok) throw new Error('فشل التصدير'); const blob = await res.blob(); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `backup-dashboard-${new Date().toISOString().slice(0,10)}.json`; a.click(); URL.revokeObjectURL(a.href); showToast('تم تنزيل النسخة الاحتياطية', 'success'); }
+            catch (e) { showToast('تعذر تنزيل النسخة الاحتياطية', 'error'); }
+        }
+
         async function updateLocalCounts() {
             try {
                 const products = await getLocalProducts();
@@ -974,7 +999,7 @@
                 const pendingEl = document.getElementById('pending-count');
                 if (pending.length > 0) {
                     pendingEl.style.display = 'inline';
-                    pendingEl.textContent = `(${pending.length})`;
+                    pendingEl.textContent = `(${formatPosQuantity(pending.length)})`;
                     document.getElementById('sync-dot').className = 'dot yellow';
                     document.getElementById('sync-label').textContent = 'معلق';
                 } else {
@@ -995,7 +1020,7 @@
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري...';
             try {
                 const count = await syncPendingSales();
-                if (count > 0) showToast(`✅ تمت مزامنة ${count} فاتورة معلقة`, 'success');
+                if (count > 0) showToast(`✅ تمت مزامنة ${formatPosQuantity(count)} فاتورة معلقة`, 'success');
                 await refreshDataFromServer();
                 await updateLocalCounts();
                 await loadFinancialSummary();
@@ -1054,7 +1079,13 @@
                     currentUser = data.user;
                     localStorage.setItem('pos_token', token);
                     localStorage.setItem('pos_user', JSON.stringify(currentUser));
+                    const returnTo = new URLSearchParams(window.location.search).get('return');
+                    if (returnTo === 'orders.html') {
+                        window.location.replace('orders.html');
+                        return;
+                    }
                     showApp();
+                    if (window.POSPermissions?.refresh) window.POSPermissions.refresh();
                     showToast('✅ تم تسجيل الدخول بنجاح', 'success');
                     // ===== تفعيل إشعارات الإدارة =====
                     registerAdminNotifications();
@@ -1076,6 +1107,8 @@
             document.getElementById('app-screen').style.display = 'flex';
 
             if (currentUser) {
+                if (window.POSPermissions?.refresh) window.POSPermissions.refresh();
+                applyDashboardPermissions();
                 document.getElementById('user-display').textContent = currentUser.username || 'admin';
                 document.getElementById('role-display').textContent = currentUser.role === 'admin' ? 'مدير' : 'موظف';
             }
@@ -1088,18 +1121,19 @@
             if (navigator.onLine) {
                 await refreshDataFromServer();
                 const count = await syncPendingSales();
-                if (count > 0) showToast(`✅ تمت مزامنة ${count} فاتورة معلقة`, 'success');
+                if (count > 0) showToast(`✅ تمت مزامنة ${formatPosQuantity(count)} فاتورة معلقة`, 'success');
                 await updateLocalCounts();
                 await loadFinancialSummary();
                 await loadWalletsDetail();
             }
 
             updateOnlineStatus();
+            await checkServerConnection();
 
             window.addEventListener('online', async () => {
                 updateOnlineStatus();
                 const count = await syncPendingSales();
-                if (count > 0) showToast(`✅ تمت مزامنة ${count} فاتورة معلقة`, 'success');
+                if (count > 0) showToast(`✅ تمت مزامنة ${formatPosQuantity(count)} فاتورة معلقة`, 'success');
                 await refreshDataFromServer();
                 await updateLocalCounts();
                 await loadFinancialSummary();
@@ -1127,6 +1161,11 @@
 
         // ===== الملخص المالي =====
         async function loadFinancialSummary() {
+            if (!window.POSPermissions?.can('cash.view')) {
+                const financial = document.getElementById('financial-summary');
+                if (financial) financial.style.display = 'none';
+                return;
+            }
             try {
                 let totalCashBase = 0;
                 let totalWalletsBase = 0;
@@ -1175,11 +1214,11 @@
                 const totalAssetsBase = totalCashBase + totalWalletsBase;
 
                 document.getElementById('total-cash').innerHTML =
-                    `${totalCashBase.toFixed(2)} <span class="currency-code">ريال</span>`;
+                    `${formatPosMoney(totalCashBase)} <span class="currency-code">ريال</span>`;
                 document.getElementById('total-wallets').innerHTML =
-                    `${totalWalletsBase.toFixed(2)} <span class="currency-code">ريال</span>`;
+                    `${formatPosMoney(totalWalletsBase)} <span class="currency-code">ريال</span>`;
                 document.getElementById('total-assets').innerHTML =
-                    `${totalAssetsBase.toFixed(2)} <span class="currency-code">ريال</span>`;
+                    `${formatPosMoney(totalAssetsBase)} <span class="currency-code">ريال</span>`;
 
                 const currencyContainer = document.getElementById('currency-balances');
                 let currencyHtml = '';
@@ -1199,7 +1238,7 @@
                         currencyHtml += `
                                 <div class="stat-card" style="flex:1;min-width:120px;padding:10px 14px;">
                                     <div class="label">💱 ${data.name || code}</div>
-                                    <div class="value" style="font-size:1.1rem;">${data.amount.toFixed(2)} <span class="currency-code">${code}</span></div>
+                                    <div class="value" style="font-size:1.1rem;">${formatPosMoney(data.amount)} <span class="currency-code">${code}</span></div>
                                 </div>
                             `;
                     }
@@ -1213,6 +1252,12 @@
 
         // ===== تفاصيل المحافظ =====
         async function loadWalletsDetail() {
+            if (!window.POSPermissions?.can('cash.view')) {
+                const walletContainer = document.getElementById('wallets-detail-container');
+                const walletSection = walletContainer?.closest('.card-section, .card, section');
+                if (walletSection) walletSection.style.display = 'none';
+                return;
+            }
             try {
                 let walletsData = [];
                 if (navigator.onLine) {
@@ -1240,7 +1285,7 @@
                         totalBase += (b.balance || 0) / rate;
                         balancesHtml += `
                                 <span class="balance-item">
-                                    ${(b.balance || 0).toFixed(2)} <span class="code">${b.code || 'YER'}</span>
+                                    ${formatPosMoney((b.balance || 0))} <span class="code">${b.code || 'YER'}</span>
                                 </span>
                             `;
                     }
@@ -1249,8 +1294,8 @@
                                 <div class="wallet-name">
                                     <i class="fas fa-wallet"></i> ${w.name}
                                 </div>
-                                <div class="balances">${balancesHtml}</div>
-                                <div class="total-base">الإجمالي بالريال: ${totalBase.toFixed(2)} ريال</div>
+                                <div class="balances">${formatPosMoney(balancesHtml)}</div>
+                                <div class="total-base">الإجمالي بالريال: ${formatPosMoney(totalBase)} ريال</div>
                             </div>
                         `;
                 }
@@ -1328,11 +1373,11 @@
             let html = '';
 
             if (answer.sql) {
-                html += `<div class="sql-code"><strong>🔍 الاستعلام:</strong> ${answer.sql}</div>`;
+                html += `<div class="sql-code"><strong>🔍 الاستعلام:</strong> ${formatPosNumber(answer.sql)}</div>`;
             }
 
             if (answer.count !== undefined) {
-                html += `<div class="count-badge">عدد النتائج: ${answer.count}</div>`;
+                html += `<div class="count-badge">عدد النتائج: ${formatPosQuantity(answer.count)}</div>`;
             }
 
             if (answer.data && Array.isArray(answer.data) && answer.data.length > 0) {
@@ -1384,60 +1429,56 @@
         /**
          * تسجيل توكن الإدارة في الخادم لاستقبال الإشعارات
          */
-        async function registerAdminNotifications() {
-            try {
-                // التحقق من صلاحية الإشعارات
-                if (!('Notification' in window)) {
-                    console.warn('🚫 متصفحك لا يدعم الإشعارات');
-                    return;
-                }
-
-                let permission = Notification.permission;
-                if (permission === 'default') {
-                    permission = await Notification.requestPermission();
-                }
-                if (permission !== 'granted') {
-                    console.warn('🚫 تم رفض صلاحية الإشعارات');
-                    return;
-                }
-
-                // التأكد من وجود Service Worker جاهز
-                const registration = await navigator.serviceWorker.ready;
-
-                // الحصول على توكن FCM
-                const currentToken = await messaging.getToken({
-                    vapidKey: VAPID_PUBLIC_KEY,
-                    serviceWorkerRegistration: registration
-                });
-
-                if (!currentToken) {
-                    console.warn('🚫 لم يتم الحصول على توكن FCM');
-                    return;
-                }
-
-                // إرسال التوكن إلى الباك إند لتسجيل الإدارة
-                const res = await fetch(`${API}/api/register-admin-fcm-token`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify({
-                        token: currentToken,
-                        device_info: navigator.userAgent
-                    })
-                });
-
-                if (res.ok) {
-                    console.log('✅ تم تفعيل إشعارات الإدارة بنجاح');
-                    showToast('🔔 تم تفعيل الإشعارات الفورية', 'success');
-                } else {
-                    const errData = await res.json();
-                    console.warn('⚠️ فشل تسجيل توكن الإدارة:', errData);
-                }
-            } catch (error) {
-                console.error('❌ خطأ في تسجيل إشعارات الإدارة:', error);
-            }
+        let adminNotificationRegistration = null;
+        function notificationRegistrationKey() {
+            const user = currentUser || {};
+            return `pos_admin_fcm_token:${user.id || user.username || 'current'}`;
+        }
+        function ensureNotificationButton() {
+            if (document.getElementById('enable-admin-notifications')) return;
+            const button = document.createElement('button');
+            button.id = 'enable-admin-notifications';
+            button.type = 'button';
+            button.textContent = '🔔 تفعيل إشعارات الطلبات';
+            button.style.cssText = 'position:fixed;bottom:18px;left:18px;z-index:9000;border:0;border-radius:10px;background:#1d4ed8;color:#fff;padding:10px 14px;font-family:inherit;font-weight:700;cursor:pointer;box-shadow:0 4px 14px rgba(15,23,42,.18)';
+            button.onclick = () => registerAdminNotifications(true);
+            document.body.appendChild(button);
+        }
+        function removeNotificationButton() { document.getElementById('enable-admin-notifications')?.remove(); }
+        async function registerAdminNotifications(userInitiated = false) {
+            if (currentUser && currentUser.role !== 'admin') return false;
+            if (adminNotificationRegistration) return adminNotificationRegistration;
+            adminNotificationRegistration = (async () => {
+                try {
+                    if (!('Notification' in window) || !window.firebase || !messaging) {
+                        console.warn('متصفحك لا يدعم إشعارات الويب أو Firebase Messaging');
+                        removeNotificationButton();
+                        return false;
+                    }
+                    let permission = Notification.permission;
+                    // طلب الصلاحية يجب أن ينتج عن ضغط المستخدم، وليس عند تحميل الصفحة تلقائيًا.
+                    if (permission === 'default' && !userInitiated) { ensureNotificationButton(); return false; }
+                    if (permission === 'default') permission = await Notification.requestPermission();
+                    if (permission !== 'granted') { ensureNotificationButton(); return false; }
+                    const registration = await navigator.serviceWorker.ready;
+                    const currentToken = await messaging.getToken({ vapidKey: VAPID_PUBLIC_KEY, serviceWorkerRegistration: registration });
+                    if (!currentToken) { ensureNotificationButton(); return false; }
+                    const key = notificationRegistrationKey();
+                    if (localStorage.getItem(key) === currentToken) { removeNotificationButton(); return true; }
+                    const res = await fetch(`${API}/api/register-admin-fcm-token`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                        body: JSON.stringify({ token: currentToken, device_info: navigator.userAgent })
+                    });
+                    if (!res.ok) { console.warn('فشل تسجيل توكن الإدارة:', await res.text().catch(() => '')); ensureNotificationButton(); return false; }
+                    localStorage.setItem(key, currentToken);
+                    removeNotificationButton();
+                    showToast('تم تفعيل إشعارات الطلبات', 'success');
+                    return true;
+                } catch (error) { console.error('خطأ في تسجيل إشعارات الإدارة:', error); ensureNotificationButton(); return false; }
+                finally { adminNotificationRegistration = null; }
+            })();
+            return adminNotificationRegistration;
         }
 
         // استقبال الإشعارات عندما تكون صفحة الإدارة مفتوحة (foreground)
@@ -1463,14 +1504,11 @@ messaging.onMessage((payload) => {
     }
     
     showToast(`🔔 ${title}: ${body}`, 'info');
+    window.POSNotificationCenter?.add?.({ title, body, link, type: payload.data?.type || 'system' });
     
     // يمكن إضافة إشعار المتصفح أيضاً
-    if (Notification.permission === 'granted') {
-        new Notification(title, {
-            body: body,
-            icon: '/icon-192x192.png',
-            data: { link: link }
-        });
+    if ('Notification' in window && Notification.permission === 'granted') {
+        try { new Notification(title, { body: body, icon: '/icon-192x192.png', data: { link: link } }); } catch (notificationError) { console.warn('تعذر عرض إشعار المقدمة:', notificationError); }
     }
 });
 
@@ -1524,5 +1562,8 @@ messaging.onMessage((payload) => {
         window.toggleTheme = toggleTheme;
         window.registerAdminNotifications = registerAdminNotifications;
     </script>
+    <script src="document-utils.js"></script>
+    <script src="sidebar-config.js"></script>
+    <script src="notification-center-v3.js"></script>
 </body>
 </html>

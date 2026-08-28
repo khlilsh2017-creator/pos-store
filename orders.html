@@ -45,10 +45,13 @@
             font-family: 'Cairo', sans-serif;
             background: var(--gray-50);
             color: var(--gray-800);
-            padding: 16px;
+            padding: 0;
             min-height: 100vh;
             direction: rtl;
         }
+        .app-wrapper { display: flex; min-height: 100vh; align-items: stretch; }
+        .main-content { flex: 1; min-width: 0; overflow: auto; padding: 16px; }
+        .main-content > .container { max-width: 1400px; margin: 0 auto; }
         a { text-decoration: none; color: inherit; }
         button { cursor: pointer; font-family: inherit; }
         input, select, textarea { font-family: inherit; }
@@ -748,32 +751,21 @@
             .tab-content:not(.active) { display: block !important; }
         }
     </style>
+    <script src="number-utils.js"></script>
+    <script src="permissions.js"></script>
+    <script src="date-utils.js"></script>
+    <script src="filter-utils.js"></script>
+    <link rel="stylesheet" href="sidebar-v4.css" />
+    <script src="/offline-sync.js"></script>
 </head>
 <body>
 
+<div class="app-wrapper">
+    <div id="sidebar-container"></div>
+    <main class="main-content">
 <div class="container" id="app">
 
-    <!-- ===== LOGIN ===== -->
-    <div id="loginSection">
-        <div class="login-box">
-            <h2><i class="fas fa-store-alt" style="color:var(--primary);"></i> نظام ابن المختار</h2>
-            <p class="subtitle">تسجيل الدخول إلى لوحة الإدارة</p>
-            <div id="loginAlert"></div>
-            <form id="loginForm" onsubmit="handleLogin(event)">
-                <div class="form-group">
-                    <label><i class="fas fa-user"></i> اسم المستخدم</label>
-                    <input type="text" id="loginUsername" placeholder="أدخل اسم المستخدم" required autocomplete="username" />
-                </div>
-                <div class="form-group">
-                    <label><i class="fas fa-lock"></i> كلمة المرور</label>
-                    <input type="password" id="loginPassword" placeholder="أدخل كلمة المرور" required autocomplete="current-password" />
-                </div>
-                <button type="submit" class="btn btn-primary btn-lg"><i class="fas fa-sign-in-alt"></i> دخول</button>
-            </form>
-            <p class="demo-note"><i class="fas fa-info-circle"></i> تجريبي: admin / admin123</p>
-        </div>
-    </div>
-
+    <!-- تسجيل الدخول يتم حصريًا عبر index.html، ثم تعود الجلسة إلى هذه الصفحة. -->
     <!-- ===== MAIN CONTENT ===== -->
     <div id="mainContent" class="hidden">
 
@@ -831,9 +823,8 @@
                     <input type="text" id="filterSearch" placeholder="اسم أو هاتف" />
                 </div>
                 <div class="filter-actions">
-                    <button class="btn btn-primary btn-sm" onclick="fetchOrders(1)"><i class="fas fa-filter"></i> تطبيق</button>
-                    <button class="btn btn-secondary btn-sm" onclick="clearFilters()"><i class="fas fa-undo"></i> مسح</button>
                     <button class="btn btn-purple btn-sm" onclick="printOrders()"><i class="fas fa-print"></i> طباعة</button>
+                    <button class="btn btn-info btn-sm" onclick="printOrders()"><i class="fas fa-print"></i> طباعة السجل</button>
                 </div>
             </div>
 
@@ -907,6 +898,7 @@
                     <div class="filter-actions">
                         <button class="btn btn-primary btn-sm" onclick="loadDriverStatement()"><i class="fas fa-search"></i> عرض</button>
                         <button class="btn btn-purple btn-sm" onclick="printDriverStatement()"><i class="fas fa-print"></i> طباعة</button>
+                        
                     </div>
                 </div>
                 <div id="driverStatementContent">
@@ -978,6 +970,14 @@
     <div class="modal">
         <h2><span>تفاصيل الطلب #<span id="detailOrderId"></span></span><button class="close-btn" onclick="closeDetailModal()">&times;</button></h2>
         <div id="detailContent"></div>
+        <div class="status-editor" style="margin-top:16px;padding:14px;background:var(--gray-50);border:1px solid var(--gray-200);border-radius:var(--radius-sm);">
+            <div style="font-weight:700;margin-bottom:8px;"><i class="fas fa-route"></i> تحديث حالة الطلب</div>
+            <div class="form-grid">
+                <div class="form-group"><label>الحالة الجديدة</label><select id="detailStatusSelect"><option value="جديد">جديد</option><option value="مُسند لمندوب">مُسند لمندوب</option><option value="قيد التوصيل">قيد التوصيل</option><option value="تم التسليم">تم التسليم</option><option value="فشل التسليم">فشل التسليم</option><option value="مرتجع جزئي">مرتجع جزئي</option><option value="مرتجع كلي">مرتجع كلي</option><option value="ملغي">ملغي</option></select></div>
+                <div class="form-group"><label>ملاحظة التغيير</label><input type="text" id="detailStatusNotes" placeholder="سبب أو ملاحظة اختيارية"></div>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="updateOrderStatusFromDetail()"><i class="fas fa-save"></i> حفظ الحالة</button>
+        </div>
         <div class="flex-row" id="detailActions"></div>
     </div>
 </div>
@@ -1042,6 +1042,8 @@
             <div style="margin-bottom:12px; padding:12px; background:var(--gray-50); border-radius:var(--radius-sm);">
                 <p><strong>المندوب:</strong> <span id="settlementDriverName"></span></p>
                 <p><strong>الرصيد الحالي:</strong> <span id="settlementCurrentBalance" style="font-weight:700;"></span></p>
+                <p><strong>الطلبات المتبقية للاستلام:</strong> <span id="settlementPendingOrders">0 طلب / 0</span></p>
+                <p><strong>الطلبات الفاشلة:</strong> <span id="settlementFailedOrders">0 طلب</span></p>
             </div>
             <form id="settlementForm" onsubmit="submitSettlement(event)">
                 <input type="hidden" id="settlementDriverId" />
@@ -1095,6 +1097,19 @@
                     <button type="button" class="btn btn-secondary" onclick="closeSettlementModal()">إلغاء</button>
                 </div>
             </form>
+        </div>
+    </div>
+</div>
+
+<!-- مودال استلام طلبات المندوب -->
+<div class="modal-overlay" id="driverReceiptModal">
+    <div class="modal" style="max-width:760px;">
+        <h2><span><i class="fas fa-box-open"></i> تسوية استلام الطلبات</span><button class="close-btn" onclick="closeDriverReceiptModal()">&times;</button></h2>
+        <div id="driverReceiptSummary" class="statement-header" style="margin-bottom:12px;"></div>
+        <div id="driverReceiptOrders" style="max-height:430px; overflow:auto;"><div class="text-center text-muted" style="padding:30px;"><i class="fas fa-spinner fa-spin"></i> جاري تحميل الطلبات...</div></div>
+        <div class="flex-row" style="margin-top:14px;">
+            <button type="button" class="btn btn-success" id="receiveAllDriverOrdersBtn" onclick="receiveAllDriverOrders()"><i class="fas fa-check-double"></i> تم استلام الكل</button>
+            <button type="button" class="btn btn-secondary" onclick="closeDriverReceiptModal()">إغلاق</button>
         </div>
     </div>
 </div>
@@ -1195,6 +1210,8 @@
         </div>
     </div>
 </div>
+    </main>
+</div>
 
 <!-- مودال تفاصيل طلب الإرجاع -->
 <div class="modal-overlay" id="returnDetailsModal">
@@ -1223,6 +1240,7 @@
     let walletsCache = [];
     let returnOrderItems = [];
     let currentOrderForReturn = null;
+    let currentDetailOrder = null;
 
     // ================================================================
     //  UTILITY FUNCTIONS
@@ -1254,28 +1272,27 @@
     function showAlert(msg, type = 'success') {
         const box = document.getElementById('alertBox');
         const icons = { success: 'fa-check-circle', error: 'fa-exclamation-circle', warning: 'fa-exclamation-triangle', info: 'fa-info-circle' };
-        box.innerHTML = `<div class="alert alert-${type}"><i class="fas ${icons[type] || 'fa-info-circle'}"></i> ${msg}</div>`;
+        box.innerHTML = `<div class="alert alert-${type}"><i class="fas ${icons[type] || 'fa-info-circle'}"></i> ${escapeHtml(msg)}</div>`;
         setTimeout(() => box.innerHTML = '', 5000);
     }
 
     function showLoginAlert(msg, type = 'error') {
         const box = document.getElementById('loginAlert');
+        if (!box) return;
         const icons = { success: 'fa-check-circle', error: 'fa-exclamation-circle', warning: 'fa-exclamation-triangle', info: 'fa-info-circle' };
-        box.innerHTML = `<div class="alert alert-${type}"><i class="fas ${icons[type] || 'fa-info-circle'}"></i> ${msg}</div>`;
+        box.innerHTML = `<div class="alert alert-${type}"><i class="fas ${icons[type] || 'fa-info-circle'}"></i> ${escapeHtml(msg)}</div>`;
         setTimeout(() => box.innerHTML = '', 5000);
     }
 
-    function formatNumber(n) { return Number(n).toFixed(2); }
+    function escapeHtml(value) {
+        return String(value ?? '').replace(/[&<>\"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]));
+    }
+
+    function formatNumber(n) { return formatPosMoney(n); }
 
     function formatDate(d) {
         if (!d) return '';
-        const dt = new Date(d);
-        const y = dt.getFullYear();
-        const m = String(dt.getMonth()+1).padStart(2,'0');
-        const day = String(dt.getDate()).padStart(2,'0');
-        const h = String(dt.getHours()).padStart(2,'0');
-        const min = String(dt.getMinutes()).padStart(2,'0');
-        return `${y}-${m}-${day} ${h}:${min}`;
+        return posDateTime(d);
     }
 
     function statusClass(status) {
@@ -1299,10 +1316,9 @@
 
     function isDateInRange(dateStr, fromDate, toDate) {
         if (!dateStr) return true;
-        const d = new Date(dateStr);
-        d.setHours(0,0,0,0);
-        if (fromDate) { const f = new Date(fromDate); f.setHours(0,0,0,0); if (d < f) return false; }
-        if (toDate) { const t = new Date(toDate); t.setHours(23,59,59,999); if (d > t) return false; }
+        const localDate = posDate(dateStr);
+        if (fromDate && localDate < fromDate) return false;
+        if (toDate && localDate > toDate) return false;
         return true;
     }
 
@@ -1329,10 +1345,9 @@
                 return;
             }
             localStorage.setItem('pos_token', data.token);
-            localStorage.setItem('user', JSON.stringify(data.user));
+            localStorage.setItem('pos_user', JSON.stringify(data.user));
             token = data.token;
-            document.getElementById('loginSection').classList.add('hidden');
-            document.getElementById('mainContent').classList.remove('hidden');
+            document.getElementById('mainContent')?.classList.remove('hidden');
             await initApp();
         } catch (err) {
             showLoginAlert('حدث خطأ: ' + err.message, 'error');
@@ -1340,11 +1355,12 @@
     }
 
     function logout() {
+            window.POSPermissions?.recordLogout?.();
         localStorage.removeItem('pos_token');
+        localStorage.removeItem('pos_user');
         localStorage.removeItem('user');
         token = '';
-        document.getElementById('mainContent').classList.add('hidden');
-        document.getElementById('loginSection').classList.remove('hidden');
+        document.getElementById('mainContent')?.classList.add('hidden');
         document.getElementById('ordersBody').innerHTML = '<tr><td colspan="11" class="text-center text-muted">الرجاء تسجيل الدخول</td></tr>';
         document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
     }
@@ -1357,16 +1373,27 @@
     //  PRINT FUNCTIONS
     // ================================================================
     function printOrders() {
-        window.print();
+        const table = document.querySelector('.table-wrap table');
+        if (!table || !window.POSDocs) return showAlert('تعذر تجهيز جدول الطلبات للطباعة', 'error');
+        POSDocs.printReport(table, {title:'سجل الطلبات'})
+            .catch(error => showAlert(error.message, 'error'));
     }
 
     function printDriverStatement() {
-        const content = document.getElementById('driverStatementContent');
-        if (content.querySelector('.text-muted')) {
-            showAlert('لا توجد بيانات للطباعة', 'warning');
-            return;
+        if (!window._driverStatementData) return showAlert('لا توجد بيانات للطباعة', 'warning');
+        if (!window.POSDocs) return showAlert('تعذر تجهيز كشف المندوب للطباعة', 'error');
+        POSDocs.printStatementData(window._driverStatementData, {title:'كشف حساب المندوب'})
+            .then(() => showAlert('تم تجهيز كشف المندوب للطباعة', 'success'))
+            .catch(error => showAlert(error.message, 'error'));
+    }
+
+    function exportDriverStatementPDF() {
+        if (!window._driverStatementData) return showAlert('لا توجد بيانات للتصدير', 'warning');
+        if (window.POSDocs) {
+            POSDocs.exportStatementPDF(window._driverStatementData, {title:'كشف حساب المندوب', filename:'كشف-حساب-مندوب.pdf'})
+                .then(() => showAlert('تم تنزيل كشف المندوب', 'success'))
+                .catch(error => showAlert(error.message, 'error'));
         }
-        window.print();
     }
 
     // ================================================================
@@ -1381,6 +1408,7 @@
         setupTabs();
 
         setInterval(() => {
+            if (document.hidden || !navigator.onLine) return;
             const activeTab = document.querySelector('.tab-content.active');
             if (activeTab) {
                 if (activeTab.id === 'tab-orders') {
@@ -1391,7 +1419,7 @@
                     fetchReturns();
                 }
             }
-        }, 30000);
+        }, 60000);
     }
 
     async function loadCurrenciesAndWallets() {
@@ -1490,7 +1518,7 @@
         const data = await apiFetch(url);
         if (!data) return;
         ordersData = data.orders || [];
-        totalPages = data.pagination?.total_pages || 1;
+        totalPages = data.pagination?.total_pages || Math.ceil(Number(data.pagination?.total || ordersData.length) / 20) || 1;
         currentPage = page;
         renderOrders();
         renderPagination();
@@ -1549,6 +1577,38 @@
         fetchOrders(1);
     }
 
+    function exportOrdersCSV() {
+        if (!ordersData.length) return showAlert('لا توجد طلبات في الصفحة الحالية للتصدير', 'warning');
+        const rows = ordersData.map(o => ({
+            'رقم الطلب': o.id, 'التاريخ': formatDate(o.order_date), 'العميل': o.customer_name || '',
+            'الهاتف': o.customer_phone || '', 'الإجمالي': Number(o.total_amount || 0).toFixed(2),
+            'المحصل': Number(o.actual_collected || 0).toFixed(2), 'الحالة': o.status || '',
+            'المندوب': o.driver_name || '', 'طريقة الدفع': o.payment_method || '',
+            'رسوم التوصيل': Number(o.delivery_fee || 0).toFixed(2)
+        }));
+        const keys = Object.keys(rows[0]);
+        const csv = '\ufeff' + [keys, ...rows.map(r => keys.map(k => r[k]))]
+            .map(row => row.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\\n');
+        const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv;charset=utf-8'}));
+        a.download = `الطلبات-${new Date().toISOString().slice(0,10)}.csv`; a.click(); URL.revokeObjectURL(a.href);
+        showAlert('تم تصدير طلبات الصفحة الحالية', 'success');
+    }
+
+    async function updateOrderStatusFromDetail() {
+        if (!currentDetailOrder) return showAlert('افتح تفاصيل طلب أولاً', 'warning');
+        const new_status = document.getElementById('detailStatusSelect').value;
+        const notes = document.getElementById('detailStatusNotes').value.trim();
+        if (new_status === currentDetailOrder.status && !notes) return showAlert('اختر حالة جديدة أو أضف ملاحظة', 'warning');
+        if (!confirm(`تأكيد تغيير حالة الطلب #${currentDetailOrder.id} إلى: ${new_status}؟`)) return;
+        const result = await apiFetch('/online-orders/update-status', { method:'POST', body: JSON.stringify({ order_id: currentDetailOrder.id, new_status, notes }) });
+        if (result && result.success) {
+            showAlert('تم تحديث حالة الطلب وتسجيلها في السجل', 'success');
+            currentDetailOrder.status = new_status;
+            document.getElementById('detailStatusNotes').value = '';
+            await fetchOrders(currentPage); await openDetailModal(currentDetailOrder.id);
+        }
+    }
+
     // ================================================================
     //  CANCEL ORDER
     // ================================================================
@@ -1567,6 +1627,20 @@
         }
     }
 
+    function printOnlineOrderInvoice(order) {
+        if (!order) return showAlert('لا توجد بيانات للطلب', 'warning');
+        const items = (order.items || []).map(item => ({
+            name: item.variant_label && !String(item.product_name || '').includes(String(item.variant_label)) ? `${item.product_name || 'منتج'} — ${item.variant_label}` : (item.product_name || 'منتج'),
+            product_code: item.product_code || item.barcode || '',
+            quantity: Number(item.quantity || 0), unit_price: Number(item.unit_price || 0),
+            discount: Number(item.discount || item.discount_amount || 0), note: item.note || item.notes || '',
+            line_total: Number(item.line_total ?? item.total_price ?? 0)
+        }));
+        if (window.POSDocs) {
+            POSDocs.printInvoiceData({ type:'sale', is_online_order:true, online_order_id:order.id, order_number:order.id, number:order.invoice_number || order.id, date:formatDate(order.order_date || order.created_at), party:order.customer_name || 'غير محدد', customer_name:order.customer_name || '', customer_phone:order.customer_phone || '', customer_address:order.customer_address || '', governorate:order.governorate || '', delivery_type:order.delivery_type || '', driver_name:order.driver_name || '', payment_method:order.payment_method || 'غير محددة', status:order.status || 'جديد', items, gross_subtotal:items.reduce((s,i)=>s+i.unit_price*i.quantity,0), total:Number(order.total_amount || 0), additional:Number(order.delivery_fee || 0), notes:order.notes || '' }, {title:`فاتورة طلب الإنترنت #${order.id}`}).catch(e=>showAlert(e.message,'error'));
+        } else showAlert('محرك المعاينة غير متاح، أعد تحميل الصفحة ثم حاول مرة أخرى', 'warning');
+    }
+
     // ================================================================
     //  DETAIL MODAL (يجلب تفاصيل الطلب عند الضغط)
     // ================================================================
@@ -1575,20 +1649,25 @@
         const data = await apiFetch(`/online-orders/${orderId}`);
         if (!data) return;
         const order = data.order;
+        currentDetailOrder = order;
+        const statusSelect = document.getElementById('detailStatusSelect');
+        if (statusSelect) statusSelect.value = order.status || 'جديد';
+        const statusNotes = document.getElementById('detailStatusNotes');
+        if (statusNotes) statusNotes.value = '';
         const content = document.getElementById('detailContent');
 
         let html = `
             <div class="detail-row"><label>العميل:</label><div class="value">${order.customer_name}</div></div>
             <div class="detail-row"><label>الهاتف:</label><div class="value">${order.customer_phone}</div></div>
             <div class="detail-row"><label>العنوان:</label><div class="value">${order.customer_address || '-'}</div></div>
-            <div class="detail-row"><label>المحافظة:</label><div class="value">${order.governorate || '-'}</div></div>
+            <div class="detail-row"><label>المحافظة:</label><div class="value">${formatPosNumber(order.governorate || '-')}</div></div>
             <div class="detail-row"><label>نوع التوصيل:</label><div class="value">${order.delivery_type || '-'}</div></div>
             <div class="detail-row"><label>طريقة الدفع:</label><div class="value">${order.payment_method || '-'}</div></div>
             <div class="detail-row"><label>الحالة:</label><div class="value"><span class="status-badge ${statusClass(order.status)}">${order.status}</span></div></div>
             <div class="detail-row"><label>المندوب:</label><div class="value">${order.driver_name || 'غير مسند'}</div></div>
             <div class="detail-row"><label>الإجمالي:</label><div class="value">${formatNumber(order.total_amount)}</div></div>
             <div class="detail-row"><label>المحصل:</label><div class="value">${formatNumber(order.actual_collected || 0)}</div></div>
-            <div class="detail-row"><label>رسوم التوصيل:</label><div class="value">${formatNumber(order.delivery_fee || 0)} (${order.delivery_fee_payment || '-'})</div></div>
+            <div class="detail-row"><label>رسوم التوصيل:</label><div class="value">${formatNumber(order.delivery_fee || 0)} (${formatPosMoney(order.delivery_fee_payment || '-')})</div></div>
             <div class="detail-row"><label>ملاحظات:</label><div class="value">${order.notes || '-'}</div></div>
             <div class="detail-row"><label>تاريخ الطلب:</label><div class="value">${formatDate(order.order_date)}</div></div>
             <hr />
@@ -1599,7 +1678,10 @@
         `;
         if (order.items && order.items.length) {
             order.items.forEach(item => {
-                html += `<tr><td>${item.product_name}</td><td>${item.quantity}</td><td>${formatNumber(item.unit_price)}</td><td>${formatNumber(item.line_total)}</td></tr>`;
+                    const itemName = item.variant_label && !String(item.product_name || '').includes(String(item.variant_label)) ? `${item.product_name || 'منتج'} — ${item.variant_label}` : (item.product_name || 'منتج');
+                    const itemDiscount = Number(item.discount || item.discount_amount || 0);
+                    const itemNote = item.note || item.notes || '';
+                    html += `<tr><td>${escapeHtml(itemName)}${itemDiscount > 0 ? `<small style="display:block;color:var(--danger);">خصم المنتج: ${formatNumber(itemDiscount)}</small>` : ''}${itemNote ? `<small style="display:block;color:var(--muted);">ملاحظة: ${escapeHtml(itemNote)}</small>` : ''}</td><td>${formatPosQuantity(Number(item.quantity || 0))}</td><td>${formatNumber(item.unit_price)}</td><td>${formatNumber(item.line_total)}</td></tr>`;
             });
         } else {
             html += `<tr><td colspan="4" class="text-muted">لا توجد منتجات</td></tr>`;
@@ -1619,7 +1701,7 @@
         let actionsHtml = `
             <button class="btn btn-warning" onclick="window.open('add_order.html?order_id=${order.id}', '_blank')"><i class="fas fa-edit"></i> تعديل</button>
             <button class="btn btn-info" onclick="closeDetailModal(); openAssignDriverModal(${order.id})"><i class="fas fa-user-edit"></i> تغيير المندوب</button>
-            <button class="btn btn-secondary" onclick="window.print()"><i class="fas fa-print"></i> طباعة</button>
+            <button class="btn btn-secondary" onclick="printOnlineOrderInvoice(currentDetailOrder)"><i class="fas fa-print"></i> طباعة الفاتورة</button>
         `;
         const canCancel = (order.status !== 'ملغي' && order.status !== 'تم التسليم' && order.status !== 'مرتجع كلي');
         if (canCancel) {
@@ -1720,7 +1802,7 @@
                         <div class="name">${d.name}</div>
                         <div class="phone">📞 ${d.phone || 'لا يوجد'} ${d.whatsapp_phone ? `<span class="whatsapp-icon"><i class="fab fa-whatsapp" style="color:#25d366;"></i> ${d.whatsapp_phone}</span>` : ''}</div>
                         <div style="margin-top:4px; display:flex; gap:6px; flex-wrap:wrap;">
-                            <span class="badge" style="background:var(--gray-200);">🚚 توصيلات: ${totalDeliveries}</span>
+                            <span class="badge" style="background:var(--gray-200);">🚚 توصيلات: ${formatPosMoney(totalDeliveries)}</span>
                             ${d.is_active !== false ? '<span class="badge" style="background:#dcfce7; color:#166534;">✅ نشط</span>' : '<span class="badge" style="background:#fee2e2; color:#991b1b;">❌ غير نشط</span>'}
                         </div>
                     </div>
@@ -1730,12 +1812,15 @@
                         <div class="item ${balanceClass}" style="font-size:0.95rem; padding:4px 12px; background:var(--gray-50); border-radius:8px; cursor:help;" title="${balanceTooltip}">
                             ${balanceLabel}: <span>${formatNumber(Math.abs(balance))}</span>
                         </div>
+                        <div class="item" style="color:var(--warning);">📦 غير مستلم: <span>${formatPosNumber(d.unreceived_order_count || 0)} طلب / ${formatNumber(d.unreceived_order_total || 0)}</span></div>
+                        <div class="item" style="color:var(--danger);">⚠️ فشل توصيل: <span>${formatPosNumber(d.failed_order_count || 0)} طلب</span></div>
                     </div>
                     <div class="actions">
-                        <button class="btn btn-purple btn-sm" onclick="openSettlementModal(${d.id}, '${d.name}', ${balance})"><i class="fas fa-handshake"></i> تسوية</button>
-                        <button class="btn btn-info btn-sm" onclick="viewTransactions(${d.id}, '${d.name}')"><i class="fas fa-history"></i></button>
+                        <button class="btn btn-purple btn-sm" onclick="openSettlementModal(${d.id}, decodeURIComponent('${encodeURIComponent(String(d.name || ''))}'), ${balance}, ${Number(d.unreceived_order_count || 0)}, ${Number(d.unreceived_order_total || 0)}, ${Number(d.failed_order_count || 0)})"><i class="fas fa-handshake"></i> تسوية</button>
+                        <button class="btn btn-info btn-sm" onclick="viewTransactions(${d.id}, decodeURIComponent('${encodeURIComponent(String(d.name || ''))}'))"><i class="fas fa-history"></i></button>
                         <button class="btn btn-primary btn-sm" onclick="loadDriverStatementForDriver(${d.id})"><i class="fas fa-file-invoice"></i> كشف</button>
-                        ${balance > 0 ? `<button class="btn btn-success btn-sm" onclick="quickSettle(${d.id}, ${Math.abs(balance)})"><i class="fas fa-money-bill-wave"></i> دفع</button>` : ''}
+                            <button class="btn btn-warning btn-sm" onclick="openDriverReceiptModal(${d.id})"><i class="fas fa-box-open"></i> استلام (${Number(d.unreceived_order_count || 0)})</button>
+                            ${balance > 0 ? `<button class="btn btn-success btn-sm" onclick="quickSettle(${d.id}, ${Math.abs(balance)})"><i class="fas fa-money-bill-wave"></i> دفع</button>` : ''}
                     </div>
                 </div>
             `;
@@ -1812,13 +1897,29 @@
         const balance = driverSummary ? parseFloat(driverSummary.balance) || 0 : runningBalance;
         const balanceClass = balance > 0 ? 'balance-negative' : (balance < 0 ? 'balance-positive' : 'balance-neutral');
         const balanceLabel = balance > 0 ? 'مستحق على المندوب' : (balance < 0 ? 'مستحق للمندوب' : 'متساوي');
+        const sortedTransactions = [...transactions].sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+        let runningBal = 0;
+        const typeMap = { delivery_fee:'رسوم توصيل', collection:'تحصيل', settlement:'تسوية', adjustment:'تعديل', payment:'دفع', return:'إرجاع', balance_adjustment:'تعديل الرصيد', order_receipt:'استلام طلب من المندوب' };
+        const statementItems = sortedTransactions.map(t => {
+            const amount = parseFloat(t.amount) || 0;
+            const typeLabel = typeMap[t.type] || t.type || 'أخرى';
+            const isDebit = amount > 0;
+            runningBal += amount;
+            return { date: formatDate(t.created_at), description: `${typeLabel}${t.description ? ' - ' + t.description : ''}`, debit: isDebit ? amount : 0, credit: !isDebit ? Math.abs(amount) : 0, balance: runningBal };
+        });
+        window._driverStatementData = {
+            title:'كشف حساب المندوب', number:driverId, party:driverInfo ? driverInfo.name : 'غير معروف', party_type:'driver',
+            date_from:from || '-', date_to:to || '-', currency:'ريال', items:statementItems,
+            total_debit:statementItems.reduce((s,i) => s + Number(i.debit || 0), 0),
+            total_credit:statementItems.reduce((s,i) => s + Number(i.credit || 0), 0), final_balance:runningBal
+        };
 
         let html = `
             <div class="statement-header">
                 <div class="item"><strong>👤 المندوب:</strong> ${driverInfo ? driverInfo.name : 'غير معروف'}</div>
                 <div class="item"><strong>📞 الهاتف:</strong> ${driverInfo ? driverInfo.phone || '-' : '-'}</div>
                 <div class="item"><strong>💰 الرصيد الحالي:</strong> <span class="${balanceClass}">${formatNumber(Math.abs(balance))} (${balanceLabel})</span></div>
-                <div class="item"><strong>📦 إجمالي التوصيلات:</strong> ${driverSummary ? driverSummary.total_deliveries || 0 : 0}</div>
+                <div class="item"><strong>📦 إجمالي التوصيلات:</strong> ${formatPosMoney(driverSummary ? driverSummary.total_deliveries || 0 : 0)}</div>
                 <div class="item"><strong>💵 إجمالي التحصيلات:</strong> ${formatNumber(totalCollected)}</div>
                 <div class="item"><strong>🚚 إجمالي الرسوم:</strong> ${formatNumber(totalFees)}</div>
                 <div class="item"><strong>💳 إجمالي المدفوع:</strong> ${formatNumber(totalPaid + totalSettlements)}</div>
@@ -1844,7 +1945,6 @@
                         </thead>
                         <tbody>
             `;
-            const sortedTransactions = [...transactions].sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
             for (const t of sortedTransactions) {
                 const amount = parseFloat(t.amount) || 0;
                 const typeMap = {
@@ -1854,7 +1954,8 @@
                     'adjustment': '⚙️ تعديل',
                     'payment': '💳 دفع',
                     'return': '↩️ إرجاع',
-                    'balance_adjustment': '⚖️ تعديل الرصيد'
+                    'balance_adjustment': '⚖️ تعديل الرصيد',
+                    'order_receipt': '📦 استلام طلب من المندوب'
                 };
                 const typeLabel = typeMap[t.type] || t.type || 'أخرى';
                 const color = amount < 0 ? 'var(--danger)' : (amount > 0 ? 'var(--success)' : 'var(--gray-500)');
@@ -1868,7 +1969,7 @@
                         <td style="color:${color}; font-weight:700;">${formatNumber(amount)}</td>
                         <td>${paymentLabel}</td>
                         <td>${t.wallet_name || '-'}</td>
-                        <td>${t.order_id || '-'}</td>
+                        <td>${formatPosNumber(t.order_id || '-')}</td>
                     </tr>
                 `;
             }
@@ -1899,7 +2000,7 @@
         updateSettlementSummary();
     }
 
-    function openSettlementModal(driverId, driverName, currentBalance) {
+    function openSettlementModal(driverId, driverName, currentBalance, pendingCount = 0, pendingTotal = 0, failedCount = 0) {
         document.getElementById('settlementDriverId').value = driverId;
         document.getElementById('settlementDriverName').textContent = driverName;
         const balanceEl = document.getElementById('settlementCurrentBalance');
@@ -1911,6 +2012,8 @@
         else if (currentBalance < 0) balanceText = ` (مستحق للمندوب - يجب دفع ${formatNumber(absBalance)})`;
         else balanceText = ' (متساوي)';
         balanceEl.textContent += balanceText;
+        document.getElementById('settlementPendingOrders').textContent = `${formatPosNumber(pendingCount)} طلب / ${formatNumber(pendingTotal)}`;
+        document.getElementById('settlementFailedOrders').textContent = `${formatPosNumber(failedCount)} طلب`;
 
         document.getElementById('settlementAmount').value = absBalance.toFixed(2);
         document.getElementById('settlementNotes').value = '';
@@ -2048,6 +2151,43 @@
             }
         });
     }
+
+    // ================================================================
+    //  DRIVER ORDER RECEIPT SETTLEMENT
+    // ================================================================
+    let driverReceiptState = { driverId: null, driverName: '', orders: [] };
+    async function openDriverReceiptModal(driverId) {
+        driverReceiptState = { driverId, driverName: '', orders: [] };
+        document.getElementById('driverReceiptModal').classList.add('active');
+        document.getElementById('driverReceiptOrders').innerHTML = '<div class="text-center text-muted" style="padding:30px;"><i class="fas fa-spinner fa-spin"></i> جاري تحميل الطلبات...</div>';
+        const data = await apiFetch(`/drivers/unreceived-orders?driver_id=${encodeURIComponent(driverId)}`);
+        if (!data) return;
+        driverReceiptState.driverName = data.driver?.name || 'المندوب';
+        driverReceiptState.orders = data.orders || [];
+        const summary = data.summary || {};
+        document.getElementById('driverReceiptSummary').innerHTML = `<div class="item"><strong>المندوب:</strong> ${escapeHtml(driverReceiptState.driverName)}</div><div class="item"><strong>الطلبات المتبقية:</strong> ${formatPosNumber(summary.count || 0)}</div><div class="item"><strong>القيمة الإجمالية:</strong> ${formatNumber(summary.total_value || 0)}</div><div class="item"><strong>الفاشلة:</strong> ${formatPosNumber(summary.failed_count || 0)}</div>`;
+        renderDriverReceiptOrders();
+    }
+    function renderDriverReceiptOrders() {
+        const box = document.getElementById('driverReceiptOrders');
+        const rows = driverReceiptState.orders || [];
+        const btn = document.getElementById('receiveAllDriverOrdersBtn');
+        if (btn) btn.disabled = rows.length === 0;
+        if (!rows.length) { box.innerHTML = '<div class="text-center text-success" style="padding:30px;"><i class="fas fa-check-circle fa-2x"></i><br>لا توجد طلبات بانتظار الاستلام</div>'; return; }
+        box.innerHTML = `<div class="table-wrap"><table><thead><tr><th>الطلب</th><th>العميل</th><th>الحالة</th><th>السعر</th><th>الإجراء</th></tr></thead><tbody>${rows.map(o => `<tr id="receipt-order-${Number(o.id)}"><td>#${formatPosNumber(o.id)}</td><td>${escapeHtml(o.customer_name || '-')}<br><small>${escapeHtml(o.customer_phone || '')}</small></td><td><span class="badge ${Number(o.is_failed) ? 'badge-negative' : 'badge-neutral'}">${escapeHtml(o.status || '-')}</span></td><td>${formatNumber(o.total_amount || 0)}</td><td><button class="btn btn-success btn-sm" onclick="receiveOneDriverOrder(${Number(o.id)})"><i class="fas fa-check"></i> تم الاستلام</button></td></tr>`).join('')}</tbody></table></div>`;
+    }
+    async function receiveOneDriverOrder(orderId) {
+        if (!driverReceiptState.driverId) return;
+        const result = await apiFetch('/drivers/receive-orders', { method: 'POST', body: JSON.stringify({ driver_id: driverReceiptState.driverId, order_ids: [Number(orderId)] }) });
+        if (result && result.success) { showAlert(result.message || 'تم استلام الطلب', 'success'); await openDriverReceiptModal(driverReceiptState.driverId); loadDriversSummary(); }
+    }
+    async function receiveAllDriverOrders() {
+        if (!driverReceiptState.driverId || !driverReceiptState.orders.length) return;
+        if (!confirm(`تأكيد استلام ${driverReceiptState.orders.length} طلب من المندوب؟`)) return;
+        const result = await apiFetch('/drivers/receive-orders', { method: 'POST', body: JSON.stringify({ driver_id: driverReceiptState.driverId, order_ids: driverReceiptState.orders.map(o => Number(o.id)) }) });
+        if (result && result.success) { showAlert(result.message || 'تم استلام جميع الطلبات', 'success'); await openDriverReceiptModal(driverReceiptState.driverId); loadDriversSummary(); }
+    }
+    function closeDriverReceiptModal() { document.getElementById('driverReceiptModal').classList.remove('active'); driverReceiptState = { driverId: null, driverName: '', orders: [] }; }
 
     // ================================================================
     //  DRIVER TRANSACTIONS
@@ -2305,7 +2445,8 @@
         let itemsHtml = '<table class="items-table"><thead><tr><th>المنتج</th><th>الكمية</th><th>سعر الوحدة</th><th>الإجمالي</th></tr></thead><tbody>';
         if (r.items && r.items.length) {
             r.items.forEach(item => {
-                itemsHtml += `<tr><td>${item.product_name}</td><td>${item.quantity}</td><td>${formatNumber(item.unit_price)}</td><td>${formatNumber(item.line_total)}</td></tr>`;
+                const itemName = item.variant_label && !String(item.product_name || '').includes(String(item.variant_label)) ? `${item.product_name || 'منتج'} — ${item.variant_label}` : (item.product_name || 'منتج');
+                itemsHtml += `<tr><td>${itemName}</td><td>${formatPosQuantity(item.quantity)}</td><td>${formatNumber(item.unit_price)}</td><td>${formatNumber(item.line_total)}</td></tr>`;
             });
         } else {
             itemsHtml += `<tr><td colspan="4" class="text-muted">لا توجد منتجات</td></tr>`;
@@ -2320,7 +2461,7 @@
             <div class="detail-row"><label>العميل:</label><div class="value">${r.customer_name || '-'}</div></div>
             <div class="detail-row"><label>المندوب المسند:</label><div class="value">${r.driver_name || '-'}</div></div>
             <div class="detail-row"><label>المبلغ المسترد:</label><div class="value">${formatNumber(r.total_refund)} ريال</div></div>
-            <div class="detail-row"><label>طريقة الاسترداد:</label><div class="value">${r.refund_method || '-'}</div></div>
+            <div class="detail-row"><label>طريقة الاسترداد:</label><div class="value">${formatPosMoney(r.refund_method || '-')}</div></div>
             <div class="detail-row"><label>رسوم التوصيل:</label><div class="value">${formatNumber(r.return_fee || 0)} ريال</div></div>
             <div class="detail-row"><label>نوع رسوم التوصيل:</label><div class="value">${r.return_fee_type || '-'}</div></div>
             <div class="detail-row"><label>الحالة:</label><div class="value"><span class="status-badge ${statusColorMap[r.status] || 'status-new'}">${statusMap[r.status] || r.status}</span></div></div>
@@ -2456,7 +2597,7 @@
             itemsHtml += `
                 <div class="return-item-row">
                     <span class="pname">${item.product_name}</span>
-                    <span class="qty-available">${item.quantity_available}</span>
+                    <span class="qty-available">${formatPosQuantity(item.quantity_available)}</span>
                     <input type="number" id="return_qty_${index}" min="0" max="${item.quantity_available}" value="0" step="1" oninput="updateReturnTotal()" />
                     <span class="item-total" id="return_item_total_${index}">0.00</span>
                 </div>
@@ -2608,23 +2749,29 @@
     //  INITIALIZATION
     // ================================================================
     (async function init() {
-        if (token) {
-            try {
-                const test = await apiFetch('/drivers');
-                if (test !== null) {
-                    document.getElementById('loginSection').classList.add('hidden');
-                    document.getElementById('mainContent').classList.remove('hidden');
-                    await initApp();
-                    return;
-                }
-            } catch (e) {}
+        // إدارة المندوبين جزء من لوحة الإدارة؛ لا تستخدم شاشة دخول مستقلة.
+        if (!token) {
+            window.location.replace('index.html?return=orders.html');
+            return;
         }
-        document.getElementById('loginSection').classList.remove('hidden');
-        document.getElementById('mainContent').classList.add('hidden');
+        try {
+            const test = await apiFetch('/drivers');
+            if (test !== null) {
+                document.getElementById('mainContent')?.classList.remove('hidden');
+                await initApp();
+                return;
+            }
+        } catch (e) {}
+        localStorage.removeItem('pos_token');
+        localStorage.removeItem('pos_user');
+        window.location.replace('index.html?return=orders.html');
     })();
 
     console.log('✅ نظام ابن المختار – النسخة الموحدة والمحسّنة (Lazy Loading)');
 </script>
 
+    <script src="document-utils.js"></script>
+    <script src="sidebar-config.js"></script>
+    <script src="notification-center-v3.js"></script>
 </body>
 </html>

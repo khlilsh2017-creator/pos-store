@@ -695,30 +695,18 @@
             padding: 40px 0;
         }
     </style>
+    <script src="number-utils.js"></script>
+    <script src="permissions.js"></script>
+    <script src="date-utils.js"></script>
+    <script src="filter-utils.js"></script>
+    <script src="/offline-sync.js"></script>
+<link rel="stylesheet" href="sidebar-v4.css" />
 </head>
 <body>
 
     <div class="app-wrapper">
         <!-- ===== Sidebar ===== -->
-        <nav class="sidebar">
-            <div class="brand"><i class="fas fa-store-alt"></i><span>ابن المختار</span></div>
-            <a class="nav-link" href="index.html"><i class="fas fa-th-large"></i> <span>لوحة التحكم</span></a>
-            <a class="nav-link" href="sale.html"><i class="fas fa-cash-register"></i> <span>البيع</span></a>
-            <a class="nav-link" href="products.html"><i class="fas fa-boxes"></i> <span>المنتجات</span></a>
-            <a class="nav-link" href="customers.html"><i class="fas fa-users"></i> <span>العملاء</span></a>
-            <a class="nav-link" href="suppliers.html"><i class="fas fa-truck"></i> <span>الموردين</span></a>
-            <a class="nav-link" href="purchases.html"><i class="fas fa-shopping-cart"></i> <span>المشتريات</span></a>
-            <a class="nav-link" href="expenses.html"><i class="fas fa-receipt"></i> <span>المصروفات</span></a>
-            <a class="nav-link" href="payments.html"><i class="fas fa-hand-holding-usd"></i> <span>سندات</span></a>
-            <a class="nav-link" href="cash-wallets.html"><i class="fas fa-wallet"></i> <span>المحافظ</span></a>
-            <a class="nav-link" href="cash-wallets.html"><i class="fas fa-coins"></i> <span>الصندوق</span></a>
-            <a class="nav-link active" href="invoices.html"><i class="fas fa-file-invoice"></i> <span>الفواتير</span></a>
-            <a class="nav-link" href="journal.html"><i class="fas fa-book"></i> <span>القيود</span></a>
-            <a class="nav-link" href="reports.html"><i class="fas fa-chart-pie"></i> <span>التقارير</span></a>
-            <a class="nav-link" href="operations.html"><i class="fas fa-tools"></i> <span>عمليات</span></a>
-            <a class="nav-link" href="settings.html"><i class="fas fa-cog"></i> <span>إعدادات</span></a>
-            <div class="logout-btn"><div class="nav-link" onclick="logout()" style="color:var(--danger);"><i class="fas fa-sign-out-alt"></i> <span>خروج</span></div></div>
-        </nav>
+        <div id="sidebar-container"></div>
 
         <!-- ===== Main ===== -->
         <main class="main-content">
@@ -788,10 +776,7 @@
                             <option value="returned">مرتجعة</option>
                         </select>
                     </div>
-                    <div class="filter-actions">
-                        <button class="btn btn-primary" onclick="applyFilters()"><i class="fas fa-search"></i> بحث</button>
-                        <button class="btn btn-outline" onclick="resetFilters()"><i class="fas fa-undo"></i> إعادة</button>
-                    </div>
+
                 </div>
             </div>
 
@@ -801,7 +786,7 @@
                     <span><i class="fas fa-list"></i> قائمة الفواتير <span id="resultCount" class="text-muted" style="font-weight:400;">(0)</span></span>
                     <div style="display:flex;gap:8px;flex-wrap:wrap;">
                         <button class="btn btn-outline btn-sm" onclick="refreshInvoices()"><i class="fas fa-sync-alt"></i> تحديث</button>
-                        <button class="btn btn-outline btn-sm" onclick="exportCSV()"><i class="fas fa-file-csv"></i> تصدير CSV</button>
+                        <button class="btn btn-outline btn-sm" onclick="printInvoicesList()"><i class="fas fa-print"></i> طباعة القائمة</button>
                     </div>
                 </div>
                 <div class="table-wrap" style="border:none;border-radius:0;">
@@ -829,6 +814,27 @@
         </main>
     </div>
 
+    <!-- ===== Online order driver assignment ===== -->
+    <div class="modal-overlay" id="assignOnlineDriverModal">
+        <div class="modal-box" style="max-width:460px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-truck"></i> إسناد طلب الإنترنت لمندوب</h3>
+                <button class="modal-close" onclick="closeAssignOnlineDriverModal()">&times;</button>
+            </div>
+            <div style="padding:16px;">
+                <input type="hidden" id="assignOnlineOrderId">
+                <label for="assignOnlineDriverSelect">المندوب</label>
+                <select id="assignOnlineDriverSelect" style="width:100%;padding:10px;margin-top:8px;border:1px solid var(--border);border-radius:8px;">
+                    <option value="">جاري تحميل المندوبين...</option>
+                </select>
+                <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px;">
+                    <button class="btn btn-outline btn-sm" onclick="closeAssignOnlineDriverModal()">إلغاء</button>
+                    <button class="btn btn-primary btn-sm" onclick="submitAssignOnlineDriver()">إسناد الطلب</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- ===== Toast ===== -->
     <div class="toast-container" id="toastContainer"></div>
 
@@ -848,11 +854,12 @@
                     <!-- عرض اسم المحفظة بشكل منفصل (اختياري) -->
                     <div class="detail-row" style="grid-column:1/3;"><span class="label">المحفظة</span><span class="value" id="mWalletName" style="font-weight:400;">-</span></div>
                     <div class="detail-row" style="grid-column:1/3;"><span class="label">ملاحظات</span><span class="value" id="mNote" style="font-weight:400;">-</span></div>
+                    <div class="detail-row" id="mOnlineDetails" style="grid-column:1/3;display:none;"><span class="label">تفاصيل طلب الإنترنت</span><span class="value" id="mOnlineDetailsValue" style="font-weight:400;"></span></div>
                 </div>
                 <h5 style="margin:10px 0 6px;"><i class="fas fa-boxes"></i> المنتجات</h5>
                 <div style="overflow-x:auto;">
                     <table class="items-table" id="modalItemsTable">
-                        <thead><tr><th>المنتج</th><th>الكمية</th><th>السعر</th><th>الإجمالي</th></tr></thead>
+                        <thead><tr><th>المنتج</th><th>الكمية</th><th>السعر قبل الخصم</th><th>خصم المنتج</th><th>السعر بعد الخصم</th><th>الإجمالي</th></tr></thead>
                         <tbody id="modalItemsBody"></tbody>
                     </table>
                 </div>
@@ -861,6 +868,8 @@
                     <button class="btn btn-primary btn-sm" onclick="printInvoice()"><i class="fas fa-print"></i> طباعة</button>
                     <button class="btn btn-danger btn-sm" id="modalCancelBtn" onclick="cancelInvoice()"><i class="fas fa-times"></i> إلغاء الفاتورة</button>
                     <button class="btn btn-warning btn-sm" id="modalReturnBtn" onclick="returnInvoice()"><i class="fas fa-undo"></i> إرجاع</button>
+                    
+                    
                 </div>
             </div>
         </div>
@@ -878,6 +887,7 @@
 
         let allSales = [];
         let filteredSales = [];
+        let salesMeta = { total: 0 };
         let currentPage = 1;
         let currentSaleId = null;
         let customersMap = {};
@@ -885,6 +895,10 @@
         // ============================================================
         //  TOAST
         // ============================================================
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+        }
+
         function showToast(msg, type = 'info') {
             const c = document.getElementById('toastContainer');
             const t = document.createElement('div');
@@ -900,6 +914,7 @@
         //  AUTH
         // ============================================================
         function logout() {
+            window.POSPermissions?.recordLogout?.();
             if (confirm('تأكيد الخروج؟')) {
                 localStorage.removeItem('pos_token');
                 window.location.href = 'index.html';
@@ -920,7 +935,7 @@
             });
             if (!res.ok) {
                 const err = await res.json().catch(() => ({}));
-                throw new Error(err.message || `HTTP ${res.status}`);
+                throw new Error(err.error || err.message || `HTTP ${res.status}`);
             }
             return res.json();
         }
@@ -930,7 +945,7 @@
         // ============================================================
         async function loadCustomers() {
             try {
-                const data = await fetchAPI('/customers');
+                const data = await fetchAPI('/customers?limit=2000');
                 if (data.customers) {
                     data.customers.forEach(c => { customersMap[c.id] = c.name || 'عميل غير معروف'; });
                 }
@@ -942,8 +957,12 @@
         // ============================================================
         async function loadInvoices() {
             try {
-                const data = await fetchAPI('/sales');
+                const controller = window.__posFilterControllers?.invoices;
+                const state = controller?.getState() || POSFilters.load('invoices', { preset: 'today', limit: 20 });
+                const params = POSFilters.queryString({ ...state, page: currentPage });
+                const data = await fetchAPI(`/sales?${params.toString()}`);
                 allSales = data.sales || [];
+                salesMeta = { ...(data.pagination || {}), ...(data.summary || {}) , total: Number(data.summary?.count ?? data.pagination?.total ?? allSales.length) };
                 // sort newest first
                 allSales.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
                 applyFilters();
@@ -968,12 +987,12 @@
             filteredSales = allSales.filter(s => {
                 // date
                 if (from) {
-                    const d = new Date(s.created_at);
-                    if (d < new Date(from + 'T00:00:00')) return false;
+                    const d = posDate(s.created_at);
+                    if (d < from) return false;
                 }
                 if (to) {
-                    const d = new Date(s.created_at);
-                    if (d > new Date(to + 'T23:59:59')) return false;
+                    const d = posDate(s.created_at);
+                    if (d > to) return false;
                 }
                 // customer
                 if (cust) {
@@ -1005,23 +1024,69 @@
             loadInvoices();
         }
 
+        function closeAssignOnlineDriverModal() {
+            document.getElementById('assignOnlineDriverModal')?.classList.remove('open');
+        }
+
+        async function openAssignOnlineDriver(orderId) {
+            if (!window.POSPermissions?.can('delivery.orders.manage')) {
+                showToast('غير مصرح لك بإسناد الطلبات', 'error');
+                return;
+            }
+            const modal = document.getElementById('assignOnlineDriverModal');
+            const select = document.getElementById('assignOnlineDriverSelect');
+            document.getElementById('assignOnlineOrderId').value = String(orderId || '');
+            select.innerHTML = '<option value="">جاري تحميل المندوبين...</option>';
+            modal?.classList.add('open');
+            try {
+                const res = await fetch(`${API}/drivers`, { headers: { 'Authorization': `Bearer ${token}` } });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'فشل تحميل المندوبين');
+                const drivers = (data.drivers || []).filter(d => d.is_active === 1 || d.is_active === true);
+                select.innerHTML = '<option value="">-- اختر مندوبًا --</option>' + drivers.map(d => `<option value="${d.id}">${escapeHtml(d.name)}</option>`).join('');
+            } catch (e) {
+                select.innerHTML = '<option value="">تعذر تحميل المندوبين</option>';
+                showToast(e.message, 'error');
+            }
+        }
+
+        async function submitAssignOnlineDriver() {
+            if (!window.POSPermissions?.can('delivery.orders.manage')) return showToast('غير مصرح لك بهذه العملية', 'error');
+            const orderId = Number(document.getElementById('assignOnlineOrderId').value);
+            const driverId = Number(document.getElementById('assignOnlineDriverSelect').value);
+            if (!orderId || !driverId) return showToast('اختر مندوبًا أولاً', 'warning');
+            try {
+                const res = await fetch(`${API}/online-orders/assign-driver`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ order_id: orderId, driver_id: driverId })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'فشل إسناد الطلب');
+                closeAssignOnlineDriverModal();
+                showToast('تم إسناد الطلب للمندوب بنجاح', 'success');
+                await loadInvoices();
+            } catch (e) { showToast(e.message, 'error'); }
+        }
+
         // ============================================================
         //  STATS
         // ============================================================
         function updateStats() {
-            const total = filteredSales.length;
-            const revenue = filteredSales.reduce((sum, s) => sum + (s.total_amount || 0), 0);
-            const pending = filteredSales.filter(s => s.status === 'pending' || s.status === 'credit').length;
-            const today = new Date().toDateString();
-            const todayRevenue = filteredSales
-                .filter(s => new Date(s.created_at).toDateString() === today)
-                .reduce((sum, s) => sum + (s.total_amount || 0), 0);
+            const total = Number(salesMeta.count ?? salesMeta.total ?? filteredSales.length);
+            const activeSales = filteredSales.filter(s => !['cancelled', 'returned'].includes(s.status));
+            const revenue = Number(salesMeta.revenue ?? activeSales.reduce((sum, s) => sum + Number(s.total_amount || 0), 0));
+            const pending = Number(salesMeta.pending ?? filteredSales.filter(s => s.status === 'pending' || s.status === 'credit').length);
+            const today = POSDate.today();
+            const todayRevenue = activeSales
+                .filter(s => posDate(s.created_at) === today)
+                .reduce((sum, s) => sum + Number(s.total_amount || 0), 0);
 
             document.getElementById('statTotal').textContent = total;
-            document.getElementById('statRevenue').textContent = revenue.toFixed(2);
+            document.getElementById('statRevenue').textContent = formatPosMoney(revenue, 2);
             document.getElementById('statPending').textContent = pending;
-            document.getElementById('statToday').textContent = todayRevenue.toFixed(2);
-            document.getElementById('resultCount').textContent = `(${total})`;
+            document.getElementById('statToday').textContent = formatPosMoney(todayRevenue, 2);
+            document.getElementById('resultCount').textContent = `(${formatPosMoney(total)})`;
         }
 
         // ============================================================
@@ -1031,10 +1096,10 @@
         // ----- الدالة المساعدة لعرض طريقة الدفع مع اسم المحفظة -----
         function getPaymentLabel(method, walletName) {
             if (method === 'cash') return 'نقداً';
-            if (method === 'wallet') return walletName ? `محفظة: ${walletName}` : 'محفظة';
+            if (method === 'wallet') return walletName ? `محفظة: ${formatPosMoney(walletName)}` : 'محفظة';
             if (method === 'credit') return 'آجل';
             if (method === 'mixed') {
-                return walletName ? `مختلط (محفظة: ${walletName})` : 'مختلط';
+                return walletName ? `مختلط (محفظة: ${formatPosMoney(walletName)})` : 'مختلط';
             }
             return method || '-';
         }
@@ -1047,22 +1112,21 @@
                 'returned': '<span class="badge badge-muted">مرتجعة</span>',
                 'credit': '<span class="badge badge-warning">آجل</span>',
             };
-            return map[status] || `<span class="badge badge-muted">${status || 'غير معروف'}</span>`;
+            return map[status] || `<span class="badge badge-muted">${escapeHtml(status || 'غير معروف')}</span>`;
         }
 
         function formatDate(d) {
             if (!d) return '-';
-            const dt = new Date(d);
-            return dt.toLocaleDateString('ar-SA') + ' ' + dt.toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' });
+            return posDateTime(d);
         }
 
         function renderTable() {
             const tbody = document.getElementById('invoiceBody');
-            const total = filteredSales.length;
-            const totalPages = Math.ceil(total / PAGE_SIZE) || 1;
+            const total = Number(salesMeta.total ?? filteredSales.length);
+            const limit = window.__posFilterControllers?.invoices?.getState().limit || PAGE_SIZE;
+            const totalPages = Math.ceil(total / limit) || 1;
             if (currentPage > totalPages) currentPage = totalPages;
-            const start = (currentPage - 1) * PAGE_SIZE;
-            const pageItems = filteredSales.slice(start, start + PAGE_SIZE);
+            const pageItems = filteredSales;
 
             if (pageItems.length === 0) {
                 tbody.innerHTML =
@@ -1076,14 +1140,15 @@
                     return `
                         <tr>
                             <td><strong>${s.invoice_number || '#' + s.id}</strong></td>
-                            <td>${customer}</td>
-                            <td style="font-size:0.85rem;">${formatDate(s.created_at)}</td>
-                            <td><strong>${(s.total_amount || 0).toFixed(2)}</strong> ر.ي</td>
-                            <td>${payLabel}</td>
+                            <td>${escapeHtml(customer)}</td>
+                            <td style="font-size:0.85rem;">${escapeHtml(formatDate(s.created_at))}</td>
+                            <td><strong>${formatPosMoney(Number(s.total_amount || 0))}</strong> ر.ي</td>
+                            <td>${escapeHtml(payLabel)}</td>
                             <td>${statusBadge}</td>
                             <td style="text-align:center;">
                                 <button class="btn btn-primary btn-xs" onclick="viewInvoice(${s.id})" title="عرض"><i class="fas fa-eye"></i></button>
                                 <button class="btn btn-outline btn-xs" onclick="viewInvoice(${s.id})" title="طباعة" style="border-color:var(--border);"><i class="fas fa-print"></i></button>
+                                ${s.online_order_id && !['تم التسليم','ملغي','مرتجع كلي','مرتجع جزئي'].includes(s.online_order_status) && window.POSPermissions?.can('delivery.orders.manage') ? `<button class="btn btn-info btn-xs" onclick="event.stopPropagation();openAssignOnlineDriver(${s.online_order_id})" title="إسناد طلب الإنترنت"><i class="fas fa-truck"></i></button>` : ''}
                                 ${s.status !== 'cancelled' && s.status !== 'returned' ? 
                                     `<button class="btn btn-danger btn-xs" onclick="quickCancel(${s.id})" title="إلغاء"><i class="fas fa-times"></i></button>` : 
                                     `<button class="btn btn-muted btn-xs" disabled style="opacity:0.4;"><i class="fas fa-check"></i></button>`
@@ -1125,10 +1190,11 @@
         }
 
         function goPage(p) {
-            const total = Math.ceil(filteredSales.length / PAGE_SIZE) || 1;
+            const limit = window.__posFilterControllers?.invoices?.getState().limit || PAGE_SIZE;
+            const total = Math.ceil(Number(salesMeta.total ?? filteredSales.length) / limit) || 1;
             if (p < 1 || p > total) return;
             currentPage = p;
-            renderTable();
+            loadInvoices();
             document.getElementById('invoiceTable').scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
 
@@ -1139,6 +1205,14 @@
             try {
                 const data = await fetchAPI(`/sales/${id}`);
                 const sale = data.sale || data;
+                let onlineOrder = null;
+                const onlineId = sale.online_order_id || sale.order_id || (String(sale.note || '').match(/طلب إنترنت\s*#(\d+)/)?.[1]);
+                if (onlineId) {
+                    try {
+                        const onlineData = await fetchAPI(`/online-orders/${onlineId}`);
+                        onlineOrder = onlineData.order || onlineData;
+                    } catch (_) { onlineOrder = null; }
+                }
                 currentSaleId = sale.id;
 
                 // Fill header
@@ -1150,39 +1224,58 @@
                 document.getElementById('mStatus').innerHTML = getStatusBadge(sale.status);
                 // عرض اسم المحفظة بشكل منفصل
                 document.getElementById('mWalletName').textContent = sale.wallet_name || '-';
-                document.getElementById('mNote').textContent = sale.note || '-';
+                document.getElementById('mNote').textContent = onlineOrder?.notes || sale.note || '-';
+                const onlineDetailsBox = document.getElementById('mOnlineDetails');
+                const onlineDetailsValue = document.getElementById('mOnlineDetailsValue');
+                if (onlineOrder && onlineDetailsBox && onlineDetailsValue) {
+                    onlineDetailsValue.innerHTML = `<div>الهاتف: <span dir="ltr">${escapeHtml(onlineOrder.customer_phone || '-')}</span></div><div>العنوان: ${escapeHtml(onlineOrder.customer_address || '-')}</div><div>المحافظة: ${escapeHtml(onlineOrder.governorate || '-')}</div><div>نوع التوصيل: ${escapeHtml(onlineOrder.delivery_type || '-')}</div><div>المندوب: ${escapeHtml(onlineOrder.driver_name || 'غير مسند')}</div><div>رسوم التوصيل: ${formatPosMoney(Number(onlineOrder.delivery_fee || 0))} — ${escapeHtml(onlineOrder.delivery_fee_payment || 'مع الطلب')}</div>`;
+                    onlineDetailsBox.style.display = 'grid';
+                } else if (onlineDetailsBox) {
+                    onlineDetailsBox.style.display = 'none';
+                }
 
                 // Items
                 const items = sale.items || sale.sale_items || [];
+                const invoiceItemName = it => { const name = it.product_name || it.name || `منتج #${it.product_id || ''}`; return it.variant_label && !String(name).includes(String(it.variant_label)) ? `${name} — ${it.variant_label}` : name; };
                 const tbody = document.getElementById('modalItemsBody');
                 if (items.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">لا توجد منتجات</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">لا توجد منتجات</td></tr>';
                 } else {
-                    tbody.innerHTML = items.map(it => `
-                        <tr>
-                            <td>${it.product_name || it.name || 'منتج #' + it.product_id}</td>
-                            <td>${it.quantity || 0}</td>
-                            <td>${(it.unit_price || 0).toFixed(2)} ر.س</td>
-                            <td>${(it.total_price || it.total || 0).toFixed(2)} ر.س</td>
-                        </tr>
-                    `).join('');
+                    tbody.innerHTML = items.map(it => {
+                        const qty = Number(it.quantity || 0);
+                        const price = Number(it.unit_price || 0);
+                        const itemDiscount = Number(it.discount ?? it.discount_amount ?? 0);
+                        const netPrice = Math.max(0, price - itemDiscount);
+                        const note = it.note || it.notes || it.product_note || '';
+                        return `<tr>
+                            <td>${invoiceItemName(it)}${note ? `<small style="display:block;color:var(--muted);">ملاحظة: ${escapeHtml(note)}</small>` : ''}</td>
+                            <td>${formatPosQuantity(qty)}</td>
+                            <td>${formatPosMoney(price)} ر.س</td>
+                            <td class="text-danger">${itemDiscount > 0 ? `-${formatPosMoney(itemDiscount)}` : '-' } ر.س</td>
+                            <td>${formatPosMoney(netPrice)} ر.س</td>
+                            <td>${formatPosMoney(Number(it.total_price ?? it.total ?? (netPrice * qty)))} ر.س</td>
+                        </tr>`;
+                    }).join('');
                 }
 
                 // Totals
-                const total = sale.total_amount || 0;
-                const discount = sale.discount || 0;
-                const paid = sale.paid_amount || 0;
-                const cashPaid = sale.cash_paid || 0;
-                const walletPaid = sale.wallet_paid || 0;
+                                const total = Number(sale.total_amount || 0);
+                const discount = Number(sale.discount || 0);
+                const paid = Number(sale.paid_amount || 0);
+                const cashPaid = Number(sale.cash_paid || 0);
+                const walletPaid = Number(sale.wallet_paid || 0);
                 const due = total - paid;
-
+                const isOnlineOrder = Boolean(onlineOrder || sale.online_order_id || sale.order_id || String(sale.invoice_number || '').toUpperCase().includes('WEB') || String(sale.note || '').includes('طلب إنترنت'));
+                const invoiceItems = items.map(it => ({ name:invoiceItemName(it), product_code:it.product_code || it.barcode || '', quantity:Number(it.quantity || 0), unit_price:Number(it.unit_price || 0), discount:Number(it.discount ?? it.discount_amount ?? 0), note:it.note || it.notes || it.product_note || '', line_total:Number(it.total_price ?? it.total ?? ((Number(it.quantity || 0) * Math.max(0, Number(it.unit_price || 0) - Number(it.discount ?? it.discount_amount ?? 0))))) }));
+                window._salesInvoiceData = { type:'sale', number:sale.invoice_number || sale.id, date:formatDate(sale.created_at), is_online_order:isOnlineOrder, online_order_id:onlineOrder?.id || sale.online_order_id || sale.order_id || '', order_number:onlineOrder?.id || sale.online_order_id || sale.order_id || '', customer_name:onlineOrder?.customer_name || sale.customer_name || customersMap[sale.customer_id] || 'عميل غير معروف', customer_phone:onlineOrder?.customer_phone || sale.customer_phone || '', customer_address:onlineOrder?.customer_address || sale.customer_address || '', governorate:onlineOrder?.governorate || sale.governorate || '', delivery_type:onlineOrder?.delivery_type || sale.delivery_type || '', driver_name:onlineOrder?.driver_name || sale.driver_name || '', party:onlineOrder?.customer_name || customersMap[sale.customer_id] || sale.customer_name || 'عميل غير معروف', items:invoiceItems, gross_subtotal:invoiceItems.reduce((s,it)=>s+(it.unit_price*it.quantity),0), total, discount, paid, payment_method:getPaymentLabel(sale.payment_method, sale.wallet_name), status:sale.status || 'مكتملة', notes:onlineOrder?.notes || sale.note || '' };
                 let totalsHtml = `
-                    <div class="total-line"><span class="label">الإجمالي</span><span class="value">${total.toFixed(2)} ر.س</span></div>
-                    ${discount > 0 ? `<div class="total-line"><span class="label">الخصم</span><span class="value text-danger">-${discount.toFixed(2)} ر.س</span></div>` : ''}
-                    ${cashPaid > 0 ? `<div class="total-line"><span class="label">مدفوع نقداً</span><span class="value">${cashPaid.toFixed(2)} ر.س</span></div>` : ''}
-                    ${walletPaid > 0 ? `<div class="total-line"><span class="label">مدفوع محفظة</span><span class="value">${walletPaid.toFixed(2)} ر.س</span></div>` : ''}
-                    ${due > 0 ? `<div class="total-line"><span class="label" style="color:var(--danger);">المتبقي</span><span class="value text-danger">${due.toFixed(2)} ر.س</span></div>` : ''}
-                    <div class="total-line grand-total"><span class="label">المبلغ الإجمالي</span><span class="value">${total.toFixed(2)} ر.س</span></div>
+                    <div class="total-line"><span class="label">الإجمالي قبل الخصومات</span><span class="value">${formatPosMoney(items.reduce((s,it)=>s+(Number(it.unit_price||0)*Number(it.quantity||0)),0))} ر.س</span></div>
+                    ${items.reduce((s,it)=>s+(Number(it.discount||it.discount_amount||0)*Number(it.quantity||0)),0) > 0 ? `<div class="total-line"><span class="label">خصم المنتجات</span><span class="value text-danger">-${formatPosMoney(items.reduce((s,it)=>s+(Number(it.discount||it.discount_amount||0)*Number(it.quantity||0)),0))} ر.س</span></div>` : ''}
+                    ${discount > 0 ? `<div class="total-line"><span class="label">خصم الإجمالي</span><span class="value text-danger">-${formatPosMoney(discount)} ر.س</span></div>` : ''}
+                    ${cashPaid > 0 ? `<div class="total-line"><span class="label">مدفوع نقداً</span><span class="value">${formatPosMoney(cashPaid)} ر.س</span></div>` : ''}
+                    ${walletPaid > 0 ? `<div class="total-line"><span class="label">مدفوع محفظة</span><span class="value">${formatPosMoney(walletPaid)} ر.س</span></div>` : ''}
+                    ${due > 0 ? `<div class="total-line"><span class="label" style="color:var(--danger);">المتبقي</span><span class="value text-danger">${formatPosMoney(due)} ر.س</span></div>` : ''}
+                    <div class="total-line grand-total"><span class="label">المبلغ الإجمالي</span><span class="value">${formatPosMoney(total)} ر.س</span></div>
                 `;
                 document.getElementById('modalTotals').innerHTML = totalsHtml;
 
@@ -1254,48 +1347,50 @@
         }
 
         // ============================================================
-        //  RETURN INVOICE (placeholder)
+        //  RETURN FULL INVOICE
         // ============================================================
         async function returnInvoice() {
             if (!currentSaleId) return;
-            showToast('ميزة الإرجاع ستُضاف قريباً', 'info');
-            // يمكنك تنفيذ منطق الإرجاع هنا عند الحاجة
+            const reason = prompt('سبب إرجاع الفاتورة بالكامل:', 'إرجاع من العميل');
+            if (reason === null) return;
+            try {
+                await fetchAPI('/sales/full-return', { method: 'POST', body: JSON.stringify({ sale_id: currentSaleId, reason: reason.trim() }) });
+                showToast('تم إرجاع الفاتورة بالكامل وتحديث المخزون', 'success');
+                closeModal();
+                await loadInvoices();
+            } catch (err) {
+                showToast('فشل الإرجاع: ' + err.message, 'error');
+            }
         }
 
         // ============================================================
         //  PRINT INVOICE
         // ============================================================
+        function exportSalesInvoicePDF() {
+            if (!window._salesInvoiceData) return showToast('لا توجد فاتورة محددة', 'warning');
+            if (window.POSDocs) POSDocs.exportInvoicePDF(window._salesInvoiceData, {title:'فاتورة مبيعات', filename:`فاتورة-مبيعات-${currentSaleId || 'مستند'}.pdf`}).then(()=>showToast('تم تنزيل PDF','success')).catch(x=>showToast(x.message,'error'));
+        }
+        function exportSalesInvoiceExcel() {
+            const e = document.getElementById('modalBody');
+            if (window.POSDocs && e) POSDocs.exportExcel(e, {filename:`فاتورة-مبيعات-${formatPosNumber(currentSaleId||'مستند')}.xlsx`}).then(()=>showToast('تم تنزيل Excel','success')).catch(x=>showToast(x.message,'error'));
+        }
         function printInvoice() {
-            const content = document.getElementById('modalBody');
-            if (!content) return;
-            const win = window.open('', '_blank', 'width=800,height=600');
-            if (!win) {
-                showToast('الرجاء السماح للنوافذ المنبثقة', 'warning');
-                return;
-            }
-            const styles = document.querySelector('style').innerHTML;
-            win.document.write(`
-                <html dir="rtl" lang="ar">
-                <head><meta charset="UTF-8"><title>فاتورة</title>
-                <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap" rel="stylesheet">
-                <style>${styles} body { padding:20px; background:white; } .modal-box { max-width:100%; box-shadow:none; padding:0; } .modal-overlay { position:static; background:white; } .modal-box .modal-header { border-bottom:2px solid #e2e8f0; } .btn { display:none; } .modal-close { display:none; } #modalCancelBtn, #modalReturnBtn { display:none !important; } .detail-row { border-bottom:1px solid #f1f5f9; } .items-table { border:1px solid #e2e8f0; } .items-table th { background:#f8fafc; } .totals-box { border-top:2px solid #e2e8f0; } .stat-card, .filter-bar, .pagination, .card-section .flex-between { display:none; } </style>
-                </head>
-                <body>
-                    <div class="modal-box" style="max-width:100%;margin:0 auto;">
-                        ${content.innerHTML}
-                    </div>
-                    <script>
-                        window.onload = function() { window.print(); }
-                    <\/script>
-                </body>
-                </html>
-            `);
-            win.document.close();
+            if (!window._salesInvoiceData) return showToast('لا توجد بيانات للطباعة', 'warning');
+            if (!window.POSDocs) return showToast('تعذر تجهيز الفاتورة للطباعة', 'error');
+            POSDocs.printInvoiceData(window._salesInvoiceData, { title:'فاتورة مبيعات' })
+                .then(() => showToast('تم تجهيز الفاتورة للطباعة', 'success'))
+                .catch(e => showToast(e.message, 'error'));
         }
 
         // ============================================================
         //  EXPORT CSV
         // ============================================================
+        function printInvoicesList() {
+            const table = document.getElementById('invoiceTable');
+            if (!table || !window.POSDocs) return showToast('تعذر تجهيز قائمة الفواتير للطباعة', 'error');
+            POSDocs.printReport(table, { title: 'قائمة الفواتير' }).catch(e => showToast(e.message, 'error'));
+        }
+
         function exportCSV() {
             if (filteredSales.length === 0) {
                 showToast('لا توجد بيانات للتصدير', 'warning');
@@ -1308,7 +1403,7 @@
                 const pay = getPaymentLabel(s.payment_method, s.wallet_name);
                 const status = s.status || '';
                 csv +=
-                    `${s.invoice_number || s.id},"${customer}",${date},${(s.total_amount||0).toFixed(2)},${pay},${status}\n`;
+                    `${s.invoice_number || s.id},"${customer}",${date},${formatPosMoney((s.total_amount||0))},${pay},${status}\n`;
             });
             const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement('a');
@@ -1337,5 +1432,8 @@
         window.onload = init;
     </script>
 
+    <script src="document-utils.js"></script>
+    <script src="sidebar-config.js"></script>
+    <script src="notification-center-v3.js"></script>
 </body>
 </html>

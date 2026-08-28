@@ -1,0 +1,16 @@
+{
+  "name": "pos-api",
+  "version": "1.0.0",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "check": "node --input-type=module --check < worker.js",
+    "deploy": "wrangler deploy worker.js"
+  },
+  "dependencies": {
+    "@libsql/client": "0.17.4"
+  },
+  "devDependencies": {
+    "wrangler": "4.126.0"
+  }
+}

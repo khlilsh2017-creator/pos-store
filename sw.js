@@ -1,11 +1,12 @@
 // ============================================================
-// 🏢 Service Worker - نظام ابن مختار (الإصدار v25) - تم حل مشكلة الكاش للبحث
+// 🏢 Service Worker - نظام ابن مختار (offline + sync دائم)
 // ============================================================
+importScripts('/offline-sw-core.js');
 
-const CACHE_NAME = 'ibn-mukhtar-pos-v27';
-const STATIC_CACHE = 'ibn-mukhtar-static-v27';
-const DYNAMIC_CACHE = 'ibn-mukhtar-dynamic-v27';
-const VERSION = '2025-02-19-023';
+const CACHE_NAME = 'ibn-mukhtar-pos-v30';
+const STATIC_CACHE = 'ibn-mukhtar-static-v30';
+const DYNAMIC_CACHE = 'ibn-mukhtar-dynamic-v30';
+const VERSION = '2026-08-26-offline-sync-v1';
 
 const STATIC_ASSETS = [
     '/',
@@ -25,16 +26,36 @@ const STATIC_ASSETS = [
     '/settings.html',
     '/add_order.html',
     '/add_order_ph.html',
+    '/phone/index.html',
+    '/phone/add_order_ph.html',
+    '/phone/orders.html',
+    '/phone/manifest.json',
+    '/phone/sw_phone.js',
     '/barcode-print.html',
-    '/driver.html',
+    '/stock-movements.html',
+    '/inventory.html',
+    '/notification-test.html',
+    '/driver/',
+    '/driver/index.html',
+    '/driver/sw_driver.js',
+    '/driver/db.js',
     '/online-reports.html',
     '/orders.html',
-    '/sales.html',
     '/db.js',
+    '/offline-sw-core.js',
+    '/offline-sync.js',
+    '/date-utils.js',
+    '/document-utils.js',
+    '/number-utils.js',
+    '/filter-utils.js',
+    '/permissions.js',
     '/html2canvas.min.js',
     '/html2pdf.bundle.min.js',
     '/sidebar-config.js',
     '/sidebar.css',
+    '/audit-logs.html',
+    '/site-integration.html',
+    '/firebase-messaging-sw.js',
     '/manifest.json',
     '/manifest_pos_s.json',
     '/manifest_pos.json',
@@ -52,7 +73,7 @@ self.addEventListener('install', event => {
             .then(keys => {
                 return Promise.all(
                     keys.map(key => {
-                        if (key.startsWith('ibn-mukhtar-')) {
+                        if (key.startsWith('ibn-mukhtar-') && ![STATIC_CACHE, DYNAMIC_CACHE, OFFLINE_API_CACHE].includes(key)) {
                             console.log('[SW] 🗑️ حذف الكاش القديم:', key);
                             return caches.delete(key);
                         }
@@ -62,7 +83,7 @@ self.addEventListener('install', event => {
             .then(() => caches.open(STATIC_CACHE))
             .then(cache => {
                 console.log('[SW] 📦 تخزين الملفات الثابتة');
-                return cache.addAll(STATIC_ASSETS);
+                return Promise.all(STATIC_ASSETS.map(asset => cache.add(asset).catch(error => console.warn('[SW] تعذر تخزين', asset, error))));
             })
             .then(() => self.skipWaiting())
             .catch(err => console.warn('[SW] ⚠️ فشل التخزين:', err))
@@ -78,7 +99,7 @@ self.addEventListener('activate', event => {
         caches.keys()
             .then(keys => {
                 return Promise.all(
-                    keys.filter(key => key !== STATIC_CACHE && key !== DYNAMIC_CACHE)
+                    keys.filter(key => key !== STATIC_CACHE && key !== DYNAMIC_CACHE && key !== OFFLINE_API_CACHE)
                         .map(key => {
                             console.log('[SW] 🗑️ حذف الكاش القديم:', key);
                             return caches.delete(key);
@@ -114,13 +135,16 @@ self.addEventListener('fetch', event => {
                            url.pathname.includes('cdnjs.cloudflare.com') ||
                            url.pathname.includes('cdn.jsdelivr.net'));
 
-    // 🔴 الحل الجذري للبحث: استثناء دومين الـ API بالكامل ليتعامل معه المتصفح مباشرة
-    if (url.hostname.includes('api.ibnalmukhtar.com') ||
-        url.pathname.includes('/api/') ||
+    // API: كاش GET عند القراءة، وطابور دائم للطلبات الكتابية عند انقطاع الشبكة.
+    if (offlineIsApiRequest(url)) {
+        event.respondWith(offlineHandleApiRequest(request));
+        return;
+    }
+    if (url.pathname.includes('/api/') ||
         url.pathname.includes('analytics') ||
         url.pathname.includes('google-analytics') ||
         url.pathname.includes('doubleclick.net')) {
-        return; 
+        return;
     }
 
     // ===== استراتيجية صفحات HTML (Network First) =====
@@ -163,20 +187,21 @@ self.addEventListener('fetch', event => {
                 .then(cached => {
                     if (cached) {
                         fetch(request).then(response => {
-                            if(response && response.status === 200) {
-                                caches.open(STATIC_CACHE).then(cache => cache.put(request, response));
+                            if(response && (response.status === 200 || response.type === 'opaque')) {
+                                caches.open(STATIC_CACHE).then(cache => cache.put(request, response.clone())).catch(() => {});
                             }
                         }).catch(() => {});
                         return cached;
                     }
                     return fetch(request)
                         .then(response => {
-                            if (response && response.status === 200) {
+                            if (response && (response.status === 200 || response.type === 'opaque')) {
                                 const clone = response.clone();
-                                caches.open(STATIC_CACHE).then(cache => cache.put(request, clone));
+                                caches.open(STATIC_CACHE).then(cache => cache.put(request, clone)).catch(() => {});
                             }
                             return response;
-                        });
+                        })
+                        .catch(() => new Response('', { status: 503, statusText: 'Resource unavailable offline' }));
                 })
         );
         return;
@@ -214,13 +239,13 @@ self.addEventListener('push', event => {
     let notificationData = {
         title: '📦 ابن مختار',
         body: 'لديك إشعار جديد',
-        link: '/driver.html',
+        link: '/driver/',
         icon: '/icon-192x192.png',
         badge: '/icon-192x192.png',
         vibrate: [200, 100, 200],
         tag: 'default',
         requireInteraction: true,
-        data: { link: '/driver.html' }
+        data: { link: '/driver/' }
     };
 
     let orderId = null;
@@ -320,7 +345,7 @@ self.addEventListener('notificationclick', event => {
     console.log('🖱️ تم النقر على الإشعار:', event.notification);
     event.notification.close();
 
-    let link = '/driver.html';
+    let link = '/driver/';
     let orderId = null;
 
     if (event.notification.data) {

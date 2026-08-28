@@ -3,7 +3,8 @@
 // يجمع بين ميزات المندوب (المزامنة، العمليات) وتحسينات النظام العام
 // ============================================================
 
-const VERSION = 'driver-2026-08-22-017';
+importScripts('/offline-sw-core.js');
+const VERSION = 'driver-2026-08-26-offline-sync';
 const CACHE_PREFIX = 'ibn-mukhtar-driver-';
 const CACHE_NAME = `${CACHE_PREFIX}pos-${VERSION}`;
 const STATIC_CACHE = `${CACHE_PREFIX}static-${VERSION}`;
@@ -27,6 +28,12 @@ const STATIC_ASSETS = [
   '/driver/icon-192x192.png',
   '/driver/icon-512x512.png',
   '/driver/db.js',
+  '/offline-sw-core.js',
+  '/offline-sync.js',
+  '/date-utils.js',
+  '/number-utils.js',
+  '/document-utils.js',
+  '/permissions.js',
   
   // يمكن إضافة ملفات أخرى خاصة بالمندوب هنا
 ];
@@ -131,7 +138,8 @@ self.addEventListener('install', event => {
       .then(() => caches.open(STATIC_CACHE))
       .then(cache => {
         console.log('[SW] 📦 تخزين الملفات الثابتة');
-        return cache.addAll(STATIC_ASSETS);
+                return Promise.all(STATIC_ASSETS.map(asset => cache.add(asset).catch(error => console.warn('[SW] تعذر تخزين', asset, error))));
+
       })
       .then(() => self.skipWaiting())
       .catch(err => console.warn('[SW] ⚠️ فشل التخزين:', err))
@@ -371,7 +379,8 @@ async function sendOperation(op, token) {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      'X-Offline-Operation-Id': String(op.data?.operation_id || op.operation_id || op.id)
     },
     body: JSON.stringify(payload)
   });
@@ -380,7 +389,7 @@ async function sendOperation(op, token) {
   throw new Error(`HTTP ${response.status}`);
 }
 
-async function syncPending() {
+async function syncPendingUnlocked() {
   const token = await readToken();
   if (!token) {
     console.warn('[SW] لا يوجد رمز دخول للمزامنة');
@@ -432,9 +441,16 @@ async function syncPending() {
     failed
   });
 
-  if (failed) {
+    if (failed) {
     throw new Error(`${failed} عملية لا تزال معلقة`);
   }
+}
+
+let driverSyncInFlight = null;
+function syncPending() {
+  if (driverSyncInFlight) return driverSyncInFlight;
+  driverSyncInFlight = syncPendingUnlocked().finally(() => { driverSyncInFlight = null; });
+  return driverSyncInFlight;
 }
 
 self.addEventListener('sync', event => {

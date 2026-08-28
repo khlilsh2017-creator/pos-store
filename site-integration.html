@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔗 ربط المنتجات + مزامنة المخزون</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Tajawal', 'Segoe UI', Arial, sans-serif; background: #f0f2f5; padding: 20px; color: #1a1a2e; }
+        .container { max-width: 1400px; margin: 0 auto; background: #fff; border-radius: 16px; box-shadow: 0 8px 30px rgba(0,0,0,0.12); padding: 30px; }
+        .header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; border-bottom: 2px solid #e9edf2; padding-bottom: 20px; margin-bottom: 25px; }
+        .header h1 { font-size: 26px; color: #1a3c5e; display: flex; align-items: center; gap: 10px; }
+        .header .badge { background: #ffc107; color: #333; padding: 4px 14px; border-radius: 20px; font-size: 14px; font-weight: bold; }
+        .header .stats { font-size: 14px; color: #555; }
+        .config-bar { display: flex; gap: 10px; background: #e9edf2; padding: 10px 15px; border-radius: 8px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
+        .config-bar label { font-weight: 600; font-size: 13px; }
+        .config-bar input, .config-bar select { padding: 8px 12px; border: 1px solid #ccc; border-radius: 6px; }
+        .config-bar input[type="url"] { flex: 2; min-width: 150px; }
+        .config-bar input[type="text"] { flex: 1; min-width: 120px; }
+        .config-bar button { padding: 8px 18px; background: #1a3c5e; color: #fff; border: none; border-radius: 6px; cursor: pointer; }
+        .config-bar button:hover { background: #2a5c7e; }
+        .config-bar .site-token-hint { font-size: 12px; color: #6c757d; }
+        
+        .action-bar { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; background: #f8f9fa; padding: 15px; border-radius: 10px; }
+        .action-bar input { flex: 1; min-width: 200px; padding: 10px 16px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 15px; }
+        .action-bar input:focus { border-color: #1a3c5e; outline: none; box-shadow: 0 0 0 3px rgba(26,60,94,0.1); }
+        .action-bar button { padding: 10px 24px; background: #1a3c5e; color: #fff; border: none; border-radius: 8px; font-size: 15px; cursor: pointer; transition: 0.2s; }
+        .action-bar button:hover { background: #2a5c7e; }
+        .action-bar .clear-btn { background: #6c757d; }
+        .action-bar .clear-btn:hover { background: #5a6268; }
+        .action-bar .refresh-btn { background: #28a745; }
+        .action-bar .refresh-btn:hover { background: #218838; }
+        .action-bar .load-site-btn { background: #ff6f00; }
+        .action-bar .load-site-btn:hover { background: #e65100; }
+        .action-bar .view-site-btn { background: #6f42c1; }
+        .action-bar .view-site-btn:hover { background: #5a32a3; }
+        .action-bar .debug-btn { background: #17a2b8; }
+        .action-bar .debug-btn:hover { background: #138496; }
+        
+        .tabs { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; }
+        .tabs button { padding: 8px 20px; border: 2px solid #e9edf2; border-radius: 8px; background: #fff; cursor: pointer; font-weight: 600; transition: 0.2s; }
+        .tabs button.active { border-color: #1a3c5e; background: #1a3c5e; color: #fff; }
+        .tabs button:hover:not(.active) { background: #f0f2f5; }
+        
+        .table-wrapper { overflow-x: auto; border-radius: 10px; border: 1px solid #e9edf2; margin-top: 10px; }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        th { background: #f8f9fa; color: #1a3c5e; font-weight: 600; padding: 14px 12px; text-align: right; border-bottom: 2px solid #e9edf2; }
+        td { padding: 12px; border-bottom: 1px solid #f0f2f5; vertical-align: middle; }
+        tr:hover td { background: #f8faff; }
+        .product-name { font-weight: 500; }
+        .product-barcode { color: #6c757d; font-size: 13px; }
+        .link-cell { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+        .link-cell input[type="text"] { width: 180px; padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; }
+        .link-cell input[type="text"]:focus { border-color: #28a745; outline: none; box-shadow: 0 0 0 3px rgba(40,167,69,0.15); }
+        .btn { padding: 8px 16px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; transition: 0.2s; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; }
+        .btn-link { background: #28a745; color: #fff; }
+        .btn-link:hover { background: #218838; }
+        .btn-link:disabled { opacity: 0.6; cursor: not-allowed; }
+        .btn-search { background: #1a3c5e; color: #fff; padding: 6px 14px; font-size: 13px; }
+        .btn-search:hover { background: #2a5c7e; }
+        .status-msg { font-size: 13px; margin-top: 4px; display: block; }
+        .status-msg.success { color: #28a745; }
+        .status-msg.error { color: #dc3545; }
+        .status-msg.loading { color: #ffc107; }
+        .status-msg.sync-success { color: #17a2b8; }
+        .loading-spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid #e9edf2; border-top: 2px solid #1a3c5e; border-radius: 50%; animation: spin 0.8s linear infinite; vertical-align: middle; margin-right: 6px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .empty-state { text-align: center; padding: 40px 20px; color: #6c757d; }
+        .error-detail { background: #f8d7da; color: #721c24; padding: 10px; border-radius: 6px; margin-top: 10px; display: none; }
+        .linked-info { background: #d4edda; color: #155724; padding: 6px 12px; border-radius: 4px; font-size: 13px; }
+        .site-products-status { font-size: 13px; margin-left: 10px; }
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
+        .modal-content { background: #fff; max-width: 900px; width: 95%; max-height: 85vh; border-radius: 16px; padding: 20px; overflow-y: auto; position: relative; }
+        .modal-close { position: sticky; top: 0; float: left; background: #dc3545; color: #fff; border: none; border-radius: 50%; width: 36px; height: 36px; font-size: 20px; cursor: pointer; }
+        .modal-close:hover { background: #c82333; }
+        .site-product-item { display: grid; grid-template-columns: 50px 1fr 120px 100px; gap: 10px; padding: 8px 12px; border-bottom: 1px solid #f0f2f5; align-items: center; }
+        .site-product-item .site-id { font-weight: 700; color: #1a3c5e; }
+        .sync-panel { background: #f1f8ff; border: 1px solid #cfe8fb; border-radius: 10px; padding: 12px 15px; margin: 0 0 20px; }
+        .sync-panel-title { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; color: #1a3c5e; font-size: 14px; margin-bottom: 10px; }
+        .sync-panel-title span { color: #6c757d; font-weight: 400; }
+        .sync-panel-controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .sync-panel-controls select { padding: 8px 12px; border: 1px solid #cfd8e3; border-radius: 7px; background: #fff; }
+        .debug-response { background: #f8f9fa; padding: 10px; border-radius: 6px; font-family: monospace; font-size: 13px; white-space: pre-wrap; max-height: 400px; overflow: auto; }
+                @media (max-width: 768px) {
+            body { padding: 10px; }
+            .container { padding: 15px 12px; border-radius: 12px; }
+            .header { align-items: flex-start; gap: 12px; }
+            .header h1 { font-size: 20px; }
+            .header .stats { width: 100%; }
+            .link-cell input[type="text"] { width: 100%; min-height: 42px; }
+            .action-bar { flex-direction: column; align-items: stretch; }
+            .action-bar input, .action-bar button { width: 100%; min-height: 42px; }
+            td, th { padding: 8px; font-size: 13px; }
+            .config-bar { align-items: stretch; }
+            .config-bar label, .config-bar input, .config-bar select, .config-bar button { width: 100%; }
+            .tabs { display: grid; grid-template-columns: 1fr 1fr; }
+            .tabs button { width: 100%; }
+            .table-wrapper { border: 0; overflow: visible; }
+            table, thead, tbody, tr, td { display: block; width: 100%; }
+            thead { display: none; }
+            tr { background: #fff; border: 1px solid #e9edf2; border-radius: 12px; margin-bottom: 12px; padding: 10px; box-shadow: 0 3px 10px rgba(0,0,0,.04); }
+            td { border: 0; padding: 5px 0; }
+            td:first-child { font-weight: 800; color: #1a3c5e; }
+            .link-cell { display: grid; grid-template-columns: 1fr; gap: 7px; }
+            .link-cell input[type="text"], .link-cell .btn { width: 100%; }
+            .site-product-item { grid-template-columns: 1fr; gap: 4px; padding: 10px; }
+            .sync-panel-controls { display: grid; grid-template-columns: 1fr; }
+            .sync-panel-controls select, .sync-panel-controls .btn { width: 100%; min-height: 42px; }
+        }
+
+    </style>
+    <script src="permissions.js"></script>
+    <script src="/offline-sync.js"></script>
+<link rel="stylesheet" href="sidebar-v4.css" />
+</head>
+<body>
+<div id="sidebar-container"></div>
+<div class="container">
+    <div class="header">
+        <div>
+            <h1>🔗 ربط المنتجات <span class="badge">مزامنة المخزون</span></h1>
+            <p style="color:#6c757d; margin-top:4px;">اربط عبر <strong>كود المنتج المحاسبي</strong> أو أدخل <strong>معرف منتج المتجر</strong>، دون استخدام الباركود</p>
+        </div>
+        <div class="stats">عدد المنتجات غير المرتبطة: <span id="unlinkedCount">0</span></div>
+    </div>
+
+    <!-- شريط الإعدادات (معدل) -->
+    <div class="config-bar">
+        <label>🌐 خادم POS:</label>
+        <input type="url" id="posApiInput" placeholder="https://api.ibnalmukhtar.com" />
+        <label>🔑 توكن POS:</label>
+        <input type="text" id="tokenInput" placeholder="أدخل توكن POS" />
+        
+        <label>🌐 خادم المتجر:</label>
+        <input type="url" id="siteApiInput" placeholder="https://go.ibnalmukhtar.com" />
+        <label>🔑 توكن المتجر:</label>
+        <input type="text" id="siteTokenInput" placeholder="أدخل توكن المتجر (للتحديث)" value="" />
+        <span class="site-token-hint">(أدخل توكن الموقع المخصص للربط)</span>
+        
+        <label>النمط:</label>
+                <select id="authType" aria-label="نمط المصادقة">
+            <option value="Bearer">Bearer (مطلوب)</option>
+        </select>
+        <button type="button" onclick="saveConfig()">حفظ الإعدادات</button>
+        <button type="button" id="checkConnectionBtn" onclick="checkConnections()" style="background:#17a2b8;">اختبار الاتصال</button>
+        <span id="configStatus" style="font-size:13px; color:#28a745;"></span>
+        <span id="connectionStatus" class="status-msg" aria-live="polite"></span>
+
+    </div>
+
+    <div class="sync-panel" aria-live="polite">
+        <div class="sync-panel-title"><strong>⟳ مزامنة مخزون المنتجات المرتبطة</strong><span id="syncStatus">لم يتم فحص المزامنة بعد</span></div>
+        <div class="sync-panel-controls">
+            <label for="syncFrequency">التشغيل التلقائي:</label>
+            <select id="syncFrequency">
+                <option value="hourly">كل ساعة</option>
+                <option value="daily">مرة يومياً</option>
+            </select>
+            <button type="button" id="saveSyncSettingsBtn" class="btn" style="background:#6f42c1;">حفظ الجدولة</button>
+            <button type="button" id="runSyncNowBtn" class="btn" style="background:#28a745;">مزامنة الآن</button>
+        </div>
+    </div>
+
+    <!-- علامات التبويب -->
+    <div class="tabs">
+        <button id="tabUnlinked" class="active" onclick="switchTab('unlinked')">📋 غير المرتبطة</button>
+        <button id="tabLinked" onclick="switchTab('linked')">🔗 المرتبطة</button>
+    </div>
+
+    <!-- شريط الإجراءات -->
+    <div class="action-bar">
+        <input type="text" id="filterInput" placeholder="🔍 ابحث بالاسم أو كود المنتج أو الباركود..." oninput="filterTable()" />
+        <button class="clear-btn" onclick="clearFilter()">مسح الفلترة</button>
+        <button class="refresh-btn" onclick="refreshCurrentTab()">🔄 تحديث</button>
+        <button class="load-site-btn" id="loadSiteProductsBtn" onclick="loadSiteProducts()">📦 تحميل منتجات الموقع</button>
+        <button class="view-site-btn" id="viewSiteProductsBtn" onclick="viewSiteProducts()" disabled>📋 عرض المنتجات</button>
+        <button class="debug-btn" id="debugBtn" onclick="showDebugResponse()" style="display:none;">🛠 عرض استجابة API</button>
+        <span id="siteProductsStatus" class="site-products-status"></span>
+    </div>
+
+    <div id="errorDetail" class="error-detail"></div>
+
+    <!-- جدول العرض الرئيسي -->
+    <div class="table-wrapper">
+        <table>
+            <thead><tr id="tableHeader"><th>#</th><th>المنتج</th><th>كود النظام المحاسبي</th><th>الباركود</th><th>المخزون</th><th>السعر</th><th style="min-width:300px;">الربط + مزامنة</th></tr></thead>
+            <tbody id="productsBody"><tr><td colspan="7" style="text-align:center; padding:30px;"><span class="loading-spinner"></span> جاري التحميل...</td></tr></tbody>
+        </table>
+    </div>
+
+    <!-- نافذة منبثقة لعرض منتجات الموقع -->
+    <div class="modal-overlay" id="siteProductsModal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeSiteProductsModal()">✕</button>
+            <h2 style="margin-top:0;">📦 منتجات الموقع الإلكتروني</h2>
+            <p id="siteProductsCount" style="color:#6c757d;"></p>
+            <div id="siteProductsList"></div>
+        </div>
+    </div>
+
+    <!-- نافذة منبثقة لعرض استجابة API الخام -->
+    <div class="modal-overlay" id="debugModal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeDebugModal()">✕</button>
+            <h2 style="margin-top:0;">📄 استجابة API الخام</h2>
+            <div id="debugContent" class="debug-response"></div>
+        </div>
+    </div>
+
+    <!-- datalist للاقتراحات -->
+    <datalist id="siteProductsDatalist"></datalist>
+
+    <div style="margin-top:20px; display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px; border-top:1px solid #e9edf2; padding-top:15px;">
+        <div style="font-size:13px; color:#6c757d;">الاتجاهان مدعومان: كود النظام المحاسبي يُستخدم للربط، ومعرف منتج الموقع يُحفظ في POS. المزامنة المجدولة تحتاج إعدادات المتجر في Worker.</div>
+        <div><button class="btn" style="background:#6c757d; color:#fff;" onclick="window.location.reload()">🔄 إعادة تحميل الصفحة</button></div>
+    </div>
+</div>
+
+<script>
+    // ============================================================
+    //  الإعدادات (معدل)
+    // ============================================================
+    let POS_API_BASE = localStorage.getItem('posApiBase') || 'https://api.ibnalmukhtar.com';
+    if (!POS_API_BASE || POS_API_BASE === 'null' || POS_API_BASE === 'file://' || POS_API_BASE.includes('pos.ibnalmukhtar.com')) {
+        POS_API_BASE = 'https://api.ibnalmukhtar.com';
+    }
+    let API_TOKEN = localStorage.getItem('pos_token') || localStorage.getItem('apiToken') || '';
+    let SITE_API_BASE = localStorage.getItem('siteApiBase') || 'https://go.ibnalmukhtar.com';
+    let SITE_API_TOKEN = localStorage.getItem('siteApiToken') || ''; // يُدخل مدير المتجر التوكن الخاص بالموقع
+    let authType = localStorage.getItem('authType') || 'Bearer';
+
+    // متغيرات الحالة
+    let currentTab = 'unlinked';
+    let allProducts = [];
+    let filteredProducts = [];
+    let siteProducts = [];
+    let lastRawResponse = null;
+
+    // ============================================================
+    //  تهيئة الإعدادات
+    // ============================================================
+    document.getElementById('posApiInput').value = POS_API_BASE;
+    document.getElementById('tokenInput').value = API_TOKEN;
+    document.getElementById('siteApiInput').value = SITE_API_BASE;
+    document.getElementById('siteTokenInput').value = SITE_API_TOKEN;
+    document.getElementById('authType').value = authType;
+
+    function saveConfig() {
+        const newPosBase = document.getElementById('posApiInput').value.trim();
+        const newToken = document.getElementById('tokenInput').value.trim();
+        const newSiteBase = document.getElementById('siteApiInput').value.trim();
+        const newSiteToken = document.getElementById('siteTokenInput').value.trim();
+        const newAuth = document.getElementById('authType').value;
+        if (!newPosBase || !newToken || !newSiteBase) {
+            document.getElementById('configStatus').textContent = '⚠️ الرجاء ملء الحقول الأساسية';
+            document.getElementById('configStatus').style.color = '#dc3545';
+            return;
+        }
+        localStorage.setItem('posApiBase', newPosBase);
+        localStorage.setItem('apiToken', newToken);
+        localStorage.setItem('pos_token', newToken);
+        localStorage.setItem('siteApiBase', newSiteBase);
+        localStorage.setItem('siteApiToken', newSiteToken);
+        localStorage.setItem('authType', newAuth);
+        POS_API_BASE = newPosBase;
+        API_TOKEN = newToken;
+        SITE_API_BASE = newSiteBase;
+        SITE_API_TOKEN = newSiteToken;
+        authType = newAuth;
+        document.getElementById('configStatus').textContent = '✅ تم التحديث، إعادة التحميل...';
+        document.getElementById('configStatus').style.color = '#28a745';
+        setTimeout(() => {
+            document.getElementById('configStatus').textContent = '';
+            refreshCurrentTab();
+        }, 600);
+    }
+
+    function getAuthHeader() {
+        return authType === 'Bearer' ? `Bearer ${API_TOKEN}` : API_TOKEN;
+    }
+        function getSiteAuthHeader() {
+        if (!SITE_API_TOKEN) return null;
+        return `Bearer ${SITE_API_TOKEN}`;
+    }
+
+    async function fetchWithTimeout(url, options = {}, timeoutMs = 15000) {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), timeoutMs);
+        try {
+            return await fetch(url, { ...options, signal: controller.signal });
+        } catch (error) {
+            if (error.name === 'AbortError') throw new Error('انتهت مهلة الاتصال بالخادم');
+            throw error;
+        } finally {
+            clearTimeout(timer);
+        }
+    }
+
+
+
+    // ============================================================
+    //  تحميل منتجات الموقع الإلكتروني
+    // ============================================================
+    async function fetchAllSiteProducts(headers) {
+        const all = [];
+        const seenPages = new Set();
+        const limit = 100;
+        let page = 1;
+        let totalPages = null;
+        while (true) {
+            const url = `${SITE_API_BASE}/products?page=${page}&limit=${limit}&admin=1&meta=1`;
+            const res = await fetchWithTimeout(url, { headers });
+            if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+            const data = await res.json();
+            if (page === 1) lastRawResponse = data;
+            const items = Array.isArray(data) ? data : (data.products || data.data || data.items || data.result || []);
+            if (!Array.isArray(items) || items.length === 0) break;
+            const pageKey = items.map(item => item && item.id).join(',');
+            if (seenPages.has(pageKey)) throw new Error('الخادم يعيد الصفحة نفسها؛ تحقق من دعم page وlimit في Worker');
+            seenPages.add(pageKey);
+            all.push(...items);
+            totalPages = Number(data.total_pages) || totalPages;
+            if (totalPages && page >= totalPages) break;
+            page += 1;
+            await new Promise(resolve => setTimeout(resolve, 0));
+        }
+        return all;
+    }
+
+    async function checkConnections() {
+        const btn = document.getElementById('checkConnectionBtn');
+        const statusEl = document.getElementById('connectionStatus');
+        btn.disabled = true;
+        statusEl.textContent = '⏳ جاري اختبار الخادمين...';
+        statusEl.className = 'status-msg loading';
+        try {
+            const posRequest = fetchWithTimeout(`${POS_API_BASE}/api/pos-products-unlinked`, { headers: { 'Authorization': getAuthHeader() } });
+            const siteHeaders = {};
+            const siteAuth = getSiteAuthHeader();
+            if (siteAuth) siteHeaders['Authorization'] = siteAuth;
+            const siteRequest = fetchWithTimeout(`${SITE_API_BASE}/products?page=1&limit=1&admin=1&meta=1`, { headers: siteHeaders });
+            const [posRes, siteRes] = await Promise.all([posRequest, siteRequest]);
+            if (!posRes.ok) throw new Error(`POS HTTP ${posRes.status}`);
+            if (!siteRes.ok) throw new Error(`المتجر HTTP ${siteRes.status}`);
+            statusEl.textContent = '✅ الاتصال بـ POS والمتجر سليم';
+            statusEl.className = 'status-msg success';
+        } catch (error) {
+            statusEl.textContent = `❌ ${error.message}`;
+            statusEl.className = 'status-msg error';
+        } finally {
+            btn.disabled = false;
+        }
+    }
+
+    async function loadStockSyncStatus() {
+        const statusEl = document.getElementById('syncStatus');
+        try {
+            const res = await fetchWithTimeout(`${POS_API_BASE}/api/stock-sync/status`, { headers: { 'Authorization': getAuthHeader() } });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+            document.getElementById('syncFrequency').value = data.frequency || 'hourly';
+            const last = data.last_run ? new Date(data.last_run).toLocaleString('ar-SA') : 'لم تعمل بعد';
+            const summary = data.last_status || {};
+            const detailText = Array.isArray(summary.details) && summary.details.length ? ` — ${summary.details.slice(0, 2).map(item => `${item.product_code || item.product_id || ''}: ${item.reason || item.status}`).join(' | ')}` : '';
+            const configWarning = data.store_configured === false ? ' ⚠️ إعدادات المتجر ناقصة في Worker المحاسبي' : '';
+            statusEl.textContent = `آخر تشغيل: ${last} • محدث: ${summary.updated || 0} • غير مرتبط: ${summary.unlinked || 0} • أخطاء: ${summary.errors || 0}${configWarning}${detailText}`;
+            statusEl.className = data.store_configured === false || summary.errors ? 'status-msg error' : 'status-msg success';
+        } catch (error) {
+            const message = error instanceof SyntaxError ? 'استجابة غير JSON من Worker المحاسبي؛ يبدو أن نسخة مسارات المزامنة لم تُنشر بعد.' : error.message;
+            statusEl.textContent = `تعذر قراءة حالة المزامنة: ${message}`;
+            statusEl.className = 'status-msg error';
+        }
+    }
+
+    async function saveSyncSettings() {
+        const btn = document.getElementById('saveSyncSettingsBtn');
+        const statusEl = document.getElementById('syncStatus');
+        btn.disabled = true;
+        try {
+            const frequency = document.getElementById('syncFrequency').value;
+            const res = await fetchWithTimeout(`${POS_API_BASE}/api/stock-sync/settings`, {
+                method: 'PUT',
+                headers: { 'Authorization': getAuthHeader(), 'Content-Type': 'application/json' },
+                body: JSON.stringify({ frequency })
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+            statusEl.textContent = `✅ تم حفظ المزامنة ${frequency === 'daily' ? 'اليومية' : 'كل ساعة'}`;
+            statusEl.className = 'status-msg success';
+        } catch (error) {
+            statusEl.textContent = `❌ فشل حفظ الجدولة: ${error.message}`;
+            statusEl.className = 'status-msg error';
+        } finally { btn.disabled = false; }
+    }
+
+    async function runStockSyncNow() {
+        const btn = document.getElementById('runSyncNowBtn');
+        const statusEl = document.getElementById('syncStatus');
+        btn.disabled = true;
+        statusEl.textContent = '⏳ جاري مزامنة مخزون المنتجات المرتبطة...';
+        statusEl.className = 'status-msg loading';
+        try {
+            const res = await fetchWithTimeout(`${POS_API_BASE}/api/stock-sync/run`, { method: 'POST', headers: { 'Authorization': getAuthHeader() } }, 60000);
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+            const details = Array.isArray(data.results) ? data.results.filter(item => item.status === 'error' || item.status === 'unlinked').slice(0, 2).map(item => `${item.product_code || item.product_id}: ${item.reason || item.status}`).join(' | ') : '';
+            statusEl.textContent = `✅ تمت المزامنة: محدث ${data.updated || 0} • دون تغيير ${data.unchanged || 0} • غير مرتبط ${data.unlinked || 0} • أخطاء ${data.errors || 0}${details ? ` — ${details}` : ''}`;
+            statusEl.className = data.errors ? 'status-msg error' : 'status-msg success';
+            await loadTabData();
+        } catch (error) {
+            const message = error instanceof SyntaxError ? 'Worker المحاسبي أعاد صفحة HTML بدلاً من API؛ انشر آخر worker.js ثم أعد المحاولة.' : error.message;
+            statusEl.textContent = `❌ فشل المزامنة: ${message}`;
+            statusEl.className = 'status-msg error';
+        } finally { btn.disabled = false; }
+    }
+
+    async function loadSiteProducts() {
+        const btn = document.getElementById('loadSiteProductsBtn');
+        const statusEl = document.getElementById('siteProductsStatus');
+        const datalist = document.getElementById('siteProductsDatalist');
+        const debugBtn = document.getElementById('debugBtn');
+
+        if (siteProducts.length > 0) {
+            statusEl.textContent = '✅ المنتجات محملة مسبقاً';
+            statusEl.style.color = '#28a745';
+            return;
+        }
+
+        btn.disabled = true;
+        statusEl.textContent = '⏳ جاري تحميل منتجات الموقع...';
+        statusEl.style.color = '#ffc107';
+        debugBtn.style.display = 'none';
+
+        try {
+            const headers = {};
+            const siteAuth = getSiteAuthHeader();
+            if (siteAuth) headers['Authorization'] = siteAuth;
+            siteProducts = await fetchAllSiteProducts(headers);
+            console.log('استجابة API:', lastRawResponse);
+
+            if (siteProducts.length > 0) {
+                datalist.innerHTML = '';
+                siteProducts.forEach(p => {
+                    const option = document.createElement('option');
+                    option.value = p.id;
+                    option.label = `${p.id} - ${p.name}`;
+                    datalist.appendChild(option);
+                });
+
+                statusEl.textContent = `✅ تم تحميل ${siteProducts.length} منتج`;
+                statusEl.style.color = '#28a745';
+                btn.textContent = '✅ محملة';
+                btn.style.background = '#2e7d32';
+                document.getElementById('viewSiteProductsBtn').disabled = false;
+                debugBtn.style.display = 'inline-block';
+            }
+        } catch (err) {
+            statusEl.textContent = '❌ فشل: ' + err.message;
+            statusEl.style.color = '#dc3545';
+            btn.disabled = false;
+            debugBtn.style.display = 'none';
+        } finally {
+            if (siteProducts.length > 0) {
+                btn.disabled = true;
+            } else {
+                btn.disabled = false;
+            }
+        }
+    }
+
+    // ============================================================
+    //  دوال التصحيح والعرض
+    // ============================================================
+    function showDebugResponse() {
+        if (!lastRawResponse) {
+            alert('لا توجد استجابة محفوظة.');
+            return;
+        }
+        const modal = document.getElementById('debugModal');
+        document.getElementById('debugContent').textContent = JSON.stringify(lastRawResponse, null, 2);
+        modal.style.display = 'flex';
+    }
+    function closeDebugModal() {
+        document.getElementById('debugModal').style.display = 'none';
+    }
+    function viewSiteProducts() {
+        if (siteProducts.length === 0) {
+            alert('الرجاء تحميل منتجات الموقع أولاً');
+            return;
+        }
+        const modal = document.getElementById('siteProductsModal');
+        const list = document.getElementById('siteProductsList');
+        document.getElementById('siteProductsCount').textContent = `إجمالي ${siteProducts.length} منتج`;
+        list.innerHTML = '';
+        siteProducts.forEach((p, index) => {
+            const item = document.createElement('div');
+            item.className = 'site-product-item';
+            item.innerHTML = `
+                <span>${index + 1}</span>
+                <span class="site-id">${p.id}</span>
+                <span>${escapeHtml(p.name || '')}</span>
+                <span>${p.price ? p.price + ' ريال' : ''}</span>
+            `;
+            list.appendChild(item);
+        });
+        modal.style.display = 'flex';
+    }
+    function closeSiteProductsModal() {
+        document.getElementById('siteProductsModal').style.display = 'none';
+    }
+    document.getElementById('siteProductsModal').addEventListener('click', function(e) {
+        if (e.target === this) closeSiteProductsModal();
+    });
+    document.getElementById('debugModal').addEventListener('click', function(e) {
+        if (e.target === this) closeDebugModal();
+    });
+
+    // ============================================================
+    //  تبديل التبويب
+    // ============================================================
+    function switchTab(tab) {
+        currentTab = tab;
+        document.getElementById('tabUnlinked').classList.toggle('active', tab === 'unlinked');
+        document.getElementById('tabLinked').classList.toggle('active', tab === 'linked');
+        const header = document.getElementById('tableHeader');
+        if (tab === 'unlinked') {
+            header.innerHTML = `<th>#</th><th>المنتج</th><th>كود النظام المحاسبي</th><th>الباركود</th><th>المخزون</th><th>السعر</th><th style="min-width:300px;">الربط + مزامنة</th>`;
+        } else {
+            header.innerHTML = `<th>#</th><th>المنتج</th><th>كود النظام المحاسبي</th><th>الباركود</th><th>المخزون</th><th>السعر</th><th>معرف الموقع</th>`;
+        }
+        loadTabData();
+    }
+
+    // ============================================================
+    //  تحميل البيانات حسب التبويب
+    // ============================================================
+    async function loadTabData() {
+        const tbody = document.getElementById('productsBody');
+        const errorDiv = document.getElementById('errorDetail');
+        errorDiv.style.display = 'none';
+        errorDiv.textContent = '';
+
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:30px;"><span class="loading-spinner"></span> جاري التحميل...</td></tr>`;
+
+        try {
+            let url;
+            if (currentTab === 'unlinked') {
+                url = `${POS_API_BASE}/api/pos-products-unlinked`;
+            } else {
+                url = `${POS_API_BASE}/api/pos-products-linked`;
+            }
+                        const res = await fetchWithTimeout(url, {
+                headers: { 'Authorization': getAuthHeader() }
+            });
+
+            if (!res.ok) {
+                let errorMsg = `HTTP ${res.status}`;
+                if (res.status === 401) errorMsg = 'غير مصرح (تحقق من توكن POS)';
+                throw new Error(errorMsg);
+            }
+            const contentType = res.headers.get('content-type') || '';
+            if (!contentType.includes('application/json')) throw new SyntaxError('استجابة غير JSON من Worker المحاسبي');
+            const data = await res.json();
+            allProducts = data.products || [];
+            if (currentTab === 'unlinked') {
+                document.getElementById('unlinkedCount').textContent = allProducts.length;
+            }
+            applyFilter();
+        } catch (err) {
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:#dc3545; padding:30px;">❌ خطأ: ${escapeHtml(err.message)}</td></tr>`;
+            errorDiv.textContent = err.message;
+            errorDiv.style.display = 'block';
+        }
+    }
+
+    // ============================================================
+    //  الفلترة وعرض الجدول
+    // ============================================================
+    function applyFilter() {
+        const query = document.getElementById('filterInput').value.trim().toLowerCase();
+        filteredProducts = allProducts.filter(p => {
+            if (!query) return true;
+            const name = (p.name || '').toLowerCase();
+            const barcode = (p.barcode || '').toLowerCase();
+            const productCode = (p.product_code || '').toLowerCase();
+            return name.includes(query) || productCode.includes(query) || barcode.includes(query);
+        });
+        renderTable();
+    }
+    function filterTable() { applyFilter(); }
+    function clearFilter() {
+        document.getElementById('filterInput').value = '';
+        applyFilter();
+    }
+
+    function renderTable() {
+        const tbody = document.getElementById('productsBody');
+        if (filteredProducts.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:30px;">${allProducts.length === 0 ? '📭 لا توجد منتجات' : '😕 لا توجد نتائج مطابقة'}</td></tr>`;
+            return;
+        }
+        tbody.innerHTML = '';
+        filteredProducts.forEach(p => {
+            const tr = document.createElement('tr');
+            tr.id = `row-${p.id}`;
+            if (currentTab === 'unlinked') {
+                const linkCell = document.createElement('td');
+                linkCell.className = 'link-cell';
+                linkCell.innerHTML = `
+                    <input type="text" id="siteId_${p.id}" list="siteProductsDatalist" placeholder="معرف منتج المتجر" autocomplete="off" />
+                    <button class="btn btn-search" onclick="searchForProduct(${p.id}, '${escapeHtml(p.name)}')">🔍 بحث</button>
+                    <button class="btn btn-link" id="linkBtn_${p.id}" onclick="linkProduct(${p.id})">ربط + مزامنة</button>
+                    <span class="status-msg" id="status_${p.id}"></span>
+                `;
+                tr.innerHTML = `
+                    <td>${p.id}</td>
+                    <td><span class="product-name">${escapeHtml(p.name)}</span></td>
+                    <td><span class="product-code">${escapeHtml(p.product_code || '-')}</span></td>
+                    <td><span class="product-barcode">${escapeHtml(p.barcode || '-')}</span></td>
+                    <td><span id="stock_qty_${p.id}">${p.stock_quantity || 0}</span></td>
+                    <td>${p.price} ريال</td>
+                `;
+                tr.appendChild(linkCell);
+            } else {
+                tr.innerHTML = `
+                    <td>${p.id}</td>
+                    <td><span class="product-name">${escapeHtml(p.name)}</span></td>
+                    <td><span class="product-code">${escapeHtml(p.product_code || '-')}</span></td>
+                    <td><span class="product-barcode">${escapeHtml(p.barcode || '-')}</span></td>
+                    <td>${p.stock_quantity || 0}</td>
+                    <td>${p.price} ريال</td>
+                    <td><span class="linked-info">✅ معرف الموقع: ${p.site_product_id}</span></td>
+                `;
+            }
+            tbody.appendChild(tr);
+        });
+    }
+
+    // ============================================================
+    //  دالة الربط + المزامنة (معدلة)
+    // ============================================================
+    async function syncStoreStock(siteId, stockQty, siteAuth) {
+        const headers = { 'Authorization': siteAuth, 'Content-Type': 'application/json' };
+        const directRes = await fetchWithTimeout(`${SITE_API_BASE}/products/${siteId}`, {
+            method: 'PUT', headers,
+            body: JSON.stringify({ stock_quantity: Number(stockQty) || 0, out_of_stock: (Number(stockQty) || 0) <= 0 ? 1 : 0 })
+        });
+        const directPayload = await directRes.json().catch(() => ({}));
+        if (!directRes.ok) {
+            throw new Error(`فشل تحديث كمية المتجر (${directRes.status}): ${directPayload.error || directPayload.message || 'تحقق من معرف المنتج وتوكن المتجر'}`);
+        }
+        return { mode: 'direct', data: directPayload };
+    }
+
+    async function linkProduct(posId) {
+        const input = document.getElementById(`siteId_${posId}`);
+        let rawValue = input.value.trim();
+        const siteId = parseInt(rawValue);
+        const statusEl = document.getElementById(`status_${posId}`);
+        const btn = document.getElementById(`linkBtn_${posId}`);
+        
+        if (!rawValue || isNaN(siteId)) {
+            statusEl.textContent = '⚠️ أدخل أو اختر معرفاً رقمياً صحيحاً';
+            statusEl.className = 'status-msg error';
+            return;
+        }
+
+        // جلب الكمية من الجدول
+        const stockSpan = document.getElementById(`stock_qty_${posId}`);
+        const stockQty = stockSpan ? parseInt(stockSpan.textContent) || 0 : 0;
+
+        statusEl.textContent = '⏳ جاري الربط...';
+        statusEl.className = 'status-msg loading';
+        btn.disabled = true;
+
+        try {
+            // 1. ربط المنتج في المحاسبي: الكود المحاسبي هو المرجع المفضل عند توفره
+            const posProduct = allProducts.find(item => Number(item.id) === Number(posId));
+            const linkByCode = posProduct && String(posProduct.product_code || '').trim();
+            const linkPath = linkByCode ? '/api/link-product-by-code' : '/api/link-product';
+            const linkBody = linkByCode
+                ? { product_code: String(posProduct.product_code).trim(), site_product_id: siteId }
+                : { pos_product_id: parseInt(posId), site_product_id: siteId };
+            const linkRes = await fetchWithTimeout(`${POS_API_BASE}${linkPath}`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': getAuthHeader(),
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(linkBody)
+            });
+            if (!linkRes.ok) {
+                const errorText = await linkRes.text();
+                throw new Error(`فشل ربط POS (${linkRes.status}): ${errorText.slice(0, 160)}`);
+            }
+            const linkData = await linkRes.json();
+            
+            if (!linkData.success) {
+                statusEl.textContent = '❌ ' + (linkData.error || 'فشل الربط');
+                statusEl.className = 'status-msg error';
+                btn.disabled = false;
+                return;
+            }
+
+            // إذا نفذ Worker المزامنة بنجاح، لا نكرر PUT من المتصفح.
+            const workerSyncStatus = linkData.sync && linkData.sync.status;
+            if (workerSyncStatus === 'updated' || workerSyncStatus === 'unchanged') {
+                statusEl.textContent = `✅ تم الربط ومزامنة الكمية ${linkData.stock_quantity ?? stockQty} في الموقع`;
+                statusEl.className = 'status-msg sync-success';
+                setTimeout(() => removeRow(posId), 1500);
+                return;
+            }
+
+            statusEl.textContent = '✅ ربط ناجح، جاري مزامنة الكمية من صفحة الربط...';
+            statusEl.className = 'status-msg loading';
+
+            // 2. مزامنة الكمية مع المتجر عند عدم توفر إعدادات الموقع داخل Worker
+            const siteAuth = getSiteAuthHeader();
+            if (!siteAuth) {
+                statusEl.textContent = '⚠️ تم الربط لكن لم يتم تحديث الكمية (توكن المتجر مفقود)';
+                statusEl.className = 'status-msg error';
+                btn.disabled = false;
+                return;
+            }
+
+                        const syncResult = await syncStoreStock(siteId, stockQty, siteAuth);
+            const syncData = syncResult.data || {};
+                    statusEl.textContent = `✅ تم الربط وتحديث الكمية إلى ${stockQty} في المتجر!`;
+
+            statusEl.className = 'status-msg sync-success';
+
+            setTimeout(() => removeRow(posId), 1500);
+
+        } catch (err) {
+            statusEl.textContent = '❌ خطأ: ' + err.message;
+            statusEl.className = 'status-msg error';
+            btn.disabled = false;
+        }
+    }
+
+    function removeRow(posId) {
+        const row = document.getElementById(`row-${posId}`);
+        if (row) {
+            row.remove();
+            const countEl = document.getElementById('unlinkedCount');
+            countEl.textContent = parseInt(countEl.textContent) - 1;
+            if (parseInt(countEl.textContent) <= 0) refreshCurrentTab();
+        }
+    }
+
+    // ============================================================
+    //  دوال البحث والمساعدة
+    // ============================================================
+    async function searchForProduct(posId, productName) {
+        const query = prompt(`ابحث عن منتج في الموقع (المنتج الحالي: "${productName}"):`);
+        if (!query || query.trim().length < 2) return;
+        const statusEl = document.getElementById(`status_${posId}`);
+        statusEl.textContent = '⏳ جاري البحث...';
+        statusEl.className = 'status-msg loading';
+        try {
+            const headers = {};
+            const siteAuth = getSiteAuthHeader();
+            if (siteAuth) headers['Authorization'] = siteAuth;
+                        const res = await fetchWithTimeout(`${SITE_API_BASE}/products/search?q=${encodeURIComponent(query)}`, { headers });
+
+            if (!res.ok) throw new Error('فشل البحث');
+            const results = await res.json();
+            if (results.length === 0) {
+                statusEl.textContent = '😕 لا توجد نتائج';
+                statusEl.className = 'status-msg error';
+                return;
+            }
+            let msg = '🔍 اختر المنتج المطابق:\n\n';
+            results.forEach((p, i) => {
+                msg += `${i+1}. ID: ${p.id} | ${p.name}`;
+                if (p.price) msg += ` | السعر: ${p.price} ريال`;
+                msg += '\n';
+            });
+            msg += '\nأدخل رقم المنتج (1-' + results.length + ') أو اترك فارغاً للإلغاء:';
+            const choice = prompt(msg);
+            if (!choice) return;
+            const idx = parseInt(choice) - 1;
+            if (isNaN(idx) || idx < 0 || idx >= results.length) {
+                statusEl.textContent = '❌ اختيار غير صحيح';
+                statusEl.className = 'status-msg error';
+                return;
+            }
+            const selected = results[idx];
+            document.getElementById(`siteId_${posId}`).value = selected.id;
+            statusEl.textContent = `✅ تم اختيار: ${selected.name} (ID: ${selected.id})`;
+            statusEl.className = 'status-msg success';
+            if (confirm('هل تريد ربط المنتج بهذا المعرف الآن؟')) linkProduct(posId);
+        } catch (err) {
+            statusEl.textContent = '❌ خطأ: ' + err.message;
+            statusEl.className = 'status-msg error';
+        }
+    }
+
+    function refreshCurrentTab() { loadTabData(); }
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('saveSyncSettingsBtn').addEventListener('click', saveSyncSettings);
+        document.getElementById('runSyncNowBtn').addEventListener('click', runStockSyncNow);
+        switchTab('unlinked');
+        document.getElementById('viewSiteProductsBtn').disabled = true;
+        loadStockSyncStatus();
+    });
+</script>
+<script src="sidebar-config.js"></script>
+    <script src="notification-center-v3.js"></script>
+</body>
+</html>

@@ -1,195 +1,130 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>عمليات - النظام المحاسبي</title>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-    <style>
-        :root { --primary: #1a56db; --primary-hover: #1e40af; --bg: #f1f5f9; --card: #ffffff; --text: #0f172a; --muted: #64748b; --border: #e2e8f0; --success: #16a34a; --danger: #dc2626; --warning: #f59e0b; --info: #0ea5e9; --shadow: 0 4px 6px -1px rgba(0,0,0,0.1); --sidebar-width: 220px; }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Cairo', sans-serif; background: var(--bg); color: var(--text); display: flex; flex-direction: column; min-height: 100vh; }
-        .input-field, select { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 1rem; outline: none; background: white; transition: 0.2s; }
-        .input-field:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(26,86,219,0.1); }
-        .btn { padding: 10px 18px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; gap: 6px; }
-        .btn-primary { background: var(--primary); color: white; }
-        .btn-primary:hover { background: var(--primary-hover); }
-        .btn-success { background: var(--success); color: white; }
-        .btn-success:hover { background: #15803d; }
-        .btn-warning { background: var(--warning); color: white; }
-        .btn-warning:hover { background: #d97706; }
-        .btn-danger { background: var(--danger); color: white; }
-        .btn-danger:hover { background: #b91c1c; }
-        .btn-outline { background: transparent; border: 1px solid var(--border); }
-        .btn-sm { padding: 4px 10px; font-size: 0.8rem; }
-        .text-center { text-align: center; }
-        .text-muted { color: var(--muted); }
-        .text-danger { color: var(--danger); }
-        .mt-10 { margin-top: 10px; }
-        .mb-10 { margin-bottom: 10px; }
-        .flex-row { display: flex; flex-wrap: wrap; gap: 15px; }
-        .flex-1 { flex: 1; min-width: 200px; }
-        .flex-2 { flex: 2; min-width: 200px; }
-        .hidden { display: none; }
-        .card-section { background: var(--card); border-radius: 16px; padding: 20px; box-shadow: var(--shadow); border: 1px solid var(--border); margin-bottom: 20px; }
-        .app-wrapper { display: flex; min-height: 100vh; }
-        .sidebar { width: var(--sidebar-width); background: var(--card); border-left: 1px solid var(--border); box-shadow: 2px 0 8px rgba(0,0,0,0.05); display: flex; flex-direction: column; padding: 20px 0; position: sticky; top: 0; height: 100vh; overflow-y: auto; flex-shrink: 0; }
-        .sidebar .brand { text-align: center; padding: 0 15px 20px; border-bottom: 1px solid var(--border); margin-bottom: 15px; font-size: 1.1rem; font-weight: 700; color: var(--primary); }
-        .sidebar .brand i { font-size: 1.8rem; display: block; margin-bottom: 5px; }
-        .sidebar .nav-link { display: flex; align-items: center; gap: 10px; padding: 10px 20px; color: var(--text); text-decoration: none; border-radius: 0 20px 20px 0; transition: 0.15s; font-weight: 600; font-size: 0.9rem; border-right: 3px solid transparent; cursor: pointer; }
-        .sidebar .nav-link:hover { background: var(--bg); border-right-color: var(--primary); }
-        .sidebar .nav-link.active { background: var(--bg); border-right-color: var(--primary); color: var(--primary); }
-        .sidebar .nav-link i { width: 20px; text-align: center; }
-        .sidebar .logout-btn { margin-top: auto; border-top: 1px solid var(--border); padding-top: 15px; margin-bottom: 10px; }
-        .main-content { flex: 1; padding: 20px; background: var(--bg); overflow-y: auto; }
-        .toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
-        .toast { background: var(--text); color: white; padding: 14px 24px; border-radius: 12px; box-shadow: 0 10px 20px rgba(0,0,0,0.2); animation: slideIn 0.3s ease; display: flex; align-items: center; gap: 10px; min-width: 200px; max-width: 400px; }
-        .toast.success { background: var(--success); }
-        .toast.error { background: var(--danger); }
-        .toast.warning { background: var(--warning); }
-        .toast.info { background: var(--info); }
-        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-        @media (max-width: 768px) { .sidebar { width: 60px; padding: 10px 0; } .sidebar .brand span { display: none; } .sidebar .nav-link span { display: none; } .sidebar .nav-link { justify-content: center; padding: 12px 0; } }
-    </style>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>مركز العمليات - النظام المحاسبي</title><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet"><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"><style>
+:root{--primary:#2563eb;--bg:#f4f7fb;--surface:#fff;--text:#172033;--muted:#6b7280;--line:#e5e7eb;--success:#16a34a;--danger:#dc2626;--warning:#d97706;--shadow:0 8px 24px rgba(15,23,42,.07);--sidebar:230px}*{box-sizing:border-box}body{margin:0;font-family:Cairo,Arial,sans-serif;background:var(--bg);color:var(--text)}button,input,select{font:inherit}.app{display:flex;min-height:100vh}.sidebar{width:var(--sidebar);background:var(--surface);border-left:1px solid var(--line);padding:18px 0;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow:auto;flex-shrink:0}.brand{text-align:center;padding:4px 12px 18px;border-bottom:1px solid var(--line);margin-bottom:12px;color:var(--primary);font-weight:800}.brand i{display:block;font-size:28px;margin-bottom:4px}.brand small{display:block;color:var(--muted);font-size:11px;font-weight:500}.nav-link{display:flex;align-items:center;gap:10px;padding:10px 18px;color:var(--text);text-decoration:none;font-size:13px;font-weight:600;border-right:3px solid transparent}.nav-link:hover,.nav-link.active{background:#eff6ff;color:var(--primary);border-right-color:var(--primary)}.nav-link i{width:20px;text-align:center}.logout{margin-top:auto;border-top:1px solid var(--line);padding-top:10px}.content{flex:1;min-width:0;padding:22px}.topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}.title h1{margin:0;font-size:24px}.title p{margin:4px 0 0;color:var(--muted);font-size:13px}.actions{display:flex;gap:8px;flex-wrap:wrap}.btn{border:0;border-radius:9px;padding:10px 14px;cursor:pointer;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:7px}.btn-primary{background:var(--primary);color:#fff}.btn-outline{background:#fff;border:1px solid var(--line);color:var(--text)}.btn-success{background:var(--success);color:#fff}.btn-warning{background:var(--warning);color:#fff}.btn-danger{background:var(--danger);color:#fff}.btn-sm{padding:7px 10px;font-size:12px}.panel{background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:18px;margin-bottom:18px}.panel-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px}.panel-head h2{font-size:17px;margin:0}.panel-head p{font-size:12px;color:var(--muted);margin:3px 0}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.operation{border:1px solid var(--line);border-radius:14px;padding:16px;background:linear-gradient(180deg,#fff,#f8fafc)}.operation.sale{border-top:4px solid var(--primary)}.operation.purchase{border-top:4px solid var(--warning)}.operation h3{font-size:15px;margin:0 0 13px}.form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.field{display:flex;flex-direction:column;gap:5px}.field.full{grid-column:1/-1}.field label{font-size:12px;color:var(--muted);font-weight:700}.input{width:100%;border:1px solid var(--line);border-radius:8px;padding:10px 11px;background:#fff;outline:0}.input:focus{border-color:var(--primary);box-shadow:0 0 0 3px #dbeafe}.form-actions{display:flex;gap:8px;margin-top:12px}.invoice-preview{margin-top:10px;padding:10px;border-radius:9px;background:#eff6ff;font-size:12px;display:none}.invoice-preview.show{display:block}.invoice-operation-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.invoice-items{margin-top:14px;overflow:auto}.invoice-items table{width:100%;border-collapse:collapse;min-width:650px}.invoice-items th,.invoice-items td{padding:8px;border-bottom:1px solid var(--line);text-align:right;font-size:12px}.invoice-items th{background:#f1f5f9}.invoice-items input{width:75px;padding:5px;border:1px solid var(--line);border-radius:6px}.invoice-items .item-discount{color:var(--danger);font-size:11px}.invoice-items .item-note{display:block;color:var(--muted);font-size:11px;white-space:normal}.edit-invoice-panel{display:none;margin-top:14px;padding:14px;border:1px solid #bfdbfe;border-radius:10px;background:#eff6ff}.edit-invoice-panel.show{display:block}.edit-invoice-row{display:grid;grid-template-columns:minmax(160px,2fr) 100px 120px;gap:8px;align-items:center;margin-bottom:8px}.result{min-height:55px;border-radius:10px;background:#f8fafc;border:1px dashed var(--line);padding:13px;color:var(--muted);font-size:13px}.result.success{background:#ecfdf5;border-color:#bbf7d0;color:#166534}.result.error{background:#fef2f2;border-color:#fecaca;color:#991b1b}.notice{padding:12px;border-radius:10px;background:#fff7ed;color:#92400e;font-size:12px;margin-bottom:14px}.toast-container{position:fixed;bottom:18px;right:18px;z-index:20;display:grid;gap:8px}.toast{background:#111827;color:#fff;border-radius:10px;padding:12px 16px;box-shadow:var(--shadow);font-size:13px}.toast.success{background:var(--success)}.toast.error{background:var(--danger)}.toast.warning{background:var(--warning)}.mobile-toggle{display:none}.overlay{display:none}@media(max-width:800px){.app{display:block}.sidebar{position:fixed;z-index:10;right:-240px;top:0;transition:.25s;height:100vh}.sidebar.open{right:0}.overlay.show{display:block;position:fixed;inset:0;background:rgba(15,23,42,.35);z-index:9}.content{padding:15px}.mobile-toggle{display:inline-flex}.topbar{align-items:flex-start}.title h1{font-size:20px}.grid,.form-grid{grid-template-columns:1fr}.field.full{grid-column:auto}.edit-invoice-row{grid-template-columns:1fr 90px 110px}}
+</style>    <script src="number-utils.js"></script><script src="document-utils.js"></script>
+    <script src="permissions.js"></script>
+    <link rel="stylesheet" href="sidebar-v4.css" />
+    <script src="/offline-sync.js"></script>
 </head>
-<body>
-    <div class="app-wrapper">
-        <nav class="sidebar">
-            <div class="brand"><i class="fas fa-store-alt"></i><span>ابن المختار</span></div>
-            <a class="nav-link" href="index.html"><i class="fas fa-th-large"></i> <span>لوحة التحكم</span></a>
-            <a class="nav-link" href="sale.html"><i class="fas fa-cash-register"></i> <span>البيع</span></a>
-            <a class="nav-link" href="products.html"><i class="fas fa-boxes"></i> <span>المنتجات</span></a>
-            <a class="nav-link" href="customers.html"><i class="fas fa-users"></i> <span>العملاء</span></a>
-            <a class="nav-link" href="suppliers.html"><i class="fas fa-truck"></i> <span>الموردين</span></a>
-            <a class="nav-link" href="purchases.html"><i class="fas fa-shopping-cart"></i> <span>المشتريات</span></a>
-            <a class="nav-link" href="expenses.html"><i class="fas fa-receipt"></i> <span>المصروفات</span></a>
-            <a class="nav-link" href="payments.html"><i class="fas fa-hand-holding-usd"></i> <span>سندات</span></a>
-            <a class="nav-link" href="cash-wallets.html"><i class="fas fa-wallet"></i> <span>المحافظ</span></a>
-            <a class="nav-link" href="cash-wallets.html"><i class="fas fa-coins"></i> <span>الصندوق</span></a>
-            <a class="nav-link" href="invoices.html"><i class="fas fa-file-invoice"></i> <span>الفواتير</span></a>
-            <a class="nav-link" href="journal.html"><i class="fas fa-book"></i> <span>القيود</span></a>
-            <a class="nav-link" href="reports.html"><i class="fas fa-chart-pie"></i> <span>التقارير</span></a>
-            <a class="nav-link active" href="operations.html"><i class="fas fa-tools"></i> <span>عمليات</span></a>
-            <a class="nav-link" href="settings.html"><i class="fas fa-cog"></i> <span>إعدادات</span></a>
-            <div class="logout-btn"><div class="nav-link" onclick="logout()" style="color:var(--danger);"><i class="fas fa-sign-out-alt"></i> <span>خروج</span></div></div>
-        </nav>
+<body><div class="app"><div id="sidebar-container"></div><div class="overlay" id="overlay" onclick="toggleSidebar()"></div><main class="content"><header class="topbar"><div class="title"><h1><i class="fas fa-tools" style="color:var(--primary)"></i> مركز العمليات</h1><p>تنفيذ الإرجاعات والإلغاءات مع معاينة الفاتورة قبل التأكيد.</p></div><div class="actions"><button class="btn btn-outline mobile-toggle" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button><button class="btn btn-outline" onclick="clearAll()"><i class="fas fa-eraser"></i> تنظيف</button></div></header><div class="notice"><i class="fas fa-shield-alt"></i> عمليات الإلغاء والإرجاع تغيّر المخزون والقيود والأرصدة. راجع تفاصيل الفاتورة وتأكد من المعرف قبل التأكيد.</div><section class="panel"><div class="panel-head"><div><h2>معاينة فاتورة</h2><p>استخدم رقم الفاتورة للتأكد من الاسم والمبلغ والمنتجات.</p></div></div><div class="form-grid"><div class="field"><label>نوع الفاتورة</label><select class="input" id="lookup-type"><option value="sale">مبيعات</option><option value="purchase">مشتريات</option></select></div><div class="field"><label>رقم الفاتورة أو المعرّف</label><input class="input" id="lookup-id" type="text" inputmode="numeric" placeholder="مثال: 1 أو 1000 أو INV-1000 أو PUR-20"></div></div><div class="form-actions"><button class="btn btn-primary" onclick="lookupInvoice()"><i class="fas fa-search"></i> جلب التفاصيل</button></div><div class="invoice-preview" id="invoice-preview"></div><div id="invoice-items-area" class="invoice-items" style="display:none"></div><div class="invoice-operation-actions no-print" id="invoice-operation-actions" style="display:none"></div><div id="invoice-edit-panel" class="edit-invoice-panel no-print"></div><div class="form-actions no-print" id="invoice-preview-actions" style="display:none"><button class="btn btn-primary" onclick="printOperationInvoice()"><i class="fas fa-print"></i> طباعة</button></div></section><section class="grid"><div class="operation sale"><h3><i class="fas fa-undo" style="color:var(--primary)"></i> إرجاع صنف من المبيعات</h3><div class="form-grid"><div class="field"><label>الفاتورة المحددة</label><select class="input" id="return-sale-invoice"><option value="">اكتب معرف المنتج ثم اعرض آخر الفواتير</option></select></div><div class="field"><label>معرف المنتج</label><input class="input" id="return-sale-product" type="number" min="1"><button type="button" class="btn btn-outline btn-sm" onclick="loadProductInvoices('sale')"><i class="fas fa-list"></i> آخر فواتير البيع</button></div><div class="field"><label>الكمية</label><input class="input" id="return-sale-qty" type="number" min="1"></div><div class="field"><label>السبب</label><input class="input" id="return-sale-reason" type="text" placeholder="اختياري"></div></div><div class="form-actions"><button class="btn btn-warning" onclick="returnSaleItem()"><i class="fas fa-undo"></i> تنفيذ الإرجاع</button></div></div><div class="operation sale"><h3><i class="fas fa-times-circle" style="color:var(--danger)"></i> إلغاء فاتورة مبيعات</h3><div class="field"><label>الفاتورة المراد إلغاؤها</label><select class="input" id="cancel-sale-id"><option value="">ابحث عن فاتورة أولاً من المعاينة أعلاه</option></select></div><div class="form-actions"><button class="btn btn-danger" onclick="cancelSaleInvoice()"><i class="fas fa-times"></i> إلغاء الفاتورة المحددة</button></div></div><div class="operation purchase"><h3><i class="fas fa-undo" style="color:var(--warning)"></i> إرجاع صنف من المشتريات</h3><div class="form-grid"><div class="field"><label>فاتورة الشراء المحددة</label><select class="input" id="return-purchase-invoice"><option value="">اكتب معرف المنتج ثم اعرض آخر فواتير الشراء</option></select></div><div class="field"><label>معرف المنتج</label><input class="input" id="return-purchase-product" type="number" min="1"><button type="button" class="btn btn-outline btn-sm" onclick="loadProductInvoices('purchase')"><i class="fas fa-list"></i> آخر فواتير الشراء</button></div><div class="field"><label>الكمية</label><input class="input" id="return-purchase-qty" type="number" min="1"></div><div class="field"><label>السبب</label><input class="input" id="return-purchase-reason" type="text" placeholder="اختياري"></div></div><div class="form-actions"><button class="btn btn-warning" onclick="returnPurchaseItem()"><i class="fas fa-undo"></i> تنفيذ الإرجاع</button></div></div><div class="operation purchase"><h3><i class="fas fa-times-circle" style="color:var(--danger)"></i> إلغاء فاتورة مشتريات</h3><div class="field"><label>فاتورة الشراء المراد إلغاؤها</label><select class="input" id="cancel-purchase-id"><option value="">ابحث عن فاتورة أولاً من المعاينة أعلاه</option></select></div><div class="form-actions"><button class="btn btn-danger" onclick="cancelPurchaseInvoice()"><i class="fas fa-times"></i> إلغاء فاتورة الشراء المحددة</button></div></div></section><section class="panel"><div class="panel-head"><div><h2>نتيجة آخر عملية</h2><p>ستظهر هنا قيمة الإرجاع أو رسالة الخطأ بالتفصيل.</p></div></div><div class="result" id="operation-result">لم تُنفذ أي عملية بعد.</div></section></main></div><div class="toast-container" id="toast-container"></div>
+<script>
+const API='https://api.ibnalmukhtar.com',token=localStorage.getItem('pos_token')||'';if(!token)location.href='index.html';const auth=()=>({'Authorization':`Bearer ${token}`,'Content-Type':'application/json'});function esc(v){return String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]||c))}function toast(m,t='info'){const e=document.createElement('div');e.className=`toast ${t}`;e.textContent=m;document.getElementById('toast-container').appendChild(e);setTimeout(()=>e.remove(),4000)}function logout(){
+            window.POSPermissions?.recordLogout?.();if(confirm('هل تريد تسجيل الخروج؟')){localStorage.removeItem('pos_token');localStorage.removeItem('pos_user');location.href='index.html'}}function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('overlay').classList.toggle('show')}function setResult(message,type='') {const e=document.getElementById('operation-result');e.className=`result ${type}`;e.innerHTML=message}
+async function lookupInvoice(){
+  const type=document.getElementById('lookup-type').value;
+  const entered=String(document.getElementById('lookup-id').value||'').trim();
+  const numberMatch=entered.match(/^(?:INV|PUR)?-?(\d+)$/i);
+  const lookupId=numberMatch?Number(numberMatch[1]):0;
+  if(!lookupId)return toast('أدخل رقم الفاتورة أو المعرّف بصيغة رقم أو INV-رقم أو PUR-رقم','warning');
+  try{
+    const r=await fetch(`${API}/${type==='sale'?'sales':'purchases'}/${encodeURIComponent(entered)}`,{headers:{Authorization:`Bearer ${token}`}});
+    const response=await r.json();
+    if(!r.ok)throw Error(response.error||'الفاتورة غير موجودة');
+    const d=type==='purchase'?(response.purchase||response):response;
+    const returnedByProduct=Object.fromEntries((d.returns||[]).map(i=>[i.product_id,Number(i.quantity||0)]));
+    const items=(d.items||[]).map(i=>({
+      name:i.product_name||i.name||`منتج #${i.product_id||'-'}`,
+      product_id:Number(i.product_id||0), product_code:i.product_code||i.product_barcode||'',
+      quantity:Number(i.quantity||0), returned_quantity:Number(i.returned_quantity??returnedByProduct[i.product_id]??0),
+      returnable_quantity:Number(i.returnable_quantity??Math.max(0,Number(i.quantity||0)-Number(i.returned_quantity??returnedByProduct[i.product_id]??0))),
+      unit_price:Number(i.unit_price??i.price??i.purchase_price??i.cost_price??0),
+      discount:Number(i.discount??i.discount_amount??0), note:i.note||i.notes||i.product_note||'',
+      line_total:Number(i.line_total??i.total_price??i.total??0)
+    }));
+    window._operationInvoiceData={type,number:d.invoice_number||d.id,id:Number(d.id||lookupId),date:d.created_at?new Date(d.created_at).toLocaleString('ar-SA'):new Date().toLocaleString('ar-SA'),party:d.customer_name||d.supplier_name||'غير محدد',payment_method:d.payment_method||'غير محددة',status:d.status||'مكتملة',currency_code:d.currency_code||d.currency||'ريال',items,total:Number(d.total_amount??d.total??0),gross_subtotal:Number(d.gross_subtotal??items.reduce((s,i)=>s+(i.unit_price*i.quantity),0)),subtotal:Number(d.subtotal??items.reduce((s,i)=>s+i.line_total,0)),discount:Number(d.discount_amount??d.discount??0),paid:Number(d.paid_amount??d.paid??0),notes:d.notes||d.note||'',raw:d};
+    const inv=window._operationInvoiceData;
+    const preview=document.getElementById('invoice-preview');
+    preview.className='invoice-preview show';
+    preview.innerHTML=window.POSDocs?POSDocs.renderInvoice(inv):`<strong>${type==='purchase'?'فاتورة مشتريات':'فاتورة مبيعات'} #${esc(inv.number)}</strong> — الإجمالي: <strong>${formatPosMoney(inv.total)}</strong> — الحالة: ${esc(inv.status)}`;
+    renderInvoiceItems(inv);
+    renderInvoiceActions(inv);
+    document.getElementById('invoice-preview-actions').style.display='flex';
+    if(type==='sale'){const e=document.getElementById('cancel-sale-id');e.innerHTML=`<option value="${inv.id}">#${esc(inv.number)} — ${esc(inv.party)} — ${esc(inv.status)}</option>`;e.value=String(inv.id);}else{const e=document.getElementById('cancel-purchase-id');e.innerHTML=`<option value="${inv.id}">#${esc(inv.number)} — ${esc(inv.party)} — ${esc(inv.status)}</option>`;e.value=String(inv.id);}
+    toast(`تم جلب الفاتورة #${inv.number} وعرض ${items.length} بند`,'success');
+  }catch(e){
+    document.getElementById('invoice-preview').className='invoice-preview show';
+    document.getElementById('invoice-preview').textContent=e.message;
+    document.getElementById('invoice-items-area').style.display='none';
+    document.getElementById('invoice-operation-actions').style.display='none';
+    document.getElementById('invoice-edit-panel').className='edit-invoice-panel';
+    document.getElementById('invoice-preview-actions').style.display='none';
+    toast(e.message,'error');
+  }
+}
 
-        <main class="main-content">
-            <div class="card-section">
-                <h4><i class="fas fa-tools"></i> عمليات أخرى</h4>
-                <div class="flex-row">
-                    <div class="flex-1">
-                        <h5>إرجاع منتج مبيعات</h5>
-                        <label>رقم الفاتورة</label><input type="number" id="return-sale-id" class="input-field" placeholder="معرف الفاتورة" />
-                        <label>معرف المنتج</label><input type="number" id="return-sale-product" class="input-field" />
-                        <label>الكمية</label><input type="number" id="return-sale-qty" class="input-field" />
-                        <label>السبب</label><input type="text" id="return-sale-reason" class="input-field" />
-                        <button class="btn btn-warning mt-10" onclick="returnSaleItem()"><i class="fas fa-undo"></i> إرجاع</button>
-                    </div>
-                    <div class="flex-1">
-                        <h5>إلغاء فاتورة مبيعات</h5>
-                        <label>رقم الفاتورة</label><input type="number" id="cancel-sale-id" class="input-field" placeholder="معرف الفاتورة" />
-                        <button class="btn btn-danger mt-10" onclick="cancelSaleInvoice()"><i class="fas fa-times"></i> إلغاء</button>
-                        <hr />
-                        <h5>إلغاء فاتورة مشتريات</h5>
-                        <label>رقم الفاتورة</label><input type="number" id="cancel-purchase-id" class="input-field" placeholder="معرف الفاتورة" />
-                        <button class="btn btn-danger mt-10" onclick="cancelPurchaseInvoice()"><i class="fas fa-times"></i> إلغاء</button>
-                    </div>
-                    <div class="flex-1">
-                        <h5>إرجاع منتج مشتريات</h5>
-                        <label>رقم فاتورة الشراء</label><input type="number" id="return-purchase-id" class="input-field" />
-                        <label>معرف المنتج</label><input type="number" id="return-purchase-product" class="input-field" />
-                        <label>الكمية</label><input type="number" id="return-purchase-qty" class="input-field" />
-                        <label>السبب</label><input type="text" id="return-purchase-reason" class="input-field" />
-                        <button class="btn btn-warning mt-10" onclick="returnPurchaseItem()"><i class="fas fa-undo"></i> إرجاع</button>
-                    </div>
-                </div>
-            </div>
-        </main>
-    </div>
-    <div class="toast-container" id="toast-container"></div>
+async function loadProductInvoices(type){
+  const productId=Number(document.getElementById(type==='sale'?'return-sale-product':'return-purchase-product')?.value||0);
+  if(!productId)return toast('أدخل معرف المنتج أولاً','warning');
+  try{
+    const r=await fetch(`${API}/operations/product-invoices?type=${type}&product_id=${productId}&limit=20`,{headers:{Authorization:`Bearer ${token}`}}),d=await r.json();
+    if(!r.ok)throw Error(d.error||'تعذر تحميل فواتير المنتج');
+    const select=document.getElementById(type==='sale'?'return-sale-invoice':'return-purchase-invoice');
+    const invoices=d.invoices||[];
+    select.innerHTML='<option value="">اختر الفاتورة المرتبطة بالمنتج</option>'+invoices.map(i=>{const available=Number(i.available_return_quantity??Math.max(0,Number(i.quantity||0)-Number(i.returned_quantity||0)));const actualStock=Number(i.actual_stock_quantity??0);const supplierStock=type==='purchase'?Number(i.supplier_stock_quantity??0):null;const party=type==='sale'?(i.customer_name||'عميل نقدي'):(i.supplier_name||'مورد غير معروف');const stockText=type==='purchase'?` — مخزون عام ${formatPosQuantity(actualStock)} — مخزون المورد ${formatPosQuantity(supplierStock)} — متاح فعليًا ${formatPosQuantity(available)}`:` — مخزون حالي ${formatPosQuantity(actualStock)} — متاح فعليًا ${formatPosQuantity(available)}`;return `<option value="${esc(i.id)}" data-available="${available}">#${esc(i.invoice_number||i.id)} — ${esc(party)} — كمية الفاتورة ${formatPosQuantity(i.quantity)}${stockText} — ${esc(i.status||'')}</option>`}).join('');
+    select.onchange=()=>{const selected=select.options[select.selectedIndex];if(selected?.value){const chosen=invoices.find(i=>String(i.id)===String(selected.value));document.getElementById('lookup-type').value=type;document.getElementById('lookup-id').value=chosen?.invoice_number||selected.value;document.getElementById(type==='sale'?'return-sale-qty':'return-purchase-qty').value=selected.dataset.available||'';lookupInvoice();}};
+    if(!invoices.length)toast('لا توجد فواتير مرتبطة بهذا المنتج','warning');else toast(`تم العثور على ${invoices.length} فاتورة مرتبطة بالمنتج`,'success');
+  }catch(e){toast(e.message,'error')}
+}
+function permissionCan(name){return !window.POSPermissions||window.POSPermissions.can(name)}
+function renderInvoiceItems(inv){
+  const area=document.getElementById('invoice-items-area');
+  const isPurchase=inv.type==='purchase';
+  const rows=(inv.items||[]).map((item,index)=>{const actualStock=Number(item.actual_stock_quantity??0);const supplierStock=Number(item.supplier_stock_quantity??0);const returnable=Number(item.returnable_quantity??0);const itemDiscount=Number(item.discount??item.discount_amount??0);const itemNote=item.note||item.notes||item.product_note||'';return `<tr><td>${index+1}</td><td>${esc(item.name)}${item.product_code?`<small style="display:block;color:var(--muted)">كود: ${esc(item.product_code)}</small>`:''}${itemDiscount>0?`<small class="item-discount">خصم الوحدة: ${formatPosMoney(itemDiscount)} — إجمالي الخصم: ${formatPosMoney(itemDiscount*Number(item.quantity||0))}</small>`:''}${itemNote?`<small class="item-note">ملاحظة: ${esc(itemNote)}</small>`:''}</td><td>${esc(item.product_id||'-')}</td><td>${formatPosQuantity(item.quantity)}</td><td>${formatPosQuantity(item.returned_quantity)}</td><td>${isPurchase?formatPosQuantity(actualStock):'-'}</td><td>${isPurchase?formatPosQuantity(supplierStock):'-'}</td><td><strong>${formatPosQuantity(returnable)}</strong></td><td>${formatPosMoney(item.unit_price)} ${esc(inv.currency_code)}</td><td>${formatPosMoney(item.line_total||item.unit_price*item.quantity)} ${esc(inv.currency_code)}</td><td>${returnable>0&&permissionCan(inv.type==='sale'?'sales.return':'purchases.return')?`<button class="btn btn-warning btn-sm" onclick="returnItemFromInvoice(${item.product_id},${returnable})"><i class="fas fa-undo"></i> إرجاع</button>`:'-'}</td></tr>`}).join('');
+  area.innerHTML=`<strong>بنود الفاتورة</strong>${isPurchase?'<div class="muted" style="margin:6px 0">المتاح الفعلي للإرجاع = الأقل بين المتبقي من الفاتورة والمخزون العام ومخزون المورد.</div>':''}<table><thead><tr><th>#</th><th>المنتج والخصم والملاحظة</th><th>معرف المنتج</th><th>الكمية</th><th>مرتجع</th>${isPurchase?'<th>المخزون العام</th><th>مخزون المورد</th>':''}<th>المتاح الفعلي للإرجاع</th><th>سعر الوحدة</th><th>الإجمالي</th><th>إجراء</th></tr></thead><tbody>${rows||`<tr><td colspan="${isPurchase?11:9}">لا توجد بنود في هذه الفاتورة</td></tr>`}</tbody></table>`;
+  area.style.display='block';
+}
+function renderInvoiceActions(inv){
+  const area=document.getElementById('invoice-operation-actions');
+  const isSale=inv.type==='sale';
+  const active=['completed','partially_returned','pending','credit'].includes(String(inv.status||'').toLowerCase())||['مكتملة','معلق','آجل'].includes(String(inv.status||''));
+  const buttons=[];
+  const editableSale=isSale&&String(inv.status||'').toLowerCase()==='completed';
+  if(editableSale&&permissionCan('sales.update'))buttons.push(`<button class="btn btn-primary btn-sm" onclick="toggleSaleEditPanel()"><i class="fas fa-edit"></i> تعديل الفاتورة</button>`);
+  if(isSale&&active&&permissionCan('sales.return')&&inv.items.some(i=>i.returnable_quantity>0))buttons.push(`<button class="btn btn-warning btn-sm" onclick="returnFullSaleFromInvoice()"><i class="fas fa-undo"></i> إرجاع الفاتورة كاملة</button>`);
+  if(isSale&&active&&permissionCan('sales.cancel'))buttons.push(`<button class="btn btn-danger btn-sm" onclick="cancelInvoiceFromPreview()"><i class="fas fa-times-circle"></i> إلغاء الفاتورة</button>`);
+  if(!isSale&&active&&permissionCan('purchases.cancel'))buttons.push(`<button class="btn btn-danger btn-sm" onclick="cancelInvoiceFromPreview()"><i class="fas fa-times-circle"></i> إلغاء فاتورة المشتريات</button>`);
+  if(!buttons.length)buttons.push('<span class="muted">لا توجد إجراءات متاحة لهذه الفاتورة حسب حالتها أو صلاحيات المستخدم.</span>');
+  area.innerHTML=buttons.join('');area.style.display='flex';
+}
+function returnItemFromInvoice(productId,maxQty){
+  const inv=window._operationInvoiceData;if(!inv)return;
+  const quantity=Number(prompt(`أدخل كمية الإرجاع (المتاح ${formatPosQuantity(maxQty)})`,String(maxQty)));
+  if(!Number.isFinite(quantity)||quantity<=0||quantity>maxQty)return toast('الكمية غير صالحة أو أكبر من المتاح للإرجاع','warning');
+  const reason=prompt('سبب الإرجاع (اختياري)','')||'';
+  if(!confirm(`تأكيد إرجاع ${formatPosQuantity(quantity)} من الصنف؟`))return;
+  const payload=inv.type==='sale'?{sale_id:inv.id,product_id:productId,quantity,reason}:{purchase_invoice_id:inv.id,product_id:productId,quantity,reason};
+  const endpoint=inv.type==='sale'?'/sales/return':'/purchases/return';
+  post(endpoint,payload,inv.type==='sale'?'تم إرجاع صنف المبيعات':'تم إرجاع صنف المشتريات').then(result=>{if(result){document.getElementById('lookup-id').value=inv.number;lookupInvoice()}});
+}
+function returnFullSaleFromInvoice(){const inv=window._operationInvoiceData;if(!inv||!confirm('سيتم إرجاع جميع البنود المتبقية وعكس المبلغ والمخزون. هل أنت متأكد؟'))return;post('/sales/full-return',{sale_id:inv.id,reason:'إرجاع كامل من مركز العمليات'},'تم إرجاع الفاتورة كاملة').then(result=>{if(result){document.getElementById('lookup-id').value=inv.number;lookupInvoice()}})}
+function cancelInvoiceFromPreview(){const inv=window._operationInvoiceData;if(!inv||!confirm('سيتم إلغاء الفاتورة وعكس المخزون والقيود. هل أنت متأكد؟'))return;if(inv.type==='sale')cancelSaleInvoice();else cancelPurchaseInvoice()}
+function toggleSaleEditPanel(){
+  const inv=window._operationInvoiceData,panel=document.getElementById('invoice-edit-panel');if(!inv||inv.type!=='sale')return;
+  if(panel.classList.contains('show')){panel.className='edit-invoice-panel';return}
+  panel.innerHTML=`<strong>تعديل بنود فاتورة البيع</strong><p class="muted">عدّل السعر أو الكمية أو خصم المنتج وملاحظته ثم احفظ. لا يمكن تعديل الفاتورة الملغاة أو المرتجعة بالكامل.</p>${inv.items.map((item,index)=>`<div class="edit-invoice-row"><span>${esc(item.name)}</span><input id="edit-qty-${index}" type="number" min="0.001" step="0.001" value="${item.quantity}"><input id="edit-price-${index}" type="number" min="0" step="0.01" value="${item.unit_price}"><input id="edit-discount-${index}" type="number" min="0" step="0.01" value="${item.discount||0}" placeholder="خصم"><input id="edit-note-${index}" type="text" value="${esc(item.note||'')}" placeholder="ملاحظة"></div>`).join('')}<div class="form-actions"><button class="btn btn-primary btn-sm" onclick="saveSaleEdit()"><i class="fas fa-save"></i> حفظ التعديل</button><button class="btn btn-outline btn-sm" onclick="toggleSaleEditPanel()">إلغاء</button></div>`;
+  panel.className='edit-invoice-panel show';
+}
+async function saveSaleEdit(){
+  const inv=window._operationInvoiceData;if(!inv)return;
+  const items=inv.items.map((item,index)=>({product_id:item.product_id,quantity:Number(document.getElementById(`edit-qty-${index}`)?.value||0),unit_price:Number(document.getElementById(`edit-price-${index}`)?.value||0),discount:Number(document.getElementById(`edit-discount-${index}`)?.value||0),note:document.getElementById(`edit-note-${index}`)?.value.trim()||''})).filter(i=>i.quantity>0);
+  if(!items.length)return toast('يجب أن تحتوي الفاتورة على بند واحد على الأقل','warning');
+  const result=await requestJson(`/sales/${inv.id}`,'PUT',{customer_id:inv.raw.customer_id||null,items,payment_method:inv.raw.payment_method||'cash',wallet_id:inv.raw.wallet_id||null,discount:Number(inv.raw.discount_amount??inv.raw.discount??0),discount_type:inv.raw.discount_type||'fixed',cash_amount:Number(inv.raw.cash_paid||0),wallet_amount:Number(inv.raw.wallet_paid||0),note:inv.raw.note||inv.raw.notes||''},'تم تعديل فاتورة البيع');
+  if(result){document.getElementById('lookup-id').value=inv.number;await lookupInvoice()}
+}
+async function requestJson(path,method,body,success){try{const r=await fetch(`${API}${path}`,{method,headers:auth(),body:JSON.stringify(body)}),d=await r.json();if(!r.ok)throw Error(d.error||'فشلت العملية');setResult(`<strong>${esc(success)}</strong><br><small>${esc(d.message||'تم حفظ التعديل وتحديث البيانات')}</small>`,'success');toast(success,'success');return d}catch(e){setResult(esc(e.message),'error');toast(e.message,'error');return null}}
 
-    <script>
-        const API = 'https://api.ibnalmukhtar.com';
-        let token = localStorage.getItem('pos_token') || '';
-        if (!token) window.location.href = 'index.html';
-
-        function showToast(msg, type='info') {
-            const c = document.getElementById('toast-container');
-            const t = document.createElement('div');
-            t.className = `toast ${type}`;
-            const icons = { success:'fa-check-circle', error:'fa-exclamation-circle', warning:'fa-exclamation-triangle', info:'fa-info-circle' };
-            t.innerHTML = `<i class="fas ${icons[type] || icons.info}"></i> ${msg}`;
-            c.appendChild(t);
-            setTimeout(() => t.remove(), 4000);
-        }
-        function logout() { if(confirm('تأكيد الخروج?')) { localStorage.removeItem('pos_token'); window.location.href='index.html'; } }
-
-        async function returnSaleItem() {
-            const sale_id = parseInt(document.getElementById('return-sale-id').value);
-            const product_id = parseInt(document.getElementById('return-sale-product').value);
-            const quantity = parseInt(document.getElementById('return-sale-qty').value);
-            const reason = document.getElementById('return-sale-reason').value;
-            if (!sale_id || !product_id || !quantity) return showToast('جميع الحقول مطلوبة', 'warning');
-            try {
-                const res = await fetch(`${API}/operations/return-sale`, {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ sale_id, product_id, quantity, reason })
-                });
-                const data = await res.json();
-                if (res.ok) {
-                    showToast(`تم الإرجاع بقيمة ${data.refund_amount} ريال`, 'success');
-                } else showToast(data.error, 'error');
-            } catch { showToast('خطأ', 'error'); }
-        }
-        async function cancelSaleInvoice() {
-            const sale_id = parseInt(document.getElementById('cancel-sale-id').value);
-            if (!sale_id) return showToast('أدخل رقم الفاتورة', 'warning');
-            if (!confirm('هل أنت متأكد من إلغاء هذه الفاتورة؟')) return;
-            try {
-                const res = await fetch(`${API}/operations/cancel-sale`, {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ sale_id })
-                });
-                if (res.ok) showToast('تم الإلغاء', 'success');
-                else { const err = await res.json(); showToast(err.error, 'error'); }
-            } catch { showToast('خطأ', 'error'); }
-        }
-        async function cancelPurchaseInvoice() {
-            const purchase_invoice_id = parseInt(document.getElementById('cancel-purchase-id').value);
-            if (!purchase_invoice_id) return showToast('أدخل رقم الفاتورة', 'warning');
-            if (!confirm('هل أنت متأكد من إلغاء هذه الفاتورة؟')) return;
-            try {
-                const res = await fetch(`${API}/operations/cancel-purchase`, {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ purchase_invoice_id })
-                });
-                if (res.ok) showToast('تم الإلغاء', 'success');
-                else { const err = await res.json(); showToast(err.error, 'error'); }
-            } catch { showToast('خطأ', 'error'); }
-        }
-        async function returnPurchaseItem() {
-            const purchase_invoice_id = parseInt(document.getElementById('return-purchase-id').value);
-            const product_id = parseInt(document.getElementById('return-purchase-product').value);
-            const quantity = parseInt(document.getElementById('return-purchase-qty').value);
-            const reason = document.getElementById('return-purchase-reason').value;
-            if (!purchase_invoice_id || !product_id || !quantity) return showToast('جميع الحقول مطلوبة', 'warning');
-            try {
-                const res = await fetch(`${API}/operations/return-purchase`, {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ purchase_invoice_id, product_id, quantity, reason })
-                });
-                const data = await res.json();
-                if (res.ok) {
-                    showToast(`تم الإرجاع بقيمة ${data.refund_amount} ريال`, 'success');
-                } else showToast(data.error, 'error');
-            } catch { showToast('خطأ', 'error'); }
-        }
-    </script>
-</body>
-</html>
+function printOperationInvoice(){if(window.POSDocs&&window._operationInvoiceData)POSDocs.printInvoiceData(window._operationInvoiceData,{title:window._operationInvoiceData.type==='purchase'?'فاتورة مشتريات':'فاتورة مبيعات'}).catch(e=>toast(e.message,'error'))}
+function exportOperationInvoicePDF(){if(window.POSDocs&&window._operationInvoiceData)POSDocs.exportInvoicePDF(window._operationInvoiceData,{title:'تفاصيل الفاتورة',filename:`فاتورة-${window._operationInvoiceData.number||'مستند'}.pdf`}).then(()=>toast('تم تنزيل الفاتورة','success')).catch(e=>toast(e.message,'error'))}
+function exportOperationInvoiceImage(){if(window.POSDocs&&window._operationInvoiceData)POSDocs.exportInvoiceImage(window._operationInvoiceData,{title:'تفاصيل الفاتورة',filename:`فاتورة-${window._operationInvoiceData.number||'مستند'}.png`}).then(()=>toast('تم تنزيل صورة الفاتورة','success')).catch(e=>toast(e.message,'error'))}
+async function post(path,body,success){try{const r=await fetch(`${API}${path}`,{method:'POST',headers:auth(),body:JSON.stringify(body)}),d=await r.json();if(!r.ok)throw Error(d.error||'فشلت العملية');const amount=d.refund_amount!=null?` بقيمة ${formatPosMoney(Number(d.refund_amount))}`:'';setResult(`<strong>${esc(success)}${esc(amount)}</strong><br><small>${esc(d.message||'تم تحديث البيانات والمخزون والقيود')}</small>`,'success');toast(success,'success');return d}catch(e){setResult(esc(e.message),'error');toast(e.message,'error');return null}}
+function returnSaleItem(){const sale_id=Number(document.getElementById('return-sale-invoice').value),product_id=Number(document.getElementById('return-sale-product').value),quantity=Number(document.getElementById('return-sale-qty').value),reason=document.getElementById('return-sale-reason').value.trim();if(!sale_id||!product_id||!quantity)return toast('أكمل معرف الفاتورة والمنتج والكمية','warning');if(confirm('هل تريد تنفيذ إرجاع صنف المبيعات؟'))post('/sales/return',{sale_id,product_id,quantity,reason},'تم إرجاع صنف المبيعات')}
+function cancelSaleInvoice(){const sale_id=Number(document.getElementById('cancel-sale-id').value);if(!sale_id)return toast('أدخل معرف فاتورة المبيعات','warning');if(confirm('سيتم إلغاء الفاتورة وتحديث المخزون والقيود. هل أنت متأكد؟'))post('/sales/cancel',{sale_id},'تم إلغاء فاتورة المبيعات')}
+function returnPurchaseItem(){const purchase_invoice_id=Number(document.getElementById('return-purchase-invoice').value),product_id=Number(document.getElementById('return-purchase-product').value),quantity=Number(document.getElementById('return-purchase-qty').value),reason=document.getElementById('return-purchase-reason').value.trim();if(!purchase_invoice_id||!product_id||!quantity)return toast('أكمل معرف الفاتورة والمنتج والكمية','warning');if(confirm('هل تريد تنفيذ إرجاع صنف المشتريات؟'))post('/purchases/return',{purchase_invoice_id,product_id,quantity,reason},'تم إرجاع صنف المشتريات')}
+function cancelPurchaseInvoice(){const purchase_invoice_id=Number(document.getElementById('cancel-purchase-id').value);if(!purchase_invoice_id)return toast('أدخل معرف فاتورة المشتريات','warning');if(confirm('سيتم إلغاء الفاتورة وتحديث المخزون والقيود. هل أنت متأكد؟'))post('/purchases/cancel',{purchase_invoice_id},'تم إلغاء فاتورة المشتريات')}
+function clearAll(){document.querySelectorAll('input').forEach(e=>e.value='');window._operationInvoiceData=null;document.getElementById('invoice-preview').className='invoice-preview';document.getElementById('invoice-preview').innerHTML='';document.getElementById('invoice-items-area').style.display='none';document.getElementById('invoice-items-area').innerHTML='';document.getElementById('invoice-operation-actions').style.display='none';document.getElementById('invoice-operation-actions').innerHTML='';document.getElementById('invoice-edit-panel').className='edit-invoice-panel';document.getElementById('invoice-edit-panel').innerHTML='';document.getElementById('invoice-preview-actions').style.display='none';setResult('لم تُنفذ أي عملية بعد.');}
+</script>
+    <script src="document-utils.js"></script>
+    <script src="sidebar-config.js"></script>
+    <script src="notification-center-v3.js"></script>
+</body></html>

@@ -66,30 +66,30 @@
         .detail-row .value { font-weight: 600; }
         .wallet-badge { background: #dbeafe; color: #1e40af; padding: 2px 10px; border-radius: 12px; font-size: 0.7rem; font-weight: 700; }
     </style>
+    <script src="number-utils.js"></script>
+    <script src="permissions.js"></script>
+    <script src="filter-utils.js"></script>
+    <link rel="stylesheet" href="sidebar-v4.css" />
+    <script src="/offline-sync.js"></script>
 </head>
 <body>
     <div class="app-wrapper">
-        <nav class="sidebar">
-            <div class="brand"><i class="fas fa-store-alt"></i><span>ابن المختار</span></div>
-            <a class="nav-link" href="index.html"><i class="fas fa-th-large"></i> <span>لوحة التحكم</span></a>
-            <a class="nav-link" href="sale.html"><i class="fas fa-cash-register"></i> <span>البيع</span></a>
-            <a class="nav-link" href="products.html"><i class="fas fa-boxes"></i> <span>المنتجات</span></a>
-            <a class="nav-link" href="customers.html"><i class="fas fa-users"></i> <span>العملاء</span></a>
-            <a class="nav-link" href="suppliers.html"><i class="fas fa-truck"></i> <span>الموردين</span></a>
-            <a class="nav-link" href="purchases.html"><i class="fas fa-shopping-cart"></i> <span>المشتريات</span></a>
-            <a class="nav-link" href="expenses.html"><i class="fas fa-receipt"></i> <span>المصروفات</span></a>
-            <a class="nav-link" href="payments.html"><i class="fas fa-hand-holding-usd"></i> <span>سندات</span></a>
-            <a class="nav-link" href="cash-wallets.html"><i class="fas fa-wallet"></i> <span>المحافظ</span></a>
-            <a class="nav-link" href="cash-wallets.html"><i class="fas fa-coins"></i> <span>الصندوق</span></a>
-            <a class="nav-link" href="invoices.html"><i class="fas fa-file-invoice"></i> <span>الفواتير</span></a>
-            <a class="nav-link active" href="journal.html"><i class="fas fa-book"></i> <span>القيود</span></a>
-            <a class="nav-link" href="reports.html"><i class="fas fa-chart-pie"></i> <span>التقارير</span></a>
-            <a class="nav-link" href="operations.html"><i class="fas fa-tools"></i> <span>عمليات</span></a>
-            <a class="nav-link" href="settings.html"><i class="fas fa-cog"></i> <span>إعدادات</span></a>
-            <div class="logout-btn"><div class="nav-link" onclick="logout()" style="color:var(--danger);"><i class="fas fa-sign-out-alt"></i> <span>خروج</span></div></div>
-        </nav>
+        <div id="sidebar-container"></div>
 
         <main class="main-content">
+            <div class="card-section" id="journal-stats" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;">
+                <div style="background:#eff6ff;border-radius:12px;padding:14px;"><small class="text-muted">عدد القيود</small><strong id="stat-entry-count" style="display:block;font-size:22px;color:var(--primary);">0</strong></div>
+                <div style="background:#ecfdf5;border-radius:12px;padding:14px;"><small class="text-muted">قيود اليوم</small><strong id="stat-entry-today" style="display:block;font-size:22px;color:var(--success);">0</strong></div>
+                <div style="background:#fff7ed;border-radius:12px;padding:14px;"><small class="text-muted">إجمالي الحركات</small><strong id="stat-entry-total" style="display:block;font-size:22px;color:var(--warning);">0.00</strong></div>
+            </div>
+            <div class="card-section">
+                <div class="flex-row" style="align-items:end;gap:10px;">
+                    <div class="flex-2"><label>بحث في البيان أو المرجع</label><input class="input-field" id="journal-search" placeholder="اكتب كلمة البحث"></div>
+                    <div class="flex-1"><label>من تاريخ</label><input class="input-field" type="date" id="journal-from"></div>
+                    <div class="flex-1"><label>إلى تاريخ</label><input class="input-field" type="date" id="journal-to"></div>
+                    <button class="btn btn-outline btn-sm" onclick="printJournalReport()"><i class="fas fa-print"></i> طباعة السجل</button>
+                </div>
+            </div>
             <div class="card-section">
                 <h4><i class="fas fa-book"></i> قيود اليومية</h4>
                 <div class="table-wrap">
@@ -109,6 +109,21 @@
                     </table>
                 </div>
             </div>
+
+            <div class="card-section" style="margin-top:20px;">
+                <h4><i class="fas fa-plus-circle"></i> إنشاء قيد يدوي</h4>
+                <div class="flex-row" style="gap:8px;flex-wrap:wrap;">
+                    <div class="flex-1"><label>التاريخ</label><input class="input-field" type="date" id="manual-entry-date"></div>
+                    <div class="flex-1"><label>البيان</label><input class="input-field" type="text" id="manual-entry-description" placeholder="وصف القيد"></div>
+                </div>
+                <div id="manual-entry-lines" style="margin-top:12px;"></div>
+                <div class="flex-row" style="gap:8px;margin-top:10px;align-items:center;">
+                    <button class="btn btn-outline btn-sm" onclick="addManualLine()">إضافة سطر</button>
+                    <strong>المدين: <span id="manual-total-debit">0.00</span></strong>
+                    <strong>الدائن: <span id="manual-total-credit">0.00</span></strong>
+                    <button class="btn btn-primary btn-sm" onclick="submitManualEntry()">حفظ القيد</button>
+                </div>
+            </div>
         </main>
     </div>
 
@@ -119,7 +134,7 @@
             <h4><i class="fas fa-list-ul"></i> تفاصيل القيد</h4>
             <div id="journal-detail-body"></div>
             <div class="modal-actions">
-                <button class="btn btn-primary btn-sm" onclick="window.print()"><i class="fas fa-print"></i> طباعة</button>
+                <button class="btn btn-primary btn-sm" onclick="window.POSDocs ? POSDocs.printReport(document.getElementById('journal-detail-body'), {title:'تفاصيل القيد'}).catch(e=>console.error(e)) : window.print()"><i class="fas fa-print"></i> طباعة</button>
                 <button class="btn btn-outline btn-sm" onclick="closeModal('journal-detail-modal')">إغلاق</button>
             </div>
         </div>
@@ -132,114 +147,93 @@
         let token = localStorage.getItem('pos_token') || '';
         if (!token) window.location.href = 'index.html';
 
-        // خريطة لتخزين أسماء الحسابات
+        // حالة الصفحة وبيانات القيود
         let accountsMap = {};
+        let entries = [];
+        let filteredEntries = [];
+        let entriesMeta = { total: 0 };
+        let journalPage = 1;
+        const journalPageSize = 15;
 
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/[&<>'"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#39;', '"':'&quot;' }[c]));
+        }
         function showToast(msg, type='info') {
             const c = document.getElementById('toast-container');
             const t = document.createElement('div');
             t.className = `toast ${type}`;
             const icons = { success:'fa-check-circle', error:'fa-exclamation-circle', warning:'fa-exclamation-triangle', info:'fa-info-circle' };
-            t.innerHTML = `<i class="fas ${icons[type] || icons.info}"></i> ${msg}`;
+            t.innerHTML = `<i class="fas ${icons[type] || icons.info}"></i> ${escapeHtml(msg)}`;
             c.appendChild(t);
             setTimeout(() => t.remove(), 4000);
         }
-        function logout() { if(confirm('تأكيد الخروج؟')) { localStorage.removeItem('pos_token'); window.location.href='index.html'; } }
+        function logout() {
+            window.POSPermissions?.recordLogout?.(); if(confirm('تأكيد الخروج؟')) { localStorage.removeItem('pos_token'); localStorage.removeItem('pos_user'); window.location.href = 'index.html'; } }
         function openModal(id) { document.getElementById(id).classList.add('open'); }
         function closeModal(id) { document.getElementById(id).classList.remove('open'); }
-
-        // جلب الحسابات من الخادم
-        async function loadAccounts() {
-            try {
-                const res = await fetch(`${API}/accounts`, { headers: { 'Authorization': `Bearer ${token}` } });
-                const data = await res.json();
-                if (data.accounts) {
-                    data.accounts.forEach(acc => { accountsMap[acc.id] = acc.name; });
-                }
-            } catch (e) {
-                console.warn('فشل تحميل الحسابات', e);
-            }
+        function parseDetails(entry) {
+            if (Array.isArray(entry.details)) return entry.details;
+            if (typeof entry.details === 'string') { try { return JSON.parse(entry.details) || []; } catch { return []; } }
+            return [];
         }
-
-        // عرض تفاصيل القيد في مودال
+        async function loadAccounts() {
+            const res = await fetch(`${API}/accounts`, { headers: { 'Authorization': `Bearer ${token}` } });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'فشل تحميل الحسابات');
+            accountsMap = {};
+            (data.accounts || []).forEach(acc => { accountsMap[acc.id] = acc.name; });
+        }
         function showJournalDetails(entry) {
             const body = document.getElementById('journal-detail-body');
-            let detailsHtml = '';
-            if (entry.details && Array.isArray(entry.details) && entry.details.length > 0) {
-                detailsHtml = `
-                    <table>
-                        <thead><tr><th>الحساب</th><th>مدين</th><th>دائن</th><th>ملاحظة</th></tr></thead>
-                        <tbody>
-                            ${entry.details.map(d => {
-                                const accountName = accountsMap[d.account_id] || `حساب #${d.account_id}`;
-                                // التحقق من وجود اسم محفظة في الملاحظة
-                                let noteDisplay = d.notes || '';
-                                if (noteDisplay.includes('محفظة')) {
-                                    noteDisplay = `<span class="wallet-badge">${noteDisplay}</span>`;
-                                }
-                                return `
-                                    <tr>
-                                        <td>${accountName}</td>
-                                        <td>${d.debit > 0 ? d.debit.toFixed(2) : '-'}</td>
-                                        <td>${d.credit > 0 ? d.credit.toFixed(2) : '-'}</td>
-                                        <td>${noteDisplay || '-'}</td>
-                                    </tr>
-                                `;
-                            }).join('')}
-                        </tbody>
-                    </table>
-                `;
-            } else {
-                detailsHtml = '<p class="text-muted">لا توجد تفاصيل إضافية</p>';
-            }
-            body.innerHTML = `
-                <div style="margin-bottom: 10px;">
-                    <div class="detail-row"><span class="label">رقم القيد</span><span class="value">${entry.id}</span></div>
-                    <div class="detail-row"><span class="label">التاريخ</span><span class="value">${entry.entry_date}</span></div>
-                    <div class="detail-row"><span class="label">البيان</span><span class="value">${entry.description}</span></div>
-                    <div class="detail-row"><span class="label">المرجع</span><span class="value">${entry.reference_type || '-'} ${entry.reference_id ? '#'+entry.reference_id : ''}</span></div>
-                </div>
-                <h5 style="margin-top:10px;">تفاصيل القيد</h5>
-                ${detailsHtml}
-            `;
+            const details = parseDetails(entry);
+            const detailsHtml = details.length ? `<table><thead><tr><th>الحساب</th><th>مدين</th><th>دائن</th><th>ملاحظة</th></tr></thead><tbody>${details.map(d => `<tr><td>${escapeHtml(accountsMap[d.account_id] || `حساب #${d.account_id}`)}</td><td>${Number(d.debit||0)>0 ? Number(d.debit).toFixed(2) : '-'}</td><td>${Number(d.credit||0)>0 ? Number(d.credit).toFixed(2) : '-'}</td><td>${escapeHtml(d.notes || '-')}</td></tr>`).join('')}</tbody></table>` : '<p class="text-muted">لا توجد تفاصيل إضافية</p>';
+            body.innerHTML = `<div style="margin-bottom:10px"><div class="detail-row"><span class="label">رقم القيد</span><span class="value">${escapeHtml(entry.id)}</span></div><div class="detail-row"><span class="label">التاريخ</span><span class="value">${escapeHtml(entry.entry_date)}</span></div><div class="detail-row"><span class="label">البيان</span><span class="value">${escapeHtml(entry.description)}</span></div><div class="detail-row"><span class="label">المرجع</span><span class="value">${escapeHtml(entry.reference_type || '-')} ${entry.reference_id ? '#'+escapeHtml(entry.reference_id) : ''}</span></div></div><h5 style="margin-top:10px">تفاصيل القيد</h5>${detailsHtml}`;
             openModal('journal-detail-modal');
         }
-
-        // تحميل القيود وعرضها
         async function loadJournalEntries() {
-            try {
-                const res = await fetch(`${API}/journal-entries`, { headers: { 'Authorization': `Bearer ${token}` } });
-                const data = await res.json();
-                const tbody = document.getElementById('journal-entries-body');
-                if (!data.entries || data.entries.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="5" class="text-muted">لا توجد قيود</td></tr>';
-                    return;
-                }
-                tbody.innerHTML = data.entries.map(e => {
-                    // حساب المبلغ الإجمالي من التفاصيل (إن وجدت)
-                    let total = 0;
-                    if (e.details && Array.isArray(e.details)) {
-                        total = e.details.reduce((sum, d) => sum + (d.debit || 0) + (d.credit || 0), 0);
-                    }
-                    return `
-                        <tr>
-                            <td>${e.id}</td>
-                            <td>${e.entry_date}</td>
-                            <td>${e.description}</td>
-                            <td>${total > 0 ? total.toFixed(2) : '-'}</td>
-                            <td>
-                                <button class="btn btn-info btn-sm" onclick='showJournalDetails(${JSON.stringify(e).replace(/'/g,"\\'")})'>
-                                    <i class="fas fa-eye"></i> عرض
-                                </button>
-                            </td>
-                        </tr>
-                    `;
-                }).join('');
-            } catch (err) {
-                document.getElementById('journal-entries-body').innerHTML = '<tr><td colspan="5" class="text-danger">فشل تحميل القيود</td></tr>';
-                showToast('خطأ في تحميل القيود', 'error');
-            }
+            const controller = window.__posFilterControllers?.journal;
+            const state = controller?.getState() || POSFilters.load('journal', { preset: 'today', limit: 20 });
+            const params = POSFilters.queryString({ ...state, page: journalPage });
+            const res = await fetch(`${API}/journal-entries?${params.toString()}`, { headers: { 'Authorization': `Bearer ${token}` } });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'فشل تحميل القيود');
+            entries = data.entries || [];
+            entriesMeta = data.pagination || { total: entries.length };
+            filteredEntries = entries;
+            renderJournalEntries();
         }
+        function applyJournalFilters() {
+            const q = document.getElementById('journal-search').value.trim().toLowerCase();
+            const from = document.getElementById('journal-from').value;
+            const to = document.getElementById('journal-to').value;
+            if (q || from || to) { showToast('استخدم شريط فلترة الفترة والبحث العلوي ثم اضغط تطبيق', 'info'); }
+            journalPage = 1;
+            loadJournalEntries();
+        }
+        function renderJournalEntries() {
+            const tbody = document.getElementById('journal-entries-body');
+            const rows = filteredEntries;
+            if (!rows.length) tbody.innerHTML = '<tr><td colspan="5" class="text-muted">لا توجد قيود مطابقة</td></tr>';
+            else tbody.innerHTML = rows.map(e => { const details = parseDetails(e); const total = details.reduce((sum,d)=>sum+Number(d.debit||0)+Number(d.credit||0),0); return `<tr><td>${escapeHtml(e.id)}</td><td>${escapeHtml(e.entry_date)}</td><td>${escapeHtml(e.description)}</td><td>${total ? total.toFixed(2) : '-'}</td><td><button class="btn btn-primary btn-sm" onclick='showJournalDetails(${JSON.stringify(e).replace(/'/g,"\\'")})'><i class="fas fa-eye"></i> عرض</button></td></tr>`; }).join('');
+            const totalMovements = filteredEntries.reduce((sum,e)=>sum+parseDetails(e).reduce((s,d)=>s+Number(d.debit||0)+Number(d.credit||0),0),0);
+            const today = new Date().toISOString().slice(0,10);
+            document.getElementById('stat-entry-count').textContent = filteredEntries.length;
+            document.getElementById('stat-entry-today').textContent = filteredEntries.filter(e=>(e.entry_date||'').slice(0,10)===today).length;
+            document.getElementById('stat-entry-total').textContent = formatPosMoney(totalMovements, 2);
+            const limit = window.__posFilterControllers?.journal?.getState().limit || journalPageSize;
+            const pages = Math.max(1, Math.ceil(Number(entriesMeta.total ?? filteredEntries.length) / limit));
+            let pager = document.getElementById('journal-pagination');
+            if (!pager) { pager = document.createElement('div'); pager.id='journal-pagination'; pager.style='display:flex;justify-content:center;gap:8px;margin-top:12px'; document.querySelector('.table-wrap').after(pager); }
+            pager.innerHTML = `<button class="btn btn-outline btn-sm" ${journalPage<=1?'disabled':''} onclick="changeJournalPage(-1)">السابق</button><span style="padding:7px">صفحة ${journalPage} من ${pages}</span><button class="btn btn-outline btn-sm" ${journalPage>=pages?'disabled':''} onclick="changeJournalPage(1)">التالي</button>`;
+        }
+        function changeJournalPage(delta) { const limit=window.__posFilterControllers?.journal?.getState().limit||journalPageSize; const pages=Math.max(1,Math.ceil(Number(entriesMeta.total ?? filteredEntries.length)/limit)); const next=Math.min(pages,Math.max(1,journalPage+delta)); if(next===journalPage)return; journalPage=next; loadJournalEntries(); }
+        function resetJournalFilters() { ['journal-search','journal-from','journal-to'].forEach(id=>document.getElementById(id).value=''); applyJournalFilters(); }
+        function printJournalReport() { const table = document.querySelector('.card-section table, table'); if (!table || !window.POSDocs) return showToast('تعذر تجهيز سجل القيود للطباعة', 'error'); POSDocs.printReport(table, {title:'سجل القيود'}).catch(e => showToast(e.message, 'error')); }
+        function exportJournalCsv() { if (!filteredEntries.length) return showToast('لا توجد قيود للتصدير','warning'); const lines=[['الرقم','التاريخ','البيان','المرجع','الإجمالي'],...filteredEntries.map(e=>{const total=parseDetails(e).reduce((s,d)=>s+Number(d.debit||0)+Number(d.credit||0),0);return [e.id,e.entry_date,e.description,e.reference_type||'',total.toFixed(2)]})].map(r=>r.map(v=>`"${String(v??'').replace(/"/g,'""')}"`).join(',')); const blob=new Blob(['\ufeff'+lines.join('\n')],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`journal-${new Date().toISOString().slice(0,10)}.csv`;a.click();URL.revokeObjectURL(url); }
+        let manualLineCount = 0;
+        function addManualLine() { const container=document.getElementById('manual-entry-lines'); const row=document.createElement('div'); row.className='flex-row manual-entry-line'; row.style.cssText='gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap;'; row.innerHTML=`<select class="input-field manual-account flex-1"><option value="">اختر الحساب</option>${Object.entries(accountsMap).map(([id,name])=>`<option value="${id}">${escapeHtml(name)}</option>`).join('')}</select><input class="input-field manual-debit" type="number" step="0.01" min="0" placeholder="مدين"><input class="input-field manual-credit" type="number" step="0.01" min="0" placeholder="دائن"><input class="input-field manual-notes flex-1" type="text" placeholder="ملاحظة"><button class="btn btn-danger btn-sm" onclick="this.parentElement.remove();updateManualTotals()">حذف</button>`; container.appendChild(row); row.querySelectorAll('input').forEach(input=>input.addEventListener('input',updateManualTotals)); manualLineCount++; }
+        function updateManualTotals() { const debit=[...document.querySelectorAll('.manual-debit')].reduce((s,e)=>s+(parseFloat(e.value)||0),0),credit=[...document.querySelectorAll('.manual-credit')].reduce((s,e)=>s+(parseFloat(e.value)||0),0); document.getElementById('manual-total-debit').textContent=formatPosMoney(debit, 2);document.getElementById('manual-total-credit').textContent=formatPosMoney(credit, 2);return {debit,credit}; }
+        async function submitManualEntry() { const date=document.getElementById('manual-entry-date').value,description=document.getElementById('manual-entry-description').value.trim(),details=[...document.querySelectorAll('.manual-entry-line')].map(row=>({account_id:Number(row.querySelector('.manual-account').value),debit:parseFloat(row.querySelector('.manual-debit').value)||0,credit:parseFloat(row.querySelector('.manual-credit').value)||0,notes:row.querySelector('.manual-notes').value.trim()})).filter(d=>d.account_id&&(d.debit>0||d.credit>0)),totals=updateManualTotals(); if(!date||!description||details.length<2)return showToast('أكمل التاريخ والبيان وسطرين على الأقل','warning');if(Math.abs(totals.debit-totals.credit)>0.001)return showToast('القيد غير متوازن','warning');try{const res=await fetch(`${API}/journal-entries/manual`,{method:'POST',headers:{'Authorization':`Bearer ${token}`,'Content-Type':'application/json'},body:JSON.stringify({entry_date:date,description,details})}),data=await res.json();if(!res.ok)throw Error(data.error||'فشل حفظ القيد');showToast('تم حفظ القيد بنجاح','success');document.getElementById('manual-entry-lines').innerHTML='';document.getElementById('manual-entry-description').value='';addManualLine();addManualLine();await loadJournalEntries()}catch(e){showToast(e.message,'error')} }
 
         // إغلاق المودال عند الضغط خارج المحتوى
         document.getElementById('journal-detail-modal').addEventListener('click', function(e) {
@@ -248,9 +242,11 @@
 
         // تهيئة الصفحة
         window.onload = async function() {
-            await loadAccounts();
-            await loadJournalEntries();
+            try { await loadAccounts(); document.getElementById('manual-entry-date').value = new Date().toISOString().split('T')[0]; addManualLine(); addManualLine(); await loadJournalEntries(); } catch (e) { showToast(e.message, 'error'); }
         };
     </script>
+    <script src="document-utils.js"></script>
+    <script src="sidebar-config.js"></script>
+    <script src="notification-center-v3.js"></script>
 </body>
 </html>

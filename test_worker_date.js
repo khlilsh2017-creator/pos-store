@@ -1,0 +1,16 @@
+const fs = require('fs');
+const vm = require('vm');
+const source = fs.readFileSync('worker.js', 'utf8');
+const start = source.indexOf('function appendDateRange');
+const end = source.indexOf('function listResponse', start);
+if (start < 0 || end < 0) throw new Error('date helper not found');
+const context = { console, POS_SQL_UTC_SHIFT: '-03:00', nextISODate: value => { const d = new Date(`${value}T00:00:00Z`); d.setUTCDate(d.getUTCDate() + 1); return d.toISOString().slice(0, 10); } };
+vm.runInNewContext(`${source.slice(start, end)}; this.appendDateRange = appendDateRange;`, context);
+const conditions = [], args = [];
+context.appendDateRange(conditions, args, 's.created_at', '2026-08-01', '2026-08-23');
+if (conditions.join(' AND ') !== "datetime(s.created_at) >= datetime(?, '-03:00') AND datetime(s.created_at) < datetime(?, '-03:00')") throw new Error('date SQL shape failed');
+if (args[0] !== '2026-08-01 00:00:00' || args[1] !== '2026-08-24 00:00:00') throw new Error('exclusive end date failed');
+const empty = [], emptyArgs = [];
+context.appendDateRange(empty, emptyArgs, 's.created_at', '', '');
+if (empty.length || emptyArgs.length) throw new Error('all-period range should be empty');
+console.log('PASS worker date condition contract');

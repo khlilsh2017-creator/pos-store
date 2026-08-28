@@ -67,30 +67,50 @@
         input:checked + .toggle-slider:before { transform: translateX(22px); }
         @media (max-width: 768px) { .sidebar { width: 60px; padding: 10px 0; } .sidebar .brand span { display: none; } .sidebar .nav-link span { display: none; } .sidebar .nav-link { justify-content: center; padding: 12px 0; } }
     </style>
+    <script src="number-utils.js"></script>
+    <script src="permissions.js"></script>
+    <link rel="stylesheet" href="sidebar-v4.css" />
+    <script src="/offline-sync.js"></script>
 </head>
 <body>
     <div class="app-wrapper">
-        <nav class="sidebar">
-            <div class="brand"><i class="fas fa-store-alt"></i><span>ابن المختار</span></div>
-            <a class="nav-link" href="index.html"><i class="fas fa-th-large"></i> <span>لوحة التحكم</span></a>
-            <a class="nav-link" href="sale.html"><i class="fas fa-cash-register"></i> <span>البيع</span></a>
-            <a class="nav-link" href="products.html"><i class="fas fa-boxes"></i> <span>المنتجات</span></a>
-            <a class="nav-link" href="customers.html"><i class="fas fa-users"></i> <span>العملاء</span></a>
-            <a class="nav-link" href="suppliers.html"><i class="fas fa-truck"></i> <span>الموردين</span></a>
-            <a class="nav-link" href="purchases.html"><i class="fas fa-shopping-cart"></i> <span>المشتريات</span></a>
-            <a class="nav-link" href="expenses.html"><i class="fas fa-receipt"></i> <span>المصروفات</span></a>
-            <a class="nav-link" href="payments.html"><i class="fas fa-hand-holding-usd"></i> <span>سندات</span></a>
-            <a class="nav-link" href="cash-wallets.html"><i class="fas fa-wallet"></i> <span>المحافظ</span></a>
-            <a class="nav-link" href="cash-wallets.html"><i class="fas fa-coins"></i> <span>الصندوق</span></a>
-            <a class="nav-link" href="invoices.html"><i class="fas fa-file-invoice"></i> <span>الفواتير</span></a>
-            <a class="nav-link" href="journal.html"><i class="fas fa-book"></i> <span>القيود</span></a>
-            <a class="nav-link" href="reports.html"><i class="fas fa-chart-pie"></i> <span>التقارير</span></a>
-            <a class="nav-link" href="operations.html"><i class="fas fa-tools"></i> <span>عمليات</span></a>
-            <a class="nav-link active" href="settings.html"><i class="fas fa-cog"></i> <span>إعدادات</span></a>
-            <div class="logout-btn"><div class="nav-link" onclick="logout()" style="color:var(--danger);"><i class="fas fa-sign-out-alt"></i> <span>خروج</span></div></div>
-        </nav>
+        <div id="sidebar-container"></div>
 
         <main class="main-content">
+            <div class="card-section" id="connection-card" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+                <div><h4><i class="fas fa-signal"></i> حالة الاتصال</h4><p class="text-muted" id="connection-detail">جاري فحص الاتصال بالخادم...</p></div>
+                <span id="connection-badge" class="btn btn-warning btn-sm"><i class="fas fa-spinner fa-spin"></i> فحص</span>
+            </div>
+
+            <!-- مركز إشعارات النظام واختبار الإرسال -->
+            <div class="card-section" id="notificationSettingsCard" data-permission="notifications.test">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
+                    <div>
+                        <h4><i class="fas fa-bell"></i> إشعارات النظام</h4>
+                        <p class="text-muted">تحكم في استقبال الإشعارات واختبر إرسال إشعار للمشرفين أو المندوبين من داخل الإعدادات.</p>
+                    </div>
+                    <div class="toggle-group" style="margin-top:2px;">
+                        <span class="toggle-label">تفعيل الإشعارات</span>
+                        <label class="toggle-switch"><input type="checkbox" id="settingsNotificationsEnabled" checked /><span class="toggle-slider"></span></label>
+                    </div>
+                </div>
+                <div class="notification-settings-stats">
+                    <div><strong id="notificationAdminTokens">—</strong><span>أجهزة المشرفين المسجلة</span></div>
+                    <div><strong id="notificationDriverTokens">—</strong><span>أجهزة المندوبين المسجلة</span></div>
+                    <div class="notification-settings-status"><span id="notificationTokensStatus">جارٍ فحص حالة التسجيل...</span><button type="button" class="btn btn-outline btn-sm" id="refreshNotificationStats"><i class="fas fa-rotate"></i> تحديث</button></div>
+                </div>
+                <details class="notification-test-details">
+                    <summary><i class="fas fa-flask"></i> اختبار إرسال إشعار</summary>
+                    <div class="notification-test-form">
+                        <div class="form-group"><label for="settingsNotificationType">المستلمون</label><select id="settingsNotificationType" class="input-field"><option value="admin">المشرفون</option><option value="driver">المندوبون</option></select></div>
+                        <div class="form-group"><label for="settingsNotificationTitle">عنوان الإشعار</label><input id="settingsNotificationTitle" class="input-field" value="إشعار تجريبي من النظام" /></div>
+                        <div class="form-group"><label for="settingsNotificationBody">نص الإشعار</label><input id="settingsNotificationBody" class="input-field" value="هذا إشعار اختبار من إعدادات النظام" /></div>
+                        <div class="form-group"><label for="settingsNotificationLink">الرابط عند الفتح</label><input id="settingsNotificationLink" class="input-field" value="settings.html" /></div>
+                        <button type="button" class="btn btn-primary" id="sendSettingsNotification"><i class="fas fa-paper-plane"></i> إرسال إشعار تجريبي</button>
+                        <div id="notificationTestOutput" class="notification-test-output info" role="status">لن يتم إرسال أي شيء حتى تضغط زر الاختبار.</div>
+                    </div>
+                </details>
+            </div>
             <!-- إعدادات النظام الأساسية -->
             <div class="card-section">
                 <h4><i class="fas fa-cog"></i> إعدادات النظام</h4>
@@ -105,25 +125,52 @@
                             <input type="text" id="setting-shop-phone" class="input-field" />
                         </div>
                         <div class="flex-1">
+                            <label>العنوان</label>
+                            <input type="text" id="setting-shop-address" class="input-field" placeholder="المدينة، الشارع..." />
+                        </div>
+                        <div class="flex-1">
+                            <label>رابط الشعار</label>
+                            <input type="text" id="setting-shop-logo" class="input-field" placeholder="https://example.com/logo.png أو Data URL" oninput="previewBrandLogo()" />
+                        </div>
+                        <div class="flex-1">
+                            <label>رفع الشعار من الجهاز</label>
+                            <input type="file" id="setting-logo-file" class="input-field" accept="image/png,image/jpeg,image/svg+xml" onchange="readBrandLogoFile(event)" />
+                        </div>
+                        <div class="flex-1">
                             <label>نسبة الخصم الافتراضية (%)</label>
                             <input type="number" id="setting-default-discount" class="input-field" step="0.01" />
+                        </div>
+                        <div class="flex-1">
+                            <label for="setting-nav-style">نمط التنقل</label>
+                            <select id="setting-nav-style" class="input-field">
+                                <option value="sidebar">شريط جانبي مصنّف</option>
+                                <option value="topbar-dropdown">هيدر علوي بقوائم منسدلة</option>
+                                <option value="app-launcher">هيدر علوي ولوحة تطبيقات</option>
+                            </select>
                         </div>
                     </div>
                     <div class="flex-row mt-10">
                         <div class="flex-1 toggle-group">
                             <span class="toggle-label">السماح بالبيع أقل من التكلفة</span>
                             <label class="toggle-switch">
-                                <input type="checkbox" id="setting-allow-below-cost" />
+                                <input type="checkbox" data-permission="settings.manage" id="setting-allow-below-cost" />
                                 <span class="toggle-slider"></span>
                             </label>
                         </div>
-                        <div class="flex-1 toggle-group">
-                            <span class="toggle-label">السماح بالمخزون السالب</span>
-                            <label class="toggle-switch">
-                                <input type="checkbox" id="setting-allow-negative-stock" />
-                                <span class="toggle-slider"></span>
-                            </label>
-                        </div>
+                            <div class="flex-1 toggle-group">
+                                <span class="toggle-label">السماح بالمخزون السالب</span>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="setting-allow-negative-stock" />
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="flex-1 toggle-group">
+                                <span class="toggle-label">السالب للمنتجات المنتهية فقط</span>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="setting-allow-expired-negative" />
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
                         <div class="flex-1">
                             <label>رقم المنتج التالي (SKU)</label>
                             <input type="number" id="setting-next-product-code" class="input-field" min="1" step="1" />
@@ -137,31 +184,62 @@
                             <span id="generate-sku-message" class="text-muted" style="margin-right:10px;"></span>
                         </div>
                     </div>
+                    <div class="flex-row mt-10">
+                        <div class="flex-1"><label>اللون الأساسي</label><input type="color" id="setting-brand-primary" class="input-field" value="#1d4ed8" /></div>
+                        <div class="flex-1"><label>اللون الثانوي</label><input type="color" id="setting-brand-secondary" class="input-field" value="#c9a227" /></div>
+                        <div class="flex-1"><label>لون النص</label><input type="color" id="setting-brand-text" class="input-field" value="#172033" /></div>
+                        <div class="flex-1"><label>معاينة الشعار</label><div id="brand-logo-preview" style="height:48px;border:1px dashed var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;overflow:hidden;color:var(--text-muted);">لا يوجد شعار</div></div>
+                    </div>
+                    <div class="form-group mt-10"><label>تذييل الفاتورة والسند</label><input type="text" id="setting-invoice-footer" class="input-field" value="شكرًا لتعاملكم معنا" maxlength="200" /></div>
                     <button type="submit" class="btn btn-primary mt-10"><i class="fas fa-save"></i> حفظ الإعدادات</button>
                 </form>
             </div>
 
+            <!-- التأسيس المحاسبي الآلي -->
+            <div class="card-section" id="initialization-card" data-permission="accounting.initialize">
+                <h4><i class="fas fa-magic"></i> التأسيس المحاسبي الآلي</h4>
+                <p class="text-muted">يجمع النظام تلقائيًا أرصدة الصندوق والمحافظ والمخزون والعملاء والموردين، ويحسب رأس المال المقابل، ثم ينشئ قيد تأسيس متوازنًا. الزر يستخدم مرة واحدة فقط ولا يقبل إدخال تفاصيل يدوية.</p>
+                <div class="flex-row mt-10" style="align-items:center;gap:12px;">
+                    <div class="flex-1"><span id="system-initialization-status" class="text-muted">جاري فحص حالة التهيئة...</span></div>
+                    <div class="flex-1" style="text-align:left;"><button type="button" id="initialize-system-btn" class="btn btn-success" onclick="initializeSystemAutomatically()"><i class="fas fa-play-circle"></i> تنفيذ التأسيس الآلي مرة واحدة</button></div>
+                </div>
+                <div id="system-initialization-summary" class="text-muted mt-10" style="font-size:.85rem;"></div>
+            </div>
+            <!-- الإقفال المحاسبي -->
+            <div class="card-section" id="accounting-card" data-permission="accounting.close">
+                <h4><i class="fas fa-lock"></i> الإقفال المحاسبي</h4>
+                <p class="text-muted">يقفل التعديلات المالية حتى التاريخ المحدد وينشئ قيدًا عكسيًا للإيرادات والمصروفات. هذه العملية متاحة للمدير فقط.</p>
+                <div class="flex-row mt-10" style="align-items:end;gap:12px;">
+                    <div class="flex-1"><label>مغلق حتى تاريخ</label><input type="date" id="closed-until-date" class="input-field" disabled /></div>
+                    <div class="flex-1"><span id="accounting-lock-status" class="text-muted">جاري فحص الحالة...</span></div>
+                </div>
+                <div class="form-actions mt-10">
+                    <button type="button" class="btn btn-warning" onclick="closeAccountingYear()"><i class="fas fa-lock"></i> إقفال حتى التاريخ</button>
+                    <button type="button" class="btn btn-outline" onclick="reopenAccounting()"><i class="fas fa-lock-open"></i> إعادة فتح آخر إقفال</button>
+                </div>
+            </div>
+
             <!-- النسخ الاحتياطي والاستعادة -->
-            <div class="card-section">
+            <div class="card-section" id="backup-card">
                 <h4><i class="fas fa-database"></i> النسخ الاحتياطي للبيانات</h4>
                 <p class="text-muted">حفظ نسخة من النظام أو استعادتها. (يتم تحميل نسخة تلقائياً الساعة 10:00 مساءً إذا كان النظام مفتوحاً).</p>
                 <div class="flex-row mt-10">
                     <div class="flex-1" style="border-left: 1px solid var(--border); padding-left: 15px;">
                         <h5><i class="fas fa-download"></i> تصدير البيانات</h5>
                         <p class="text-muted" style="font-size: 0.85rem; margin-bottom: 10px;">تحميل ملف JSON يحتوي على كافة الجداول والأرصدة.</p>
-                        <button class="btn btn-primary" onclick="exportData()"><i class="fas fa-file-export"></i> تحميل نسخة احتياطية</button>
+                        <button class="btn btn-primary" data-permission="backup.export" onclick="exportData()"><i class="fas fa-file-export"></i> تحميل نسخة احتياطية</button>
                     </div>
                     <div class="flex-1">
                         <h5><i class="fas fa-upload"></i> استيراد البيانات</h5>
                         <input type="file" id="import-file" accept=".json" class="input-field mt-10" style="margin-bottom: 10px;" />
-                        <button class="btn btn-warning" onclick="importData()"><i class="fas fa-file-import"></i> استعادة البيانات</button>
+                        <button class="btn btn-warning" data-permission="backup.restore" onclick="importData()"><i class="fas fa-file-import"></i> استعادة البيانات</button>
                         <small class="text-danger" style="display:block; margin-top:5px; font-weight:bold;">تحذير: الاستعادة ستمسح كافة البيانات الحالية وتستبدلها بالنسخة المرفوعة.</small>
                     </div>
                 </div>
             </div>
 
             <!-- إدارة ترقيم الفواتير -->
-            <div class="card-section">
+            <div class="card-section" data-permission="settings.invoice_numbers.manage">
                 <h4><i class="fas fa-sort-numeric-up"></i> إدارة ترقيم الفواتير</h4>
                 <p class="text-muted">تحديد رقم البداية للفواتير الجديدة لكل نوع. الأرقام المعروضة هي العدد القادم الذي سيُستخدم للفاتورة التالية.</p>
                 <div id="invoice-numbers-display" class="flex-row mt-10">
@@ -188,9 +266,9 @@
             </div>
 
             <!-- إدارة المستخدمين -->
-            <div class="card-section">
+            <div class="card-section" id="users-card" data-permission="settings.users.manage">
                 <h4><i class="fas fa-users-cog"></i> إدارة المستخدمين</h4>
-                <p class="text-muted">يمكن للمدير فقط إدارة المستخدمين. الأدوار: <strong>admin</strong> (مدير) و <strong>cashier</strong> (كاشير).</p>
+                <p class="text-muted">يمكنك إنشاء مستخدم بدور مدير أو كاشير أو مستخدم مخصص، ثم تحديد كل صفحة وكل عملية مسموحة له، بما في ذلك إظهار أو إخفاء التكلفة.</p>
                 
                 <!-- نموذج إضافة مستخدم -->
                 <form id="user-form" onsubmit="addUser(event)" class="inline-form">
@@ -206,7 +284,8 @@
                         <label>الدور</label>
                         <select id="user-role" class="input-field">
                             <option value="cashier">كاشير</option>
-                            <option value="admin">مدير</option>
+                            <option value="admin">مدير كامل</option>
+                            <option value="custom">مستخدم مخصص</option>
                         </select>
                     </div>
                     <div class="form-group" style="min-width:80px;">
@@ -224,10 +303,11 @@
                                 <th>الدور</th>
                                 <th>تاريخ الإنشاء</th>
                                 <th>الإجراءات</th>
+                                <th>الصلاحيات</th>
                             </tr>
                         </thead>
                         <tbody id="users-list">
-                            <tr><td colspan="5" class="text-muted">جاري التحميل...</td></tr>
+                            <tr><td colspan="6" class="text-muted">جاري التحميل...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -239,6 +319,10 @@
     <script>
         const API = 'https://api.ibnalmukhtar.com';
         let token = localStorage.getItem('pos_token') || '';
+        const currentUser = JSON.parse(localStorage.getItem('pos_user') || '{}');
+        const isAdmin = currentUser.role === 'admin';
+        const canManageUsers = () => window.POSPermissions?.can('settings.users.manage') || false;
+        const canManageSettings = () => window.POSPermissions?.can('settings.manage') || false;
         if (!token) window.location.href = 'index.html';
 
         function showToast(msg, type='info') {
@@ -250,7 +334,22 @@
             c.appendChild(t);
             setTimeout(() => t.remove(), 4000);
         }
-        function logout() { if(confirm('تأكيد الخروج?')) { localStorage.removeItem('pos_token'); window.location.href='index.html'; } }
+        function logout() {
+            window.POSPermissions?.recordLogout?.(); if(confirm('تأكيد الخروج?')) { localStorage.removeItem('pos_token'); localStorage.removeItem('pos_user'); window.location.href='index.html'; } }
+
+        function applySettingsPermissions() {
+            window.POSPermissions?.refresh();
+            if (!canManageSettings()) document.querySelectorAll('#settings-form input, #settings-form select, #settings-form button[type="submit"]').forEach(el => el.disabled = true);
+            if (!window.POSPermissions?.can('settings.invoice_numbers.manage')) document.querySelectorAll('#invoice-numbers-form input, #invoice-numbers-form select, #invoice-numbers-form button').forEach(el => el.disabled = true);
+        }
+
+        async function checkConnection() {
+            const badge = document.getElementById('connection-badge'); const detail = document.getElementById('connection-detail');
+            if (!navigator.onLine) { badge.className = 'btn btn-danger btn-sm'; badge.innerHTML = '<i class="fas fa-wifi-slash"></i> غير متصل'; detail.textContent = 'لا يوجد اتصال بالشبكة'; return false; }
+            const controller = new AbortController(); const timer = setTimeout(() => controller.abort(), 6000);
+            try { const started = performance.now(); const res = await fetch(`${API}/settings`, { headers:{'Authorization': `Bearer ${token}`}, signal: controller.signal }); clearTimeout(timer); if (!res.ok) throw new Error('HTTP ' + res.status); badge.className = 'btn btn-success btn-sm'; badge.innerHTML = '<i class="fas fa-check-circle"></i> متصل'; detail.textContent = `Worker متصل · زمن الاستجابة ${formatPosNumber(Math.round(performance.now()-started))}ms`; return true; }
+            catch (e) { clearTimeout(timer); badge.className = 'btn btn-danger btn-sm'; badge.innerHTML = '<i class="fas fa-exclamation-circle"></i> تعذر الاتصال'; detail.textContent = 'تحقق من عنوان API أو صلاحية الجلسة'; return false; }
+        }
 
         // ========== الإعدادات ==========
         async function loadSettings() {
@@ -260,10 +359,37 @@
                 const s = data.settings;
                 document.getElementById('setting-shop-name').value = s.shop_name || '';
                 document.getElementById('setting-shop-phone').value = s.shop_phone || '';
+                document.getElementById('setting-shop-address').value = s.shop_address || '';
+                document.getElementById('setting-shop-logo').value = s.shop_logo || '';
+                document.getElementById('setting-brand-primary').value = s.brand_primary || '#1d4ed8';
+                document.getElementById('setting-brand-secondary').value = s.brand_secondary || '#c9a227';
+                document.getElementById('setting-brand-text').value = s.brand_text || '#172033';
+                document.getElementById('setting-invoice-footer').value = s.invoice_footer || 'شكرًا لتعاملكم معنا';
+                previewBrandLogo();
+                if (window.POSDocs) POSDocs.setIdentity(s);
                 document.getElementById('setting-default-discount').value = s.default_discount_percentage || 0;
+                const navStyle = ['sidebar', 'topbar-dropdown', 'app-launcher'].includes(String(s.nav_style)) ? String(s.nav_style) : (localStorage.getItem('nav_style') || 'sidebar');
+                document.getElementById('setting-nav-style').value = navStyle;
+                localStorage.setItem('nav_style', navStyle);
                 document.getElementById('setting-allow-below-cost').checked = s.allow_below_cost === '1';
                 document.getElementById('setting-allow-negative-stock').checked = s.allow_negative_stock === '1';
+                document.getElementById('setting-allow-expired-negative').checked = s.allow_expired_negative_sales === undefined || s.allow_expired_negative_sales === '1';
                 document.getElementById('setting-next-product-code').value = s.next_product_code || 1;
+                const closed = s.closed_until_date || '';
+                const initialized = String(s.system_initialized || '0') === '1';
+                const initializationStatus = document.getElementById('system-initialization-status');
+                const initializationButton = document.getElementById('initialize-system-btn');
+                if (initializationStatus) {
+                    initializationStatus.textContent = initialized ? 'تمت تهيئة النظام وقيد التأسيس موجود — لا يمكن إعادة التنفيذ.' : 'النظام غير مهيأ بعد — الزر متاح للمدير فقط.';
+                    initializationStatus.style.color = initialized ? 'var(--success)' : 'var(--warning)';
+                }
+                if (initializationButton) {
+                    initializationButton.disabled = initialized || !window.POSPermissions?.can('accounting.initialize');
+                    initializationButton.innerHTML = initialized ? '<i class="fas fa-check-circle"></i> تم تنفيذ التأسيس' : '<i class="fas fa-play-circle"></i> تنفيذ التأسيس الآلي مرة واحدة';
+                }
+                document.getElementById('closed-until-date').value = closed;
+                document.getElementById('accounting-lock-status').textContent = closed ? `الفترة مغلقة حتى ${closed}` : 'الفترة المحاسبية مفتوحة';
+                document.getElementById('accounting-lock-status').style.color = closed ? 'var(--danger)' : 'var(--success)';
             } catch {
                 showToast('فشل تحميل الإعدادات', 'error');
             }
@@ -274,10 +400,18 @@
             const body = {
                 shop_name: document.getElementById('setting-shop-name').value,
                 shop_phone: document.getElementById('setting-shop-phone').value,
+                shop_address: document.getElementById('setting-shop-address').value,
+                shop_logo: document.getElementById('setting-shop-logo').value,
+                brand_primary: document.getElementById('setting-brand-primary').value,
+                brand_secondary: document.getElementById('setting-brand-secondary').value,
+                brand_text: document.getElementById('setting-brand-text').value,
+                invoice_footer: document.getElementById('setting-invoice-footer').value,
                 default_discount_percentage: parseFloat(document.getElementById('setting-default-discount').value) || 0,
                 allow_below_cost: document.getElementById('setting-allow-below-cost').checked ? '1' : '0',
                 allow_negative_stock: document.getElementById('setting-allow-negative-stock').checked ? '1' : '0',
-                next_product_code: parseInt(document.getElementById('setting-next-product-code').value) || 1
+                allow_expired_negative_sales: document.getElementById('setting-allow-expired-negative').checked ? '1' : '0',
+                next_product_code: parseInt(document.getElementById('setting-next-product-code').value) || 1,
+                nav_style: document.getElementById('setting-nav-style').value
             };
             try {
                 const res = await fetch(`${API}/settings`, {
@@ -286,10 +420,73 @@
                     body: JSON.stringify(body)
                 });
                 if (res.ok) {
+                    localStorage.setItem('nav_style', body.nav_style);
+                    window.applyNavigationStyle?.(body.nav_style, false);
                     showToast('تم حفظ الإعدادات', 'success');
+                    if (window.POSDocs) POSDocs.setIdentity(body);
                     loadSettings();
                 } else { const err = await res.json(); showToast(err.error, 'error'); }
             } catch { showToast('خطأ', 'error'); }
+        }
+
+        function previewBrandLogo() {
+            const url = document.getElementById('setting-shop-logo')?.value.trim();
+            const box = document.getElementById('brand-logo-preview');
+            if (!box) return;
+            box.innerHTML = url ? `<img src="${url.replace(/"/g, '&quot;')}" alt="الشعار" style="max-height:44px;max-width:180px;object-fit:contain" onerror="this.parentElement.textContent='تعذر تحميل الشعار'">` : 'لا يوجد شعار';
+        }
+        function readBrandLogoFile(event) {
+            const file = event.target.files?.[0];
+            if (!file) return;
+            if (file.size > 1024 * 1024) return showToast('يفضل ألا يتجاوز الشعار 1MB', 'warning');
+            const reader = new FileReader();
+            reader.onload = () => { document.getElementById('setting-shop-logo').value = reader.result; previewBrandLogo(); };
+            reader.readAsDataURL(file);
+        }
+        async function initializeSystemAutomatically() {
+            if (!window.POSPermissions?.can('accounting.initialize')) return showToast('لا تملك صلاحية تنفيذ التأسيس', 'error');
+            const button = document.getElementById('initialize-system-btn');
+            if (button?.disabled) return showToast('تم تنفيذ التأسيس مسبقًا ولا يمكن تكراره', 'warning');
+            if (!confirm('سيجمع النظام الأرصدة الحالية وينشئ قيد التأسيس تلقائيًا. العملية نهائية وتُستخدم مرة واحدة فقط. هل تريد المتابعة؟')) return;
+            if (button) { button.disabled = true; button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري إنشاء القيد...'; }
+            try {
+                const res = await fetch(`${API}/accounting/initialize`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ entry_date: new Date().toISOString().slice(0, 10), description: 'قيد التأسيس الآلي للنظام' })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'فشل تنفيذ التأسيس الآلي');
+                const total = Number(data.total_debit || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                const summary = document.getElementById('system-initialization-summary');
+                if (summary) summary.textContent = `تم إنشاء القيد رقم ${data.entry_id} بإجمالي متوازن ${formatPosMoney(total)}.`;
+                showToast(data.message || 'تم تنفيذ التأسيس الآلي بنجاح', 'success');
+                await loadSettings();
+            } catch (e) {
+                if (button) { button.disabled = false; button.innerHTML = '<i class="fas fa-play-circle"></i> تنفيذ التأسيس الآلي مرة واحدة'; }
+                showToast(e.message, 'error');
+            }
+        }
+
+        async function closeAccountingYear() {
+            if (!window.POSPermissions?.can('accounting.close')) return showToast('لا تملك صلاحية الإقفال المحاسبي', 'error');
+            const date = document.getElementById('closed-until-date').value;
+            if (!date) return showToast('حدد تاريخ الإقفال أولاً', 'warning');
+            if (!confirm(`سيتم إنشاء قيد إقفال ومنع التعديلات حتى ${date}. هل تريد المتابعة؟`)) return;
+            try {
+                const res = await fetch(`${API}/accounting/close-year`, { method:'POST', headers:{'Authorization':`Bearer ${token}`,'Content-Type':'application/json'}, body:JSON.stringify({closing_date:date}) });
+                const data = await res.json(); if (!res.ok) throw new Error(data.error || 'فشل الإقفال');
+                showToast('تم إقفال السنة وإنشاء القيد العكسي', 'success'); await loadSettings();
+            } catch (e) { showToast(e.message, 'error'); }
+        }
+        async function reopenAccounting() {
+            if (!window.POSPermissions?.can('accounting.close')) return showToast('لا تملك صلاحية إعادة الفتح', 'error');
+            if (!confirm('سيتم حذف قيد آخر إقفال وفتح الفترة. هل تريد المتابعة؟')) return;
+            try {
+                const res = await fetch(`${API}/accounting/reopen`, { method:'POST', headers:{'Authorization':`Bearer ${token}`,'Content-Type':'application/json'}, body:'{}' });
+                const data = await res.json(); if (!res.ok) throw new Error(data.error || 'فشل إعادة الفتح');
+                showToast(data.message || 'تم فتح الفترة المحاسبية', 'success'); await loadSettings();
+            } catch (e) { showToast(e.message, 'error'); }
         }
 
         // ========== توليد أرقام SKU للمنتجات القديمة ==========
@@ -334,7 +531,7 @@
                 const a = document.createElement('a');
                 a.href = url;
                 const dateStr = new Date().toISOString().split('T')[0];
-                a.download = `backup_ibnalmukhtar_${dateStr}${isAuto ? '_auto' : ''}.json`;
+                a.download = `backup_ibnalmukhtar_${dateStr}${formatPosNumber(isAuto ? '_auto' : '')}.json`;
                 document.body.appendChild(a);
                 a.click();
                 a.remove();
@@ -347,11 +544,12 @@
 
         async function importData() {
             const fileInput = document.getElementById('import-file');
+            if (!window.POSPermissions?.can('backup.restore')) return showToast('لا تملك صلاحية استعادة البيانات', 'warning');
             if (!fileInput.files.length) return showToast('الرجاء اختيار ملف النسخة الاحتياطية (JSON) أولاً', 'warning');
-
-            if (!confirm('🚨 تحذير خطير 🚨\nاستعادة البيانات ستحذف كافة الفواتير، المبيعات، والأرصدة الحالية وتستبدلها بالملف المرفوع.\n\nهل أنت متأكد من هذه العملية؟')) return;
-
             const file = fileInput.files[0];
+            if (file.size > 20 * 1024 * 1024) return showToast('حجم النسخة يتجاوز الحد الآمن 20MB', 'warning');
+            if (!confirm('سيتم استبدال البيانات الحالية. اضغط موافق للمتابعة ثم اكتب كلمة استعادة في التأكيد التالي.')) return;
+            if (prompt('للتأكيد اكتب: استعادة') !== 'استعادة') return showToast('تم إلغاء الاستعادة لعدم تطابق التأكيد', 'info');
             const reader = new FileReader();
 
             reader.onload = async function(e) {
@@ -409,9 +607,9 @@
                 const display = document.getElementById('invoice-numbers-display');
                 const numbers = data.invoice_numbers;
                 display.innerHTML = `
-                    <div class="flex-1"><strong>المبيعات:</strong> ${numbers.sales || 1}</div>
-                    <div class="flex-1"><strong>المشتريات:</strong> ${numbers.purchases || 1}</div>
-                    <div class="flex-1"><strong>طلبات الإنترنت:</strong> ${numbers.online || 1}</div>
+                    <div class="flex-1"><strong>المبيعات:</strong> ${formatPosNumber(numbers.sales || 1, 0)}</div>
+                    <div class="flex-1"><strong>المشتريات:</strong> ${formatPosNumber(numbers.purchases || 1, 0)}</div>
+                    <div class="flex-1"><strong>طلبات الإنترنت:</strong> ${formatPosNumber(numbers.online || 1)}</div>
                 `;
             } catch (e) {
                 showToast('خطأ في تحميل أعداد الفواتير', 'error');
@@ -449,36 +647,36 @@
             }
         }
 
-        // ========== إدارة المستخدمين ==========
+        // ========== إدارة المستخدمين والصلاحيات ==========
+        let usersCache = [];
+        function permissionItems() { return (window.POS_PERMISSION_CATALOG || []).flatMap(group => group.items); }
+        function roleName(role) { return role === 'admin' ? 'مدير كامل' : role === 'custom' ? 'مخصص' : 'كاشير'; }
+        function openPermissionEditorById(id) { const user = usersCache.find(item => Number(item.id) === Number(id)); if (user) openPermissionEditor(user); }
+        function openPermissionEditor(user) {
+            if (!canManageUsers() || user.role === 'admin') return showToast('المدير الكامل يملك كل الصلاحيات تلقائيًا', 'info');
+            const selected = new Set(Array.isArray(user.permissions) ? user.permissions : (window.POSPermissions?.defaults[user.role] || []));
+            const overlay = document.createElement('div');
+            overlay.id = 'permission-editor-overlay';
+            overlay.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:100000;display:flex;align-items:center;justify-content:center;padding:20px;';
+            const groups = (window.POS_PERMISSION_CATALOG || []).map(group => `<section style="border:1px solid #e5e7eb;border-radius:10px;padding:12px;margin-bottom:10px;background:#fff"><h4 style="margin:0 0 8px">${group.group}</h4><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:7px">${group.items.map(([key,label]) => `<label style="display:flex;gap:7px;align-items:center;font-size:.86rem"><input type="checkbox" data-permission-key="${key}" ${selected.has(key) ? 'checked' : ''}>${label}</label>`).join('')}</div></section>`).join('');
+            overlay.innerHTML = `<div dir="rtl" style="background:#f8fafc;border-radius:14px;max-width:980px;width:100%;max-height:90vh;overflow:auto;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,.25)"><div style="display:flex;justify-content:space-between;gap:12px;align-items:center"><div><h3 style="margin:0">صلاحيات: ${user.username}</h3><p style="margin:5px 0;color:#64748b">حدد ما يستطيع المستخدم رؤيته وتنفيذه. إلغاء تحديد صلاحية التكلفة يخفي أسعار التكلفة والربح من الواجهة ومن بيانات API.</p></div><button class="btn btn-outline" type="button" onclick="document.getElementById('permission-editor-overlay').remove()">إغلاق</button></div><div style="display:flex;gap:8px;margin:12px 0"><button class="btn btn-sm btn-outline" type="button" onclick="document.querySelectorAll('#permission-editor-overlay input[data-permission-key]').forEach(x=>x.checked=true)">تحديد الكل</button><button class="btn btn-sm btn-outline" type="button" onclick="document.querySelectorAll('#permission-editor-overlay input[data-permission-key]').forEach(x=>x.checked=false)">إلغاء الكل</button></div>${groups}<div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px"><button class="btn btn-outline" type="button" onclick="document.getElementById('permission-editor-overlay').remove()">إلغاء</button><button class="btn btn-primary" type="button" onclick="savePermissionEditor(${user.id})"><i class="fas fa-save"></i> حفظ الصلاحيات</button></div></div>`;
+            document.body.appendChild(overlay);
+        }
+        async function savePermissionEditor(id) {
+            const permissions = [...document.querySelectorAll('#permission-editor-overlay input[data-permission-key]:checked')].map(input => input.getAttribute('data-permission-key'));
+            await updateUser(id, { permissions });
+            document.getElementById('permission-editor-overlay')?.remove();
+        }
         async function loadUsers() {
             try {
                 const res = await fetch(`${API}/users`, { headers: { 'Authorization': `Bearer ${token}` } });
-                if (!res.ok) {
-                    const err = await res.json();
-                    showToast(err.error || 'غير مصرح', 'error');
-                    return;
-                }
-                const data = await res.json();
+                if (!res.ok) { const err = await res.json(); showToast(err.error || 'غير مصرح', 'error'); return; }
+                const data = await res.json(); usersCache = data.users || [];
                 const tbody = document.getElementById('users-list');
-                if (!data.users || data.users.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="5" class="text-muted">لا يوجد مستخدمون</td></tr>';
-                    return;
-                }
-                tbody.innerHTML = data.users.map((u, idx) => `
-                    <tr>
-                        <td>${idx + 1}</td>
-                        <td>${u.username}</td>
-                        <td>${u.role === 'admin' ? 'مدير' : 'كاشير'}</td>
-                        <td>${new Date(u.created_at).toLocaleString()}</td>
-                        <td>
-                            <button class="btn btn-sm btn-primary" onclick="editUser(${u.id}, '${u.username}', '${u.role}')"><i class="fas fa-edit"></i></button>
-                            <button class="btn btn-sm btn-danger" onclick="deleteUser(${u.id})"><i class="fas fa-trash"></i></button>
-                        </td>
-                    </tr>
-                `).join('');
+                if (!usersCache.length) { tbody.innerHTML = '<tr><td colspan="6" class="text-muted">لا يوجد مستخدمون</td></tr>'; return; }
+                tbody.innerHTML = usersCache.map((u, idx) => `<tr><td>${formatPosNumber(idx + 1, 0)}</td><td>${u.username}</td><td>${roleName(u.role)}</td><td>${new Date(u.created_at).toLocaleString()}</td><td><button class="btn btn-sm btn-primary" onclick="editUser(${u.id}, '${String(u.username).replace(/'/g, "\\'")}', '${u.role}')"><i class="fas fa-edit"></i></button><button class="btn btn-sm btn-danger" onclick="deleteUser(${u.id})"><i class="fas fa-trash"></i></button></td><td>${u.role === 'admin' ? '<span class="text-muted">كل الصلاحيات</span>' : `<button class="btn btn-sm btn-outline" onclick="openPermissionEditorById(${u.id})"><i class="fas fa-key"></i> تخصيص</button>`}</td></tr>`).join('');
             } catch (e) { showToast('خطأ في تحميل المستخدمين', 'error'); }
         }
-
         async function addUser(e) {
             e.preventDefault();
             const username = document.getElementById('user-username').value.trim();
@@ -486,64 +684,45 @@
             const role = document.getElementById('user-role').value;
             if (!username || !password) return showToast('اسم المستخدم وكلمة المرور مطلوبة', 'warning');
             try {
-                const res = await fetch(`${API}/users`, {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, password, role })
-                });
-                if (res.ok) {
-                    showToast('تم إضافة المستخدم', 'success');
-                    document.getElementById('user-form').reset();
-                    loadUsers();
-                } else { const err = await res.json(); showToast(err.error, 'error'); }
+                const res = await fetch(`${API}/users`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password, role }) });
+                const data = await res.json();
+                if (!res.ok) return showToast(data.error || 'فشل إنشاء المستخدم', 'error');
+                showToast('تم إضافة المستخدم', 'success'); document.getElementById('user-form').reset(); await loadUsers();
+                if (role !== 'admin' && data.user) openPermissionEditor(data.user);
             } catch { showToast('خطأ', 'error'); }
         }
-
         function editUser(id, username, role) {
-            const newRole = prompt(`تغيير دور المستخدم "${username}" (admin/cashier):`, role);
-            if (newRole === null) return;
-            if (!['admin','cashier'].includes(newRole)) return showToast('دور غير صحيح', 'warning');
+            const newRole = prompt(`تغيير دور المستخدم "${username}" (admin/cashier/custom):`, role); if (newRole === null) return;
+            if (!['admin','cashier','custom'].includes(newRole)) return showToast('دور غير صحيح', 'warning');
             const newPassword = prompt('أدخل كلمة مرور جديدة (اترك فارغاً للإبقاء على القديمة):');
-            const body = { role: newRole };
-            if (newPassword && newPassword.trim() !== '') body.password = newPassword.trim();
-            updateUser(id, body);
+            const body = { role: newRole }; if (newPassword && newPassword.trim()) body.password = newPassword.trim(); updateUser(id, body);
         }
-
         async function updateUser(id, body) {
-            try {
-                const res = await fetch(`${API}/users/${id}`, {
-                    method: 'PUT',
-                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                    body: JSON.stringify(body)
-                });
-                if (res.ok) {
-                    showToast('تم التحديث', 'success');
-                    loadUsers();
-                } else { const err = await res.json(); showToast(err.error, 'error'); }
-            } catch { showToast('خطأ', 'error'); }
+            try { const res = await fetch(`${API}/users/${id}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); const data = await res.json(); if (!res.ok) return showToast(data.error || 'فشل التحديث', 'error'); showToast('تم التحديث', 'success'); loadUsers(); }
+            catch { showToast('خطأ', 'error'); }
         }
-
         async function deleteUser(id) {
             if (!confirm('هل أنت متأكد من حذف هذا المستخدم؟')) return;
-            try {
-                const res = await fetch(`${API}/users/${id}`, {
-                    method: 'DELETE',
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                if (res.ok) {
-                    showToast('تم الحذف', 'success');
-                    loadUsers();
-                } else { const err = await res.json(); showToast(err.error, 'error'); }
-            } catch { showToast('خطأ', 'error'); }
+            try { const res = await fetch(`${API}/users/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } }); const data = await res.json(); if (!res.ok) return showToast(data.error || 'فشل الحذف', 'error'); showToast('تم الحذف', 'success'); loadUsers(); }
+            catch { showToast('خطأ', 'error'); }
         }
 
         // ========== التحميل عند فتح الصفحة ==========
+        applySettingsPermissions();
         window.onload = function() {
+            checkConnection();
             loadSettings();
-            loadUsers();
+            if (canManageUsers()) loadUsers();
             loadInvoiceNumbers();
             setupAutoBackup();
         };
+        window.addEventListener('online', checkConnection);
+        window.addEventListener('offline', checkConnection);
+        setInterval(checkConnection, 60000);
     </script>
+    <script src="document-utils.js"></script>
+    <script src="sidebar-config.js"></script>
+    <script src="notification-center-v3.js"></script>
+    <script src="notification-settings-v3.js"></script>
 </body>
 </html>

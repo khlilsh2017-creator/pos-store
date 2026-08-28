@@ -758,27 +758,18 @@
             }
         }
     </style>
+    <script src="number-utils.js"></script>
+    <script src="permissions.js"></script>
+    <script src="date-utils.js"></script>
+    <script src="filter-utils.js"></script>
+    <script src="/offline-sync.js"></script>
+    <link rel="stylesheet" href="sidebar-v4.css" />
 </head>
 <body>
 
     <div class="app-wrapper">
         <!-- ===== sidebar ===== -->
-        <aside class="sidebar">
-            <div class="brand">
-                <i class="fas fa-store"></i>
-                <span>النظام المحاسبي</span>
-                <small>ابن المختار</small>
-            </div>
-            <nav>
-                <a class="nav-link" href="sale.html"><i class="fas fa-cash-register"></i> <span>المبيعات</span></a>
-                <a class="nav-link active" href="online-reports.html"><i class="fas fa-globe"></i> <span>تقارير الإنترنت</span></a>
-                <a class="nav-link" href="orders.html"><i class="fas fa-truck"></i> <span>المندوبين</span></a>
-                <a class="nav-link" href="products.html"><i class="fas fa-boxes"></i> <span>المنتجات</span></a>
-            </nav>
-            <div class="logout-btn">
-                <a class="nav-link" href="#" onclick="logout()"><i class="fas fa-sign-out-alt"></i> <span>خروج</span></a>
-            </div>
-        </aside>
+        <div id="sidebar-container"></div>
 
         <!-- ===== main content ===== -->
         <main class="main-content">
@@ -791,8 +782,11 @@
                 </div>
                 <div class="actions">
                     <button class="btn btn-sm btn-outline" onclick="printReport()"><i class="fas fa-print"></i> طباعة</button>
-                    <button class="btn btn-sm btn-success" onclick="exportCSV()"><i class="fas fa-file-csv"></i> تصدير CSV</button>
+                    <button class="btn btn-sm btn-success" onclick="printReport()"><i class="fas fa-print"></i> طباعة التقرير</button>
+                    
                     <button class="btn btn-sm btn-primary" onclick="applyFilters()"><i class="fas fa-sync-alt"></i> تحديث</button>
+                    <span id="report-connection-badge" class="status-badge" style="padding:6px 10px;"><i class="fas fa-spinner fa-spin"></i> فحص</span>
+                    <span id="report-role-badge" class="status-badge" style="padding:6px 10px;">قارئ</span>
                 </div>
             </div>
 
@@ -839,10 +833,6 @@
                             <option value="مدفوع مسبقاً">مدفوع مسبقاً</option>
                             <option value="مدفوع مسبقاً (محفظة)">مدفوع مسبقاً (محفظة)</option>
                         </select>
-                    </div>
-                    <div class="filter-group" style="grid-column: span 1; display: flex; gap: 8px; align-items: end;">
-                        <button class="btn btn-primary" onclick="applyFilters()" style="flex:1;"><i class="fas fa-filter"></i> تطبيق الفلترة</button>
-                        <button class="btn btn-outline" onclick="resetFilters()" style="flex:0.5;"><i class="fas fa-undo-alt"></i></button>
                     </div>
                 </div>
             </div>
@@ -937,6 +927,7 @@
         // ================================================================
         const API = 'https://api.ibnalmukhtar.com'; // غيّر حسب خادمك
         let token = localStorage.getItem('pos_token') || '';
+        const currentUser = JSON.parse(localStorage.getItem('pos_user') || '{}');
         if (!token) window.location.href = 'index.html';
 
         let allOrders = [];
@@ -970,6 +961,19 @@
                 setTimeout(() => t.remove(), 300); }, 4000);
         }
 
+        async function checkReportConnection() {
+            const badge = document.getElementById('report-connection-badge');
+            if (!navigator.onLine) { badge.className = 'status-badge cancelled'; badge.innerHTML = '<i class="fas fa-wifi-slash"></i> غير متصل'; return false; }
+            const controller = new AbortController(); const timer = setTimeout(() => controller.abort(), 6000); const started = performance.now();
+            try { const res = await fetch(`${API}/settings`, { headers:{'Authorization': `Bearer ${token}`}, signal: controller.signal }); clearTimeout(timer); if (!res.ok) throw new Error(); badge.className = 'status-badge delivered'; badge.innerHTML = `<i class="fas fa-check-circle"></i> متصل ${formatPosNumber(Math.round(performance.now()-started))}ms`; return true; }
+            catch (e) { clearTimeout(timer); badge.className = 'status-badge cancelled'; badge.innerHTML = '<i class="fas fa-exclamation-circle"></i> الخادم غير متاح'; return false; }
+        }
+
+        function applyReportPermissions() {
+            const badge = document.getElementById('report-role-badge');
+            if (badge) { badge.innerHTML = currentUser.role === 'admin' ? '<i class="fas fa-user-shield"></i> مدير' : '<i class="fas fa-user"></i> موظف · قراءة'; badge.title = currentUser.role === 'admin' ? 'صلاحية مدير' : 'التقارير متاحة للقراءة والتصدير'; }
+        }
+
         function formatNumber(num) {
             if (!num && num !== 0) return '0';
             return Number(num).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -978,12 +982,12 @@
         function formatDate(dateStr) {
             if (!dateStr) return '--';
             try {
-                return new Date(dateStr).toLocaleDateString('ar-SA', { year: 'numeric', month: 'short', day: 'numeric',
-                    hour: '2-digit', minute: '2-digit' });
+                return POSDate.localized(dateStr, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
             } catch (e) { return dateStr; }
         }
 
         function logout() {
+            window.POSPermissions?.recordLogout?.();
             if (confirm('هل أنت متأكد من الخروج؟')) {
                 localStorage.removeItem('pos_token');
                 window.location.href = 'index.html';
@@ -1114,7 +1118,7 @@
             const trendCtx = document.getElementById('salesTrendChart').getContext('2d');
             const dailyData = {};
             orders.forEach(o => {
-                const date = new Date(o.order_date || o.created_at).toLocaleDateString('ar-SA');
+                const date = posDate(o.order_date || o.created_at);
                 dailyData[date] = (dailyData[date] || 0) + (parseFloat(o.total_amount) || 0);
             });
 
@@ -1278,7 +1282,7 @@
             const start = (currentPage - 1) * pageSize + 1;
             const end = Math.min(currentPage * pageSize, totalRecords);
             document.getElementById('paginationInfo').innerText =
-                totalRecords > 0 ? `عرض ${start} - ${end} من ${totalRecords}` : 'عرض 0 - 0 من 0';
+                totalRecords > 0 ? `عرض ${start} - ${end} من ${formatPosMoney(totalRecords)}` : 'عرض 0 - 0 من 0';
             document.getElementById('prevPage').disabled = currentPage === 1 || totalRecords === 0;
             document.getElementById('nextPage').disabled = currentPage >= totalPages || totalRecords === 0;
         }
@@ -1356,12 +1360,12 @@
                     return;
                 }
 
-                const itemsHtml = (order.items || []).map(item => `
+                const itemsHtml = (order.items || []).map(item => { const itemName = item.variant_label && !String(item.product_name || '').includes(String(item.variant_label)) ? `${item.product_name || 'منتج'} — ${item.variant_label}` : (item.product_name || 'منتج'); const itemDiscount = Number(item.discount || item.discount_amount || 0); const itemNote = item.note || item.notes || item.product_note || ''; return `
                         <div class="item-row">
-                            <span>${item.product_name || 'منتج'}</span>
-                            <span>${item.quantity} × ${formatNumber(item.unit_price)} ريال = <strong>${formatNumber(item.line_total || (item.quantity * item.unit_price))} ريال</strong></span>
+                            <span>${itemName}${itemDiscount > 0 ? `<small style="display:block;color:#dc2626;">خصم المنتج: ${formatNumber(itemDiscount)} ريال</small>` : ''}${itemNote ? `<small style="display:block;color:var(--muted);">ملاحظة: ${escapeHtml(itemNote)}</small>` : ''}</span>
+                            <span>${formatPosQuantity(item.quantity)} × ${formatNumber(item.unit_price)} ريال = <strong>${formatNumber(item.line_total || ((item.quantity * (item.unit_price - itemDiscount))))} ريال</strong></span>
                         </div>
-                    `).join('');
+                    `; }).join('');
 
                 content.innerHTML = `
                         <div class="detail-group"><span class="label">رقم الطلب / الفاتورة</span><div class="value"><strong>#${order.id}</strong> | ${order.invoice_number || '--'}</div></div>
@@ -1416,7 +1420,9 @@
         }
 
         function printReport() {
-            window.print();
+            const element = document.querySelector('[data-pos-print-target]') || document.querySelector('main') || document.querySelector('.content');
+            if (!element || !window.POSDocs) return showToast('تعذر تجهيز التقرير للطباعة', 'error');
+            POSDocs.printReport(element, { title: document.title }).catch(e => showToast(e.message, 'error'));
         }
 
         function printSingleOrder(orderId) {
@@ -1427,8 +1433,13 @@
             const shopPhone = localStorage.getItem('shop_phone') || '773266534';
 
             const items = order.items || [];
+            if (window.POSDocs) {
+                const invoiceData = { type:'sale', is_online_order:true, online_order_id:order.id, order_number:order.id, number:order.invoice_number || order.id, date:order.order_date ? formatDate(order.order_date) : new Date().toLocaleString('ar-SA'), party:order.customer_name || 'غير محدد', customer_name:order.customer_name || '', customer_phone:order.customer_phone || '', customer_address:order.customer_address || '', governorate:order.governorate || '', delivery_type:order.delivery_type || '', driver_name:order.driver_name || '', payment_method:order.payment_method || 'غير محددة', status:order.status || 'مكتملة', items:items.map(item => ({ name:(item.variant_label && !String(item.product_name || item.name || '').includes(String(item.variant_label)) ? `${item.product_name || item.name || 'منتج'} — ${item.variant_label}` : (item.product_name || item.name || 'منتج')), quantity:Number(item.quantity || 0), unit_price:Number(item.unit_price || 0), discount:Number(item.discount || item.discount_amount || 0), note:item.note || item.notes || '', line_total:Number(item.line_total ?? item.total_price ?? (Number(item.quantity || 0) * Math.max(0, Number(item.unit_price || 0) - Number(item.discount || item.discount_amount || 0)))) })), gross_subtotal:items.reduce((s,item)=>s+(Number(item.unit_price||0)*Number(item.quantity||0)),0), total:Number(order.total_amount || 0), paid:Number(order.paid_amount || 0), additional:Number(order.delivery_fee || 0), notes:order.notes || '' };
+                POSDocs.printInvoiceData(invoiceData, {title:`فاتورة طلب #${orderId}`}).catch(error => showToast(error.message, 'error'));
+                return;
+            }
             const itemsHtml = items.map(item => `
-                    <tr><td>${item.product_name}</td><td>${item.quantity}</td><td>${formatNumber(item.unit_price)} ريال</td><td>${formatNumber(item.line_total)} ريال</td></tr>
+                    <tr><td>${item.variant_label && !String(item.product_name || '').includes(String(item.variant_label)) ? `${item.product_name || 'منتج'} — ${item.variant_label}` : (item.product_name || 'منتج')}</td><td>${formatPosQuantity(item.quantity)}</td><td>${formatNumber(item.unit_price)} ريال</td><td>${formatNumber(item.line_total)} ريال</td></tr>
                 `).join('');
 
             const content = `
@@ -1463,9 +1474,12 @@
                     </div>
                 `;
 
+            if (window.POSDocs) { const holder = document.createElement('div'); holder.innerHTML = content; const element = holder.firstElementChild; POSDocs.printElement(element, { title: `فاتورة طلب #${orderId}` }).catch(e => showToast(e.message, 'error')); return; }
             const win = window.open('', '_blank', 'width=800,height=700');
             win.document.write(
-                `<html><head><title>فاتورة طلب #${orderId}</title><link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;800&display=swap" rel="stylesheet"></head><body>${content}</body></html>`
+                `<html><head><title>فاتورة طلب #${orderId}</title><link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;800&display=swap" rel="stylesheet">    <link rel="stylesheet" href="sidebar-v4.css" />
+</head><body>${content}
+</body></html>`
                 );
             win.document.close();
             win.onload = function() { win.print(); };
@@ -1474,13 +1488,20 @@
         // ================================================================
         //  التهيئة عند التحميل
         // ================================================================
-        window.onload = function() {
+        window.onload = async function() {
+            applyReportPermissions();
+            await checkReportConnection();
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('filterDateFrom').value = today;
             document.getElementById('filterDateTo').value = today;
             document.getElementById('pageSizeSelect').value = pageSize;
             applyFilters();
+            window.addEventListener('online', () => { checkReportConnection(); applyFilters(); });
+            window.addEventListener('offline', checkReportConnection);
         };
     </script>
+    <script src="document-utils.js"></script>
+    <script src="sidebar-config.js"></script>
+    <script src="notification-center-v3.js"></script>
 </body>
 </html>

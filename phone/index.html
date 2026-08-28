@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#123b72">
+<link rel="manifest" href="manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--navy:#123b72;--blue:#1d63c6;--bg:#f2f7fd;--card:#fff;--text:#152238;--muted:#718096;--line:#e2e8f0;--red:#c93232;--shadow:0 12px 34px rgba(18,59,114,.12);--safe-top:env(safe-area-inset-top,0px);--safe-bottom:env(safe-area-inset-bottom,0px)}*{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:Cairo,Arial,sans-serif;background:linear-gradient(160deg,#eaf3ff,#f9fbfe);color:var(--text)}body{padding:calc(20px + var(--safe-top)) 14px calc(20px + var(--safe-bottom))}.shell{width:min(100%,470px);margin:auto}.brand{text-align:center;margin:14px 0 18px}.logo{width:72px;height:72px;margin:auto;display:grid;place-items:center;border-radius:24px;background:linear-gradient(135deg,var(--navy),var(--blue));color:#fff;font-size:2rem;box-shadow:0 9px 22px rgba(29,99,198,.25)}h1{font-size:1.3rem;margin:12px 0 3px;font-weight:800}.subtitle{font-size:.75rem;color:var(--muted);margin:0;line-height:1.8}.card{background:var(--card);border:1px solid var(--line);border-radius:24px;box-shadow:var(--shadow);padding:20px 17px}.card h2{font-size:1rem;margin:0 0 3px}.card .hint{font-size:.7rem;color:var(--muted);margin:0 0 14px}.notice{display:none;padding:10px 11px;border-radius:11px;font-size:.73rem;margin:8px 0}.notice.show{display:block}.notice.error{background:#fff0f0;color:#a62323}.notice.success{background:#effbf3;color:#146b35}.field{margin:10px 0}.field label{display:block;font-size:.72rem;font-weight:700;margin-bottom:5px}.input{width:100%;min-height:47px;border:1px solid var(--line);border-radius:12px;padding:9px 11px;font:inherit;outline:0}.input:focus{border-color:var(--blue);box-shadow:0 0 0 3px #dbeafe}.btn{width:100%;min-height:47px;border:0;border-radius:12px;font:inherit;font-weight:800;cursor:pointer}.primary{background:var(--blue);color:#fff;margin-top:6px}.secondary{background:#edf4ff;color:#1557a3}.ghost{background:#eef2f7;color:#415267}.actions{display:grid;gap:9px;margin-top:15px}.apps{display:grid;gap:9px;margin-top:12px}.app-btn{display:flex;align-items:center;gap:11px;text-align:right;padding:11px;border:1px solid var(--line);border-radius:14px;background:#fff;color:var(--text);cursor:pointer;font:inherit}.app-btn strong{display:block;font-size:.78rem}.app-btn small{display:block;color:var(--muted);font-size:.64rem;margin-top:2px}.app-icon{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:#eaf3ff;color:var(--blue);font-size:1.2rem}.session{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 10px;background:#effbf3;border-radius:12px;color:#146b35;font-size:.72rem}.session button{border:0;background:transparent;color:var(--red);font:inherit;font-size:.68rem;cursor:pointer}.footer{text-align:center;color:var(--muted);font-size:.65rem;margin-top:14px}@media(min-width:600px){body{padding-top:40px}}
+</style>
+    <script src="/offline-sync.js"></script>
+</head>
+<body>
+<main class="shell">
+  <header class="brand"><div class="logo">⌂</div><h1>تطبيق POS للجوال</h1><p class="subtitle">تسجيل دخول واحد للوصول إلى إنشاء الطلبات<br>وإدارة طلبات الإنترنت</p></header>
+  <section class="card" id="loginCard">
+    <h2>تسجيل الدخول</h2><p class="hint">صفحة دخول احتياطية مشتركة لتطبيقَي الجوال</p>
+    <div id="notice" class="notice"></div>
+    <form id="loginForm">
+      <div class="field"><label for="username">اسم المستخدم</label><input class="input" id="username" autocomplete="username" required placeholder="أدخل اسم المستخدم"></div>
+      <div class="field"><label for="password">كلمة المرور</label><input class="input" id="password" type="password" autocomplete="current-password" required placeholder="أدخل كلمة المرور"></div>
+      <div class="actions"><button class="btn primary" id="loginBtn" type="submit">تسجيل الدخول</button><button class="btn ghost" type="button" onclick="goToMain()">العودة إلى النظام الرئيسي</button></div>
+    </form>
+  </section>
+  <section class="card" id="sessionCard" hidden>
+    <div class="session"><span id="userLabel">تم تسجيل الدخول</span><button onclick="logout()">تسجيل الخروج</button></div>
+    <div class="apps">
+      <button class="app-btn" onclick="openApp('add_order_ph.html')"><span class="app-icon">＋</span><span><strong>إنشاء طلب إنترنت</strong><small>إضافة وتعديل الطلبات من الجوال</small></span></button>
+      <button class="app-btn" onclick="openApp('orders.html')"><span class="app-icon">☷</span><span><strong>إدارة طلبات الإنترنت</strong><small>المتابعة والحالات والمندوبون والطباعة</small></span></button>
+    </div>
+    <div class="actions"><button class="btn ghost" onclick="goToMain()">العودة إلى النظام الرئيسي</button></div>
+  </section>
+  <p class="footer">جلسة POS مستقلة عن جلسة تطبيق المندوب</p>
+</main>
+<script>
+const API='https://api.ibnalmukhtar.com';
+let token=localStorage.getItem('pos_token')||'';
+const $=id=>document.getElementById(id);
+function showNotice(text,type='error'){const box=$('notice');box.textContent=text;box.className='notice show '+type;}
+function nextPage(){const value=new URLSearchParams(location.search).get('next');return value==='orders.html'||value==='add_order_ph.html'?value:'';}
+function openApp(page){location.href=page;}
+function goToMain(){location.href='../index.html';}
+function logout(){localStorage.removeItem('pos_token');localStorage.removeItem('pos_user');token='';$('sessionCard').hidden=true;$('loginCard').hidden=false;$('password').value='';showNotice('تم تسجيل الخروج','success');}
+function showSession(user){$('loginCard').hidden=true;$('sessionCard').hidden=false;$('userLabel').textContent=(user?.name||user?.username||'مستخدم POS')+' · جلسة POS نشطة';}
+async function validateSession(){if(!token)return;try{const res=await fetch(API+'/auth/me',{headers:{Authorization:'Bearer '+token,'Content-Type':'application/json','X-Page-Name':'phone/index.html'}});const data=await res.json().catch(()=>({}));if(res.status===401||res.status===403){localStorage.removeItem('pos_token');localStorage.removeItem('pos_user');token='';$('sessionCard').hidden=true;$('loginCard').hidden=false;showNotice('انتهت صلاحية الجلسة، يرجى تسجيل الدخول مرة أخرى','error');return;}if(!res.ok||!data.user){const saved=localStorage.getItem('pos_user');if(saved){try{showSession(JSON.parse(saved));}catch(_){}}return;}showSession(data.user);}catch(_){const saved=localStorage.getItem('pos_user');if(saved){try{showSession(JSON.parse(saved));showNotice('أنت في وضع عدم الاتصال؛ الجلسة المحلية محفوظة','info');}catch(__){}}}}
+$('loginForm').addEventListener('submit',async e=>{e.preventDefault();const btn=$('loginBtn');btn.disabled=true;btn.textContent='جارٍ التحقق...';try{const res=await fetch(API+'/auth/login',{method:'POST',headers:{'Content-Type':'application/json','X-Page-Name':'phone/index.html'},body:JSON.stringify({username:$('username').value.trim(),password:$('password').value})});const data=await res.json().catch(()=>({}));if(!res.ok||!data.token)throw Error(data.error||'بيانات الدخول غير صحيحة');token=data.token;localStorage.setItem('pos_token',token);localStorage.setItem('pos_user',JSON.stringify(data.user||{}));const target=nextPage();if(target)location.href=target;else showSession(data.user||{});}catch(err){showNotice(err.message||'فشل تسجيل الدخول','error');}finally{btn.disabled=false;btn.textContent='تسجيل الدخول';}});
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw_phone.js', {scope:'/phone/'}).catch(()=>{});
+validateSession();
+</script>
+</body>
+</html>

@@ -523,28 +523,15 @@
         ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
     </style>
+    <script src="number-utils.js"></script>
+    <script src="permissions.js"></script>
+    <link rel="stylesheet" href="sidebar-v4.css" />
+    <script src="/offline-sync.js"></script>
 </head>
 <body>
 
     <!-- ========== القائمة الجانبية ========== -->
-    <nav class="sidebar">
-        <div class="brand"><i class="fas fa-store-alt"></i><span>ابن المختار</span></div>
-        <a class="nav-link" href="index.html"><i class="fas fa-th-large"></i> <span>لوحة التحكم</span></a>
-        <a class="nav-link active" href="products.html"><i class="fas fa-boxes"></i> <span>المنتجات</span></a>
-        <a class="nav-link" href="customers.html"><i class="fas fa-users"></i> <span>العملاء</span></a>
-        <a class="nav-link" href="suppliers.html"><i class="fas fa-truck"></i> <span>الموردين</span></a>
-        <a class="nav-link" href="purchases.html"><i class="fas fa-shopping-cart"></i> <span>المشتريات</span></a>
-        <a class="nav-link" href="expenses.html"><i class="fas fa-receipt"></i> <span>المصروفات</span></a>
-        <a class="nav-link" href="payments.html"><i class="fas fa-hand-holding-usd"></i> <span>سندات</span></a>
-        <a class="nav-link" href="cash-wallets.html"><i class="fas fa-wallet"></i> <span>المحافظ</span></a>
-        <a class="nav-link" href="invoices.html"><i class="fas fa-file-invoice"></i> <span>الفواتير</span></a>
-        <a class="nav-link" href="journal.html"><i class="fas fa-book"></i> <span>القيود</span></a>
-        <a class="nav-link" href="reports.html"><i class="fas fa-chart-pie"></i> <span>التقارير</span></a>
-        <a class="nav-link" href="operations.html"><i class="fas fa-tools"></i> <span>عمليات</span></a>
-        <a class="nav-link" href="settings.html"><i class="fas fa-cog"></i> <span>إعدادات</span></a>
-        <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()"><i class="fas fa-moon"></i> <span>المظهر</span></button>
-        <div class="logout-btn"><div class="nav-link" onclick="logout()" style="color:var(--danger);"><i class="fas fa-sign-out-alt"></i> <span>خروج</span></div></div>
-    </nav>
+    <div id="sidebar-container"></div>
 
     <!-- ========== المحتوى الرئيسي ========== -->
     <main class="main-content">
@@ -553,7 +540,7 @@
         <div class="stats-grid" id="statsGrid">
             <div class="stat-card"><div class="label"><i class="fas fa-cubes"></i> إجمالي المنتجات</div><div class="value" id="statTotal">0</div></div>
             <div class="stat-card"><div class="label"><i class="fas fa-coins"></i> إجمالي قيمة المخزون</div><div class="value" id="statValue">0 <small style="font-size:0.7rem;">ريال</small></div></div>
-            <div class="stat-card"><div class="label"><i class="fas fa-chart-line"></i> إجمالي التكلفة</div><div class="value" id="statCost">0 <small style="font-size:0.7rem;">ريال</small></div></div>
+            <div class="stat-card" data-sensitive="cost"><div class="label"><i class="fas fa-chart-line"></i> إجمالي التكلفة</div><div class="value" id="statCost">0 <small style="font-size:0.7rem;">ريال</small></div></div>
             <div class="stat-card"><div class="label"><i class="fas fa-tag"></i> متوسط السعر</div><div class="value" id="statAvg">0 <small style="font-size:0.7rem;">ريال</small></div></div>
             <div class="stat-card"><div class="label"><i class="fas fa-hashtag"></i> بدون SKU</div><div class="value" id="statNoSKU">0</div></div>
         </div>
@@ -567,9 +554,10 @@
             <div class="btn-group">
                 <button class="btn btn-primary" onclick="openImportModal()"><i class="fas fa-file-import"></i> استيراد CSV</button>
                 <button class="btn btn-danger" onclick="openShortageModal()"><i class="fas fa-exclamation-triangle"></i> نواقص المحل</button>
-                <button class="btn btn-success" onclick="exportCSV()"><i class="fas fa-file-csv"></i> تصدير CSV</button>
+                <button class="btn btn-success" onclick="printProductsReport()"><i class="fas fa-print"></i> طباعة القائمة</button>
                 <button class="btn btn-warning" onclick="generateMissingSKU()"><i class="fas fa-sync-alt"></i> توليد SKU للقديم</button>
                 <button class="btn btn-outline" onclick="loadProductsList()"><i class="fas fa-sync"></i> تحديث</button>
+                <button class="btn btn-outline" onclick="window.location.href='site-integration.html'"><i class="fas fa-link"></i> ربط الموقع</button>
                 <button class="btn btn-danger" onclick="resetIndexedDB()" style="background: #dc3545; color: white;">
                     <i class="fas fa-database"></i> إعادة ضبط (جلب من السيرفر)
                 </button>
@@ -633,13 +621,32 @@
                         <label>سعر البيع *</label>
                         <input type="number" step="0.01" id="pPrice" class="input-field" required placeholder="0.00" min="0" />
                     </div>
-                    <div class="form-group">
+                    <div class="form-group" data-sensitive="cost" data-permission="products.edit_cost">
                         <label>التكلفة</label>
                         <input type="number" step="0.01" id="pCost" class="input-field" value="0" min="0" />
                     </div>
                     <div class="form-group">
                         <label>الكمية الابتدائية</label>
-                        <input type="number" id="pQty" class="input-field" value="0" min="0" />
+                        <input type="number" id="pQty" class="input-field" value="0" min="0" step="0.001" />
+                    </div>
+                    <div class="form-group">
+                        <label>وحدة القياس</label>
+                        <select id="pUnitType" class="input-field">
+                            <option value="piece">قطعة</option><option value="weight">وزن</option><option value="length">طول</option><option value="volume">حجم</option><option value="box">كرتون/عبوة</option>
+                        </select>
+                    </div>
+                    <div class="form-group"><label>رمز الوحدة</label><input type="text" id="pUnitSymbol" class="input-field" value="قطعة" placeholder="قطعة، كجم، متر..." /></div>
+                    <div class="form-group toggle-group"><span class="toggle-label">السماح بالكمية العشرية</span><label class="toggle-switch"><input type="checkbox" id="pDecimalAllowed" /><span class="toggle-slider"></span></label></div>
+                    <div class="form-group"><label>الوزن بالغرام (اختياري)</label><input type="number" id="pWeightGrams" class="input-field" min="0" step="0.01" placeholder="مثال: 250" /></div>
+                    <div class="form-group toggle-group"><span class="toggle-label">المنتج طقم / مجموعة</span><label class="toggle-switch"><input type="checkbox" id="pIsSet" onchange="toggleSetFields('p')" /><span class="toggle-slider"></span></label></div>
+                    <div id="pSetFields" style="display:none;border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:10px;">
+                        <label>عدد المقاسات</label><input type="number" id="pSetPieceCount" class="input-field" min="1" step="1" value="1" onchange="syncSetRows('p')" />
+                        <div id="pSetDetailsRows"></div><button type="button" class="btn btn-sm btn-outline" onclick="addSetDetailRow('p')">+ إضافة مقاس</button>
+                        <small style="display:block;color:var(--text-muted);margin-top:5px;">اكتب اسم كل مقاس فقط. سعر المقاس اختياري؛ اتركه فارغًا ليستخدم السعر الأساسي تلقائيًا. يتم تسجيل مخزون كل مقاس من خلال المشتريات.</small>
+                    </div>
+                    <div class="form-group">
+                        <label>تاريخ انتهاء الصلاحية <small style="color:var(--text-muted);font-weight:400;">(اختياري)</small></label>
+                        <input type="date" id="pExpiryDate" class="input-field" />
                     </div>
                     <div class="form-actions">
                         <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> حفظ</button>
@@ -684,7 +691,9 @@
                 </div>
             </div>
         </div>
-    </main>
+    <div style="margin:12px 0;"><a class="btn btn-outline btn-sm" href="stock-movements.html"><i class="fas fa-history"></i> فتح حركة المخزون</a></div>
+    <div style="margin:12px 0;"><button class="btn btn-danger btn-sm" onclick="printNegativeStockReport()"><i class="fas fa-print"></i> عرض وطباعة المنتجات السالبة</button></div>
+        </main>
 
     <!-- ========== المودالات ========== -->
 
@@ -727,7 +736,7 @@
             </div>
             <div class="shortage-table-wrap" id="shortageTableWrap"></div>
             <div class="shortage-actions">
-                <button class="btn btn-primary" onclick="exportShortagePDF()"><i class="fas fa-file-pdf"></i> تصدير PDF</button>
+                
                 <button class="btn btn-warning" onclick="resetExemptions()"><i class="fas fa-undo"></i> إعادة تعيين الاستثناءات</button>
                 <button class="btn btn-outline" onclick="closeShortageModal()">إغلاق</button>
             </div>
@@ -793,11 +802,11 @@
     <div class="modal-overlay" id="categoryManagerModal">
         <div class="modal-box" style="max-width:750px;">
             <button class="close-btn" onclick="closeCategoryManager()">&times;</button>
-            <h4 style="margin-bottom:16px;"><i class="fas fa-cogs" style="color:var(--primary);"></i> إدارة التصنيفات (رئيسي / فرعي)</h4>
+            <h4 style="margin-bottom:16px;"><i class="fas fa-cogs" style="color:var(--primary);"></i> إدارة التصنيفات (قسم / تصنيف فرعي)</h4>
             <div style="display:flex; gap:10px; margin-bottom:20px; flex-wrap:wrap; align-items:center; background:var(--bg); padding:12px 16px; border-radius:var(--radius);">
                 <input type="text" id="newCatName" class="input-field" placeholder="اسم التصنيف الجديد" style="flex:2; min-width:150px;">
                 <select id="parentCatId" class="input-field" style="flex:1; min-width:130px;">
-                    <option value="">-- رئيسي (بدون أب) --</option>
+                    <option value="">-- قسم رئيسي (بدون قسم أب) --</option>
                 </select>
                 <button class="btn btn-primary" onclick="addCategory()" style="white-space:nowrap;"><i class="fas fa-plus"></i> إضافة</button>
             </div>
@@ -829,10 +838,45 @@
     <!-- ========== الإشعارات ========== -->
     <div class="toast-container" id="toastContainer"></div>
 
+    <div class="modal-overlay" id="pendingProductsModal">
+        <div class="modal-box wide">
+            <button class="close-btn" onclick="closePendingProductsModal()">&times;</button>
+            <h4 style="margin-bottom:14px;"><i class="fas fa-clock" style="color:var(--primary);"></i> المنتجات المعلقة في Worker</h4>
+            <div id="pendingProductsContent"><div class="loader"><i class="fas fa-spinner fa-spin"></i> جاري التحميل...</div></div>
+        </div>
+    </div>
+
     <script>
         // ========================================================================
         //                       الكود البرمجي الموحد
         // ========================================================================
+
+        // ===== المنتجات المعلقة =====
+        async function openPendingProductsModal() {
+            const modal = document.getElementById('pendingProductsModal');
+            const content = document.getElementById('pendingProductsContent');
+            modal.classList.add('active');
+            content.innerHTML = '<div class="loader"><i class="fas fa-spinner fa-spin"></i> جاري التحميل...</div>';
+            try {
+                const res = await fetch(`${API}/api/pending-products`, { headers: { 'Authorization': `Bearer ${token}` } });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'فشل تحميل المنتجات المعلقة');
+                const rows = data.products || data.pending_products || data.results || [];
+                if (!rows.length) { content.innerHTML = '<div class="loader">لا توجد منتجات معلقة حاليًا</div>'; return; }
+                content.innerHTML = `<div class="table-responsive"><table><thead><tr><th>المعرف</th><th>المنتج</th><th>الباركود</th><th>السعر</th><th>تاريخ الإضافة</th><th>إجراء</th></tr></thead><tbody>${rows.map(p => `<tr><td>${p.pending_id || p.id || '—'}</td><td>${escapeHTML(p.name || '—')}</td><td>${escapeHTML(p.barcode || '—')}</td><td>${formatNumber(p.price)} ريال</td><td>${p.created_at ? new Date(p.created_at).toLocaleString('ar-SA') : '—'}</td><td><button class="btn btn-sm btn-danger" onclick="skipPendingProduct(${p.pending_id || p.id})">تجاهل</button></td></tr>`).join('')}</tbody></table></div>`;
+            } catch (e) { content.innerHTML = `<div class="loader" style="color:var(--danger);">${escapeHTML(e.message)}</div>`; }
+        }
+
+        function closePendingProductsModal() { document.getElementById('pendingProductsModal').classList.remove('active'); }
+
+        async function skipPendingProduct(pendingId) {
+            if (!pendingId || !confirm('هل تريد تجاهل هذا المنتج المعلق؟')) return;
+            try {
+                const res = await fetch(`${API}/api/skip-pending-product`, { method:'POST', headers:{'Authorization': `Bearer ${token}`, 'Content-Type':'application/json'}, body:JSON.stringify({ pending_id: pendingId }) });
+                const data = await res.json(); if (!res.ok) throw new Error(data.error || 'فشل التحديث');
+                showToast('تم تحديث حالة المنتج المعلق', 'success'); openPendingProductsModal();
+            } catch (e) { showToast(e.message, 'error'); }
+        }
 
         // ===== متغيرات عامة =====
         const API = 'https://api.ibnalmukhtar.com';
@@ -1015,6 +1059,7 @@
         }
 
         function logout() {
+            window.POSPermissions?.recordLogout?.();
             if (confirm('هل أنت متأكد من الخروج؟')) {
                 localStorage.removeItem('pos_token');
                 window.location.href = 'index.html';
@@ -1091,7 +1136,7 @@
                 suppliersList.forEach(s => {
                     const opt = document.createElement('option');
                     opt.value = s.id;
-                    opt.textContent = s.name + (s.sku_prefix ? ` (${s.sku_prefix})` : '');
+                    opt.textContent = s.name + (s.sku_prefix ? ` (${formatPosNumber(s.sku_prefix)})` : '');
                     select.appendChild(opt);
                 });
 
@@ -1160,7 +1205,7 @@
         return;
     }
 
-    if (!confirm(`سيتم إسناد ${productIds.length} منتج إلى المورد المختار. هل أنت متأكد؟`)) return;
+    if (!confirm(`سيتم إسناد ${formatPosQuantity(productIds.length)} منتج إلى المورد المختار. هل أنت متأكد؟`)) return;
 
     try {
         // بناء قائمة المنتجات مع الكمية من المخزون الحالي
@@ -1190,7 +1235,7 @@
 
         const data = await res.json();
         if (res.ok) {
-            showToast(`✅ ${data.message} (مضاف: ${data.inserted || 0}, محدث: ${data.updated || 0})`, 'success');
+            showToast(`✅ ${data.message} (مضاف: ${formatPosNumber(data.inserted || 0)}, محدث: ${formatPosNumber(data.updated || 0)})`, 'success');
             await loadSupplierData();
             await loadProductsList();
         } else {
@@ -1293,11 +1338,11 @@
             const totalCost = allProducts.reduce((sum, p) => sum + (p.cost || 0) * (p.stock_quantity || 0), 0);
             const avgPrice = total > 0 ? (allProducts.reduce((sum, p) => sum + (p.price || 0), 0) / total) : 0;
             const noSKU = allProducts.filter(p => !p.product_code || p.product_code === '').length;
-            document.getElementById('statTotal').textContent = total;
+            document.getElementById('statTotal').textContent = formatPosNumber(total, 0);
             document.getElementById('statValue').innerHTML = `${formatNumber(totalValue)} <small style="font-size:0.7rem;">ريال</small>`;
             document.getElementById('statCost').innerHTML = `${formatNumber(totalCost)} <small style="font-size:0.7rem;">ريال</small>`;
             document.getElementById('statAvg').innerHTML = `${formatNumber(avgPrice)} <small style="font-size:0.7rem;">ريال</small>`;
-            document.getElementById('statNoSKU').textContent = noSKU;
+            document.getElementById('statNoSKU').textContent = formatPosNumber(noSKU, 0);
         }
 
         // ===== البحث والترتيب والترقيم =====
@@ -1330,7 +1375,7 @@
 
         function renderTable(products, totalCount) {
             const tbody = document.getElementById('productsBody');
-            document.getElementById('countLabel').textContent = `(${totalCount})`;
+            document.getElementById('countLabel').textContent = `(${formatPosMoney(totalCount)})`;
             if (products.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="9"><div class="loader" style="color:var(--text-muted);"><i class="fas fa-box-open"></i> لا توجد منتجات مطابقة</div></td></tr>`;
                 return;
@@ -1355,13 +1400,13 @@
                         <td>
                             <div style="display:flex;align-items:center;gap:10px;">
                                 <div class="product-avatar">${icon}</div>
-                                <div><strong>${p.name || 'بدون اسم'}</strong><br><small style="color:var(--text-muted);">باركود: ${p.barcode || '—'}</small></div>
+                                <div><strong>${p.name || 'بدون اسم'}</strong><br><small style="color:var(--text-muted);">باركود: ${p.barcode || '—'}</small>${p.expiry_date ? `<br><small style="color:${new Date(String(p.expiry_date).length <= 10 ? p.expiry_date + 'T23:59:59' : p.expiry_date) < new Date() ? 'var(--danger)' : 'var(--text-muted)'};">الصلاحية: ${p.expiry_date}</small>` : ''}</div>
                             </div>
                         </td>
                         <td><span style="font-weight:600;color:var(--primary);">${p.product_code || '—'}</span></td>
                         <td>${p.category_name || p.category || '—'}</td>
                         <td><strong>${formatNumber(p.price)}</strong> ريال</td>
-                        <td>${stock} ${stockBadge}</td>
+                        <td>${formatPosQuantity(stock)} ${formatPosQuantity(stockBadge)}</td>
                         <td>${supplierDisplay}</td>
                         <td>
                             <div style="display:flex;gap:4px;flex-wrap:wrap;">
@@ -1384,7 +1429,7 @@
             const nextBtn = document.getElementById('nextBtn');
             const lastBtn = document.getElementById('lastBtn');
 
-            info.textContent = `الصفحة ${currentPage} من ${totalPages} | إجمالي ${totalCount} منتج`;
+            info.textContent = `الصفحة ${formatPosNumber(currentPage, 0)} من ${formatPosNumber(totalPages, 0)} | إجمالي ${formatPosNumber(totalCount, 0)} منتج`;
 
             firstBtn.disabled = currentPage === 1;
             prevBtn.disabled = currentPage === 1;
@@ -1481,7 +1526,7 @@
                 pendingBarcode = barcode;
                 document.getElementById('duplicateMessage').innerHTML = `
                     <strong>المنتج: ${existing.name}</strong><br>
-                    السعر: ${formatNumber(existing.price)} ريال | المخزون الحالي: ${existing.stock_quantity || 0}
+                    السعر: ${formatNumber(existing.price)} ريال | المخزون الحالي: ${formatPosQuantity(existing.stock_quantity || 0)}
                     <br><br>هل تريد إضافة كمية إضافية إلى هذا المنتج؟
                 `;
                 document.getElementById('duplicateModal').classList.add('active');
@@ -1503,22 +1548,18 @@
                 const res = await apiFetch(`${API}/products/${duplicateProductId}`);
                 const data = await res.json();
                 const product = data.product;
-                const newQty = (product.stock_quantity || 0) + additionalQty;
-                const updateRes = await apiFetch(`${API}/products/${duplicateProductId}`, {
-                    method: 'PUT',
+                const newQty = Number(product.stock_quantity || 0) + additionalQty;
+                const updateRes = await apiFetch(`${API}/inventory/adjust`, {
+                    method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        name: product.name,
-                        barcode: product.barcode,
-                        price: product.price,
-                        cost: product.cost,
-                        stock_quantity: newQty,
-                        category_id: product.category_id || null,
-                        product_code: product.product_code || ''
+                        adjustment_date: new Date().toISOString().slice(0, 10),
+                        items: [{ product_id: Number(duplicateProductId), new_quantity: newQty }],
+                        note: `إضافة كمية عبر تكرار الباركود: ${product.name}`
                     })
                 });
                 if (updateRes.ok) {
-                    showToast(`✅ تمت إضافة ${additionalQty} وحدة إلى ${product.name}`, 'success');
+                    showToast(`✅ تمت إضافة ${formatPosQuantity(additionalQty)} وحدة إلى ${product.name}`, 'success');
                     closeDuplicateModal();
                     resetForm();
                     loadProductsList();
@@ -1536,6 +1577,45 @@
             pendingBarcode = null;
         }
 
+        function parseSetDetailsValue(value) {
+            if (Array.isArray(value)) return value;
+            try { return value ? JSON.parse(value) : []; } catch (_) { return []; }
+        }
+        function addSetDetailRow(prefix, detail = {}) {
+            const wrap = document.getElementById(`${prefix}SetDetailsRows`); if (!wrap) return;
+            const row = document.createElement('div'); row.className = 'set-detail-row'; row.dataset.variantId = detail.id || '';
+            row.style.cssText = 'display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:6px;margin-top:6px;align-items:center;';
+            const label = detail.label || detail.size || detail.name || '';
+            const price = detail.selling_price ?? detail.price ?? '';
+            const barcode = detail.barcode || '';
+            row.innerHTML = `<input class="input-field set-detail-label" placeholder="اسم المقاس (مثال: كبير)" value="${String(label).replace(/"/g,'&quot;')}"><input type="number" class="input-field set-detail-price" min="0" step="0.01" placeholder="السعر تلقائي" value="${price === null ? '' : String(price)}"><input class="input-field set-detail-barcode" placeholder="باركود اختياري" value="${String(barcode).replace(/"/g,'&quot;')}"><button type="button" class="btn btn-sm btn-danger" onclick="this.parentElement.remove()">حذف</button>`;
+            wrap.appendChild(row);
+        }
+        function syncSetRows(prefix) {
+            const count = Math.max(1, parseInt(document.getElementById(`${prefix}SetPieceCount`)?.value, 10) || 1);
+            const wrap = document.getElementById(`${prefix}SetDetailsRows`); if (!wrap) return;
+            while (wrap.children.length < count) addSetDetailRow(prefix);
+            while (wrap.children.length > count) wrap.lastElementChild.remove();
+        }
+        function toggleSetFields(prefix) {
+            const checked = document.getElementById(`${prefix}IsSet`)?.checked;
+            const box = document.getElementById(`${prefix}SetFields`); if (!box) return;
+            box.style.display = checked ? 'block' : 'none';
+            if (checked) syncSetRows(prefix);
+        }
+        function collectSetDetails(prefix) {
+            const seen = new Set();
+            return [...(document.getElementById(`${prefix}SetDetailsRows`)?.children || [])].map(row => {
+                const label = row.querySelector('.set-detail-label')?.value.trim() || '';
+                const rawPrice = row.querySelector('.set-detail-price')?.value.trim() || '';
+                const key = label.toLowerCase();
+                if (!label || seen.has(key)) return null;
+                seen.add(key);
+                const barcode = row.querySelector('.set-detail-barcode')?.value.trim() || null;
+                return { id: row.dataset.variantId ? Number(row.dataset.variantId) : null, label, name: label, size: label, barcode, selling_price: rawPrice === '' ? null : Number(rawPrice), stock_quantity: 0 };
+            }).filter(item => item && Number.isFinite(item.selling_price === null ? 0 : item.selling_price) && (item.selling_price === null || item.selling_price >= 0));
+        }
+
         // ===== حفظ المنتج (مع product_code) =====
         async function saveProduct(e) {
             e.preventDefault();
@@ -1547,13 +1627,30 @@
             const categoryText = document.getElementById('pCategory').value || '';
             const price = parseFloat(document.getElementById('pPrice').value);
             const cost = parseFloat(document.getElementById('pCost').value) || 0;
-            const qty = parseInt(document.getElementById('pQty').value) || 0;
+                const qty = parseFloat(document.getElementById('pQty').value) || 0;
+                const expiryDate = document.getElementById('pExpiryDate').value || null;
+                const unitType = document.getElementById('pUnitType').value || 'piece';
+                const unitSymbol = document.getElementById('pUnitSymbol').value.trim() || 'قطعة';
+                const decimalAllowed = document.getElementById('pDecimalAllowed').checked;
+                const weightGrams = parseFloat(document.getElementById('pWeightGrams').value) || null;
+                const isSet = document.getElementById('pIsSet').checked;
+                const setDetails = isSet ? collectSetDetails('p') : [];
+                const setPieceCount = isSet ? Math.max(1, setDetails.length) : 1;
 
             if (!name) return showToast('الاسم مطلوب', 'warning');
             if (isNaN(price) || price <= 0) return showToast('السعر يجب أن يكون أكبر من 0', 'warning');
             if (cost < 0) return showToast('التكلفة لا يمكن أن تكون سالبة', 'warning');
+            if (isSet && price < cost) return showToast(`سعر بيع الطقم الكامل لا يمكن أن يكون أقل من التكلفة (${formatNumber(cost)})`, 'warning');
+            if (isSet && setDetails.length) {
+                const sizeCost = cost / setDetails.length;
+                const invalidSize = setDetails.find(detail => detail.selling_price !== null && Number(detail.selling_price) < sizeCost);
+                if (invalidSize) return showToast(`سعر المقاس «${invalidSize.label}» أقل من تكلفته الموزعة (${formatNumber(sizeCost)})`, 'warning');
+            }
             if (qty < 0) return showToast('الكمية لا يمكن أن تكون سالبة', 'warning');
+            if (!decimalAllowed && !Number.isInteger(qty)) return showToast('فعّل السماح بالعشري لاستخدام كمية كسرية', 'warning');
+            if (weightGrams !== null && weightGrams < 0) return showToast('الوزن لا يمكن أن يكون سالبًا', 'warning');
 
+            const existingProduct = editId ? allProducts.find(p => p.id == editId) : null;
             const product = {
                 id: editId || Date.now(),
                 name,
@@ -1563,12 +1660,22 @@
                 category_id: categoryId ? parseInt(categoryId) : null,
                 price,
                 cost,
-                stock_quantity: qty
+                stock_quantity: isSet ? (editId && existingProduct ? Number(existingProduct.stock_quantity || 0) : 0) : (editId && existingProduct ? Number(existingProduct.stock_quantity || 0) : qty),
+                expiry_date: expiryDate,
+                unit_type: isSet ? 'set' : unitType,
+                unit_symbol: isSet ? 'طقم' : unitSymbol,
+                is_decimal_allowed: decimalAllowed ? 1 : 0,
+                weight_grams: weightGrams,
+                is_set: isSet ? 1 : 0,
+                set_piece_count: setPieceCount,
+                set_details_json: JSON.stringify(setDetails)
             };
 
             await saveLocalProduct(product);
             const type = editId ? 'update' : 'add';
-            await addOperation({ store: 'products', type, data: product, id: product.id });
+            const operationData = { ...product };
+            if (editId) delete operationData.stock_quantity;
+            await addOperation({ store: 'products', type, data: operationData, id: product.id });
 
             showToast(editId ? '✅ تم التحديث محلياً' : '✅ تمت الإضافة محلياً', 'success');
             resetForm();
@@ -1584,7 +1691,15 @@
             const categoryId = document.getElementById('pCategoryId').value || null;
             const price = parseFloat(document.getElementById('pPrice').value);
             const cost = parseFloat(document.getElementById('pCost').value) || 0;
-            const stock = parseInt(document.getElementById('pQty').value) || 0;
+            const stock = parseFloat(document.getElementById('pQty').value) || 0;
+            const expiryDate = document.getElementById('pExpiryDate').value || null;
+            const unitType = document.getElementById('pUnitType').value || 'piece';
+            const unitSymbol = document.getElementById('pUnitSymbol').value.trim() || 'قطعة';
+            const decimalAllowed = document.getElementById('pDecimalAllowed').checked;
+            const weightGrams = parseFloat(document.getElementById('pWeightGrams').value) || null;
+            const isSet = document.getElementById('pIsSet').checked;
+            const setDetails = isSet ? collectSetDetails('p') : [];
+            const setPieceCount = isSet ? Math.max(1, setDetails.length) : 1;
 
             if (!name) {
                 showToast('الاسم مطلوب', 'warning');
@@ -1596,15 +1711,31 @@
                 document.getElementById('pPrice').focus();
                 return;
             }
+            if (isSet && price < cost) return showToast(`سعر بيع الطقم الكامل لا يمكن أن يكون أقل من التكلفة (${formatNumber(cost)})`, 'warning');
+            if (isSet && !setDetails.length) return showToast('أضف اسم مقاس واحدًا على الأقل للطقم', 'warning');
+            if (isSet) {
+                const sizeCost = cost / setDetails.length;
+                const invalidSize = setDetails.find(detail => detail.selling_price !== null && Number(detail.selling_price) < sizeCost);
+                if (invalidSize) return showToast(`سعر المقاس «${invalidSize.label}» أقل من تكلفته الموزعة (${formatNumber(sizeCost)})`, 'warning');
+            }
+
 
             const productPayload = {
                 name,
                 price,
-                stock_quantity: stock,
+                stock_quantity: 0,
                 cost,
                 barcode,
                 product_code: productCode,
                 category_id: categoryId ? parseInt(categoryId) : null,
+                expiry_date: expiryDate,
+                unit_type: isSet ? 'set' : unitType,
+                unit_symbol: isSet ? 'طقم' : unitSymbol,
+                is_decimal_allowed: decimalAllowed ? 1 : 0,
+                weight_grams: weightGrams,
+                is_set: isSet ? 1 : 0,
+                set_piece_count: setPieceCount,
+                set_details_json: JSON.stringify(setDetails)
             };
 
             try {
@@ -1633,7 +1764,7 @@
                     throw new Error(pendingData.error || 'فشل إضافة المنتج إلى قائمة الانتظار');
                 }
 
-                showToast(`✅ تم إضافة "${name}" إلى قائمة الانتظار (معرف القائمة: ${pendingData.pending_id || '—'})`, 'success');
+                showToast(`✅ تم إضافة "${name}" إلى قائمة الانتظار (معرف القائمة: ${formatPosNumber(pendingData.pending_id || '—')})`, 'success');
                 resetForm();
                 loadProductsList();
 
@@ -1662,6 +1793,25 @@
                 document.getElementById('pPrice').value = p.price || 0;
                 document.getElementById('pCost').value = p.cost || 0;
                 document.getElementById('pQty').value = p.stock_quantity || 0;
+                document.getElementById('pQty').disabled = true;
+                document.getElementById('pExpiryDate').value = p.expiry_date ? String(p.expiry_date).slice(0, 10) : '';
+                document.getElementById('pUnitType').value = p.unit_type || 'piece';
+                document.getElementById('pUnitSymbol').value = p.unit_symbol || 'قطعة';
+                document.getElementById('pDecimalAllowed').checked = Number(p.is_decimal_allowed) === 1;
+                document.getElementById('pWeightGrams').value = p.weight_grams || '';
+                document.getElementById('pIsSet').checked = Number(p.is_set) === 1;
+                let setDetails = parseSetDetailsValue(p.set_details_json);
+                if (Number(p.is_set) === 1) {
+                    try {
+                        const variantsRes = await apiFetch(`${API}/products/${p.id}/variants`);
+                        const variantsData = await variantsRes.json();
+                        if (Array.isArray(variantsData.variants) && variantsData.variants.some(v => v.id)) setDetails = variantsData.variants.filter(v => v.id);
+                    } catch (_) { /* نستخدم البيانات القديمة إن تعذر الاتصال */ }
+                }
+                document.getElementById('pSetPieceCount').value = p.is_set ? (setDetails.length || p.set_piece_count || 1) : 1;
+                document.getElementById('pSetDetailsRows').innerHTML = '';
+                setDetails.forEach(detail => addSetDetailRow('p', detail));
+                toggleSetFields('p');
                 document.getElementById('formTitle').innerHTML = '<i class="fas fa-edit"></i> تعديل المنتج';
                 document.getElementById('cancelBtn').style.display = 'inline-flex';
                 window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1752,9 +1902,10 @@
                 <div class="detail-row"><span class="detail-label">المورد</span><span class="detail-value" style="font-weight:600;color:var(--primary);">${supplierName}</span></div>
                 <div class="detail-row"><span class="detail-label">سعر البيع</span><span class="detail-value" style="color:var(--primary);">${formatNumber(p.price)} ريال</span></div>
                 <div class="detail-row"><span class="detail-label">التكلفة</span><span class="detail-value">${formatNumber(p.cost)} ريال</span></div>
-                <div class="detail-row"><span class="detail-label">الربح المتوقع</span><span class="detail-value" style="color:${profit >= 0 ? 'var(--success)' : 'var(--danger)'};">${formatNumber(profit)} ريال (${profitMargin.toFixed(1)}%)</span></div>
-                <div class="detail-row"><span class="detail-label">الكمية المباعة</span><span class="detail-value">${p.sold_quantity || 0}</span></div>
-                <div class="detail-row"><span class="detail-label">المخزون الحالي</span><span class="detail-value"><strong>${p.stock_quantity || 0}</strong></span></div>
+                <div class="detail-row"><span class="detail-label">الربح المتوقع</span><span class="detail-value" style="color:${profit >= 0 ? 'var(--success)' : 'var(--danger)'};">${formatNumber(profit)} ريال (${formatPosNumber(profitMargin, 1)}%)</span></div>
+                <div class="detail-row"><span class="detail-label">الكمية المباعة</span><span class="detail-value">${formatPosQuantity(p.sold_quantity || 0)}</span></div>
+                <div class="detail-row"><span class="detail-label">المخزون الحالي</span><span class="detail-value"><strong>${formatPosQuantity(p.stock_quantity || 0)}</strong></span></div>
+                <div class="detail-row"><span class="detail-label">انتهاء الصلاحية</span><span class="detail-value" style="color:${p.expiry_date && new Date(String(p.expiry_date).slice(0,10) + 'T23:59:59') < new Date() ? 'var(--danger)' : 'inherit'};">${p.expiry_date || 'غير محدد'}</span></div>
                 <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap;">
                     <button class="btn btn-sm btn-primary" onclick="editProduct(${p.id});closeDetail();"><i class="fas fa-edit"></i> تعديل</button>
                     <button class="btn btn-sm btn-info" onclick="openChangeCategoryModal(${p.id});closeDetail();"><i class="fas fa-tag"></i> تغيير التصنيف</button>
@@ -1774,9 +1925,19 @@
             document.getElementById('productForm').reset();
             document.getElementById('pCost').value = 0;
             document.getElementById('pQty').value = 0;
+            document.getElementById('pQty').disabled = false;
             document.getElementById('pCategory').value = '';
             document.getElementById('pCategoryId').value = '';
             document.getElementById('pProductCode').value = '';
+            document.getElementById('pExpiryDate').value = '';
+            document.getElementById('pUnitType').value = 'piece';
+            document.getElementById('pUnitSymbol').value = 'قطعة';
+            document.getElementById('pDecimalAllowed').checked = false;
+            document.getElementById('pWeightGrams').value = '';
+            document.getElementById('pIsSet').checked = false;
+            document.getElementById('pSetPieceCount').value = 1;
+            document.getElementById('pSetDetailsRows').innerHTML = '';
+            toggleSetFields('p');
             document.getElementById('formTitle').innerHTML = '<i class="fas fa-plus-circle"></i> إضافة منتج جديد';
             document.getElementById('cancelBtn').style.display = 'none';
             closeDuplicateModal();
@@ -1805,13 +1966,19 @@
         }
 
         // ===== تصدير CSV =====
+        function printProductsReport() {
+            const table = document.querySelector('.main-content .table-responsive table, .main-content table');
+            if (!table || !window.POSDocs) return showToast('تعذر تجهيز قائمة المنتجات للطباعة', 'error');
+            POSDocs.printReport(table, { title: 'قائمة المنتجات' }).catch(e => showToast(e.message, 'error'));
+        }
+
         function exportCSV() {
             if (allProducts.length === 0) return showToast('لا توجد منتجات للتصدير', 'warning');
-            let csv = 'ID,الاسم,الباركود,رقم الصنف,التصنيف,السعر,التكلفة,المخزون,المورد\n';
+            let csv = 'ID,الاسم,الباركود,رقم الصنف,التصنيف,السعر,التكلفة,المخزون,تاريخ الانتهاء,المورد\n';
             allProducts.forEach(p => {
                 const catName = p.category_name || p.category || '';
                 const supplier = productSupplierMap[p.id] || 'غير معين';
-                csv += `${p.id},"${p.name || ''}",${p.barcode || ''},"${p.product_code || ''}","${catName}",${p.price || 0},${p.cost || 0},${p.stock_quantity || 0},"${supplier}"\n`;
+                csv += `${p.id},"${p.name || ''}",${p.barcode || ''},"${p.product_code || ''}","${catName}",${formatPosMoney(p.price || 0)},${formatPosMoney(p.cost || 0)},${formatPosQuantity(p.stock_quantity || 0)},"${p.expiry_date || ''}","${supplier}"\n`;
             });
             const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement('a');
@@ -1903,15 +2070,15 @@
                 const statusColor = p.stock_quantity <= 0 ? 'var(--danger)' : p.stock_quantity <= threshold ? 'var(--warning)' : 'var(--success)';
 
                 html += `
-                    <tr style="${isExempted ? 'opacity:0.6;' : ''}">
-                        <td>${idx + 1}</td>
+                    <tr style="${formatPosNumber(isExempted ? 'opacity:0.6;' : '')}">
+                        <td>${formatPosNumber(idx + 1)}</td>
                         <td>
                             <strong>${p.name || 'بدون اسم'}</strong>
                             <br><small style="color:var(--text-muted);">${p.barcode || '—'}</small>
                             ${isExempted ? ' <span class="exempted-badge">مستثنى</span>' : ''}
                         </td>
                         <td><span style="font-weight:600;color:var(--primary);">${p.product_code || '—'}</span></td>
-                        <td><strong style="color:${statusColor};">${p.stock_quantity || 0}</strong></td>
+                        <td><strong style="color:${statusColor};">${formatPosQuantity(p.stock_quantity || 0)}</strong></td>
                         <td>${threshold}</td>
                         <td><span style="color:${statusColor};">${status}</span></td>
                         <td>
@@ -1925,6 +2092,25 @@
 
             html += `</tbody></table>`;
             wrap.innerHTML = html;
+        }
+
+        async function printNegativeStockReport() {
+            try {
+                const response = await apiFetch(`${API}/products?negative=1&limit=999&sort=quantity`);
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || 'تعذر جلب المنتجات السالبة');
+                const products = data.products || [];
+                if (!products.length) return showToast('لا توجد منتجات ذات رصيد سالب', 'warning');
+                const totalValue = products.reduce((sum, product) => sum + Math.abs(Number(product.stock_quantity || 0)) * Number(product.cost || 0), 0);
+                const rows = products.map((product, index) => `<tr><td>${index + 1}</td><td>${escapeHtml(product.product_code || '-')}</td><td>${escapeHtml(product.name || '-')}</td><td>${escapeHtml(product.barcode || '-')}</td><td>${formatPosQuantity(product.stock_quantity)}</td><td>${formatPosMoney(product.cost || 0)}</td><td>${formatPosMoney(Math.abs(Number(product.stock_quantity || 0)) * Number(product.cost || 0))}</td><td>${escapeHtml(product.category_name || '-')}</td></tr>`).join('');
+                const holder = document.createElement('div');
+                holder.innerHTML = `<div class="negative-stock-report pos-doc" dir="rtl"><h2 style="text-align:center;margin:0 0 12px;">تقرير المنتجات ذات الرصيد السالب</h2><p style="text-align:center;margin:0 0 12px;">التاريخ: ${new Date().toLocaleDateString('ar-SA')} — عدد المنتجات: ${formatPosQuantity(products.length)}</p><table style="width:100%;border-collapse:collapse;"><thead><tr><th>#</th><th>رقم الصنف</th><th>المنتج</th><th>الباركود</th><th>الرصيد السالب</th><th>التكلفة</th><th>القيمة السالبة</th><th>التصنيف</th></tr></thead><tbody>${rows}</tbody></table><p style="text-align:left;font-weight:800;margin-top:14px;">إجمالي القيمة السالبة: ${formatPosMoney(totalValue)}</p></div>`;
+                if (!window.POSDocs) throw new Error('محرك الطباعة غير متاح');
+                await POSDocs.printReport(holder.firstElementChild, { title: 'تقرير المنتجات ذات الرصيد السالب' });
+                showToast('تم تجهيز التقرير للطباعة', 'success');
+            } catch (error) {
+                showToast(error.message || 'تعذر تجهيز التقرير للطباعة', 'error');
+            }
         }
 
         function openShortageModal() {
@@ -1964,10 +2150,10 @@
 
             let rows = shortageProducts.map((p, idx) => `
                 <tr>
-                    <td>${idx + 1}</td>
+                    <td>${formatPosNumber(idx + 1)}</td>
                     <td>${p.name || 'بدون اسم'}</td>
                     <td>${p.product_code || '—'}</td>
-                    <td>${p.stock_quantity || 0}</td>
+                    <td>${formatPosQuantity(p.stock_quantity || 0)}</td>
                     <td>${threshold}</td>
                     <td>${p.stock_quantity <= 0 ? 'نفد' : 'منخفض'}</td>
                 </tr>
@@ -1999,22 +2185,25 @@
                     </tbody>
                 </table>
                 <div class="totals">
-                    <div><span>إجمالي المنتجات الناقصة:</span> <span><strong>${shortageProducts.length}</strong></span></div>
+                    <div><span>إجمالي المنتجات الناقصة:</span> <span><strong>${formatPosQuantity(shortageProducts.length)}</strong></span></div>
                 </div>
                 <div class="footer">
-                    <p>تم التصدير من نظام ابن المختار المحاسبي © ${new Date().getFullYear()}</p>
+                    <p>تم إعداد التقرير للطباعة من نظام ابن المختار المحاسبي © ${new Date().getFullYear()}</p>
                 </div>
             `;
 
             const printArea = document.getElementById('printArea');
             printArea.innerHTML = printContent;
             printArea.style.display = 'block';
-            window.onafterprint = function() {
-                printArea.style.display = 'none';
-                window.onafterprint = null;
-            };
-            window.print();
-            showToast('✅ تم فتح نافذة الطباعة، يمكنك حفظها كـ PDF', 'success');
+            if (window.POSDocs) {
+                POSDocs.printReport(printArea, {title:'تقرير نواقص المخزون', date:now})
+                    .then(() => showToast('تم تجهيز تقرير نواقص المخزون للطباعة', 'success'))
+                    .catch(error => showToast(error.message, 'error'))
+                    .finally(() => { printArea.style.display = 'none'; });
+                return;
+            }
+            printArea.style.display = 'none';
+            showToast('محرك المعاينة غير متاح، أعد تحميل الصفحة ثم حاول مرة أخرى', 'warning');
         }
 
         // ===== استيراد CSV =====
@@ -2103,7 +2292,7 @@
                             showMappingOptions(importHeaders);
                             document.getElementById('importOptionsArea').style.display = 'block';
                             document.getElementById('importActions').style.display = 'flex';
-                            document.getElementById('importFileInfo').innerHTML = `📄 <strong>${file.name}</strong> (${clean.length} صف، ${importHeaders.length} عمود)`;
+                            document.getElementById('importFileInfo').innerHTML = `📄 <strong>${file.name}</strong> (${formatPosQuantity(clean.length)} صف، ${formatPosQuantity(importHeaders.length)} عمود)`;
                             document.getElementById('previewRowCount').textContent = clean.length;
                             document.getElementById('previewColCount').textContent = importHeaders.length;
                         } else {
@@ -2138,7 +2327,7 @@
                 html += `</tr>`;
             }
             if (data.length > displayLimit) {
-                html += `<tr><td colspan="${headers.length}" class="text-muted text-center">... و ${data.length - displayLimit} صفوف أخرى (معروض أول ${displayLimit})</td></tr>`;
+                html += `<tr><td colspan="${formatPosQuantity(headers.length)}" class="text-muted text-center">... و ${formatPosQuantity(data.length - displayLimit)} صفوف أخرى (معروض أول ${displayLimit})</td></tr>`;
             }
             html += `</tbody></table>`;
             container.innerHTML = html;
@@ -2241,7 +2430,7 @@
                 const price = parseFloat(row[map.price]) || 0;
                 const cost = map.cost ? (parseFloat(row[map.cost]) || 0) : 0;
                 const stock = map.stock_quantity ? (parseFloat(row[map.stock_quantity]) || 0) : 0;
-                return { name, barcode, product_code, category, price, cost, stock_quantity: stock };
+                return { name, barcode, product_code, category, price, cost, stock_quantity: stock, has_stock_quantity: Boolean(map.stock_quantity) };
             }).filter(p => p.name !== '');
 
             if (productsToImport.length === 0) {
@@ -2269,11 +2458,14 @@
             for (let i = 0; i < total; i++) {
                 const p = productsToImport[i];
                 const idx = i + 1;
+                const productPayload = { ...p };
+                delete productPayload.has_stock_quantity;
+                if (Number(p.stock_quantity || 0) > 0) productPayload.stock_quantity = 0;
 
                 const progress = Math.round((i / total) * 100);
                 document.getElementById('progressFill').style.width = progress + '%';
-                document.getElementById('progressCount').textContent = `${i} / ${total}`;
-                document.getElementById('progressLabel').textContent = `جاري استيراد المنتج ${idx} من ${total}...`;
+                document.getElementById('progressCount').textContent = `${i} / ${formatPosMoney(total)}`;
+                document.getElementById('progressLabel').textContent = `جاري استيراد المنتج ${idx} من ${formatPosMoney(total)}...`;
 
                 try {
                     let existingProduct = null;
@@ -2292,11 +2484,18 @@
                                     product_code: p.product_code || existingProduct.product_code,
                                     category: p.category || existingProduct.category,
                                     price: p.price || existingProduct.price,
-                                    cost: p.cost || existingProduct.cost,
-                                    stock_quantity: p.stock_quantity || existingProduct.stock_quantity
+                                    cost: p.cost || existingProduct.cost
                                 })
                             });
-                            if (updateRes.ok) {
+                            let stockAdjustmentRes = { ok: true };
+                            if (updateRes.ok && p.has_stock_quantity) {
+                                stockAdjustmentRes = await apiFetch(`${API}/inventory/adjust`, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ adjustment_date: new Date().toISOString().slice(0, 10), items: [{ product_id: Number(existingProduct.id), new_quantity: Number(p.stock_quantity || 0) }], note: `تسوية مخزون عبر الاستيراد: ${p.name}` })
+                                });
+                            }
+                            if (updateRes.ok && stockAdjustmentRes.ok) {
                                 updatedCount++;
                                 importResults.push({ index: idx, name: p.name, status: 'updated', message: 'تم التحديث' });
                             } else {
@@ -2310,9 +2509,23 @@
                             const createRes = await apiFetch(`${API}/products`, {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify(p)
+                                body: JSON.stringify(productPayload)
                             });
                             if (createRes.ok) {
+                                const createData = await createRes.json();
+                                const createdId = createData.id || createData.product?.id;
+                                if (!createdId) throw new Error('لم يتم استلام معرف المنتج الجديد');
+                                if (p.has_stock_quantity) {
+                                    const stockRes = await apiFetch(`${API}/inventory/adjust`, {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ adjustment_date: new Date().toISOString().slice(0, 10), items: [{ product_id: Number(createdId), new_quantity: Number(p.stock_quantity || 0) }], note: `تسوية مخزون منتج مستورد: ${p.name}` })
+                                    });
+                                    if (!stockRes.ok) {
+                                        const stockError = await stockRes.json().catch(() => ({}));
+                                        throw new Error(stockError.error || 'فشل تسجيل كمية المنتج المستورد');
+                                    }
+                                }
                                 successCount++;
                                 importResults.push({ index: idx, name: p.name, status: 'success', message: 'تمت الإضافة' });
                             } else {
@@ -2325,7 +2538,7 @@
                         const createRes = await apiFetch(`${API}/products`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(p)
+                            body: JSON.stringify(productPayload)
                         });
                         if (createRes.ok) {
                             successCount++;
@@ -2355,12 +2568,12 @@
             }
 
             document.getElementById('progressFill').style.width = '100%';
-            document.getElementById('progressCount').textContent = `${total} / ${total}`;
+            document.getElementById('progressCount').textContent = `${formatPosMoney(total)} / ${formatPosMoney(total)}`;
             document.getElementById('progressLabel').textContent = '✅ اكتمل الاستيراد!';
 
             document.getElementById('importResultArea').style.display = 'block';
             document.getElementById('resultSummary').textContent =
-                `✅ نجح: ${successCount} | 🔄 تم التحديث: ${updatedCount} | ⏭️ تم التخطي: ${skippedCount} | ❌ فشل: ${errorCount}`;
+                `✅ نجح: ${formatPosQuantity(successCount)} | 🔄 تم التحديث: ${formatPosQuantity(updatedCount)} | ⏭️ تم التخطي: ${formatPosQuantity(skippedCount)} | ❌ فشل: ${formatPosQuantity(errorCount)}`;
 
             let resultHtml = '';
             importResults.forEach(r => {
@@ -2383,7 +2596,7 @@
             document.getElementById('startImportBtn').disabled = false;
 
             await loadProductsList();
-            showToast(`✅ تم استيراد ${successCount + updatedCount} منتج بنجاح`, 'success');
+            showToast(`✅ تم استيراد ${formatPosQuantity(successCount + updatedCount)} منتج بنجاح`, 'success');
         }
 
         function escapeHtml(str) {
@@ -2416,7 +2629,7 @@
 
         async function loadParentOptionsForManager() {
             const parentSelect = document.getElementById('parentCatId');
-            parentSelect.innerHTML = '<option value="">-- رئيسي (بدون أب) --</option>';
+            parentSelect.innerHTML = '<option value="">-- قسم رئيسي (بدون قسم أب) --</option>';
             try {
                 const res = await apiFetch(`${API}/categories?flat=1`);
                 const data = await res.json();
@@ -2480,7 +2693,7 @@
                 '';
 
             return `
-                <div class="tree-node ${hasChildren ? 'expanded' : ''}" data-id="${cat.id}">
+                <div class="tree-node ${formatPosNumber(hasChildren ? 'expanded' : '')}" data-id="${cat.id}">
                     <div class="node-label">
                         <span class="toggle-icon" onclick="toggleTreeNode(this)">
                             <i class="fas ${hasChildren ? 'fa-chevron-down' : 'fa-circle'}" style="font-size:0.5rem;"></i>
@@ -2617,5 +2830,8 @@
             document.getElementById('pBarcode').focus();
         };
     </script>
+    <script src="document-utils.js"></script>
+    <script src="sidebar-config.js"></script>
+    <script src="notification-center-v3.js"></script>
 </body>
 </html>
