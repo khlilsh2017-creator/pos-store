@@ -1,7 +1,7 @@
 /*
  * نظام التنقل الموحد لنظام نقاط البيع.
  * مصدر الروابط الوحيد هو NAV_GROUPS، وتدعم الواجهة ثلاثة أنماط قابلة للتبديل.
- * تمت إضافة التنقل الديناميكي (SPA) لمنع إعادة تحميل الصفحة.
+ * تمت إضافة اعتراض الروابط لتحميل المحتوى ديناميكياً (SPA خفيف).
  */
 
 const NAV_GROUPS = [
@@ -72,10 +72,11 @@ const QUICK_ACTIONS = [
 const NAV_STYLES = Object.freeze(['sidebar', 'topbar-dropdown', 'app-launcher']);
 const DEFAULT_NAV_STYLE = 'sidebar';
 
+// ========== دوال مساعدة ==========
 function isDriverPage() { return /(^|\/)driver(\/|$)/i.test(window.location.pathname); }
 function resolveSidebarHref(href) { return isDriverPage() ? `../${href}` : href; }
 
-// دالة ذكية لقراءة اسم الملف الحالي
+// دالة ذكية لقراءة اسم الملف الحالي (حتى لو كان الرابط ينتهي بـ /)
 function currentFileName() {
   let file = window.location.pathname.split('/').pop();
   if (!file || file === '') return 'index.html';
@@ -107,6 +108,7 @@ function getCurrentPageMeta() {
   return { title: document.title.split('|')[0].trim() || 'النظام المحاسبي', icon: 'fa-layer-group', group: 'النظام' };
 }
 
+// ========== دوال توليد الماركアップ ==========
 function linkMarkup(link, className = '') {
   const active = isActiveHref(link.href);
   const target = link.target ? ` target="${escapeHtml(link.target)}" rel="noopener noreferrer"` : '';
@@ -186,6 +188,7 @@ function pageHeaderMarkup() {
   return `<header class="app-topbar" id="appTopbar"><div class="topbar-main"><button class="topbar-icon-btn sidebar-toggle-btn" id="sidebarToggleBtn" type="button" aria-label="فتح أو إغلاق القائمة" title="القائمة"><i class="fas fa-bars" aria-hidden="true"></i></button><div class="topbar-page-title"><span class="breadcrumb-label">${escapeHtml(page.group)}</span><h1><i class="fas ${page.icon}" aria-hidden="true"></i>${escapeHtml(page.title)}</h1></div></div><div id="topbarNavHost"></div><div class="topbar-tools"><div id="topbarModeActionHost"></div><div class="topbar-search" id="topbarSearch" role="search"><i class="fas fa-search" aria-hidden="true"></i><input id="globalNavSearch" type="search" autocomplete="off" placeholder="ابحث في الصفحات والإجراءات" aria-label="البحث في الصفحات والإجراءات" /><kbd>Ctrl K</kbd><div class="search-results" id="globalSearchResults" role="listbox"></div></div><div class="connection-pill" id="connectionPill"><i class="fas fa-wifi" aria-hidden="true"></i><span id="connectionLabel">جارٍ التحقق</span></div><div class="notification-menu"><button class="topbar-icon-btn topbar-notification" id="notificationButton" type="button" title="الإشعارات" aria-label="الإشعارات" aria-expanded="false" aria-controls="notificationPanel"><i class="fas fa-bell"></i><span class="notification-badge" id="notificationBadge">0</span></button><section class="notification-panel" id="notificationPanel" aria-label="إشعارات النظام"><div class="notification-panel-head"><div><strong>إشعارات النظام</strong><span id="notificationCountLabel">كل الإشعارات مقروءة</span></div><button id="markAllNotificationsRead" type="button">تحديد الكل كمقروء</button></div><div class="notification-list" id="notificationList"><div class="notification-empty"><i class="fas fa-bell-slash"></i><strong>لا توجد إشعارات</strong><span>ستظهر هنا تنبيهات النظام والطلبات الجديدة.</span></div></div><div class="notification-panel-foot"><a href="${resolveSidebarHref('settings.html')}#notificationSettingsCard">إعدادات الإشعارات</a><button id="clearAllNotifications" type="button">مسح السجل</button></div></section></div><div class="topbar-user-menu"><button class="topbar-icon-btn topbar-user-button" id="userMenuButton" type="button" title="الحساب" aria-label="عرض بيانات المستخدم" aria-expanded="false" aria-controls="userPanel"><span class="topbar-avatar"><i class="fas fa-user"></i></span><span class="topbar-user-name">${escapeHtml(user.name)} · ${escapeHtml(user.role)}</span><i class="fas fa-chevron-down user-menu-chevron" aria-hidden="true"></i></button><section class="user-panel" id="userPanel" aria-label="بيانات المستخدم"><div class="user-panel-head"><span class="user-panel-avatar"><i class="fas fa-user"></i></span><div><strong>${escapeHtml(user.name)}</strong><small>${escapeHtml(user.role)}</small></div></div><div class="user-panel-details"><div><span>اسم المستخدم</span><strong>${escapeHtml(user.name)}</strong></div><div><span>الدور والصلاحية</span><strong>${escapeHtml(user.role)}</strong></div></div><div class="user-panel-actions"><a href="${resolveSidebarHref('settings.html')}"><i class="fas fa-gear"></i> الإعدادات</a><button id="userLogoutButton" type="button"><i class="fas fa-right-from-bracket"></i> تسجيل الخروج</button></div></section></div></div></header>`;
 }
 
+// ========== بناء الهيكل ==========
 function ensureNavigationShell() {
   const existingSidebar = document.getElementById('sidebar-container');
   const existingMain = document.querySelector('.main-content, main, .content');
@@ -286,6 +289,7 @@ function bindSidebarInteractions() {
   document.querySelectorAll('.nav-sublink').forEach((link) => { if (link.dataset.bound === 'true') return; link.dataset.bound = 'true'; link.addEventListener('click', () => { if (window.innerWidth <= 768) toggleSidebar(false); }); });
 }
 
+// ========== دوال الوظائف الثانوية ==========
 function updateConnectionStatus() {
   const pill = document.getElementById('connectionPill'); const label = document.getElementById('connectionLabel'); if (!pill || !label) return;
   const online = navigator.onLine; pill.classList.toggle('offline', !online); label.textContent = online ? 'متصل' : 'وضع عدم الاتصال'; pill.title = online ? 'الاتصال بالخادم متاح' : 'سيتم حفظ العمليات محليًا عند دعمها';
@@ -311,16 +315,7 @@ function bindGlobalSearch() {
   input.dataset.bound = 'true';
   const renderResults = () => { const query = input.value.trim().toLowerCase(); const matches = allNavigationLinks().filter((link) => !query || link.label.toLowerCase().includes(query)).slice(0, 7); results.innerHTML = matches.length ? matches.map((link) => `<a href="${resolveSidebarHref(link.href)}" role="option"><i class="fas ${link.icon}"></i><span>${escapeHtml(link.label)}</span></a>`).join('') : '<div class="search-empty">لا توجد نتائج مطابقة</div>'; results.classList.add('visible'); };
   input.addEventListener('focus', () => { setSearchOpen(true); renderResults(); }); input.addEventListener('input', renderResults);
-  input.addEventListener('keydown', (event) => {
-    if (event.key === 'Enter') {
-      const first = results.querySelector('a');
-      if (first) {
-        event.preventDefault();
-        navigateTo(first.getAttribute('href')); // استخدام التنقل الديناميكي
-      }
-    }
-    if (event.key === 'Escape') { setSearchOpen(false); input.blur(); }
-  });
+  input.addEventListener('keydown', (event) => { if (event.key === 'Enter') { const first = results.querySelector('a'); if (first) { event.preventDefault(); navigateTo(first.getAttribute('href')); } } if (event.key === 'Escape') { setSearchOpen(false); input.blur(); } });
   if (!document.body.dataset.globalSearchDocumentBound) { document.body.dataset.globalSearchDocumentBound = 'true'; document.addEventListener('click', (event) => { if (!event.target.closest('.topbar-search')) document.querySelectorAll('.search-results').forEach((item) => item.classList.remove('visible')); }); }
 }
 function bindKeyboardShortcut() {
@@ -389,20 +384,27 @@ window.refreshUnifiedNavigation = () => { const style = getStoredNavStyle(); app
  * @param {boolean} pushState - هل نضيف الحالة إلى history (صحيح للروابط العادية، خطأ للرجوع)
  */
 function navigateTo(url, pushState = true) {
+  // تجاهل الروابط الفارغة أو التي تبدأ بـ # أو javascript:
   if (!url || url.startsWith('#') || url.startsWith('javascript:')) return;
+  // إذا كان الرابط خارجياً أو له target="_blank"، نتركه يعمل بشكل طبيعي
   if (url.startsWith('http') || url.startsWith('//')) {
     window.open(url, '_blank');
     return;
   }
 
+  // منع التحميل إذا كنا في نفس الصفحة
   const currentFile = currentFileName();
   const targetFile = url.split('?')[0].split('#')[0];
   if (targetFile === currentFile) {
+    // قد يكون الرابط لنفس الصفحة مع هاش، ننتقل إلى الهاش داخل الصفحة
     if (url.includes('#')) {
       window.location.hash = url.split('#')[1];
     }
     return;
   }
+
+  // إظهار مؤشر تحميل (اختياري)
+  // يمكنك إضافة spinning indicator هنا
 
   fetch(url)
     .then(response => {
@@ -413,31 +415,41 @@ function navigateTo(url, pushState = true) {
       const parser = new DOMParser();
       const doc = parser.parseFromString(html, 'text/html');
 
+      // استخراج المحتوى الجديد (ابحث عن .main-content أو .content)
       let newContent = doc.querySelector('.main-content') || doc.querySelector('.content');
       if (!newContent) {
+        // إذا لم يوجد، قد يكون الصفحة لا تتبع الهيكل نفسه، نعيد التحميل العادي
         window.location.href = url;
         return;
       }
 
+      // استبدال المحتوى الحالي
       const currentContent = document.querySelector('.main-content') || document.querySelector('.content');
       if (currentContent) {
+        // حفظ حالة التمرير الحالية (يمكن تذكرها)
+        const scrollPos = currentContent.scrollTop;
         currentContent.innerHTML = newContent.innerHTML;
+        // استعادة التمرير إذا أردت (عادة نضعه في الأعلى)
         currentContent.scrollTop = 0;
 
+        // تحديث عنوان الصفحة
         document.title = doc.title;
 
+        // تحديث مسار URL
         if (pushState) {
           window.history.pushState({ url: url }, '', url);
         }
 
-        // إعادة تهيئة أي مكونات داخل المحتوى الجديد (اختياري)
+        // إعادة تهيئة أي مكونات داخل المحتوى الجديد (مثل الجداول، الرسوم البيانية)
+        // يمكنك استدعاء دالة عامة هنا إذا كانت موجودة
         if (window.reinitPageContent) {
           window.reinitPageContent();
         }
 
-        // تحديث الحالة النشطة في القوائم
+        // تحديث الحالة النشطة في القوائم (بما أن currentFileName تغيرت)
         refreshActiveStates();
       } else {
+        // إذا لم نجد حاوية المحتوى، نعيد التحميل العادي
         window.location.href = url;
       }
     })
@@ -451,10 +463,11 @@ function navigateTo(url, pushState = true) {
  * تحديث الكلاسات النشطة في جميع القوائم بناءً على الصفحة الحالية.
  */
 function refreshActiveStates() {
-  // إزالة جميع الكلاسات النشطة
+  // إزالة جميع الكلاسات النشطة من الروابط
   document.querySelectorAll('.nav-sublink.active, .nav-home.active, .topbar-nav-home.active, .topbar-nav-link.active, .launcher-tile.active')
     .forEach(el => el.classList.remove('active'));
 
+  // إعادة تطبيق الكلاسات بناءً على الملف الحالي
   const current = currentFileName();
   document.querySelectorAll('.nav-sublink, .nav-home, .topbar-nav-home, .topbar-nav-link, .launcher-tile')
     .forEach(link => {
@@ -463,13 +476,14 @@ function refreshActiveStates() {
         const file = href.split('?')[0].split('#')[0];
         if (file === current) {
           link.classList.add('active');
+          // إذا كان الرابط ضمن مجموعة، نفتحها
           const details = link.closest('.nav-group');
           if (details) details.setAttribute('open', '');
         }
       }
     });
 
-  // تحديث عنوان الصفحة ومسار التنقل
+  // تحديث breadcrumb وعنوان الصفحة في الهيدر
   const page = getCurrentPageMeta();
   const titleEl = document.querySelector('.topbar-page-title h1');
   const breadcrumbEl = document.querySelector('.breadcrumb-label');
@@ -483,26 +497,33 @@ function refreshActiveStates() {
 
 // ========== اعتراض الروابط ==========
 function initLinkInterceptor() {
+  // منع الاعتراض مرتين
   if (document.body.dataset.linkInterceptorBound === 'true') return;
   document.body.dataset.linkInterceptorBound = 'true';
 
   document.addEventListener('click', function(e) {
+    // البحث عن أقرب رابط
     const link = e.target.closest('a[href]');
     if (!link) return;
 
     const href = link.getAttribute('href');
+    // تجاهل الروابط التي تفتح في نافذة جديدة أو خارجية
     if (link.target === '_blank') return;
     if (href.startsWith('http') || href.startsWith('//')) return;
     if (href.startsWith('#') || href.startsWith('javascript:')) return;
 
+    // منع السلوك الافتراضي
     e.preventDefault();
+    // استدعاء التنقل الديناميكي
     navigateTo(href);
   });
 
+  // معالجة أحداث الرجوع/التقدم
   window.addEventListener('popstate', function(event) {
     if (event.state && event.state.url) {
       navigateTo(event.state.url, false);
     } else {
+      // إذا لم توجد حالة، نعيد تحميل الصفحة الحالية (fallback)
       window.location.reload();
     }
   });
