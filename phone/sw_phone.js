@@ -1,5 +1,5 @@
 importScripts('/offline-sw-core.js');
-const PHONE_CACHE = 'pos-phone-shell-v6-offline-sync';
+const PHONE_CACHE = 'pos-phone-shell-v8-offline-sync';
 const PHONE_SHELL = [
   '/phone/index.html',
   '/phone/orders.html',
