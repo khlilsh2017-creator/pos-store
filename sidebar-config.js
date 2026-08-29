@@ -180,15 +180,42 @@ function pageHeaderMarkup() {
 function ensureNavigationShell() {
   const existingSidebar = document.getElementById('sidebar-container');
   const existingMain = document.querySelector('.main-content, main, .content');
+
+  // إذا كان الهيكل موجوداً بالفعل، لا نفعّله مرة أخرى
   if (existingSidebar && existingMain && existingSidebar.parentElement?.classList.contains('app-wrapper')) return;
-  const shell = document.createElement('div'); shell.className = 'app-wrapper unified-shell';
-  const sidebarHost = existingSidebar || document.createElement('div'); sidebarHost.id = 'sidebar-container';
-  const main = existingMain || document.createElement('main'); main.classList.add('main-content');
-  Array.from(document.body.children).forEach((child) => {
-    if (child === shell || child === sidebarHost || child === main || child.tagName === 'SCRIPT' || child.tagName === 'STYLE') return;
-    main.appendChild(child);
-  });
-  shell.appendChild(sidebarHost); shell.appendChild(main); document.body.insertBefore(shell, document.body.firstChild);
+
+  // إنشاء أو استخدام العناصر الموجودة
+  const sidebarHost = existingSidebar || document.createElement('div');
+  sidebarHost.id = 'sidebar-container';
+
+  const main = existingMain || document.createElement('main');
+  main.classList.add('main-content');
+
+  // إنشاء الغلاف (shell)
+  const shell = document.createElement('div');
+  shell.className = 'app-wrapper unified-shell';
+
+  // 1️⃣ نضيف sidebarHost و main إلى shell أولاً
+  shell.appendChild(sidebarHost);
+  shell.appendChild(main);
+
+  // 2️⃣ ننقل عناصر body الأخرى (ما عدا shell, sidebarHost, main, script, style) إلى main
+  const children = Array.from(document.body.children);
+  for (const child of children) {
+    if (child === shell || child === sidebarHost || child === main ||
+        child.tagName === 'SCRIPT' || child.tagName === 'STYLE') {
+      continue;
+    }
+    // ننقل الطفل إلى main إذا كان لا يزال في body ولم يُنقل بعد
+    if (child.parentNode === document.body && child !== main) {
+      main.appendChild(child);
+    }
+  }
+
+  // 3️⃣ نضع shell في بداية body (إذا لم يكن موجوداً بالفعل)
+  if (!document.body.contains(shell)) {
+    document.body.insertBefore(shell, document.body.firstChild);
+  }
 }
 
 function ensureTopbar() {
