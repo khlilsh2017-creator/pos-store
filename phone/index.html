@@ -27,7 +27,7 @@
   <section class="card" id="sessionCard" hidden>
     <div class="session"><span id="userLabel">تم تسجيل الدخول</span><button onclick="logout()">تسجيل الخروج</button></div>
     <div class="apps">
-      <button class="app-btn" onclick="openApp('add_order_ph.html')"><span class="app-icon">＋</span><span><strong>إنشاء طلب إنترنت</strong><small>إضافة وتعديل الطلبات من الجوال</small></span></button>
+      <button class="app-btn" onclick="openApp('add_order_ph')"><span class="app-icon">＋</span><span><strong>إنشاء طلب إنترنت</strong><small>إضافة وتعديل الطلبات من الجوال</small></span></button>
       <button class="app-btn" onclick="openApp('orders.html')"><span class="app-icon">☷</span><span><strong>إدارة طلبات الإنترنت</strong><small>المتابعة والحالات والمندوبون والطباعة</small></span></button>
     </div>
     <div class="actions"><button class="btn ghost" onclick="goToMain()">العودة إلى النظام الرئيسي</button></div>
@@ -39,7 +39,7 @@ const API='https://api.ibnalmukhtar.com';
 let token=localStorage.getItem('pos_token')||'';
 const $=id=>document.getElementById(id);
 function showNotice(text,type='error'){const box=$('notice');box.textContent=text;box.className='notice show '+type;}
-function nextPage(){const value=new URLSearchParams(location.search).get('next');return value==='orders.html'||value==='add_order_ph.html'?value:'';}
+function nextPage(){const value=new URLSearchParams(location.search).get('next');return value==='orders.html'||value==='add_order_ph'?value:'';}
 function openApp(page){location.href=page;}
 function goToMain(){location.href='../index.html';}
 function logout(){localStorage.removeItem('pos_token');localStorage.removeItem('pos_user');token='';$('sessionCard').hidden=true;$('loginCard').hidden=false;$('password').value='';showNotice('تم تسجيل الخروج','success');}
