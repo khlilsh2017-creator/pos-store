@@ -6,7 +6,7 @@ importScripts('/offline-sw-core.js');
 const CACHE_NAME = 'ibn-mukhtar-pos-v32';
 const STATIC_CACHE = 'ibn-mukhtar-static-v32';
 const DYNAMIC_CACHE = 'ibn-mukhtar-dynamic-v32';
-const VERSION = '2026-08-30-offline-sync-v4';
+const VERSION = '2026-08-30-offline-sync-v5';
 
 const STATIC_ASSETS = [
     // ===== الصفحات الرئيسية =====
