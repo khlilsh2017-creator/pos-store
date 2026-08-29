@@ -4,7 +4,7 @@
 // ============================================================
 
 importScripts('/offline-sw-core.js');
-const VERSION = 'driver-2026-08-26-offline-sync';
+const VERSION = 'driver-2026-08-29-offline-sync';
 const CACHE_PREFIX = 'ibn-mukhtar-driver-';
 const CACHE_NAME = `${CACHE_PREFIX}pos-${VERSION}`;
 const STATIC_CACHE = `${CACHE_PREFIX}static-${VERSION}`;
@@ -15,7 +15,7 @@ const OPERATIONS_DB = 'DriverOrdersDB';
 const OPERATIONS_STORE = 'operations';
 const SYNC_META_DB = 'DriverSyncMetaDB';
 const SYNC_META_STORE = 'auth';
-const SYNC_TAG = 'driver-orders-pending-v2';
+const SYNC_TAG = 'driver-orders-pending-v3';
 
 // --------------------------------------------
 //  قائمة الأصول الثابتة (خاصة بالمندوب)
