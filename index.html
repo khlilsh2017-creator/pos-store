@@ -1150,6 +1150,15 @@
 
             if (currentUser) {
                 if (window.POSPermissions?.refresh) window.POSPermissions.refresh();
+                
+                // 🔹 أضف هذا الكود هنا لإعادة بناء القوائم والهيدر بعد تسجيل الدخول 🔹
+                const topbar = document.getElementById('appTopbar');
+                if (topbar) topbar.remove(); // حذف الهيدر القديم الفارغ
+                if (typeof initUnifiedNavigation === 'function') {
+                    initUnifiedNavigation(); // إعادة بناء الهيدر والقوائم ببيانات وصلاحيات المستخدم
+                }
+                // -----------------------------------------------------------------
+
                 applyDashboardPermissions();
                 document.getElementById('user-display').textContent = currentUser.username || 'admin';
                 document.getElementById('role-display').textContent = currentUser.role === 'admin' ? 'مدير' : 'موظف';
@@ -1159,6 +1168,8 @@
             await updateLocalCounts();
             await loadFinancialSummary();
             await loadWalletsDetail();
+            
+            // ... باقي كود الدالة كما هو
 
             if (navigator.onLine) {
                 await refreshDataFromServer();
