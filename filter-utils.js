@@ -137,7 +137,17 @@
     return { getState: () => ({ ...state }), setState: next => sync(next), read, apply: () => block.querySelector('.pos-filter-apply').click(), query: aliases => queryString(read(), aliases), show: showPanel, hide: hidePanel };
   }
 
-  function currentConfig() { return configs[location.pathname.split('/').pop() || 'index.html'] || null; }
+  function currentConfig() {
+    // بعض بيئات الاستضافة تحذف .html من الرابط أو تضيف / بالنهاية (روابط نظيفة)،
+    // لذا نطبّع الاسم بدل مطابقته حرفيًا فقط.
+    let name = (location.pathname.split('/').filter(Boolean).pop() || 'index.html').toLowerCase();
+    if (!/\.html?$/.test(name)) name += '.html';
+    if (configs[name]) return configs[name];
+    // مطابقة احتياطية بدون الامتداد لو أسماء المفاتيح تختلف بحالة الأحرف
+    const base = name.replace(/\.html?$/, '');
+    const found = Object.keys(configs).find(key => key.replace(/\.html?$/, '').toLowerCase() === base);
+    return found ? configs[found] : null;
+  }
   function extraValue(selector) { const el = document.querySelector(selector); return el && String(el.value || '').trim(); }
   function endpointMatches(path, endpoint) { return path === endpoint || path.endsWith(endpoint); }
   function installFetchBridge() {
