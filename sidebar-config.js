@@ -413,12 +413,27 @@ function navigateTo(url, pushState = true) {
       const parser = new DOMParser();
       const doc = parser.parseFromString(html, 'text/html');
 
+      // استخراج المحتوى الجديد
       let newContent = doc.querySelector('.main-content') || doc.querySelector('.content');
       if (!newContent) {
         window.location.href = url;
         return;
       }
 
+      // استخراج الأنماط من الصفحة الجديدة
+      const newStyles = doc.querySelectorAll('link[rel="stylesheet"], style');
+      // إزالة الأنماط القديمة التي تم إضافتها ديناميكياً (لتجنب التكرار)
+      document.querySelectorAll('link[rel="stylesheet"][data-dynamic], style[data-dynamic]')
+        .forEach(el => el.remove());
+
+      // إضافة الأنماط الجديدة مع وضع علامة dynamic
+      newStyles.forEach(el => {
+        const clone = el.cloneNode(true);
+        clone.dataset.dynamic = 'true';
+        document.head.appendChild(clone);
+      });
+
+      // استبدال المحتوى الحالي
       const currentContent = document.querySelector('.main-content') || document.querySelector('.content');
       if (currentContent) {
         currentContent.innerHTML = newContent.innerHTML;
@@ -430,12 +445,10 @@ function navigateTo(url, pushState = true) {
           window.history.pushState({ url: url }, '', url);
         }
 
-        // إعادة تهيئة أي مكونات داخل المحتوى الجديد (اختياري)
         if (window.reinitPageContent) {
           window.reinitPageContent();
         }
 
-        // تحديث الحالة النشطة في القوائم
         refreshActiveStates();
       } else {
         window.location.href = url;
