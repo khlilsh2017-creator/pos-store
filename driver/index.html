@@ -36,7 +36,18 @@
             --transition: 0.2s ease;
         }
         * { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif; -webkit-tap-highlight-color:transparent; }
-        body { background:var(--bg); min-height:100vh; display:flex; justify-content:center; align-items:center; padding:0; margin:0; }
+        body { 
+    background: var(--bg); 
+    min-height: 100vh; 
+    padding: 0; 
+    margin: 0; 
+    /* تم إزالة display: flex لتجنب ظهور العناصر الدخيلة بجانب التطبيق */
+}
+
+/* إخفاء أي شريط مزامنة أو عناصر خارجية يتم حقنها من السكربتات أسفل الصفحة */
+body > div:not(.app-container):not(.modal-overlay):not(.modal-sheet) {
+    display: none !important;
+}
         .app-container { max-width:480px; width:100%; min-height:100vh; background:var(--surface); box-shadow:var(--shadow-lg); position:relative; overflow-x:hidden; display:flex; flex-direction:column; margin:0 auto; }
         .nav-header { display:flex; align-items:center; justify-content:space-between; padding:14px 20px; background:var(--surface); border-bottom:1px solid var(--border-light); position:sticky; top:0; z-index:50; }
         .nav-header h2 { font-size:1.25rem; color:var(--text-primary); font-weight:700; letter-spacing:-0.3px; }
