@@ -181,36 +181,14 @@ function ensureNavigationShell() {
   const existingSidebar = document.getElementById('sidebar-container');
   const existingMain = document.querySelector('.main-content, main, .content');
   if (existingSidebar && existingMain && existingSidebar.parentElement?.classList.contains('app-wrapper')) return;
-
-  const sidebarHost = existingSidebar || document.createElement('div');
-  sidebarHost.id = 'sidebar-container';
-
-  const main = existingMain || document.createElement('main');
-  main.classList.add('main-content');
-
-  const shell = document.createElement('div');
-  shell.className = 'app-wrapper unified-shell';
-
-  // 1️⃣ نضيف sidebarHost و main إلى shell أولاً
-  shell.appendChild(sidebarHost);
-  shell.appendChild(main);
-
-  // 2️⃣ ننقل عناصر body الأخرى إلى main
-  const children = Array.from(document.body.children);
-  for (const child of children) {
-    if (child === shell || child === sidebarHost || child === main ||
-        child.tagName === 'SCRIPT' || child.tagName === 'STYLE') {
-      continue;
-    }
-    if (child.parentNode === document.body && child !== main) {
-      main.appendChild(child);
-    }
-  }
-
-  // 3️⃣ نضع shell في بداية body
-  if (!document.body.contains(shell)) {
-    document.body.insertBefore(shell, document.body.firstChild);
-  }
+  const shell = document.createElement('div'); shell.className = 'app-wrapper unified-shell';
+  const sidebarHost = existingSidebar || document.createElement('div'); sidebarHost.id = 'sidebar-container';
+  const main = existingMain || document.createElement('main'); main.classList.add('main-content');
+  Array.from(document.body.children).forEach((child) => {
+    if (child === shell || child === sidebarHost || child === main || child.tagName === 'SCRIPT' || child.tagName === 'STYLE') return;
+    main.appendChild(child);
+  });
+  shell.appendChild(sidebarHost); shell.appendChild(main); document.body.insertBefore(shell, document.body.firstChild);
 }
 
 function ensureTopbar() {

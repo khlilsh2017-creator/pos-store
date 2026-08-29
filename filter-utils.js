@@ -170,59 +170,11 @@
     return fn();
   }
   function autoMount() {
-  const config = currentConfig();
-  if (!config) return;
-
-  // محاولة التثبيت فوراً
-  tryMount();
-
-  // إذا فشلت المحاولة الأولى (لأن الهيكل لم يكتمل)، أعد المحاولة بعد 100 مللي ثانية
-  function tryMount() {
-    if (document.querySelector(`[data-filter-key="${config.key}"]`)) return;
-    const root = findContainer(config);
-    if (!root) {
-      // أعد المحاولة بعد 100 مللي ثانية (لمدة أقصاها 10 محاولات)
-      let attempts = 0;
-      const maxAttempts = 10;
-      const interval = setInterval(() => {
-        attempts++;
-        const rootRetry = findContainer(config);
-        if (rootRetry) {
-          clearInterval(interval);
-          const controller = attach(rootRetry, {
-            key: config.key,
-            title: 'فترة العرض',
-            existing: config.existing,
-            extraHtml: config.extraHtml,
-            onApply: () => callRefresh(config),
-            onSave: () => {
-              if (typeof global.showToast === 'function') global.showToast('تم حفظ إعدادات الفلترة لهذه الصفحة', 'success');
-              else if (typeof global.toast === 'function') global.toast('تم حفظ إعدادات الفلترة لهذه الصفحة', 'success');
-            }
-          });
-          global.__posFilterControllers = global.__posFilterControllers || {};
-          global.__posFilterControllers[config.key] = controller;
-        } else if (attempts >= maxAttempts) {
-          clearInterval(interval);
-        }
-      }, 100);
-      return;
-    }
-    const controller = attach(root, {
-      key: config.key,
-      title: 'فترة العرض',
-      existing: config.existing,
-      extraHtml: config.extraHtml,
-      onApply: () => callRefresh(config),
-      onSave: () => {
-        if (typeof global.showToast === 'function') global.showToast('تم حفظ إعدادات الفلترة لهذه الصفحة', 'success');
-        else if (typeof global.toast === 'function') global.toast('تم حفظ إعدادات الفلترة لهذه الصفحة', 'success');
-      }
-    });
-    global.__posFilterControllers = global.__posFilterControllers || {};
-    global.__posFilterControllers[config.key] = controller;
+    const config = currentConfig(); if (!config || document.querySelector(`[data-filter-key="${config.key}"]`)) return;
+    const root = findContainer(config); if (!root) return;
+    const controller = attach(root, { key: config.key, title: 'فترة العرض', existing: config.existing, extraHtml: config.extraHtml, onApply: () => callRefresh(config), onSave: () => { if (typeof global.showToast === 'function') global.showToast('تم حفظ إعدادات الفلترة لهذه الصفحة', 'success'); else if (typeof global.toast === 'function') global.toast('تم حفظ إعدادات الفلترة لهذه الصفحة', 'success'); } });
+    global.__posFilterControllers = global.__posFilterControllers || {}; global.__posFilterControllers[config.key] = controller;
   }
-}
 
   injectStyles(); installFetchBridge();
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', autoMount, { once: true }); else autoMount();

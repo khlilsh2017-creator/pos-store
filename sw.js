@@ -3,13 +3,12 @@
 // ============================================================
 importScripts('/offline-sw-core.js');
 
-const CACHE_NAME = 'ibn-mukhtar-pos-v32';
-const STATIC_CACHE = 'ibn-mukhtar-static-v32';
-const DYNAMIC_CACHE = 'ibn-mukhtar-dynamic-v32';
-const VERSION = '2026-08-30-offline-sync-v5';
+const CACHE_NAME = 'ibn-mukhtar-pos-v30';
+const STATIC_CACHE = 'ibn-mukhtar-static-v30';
+const DYNAMIC_CACHE = 'ibn-mukhtar-dynamic-v30';
+const VERSION = '2026-08-26-offline-sync-v1';
 
 const STATIC_ASSETS = [
-    // ===== الصفحات الرئيسية =====
     '/',
     '/index.html',
     '/sale.html',
@@ -27,30 +26,21 @@ const STATIC_ASSETS = [
     '/settings.html',
     '/add_order.html',
     '/add_order_ph.html',
-    '/orders.html',
-    '/barcode-print.html',
-    '/stock-movements.html',
-    '/inventory.html',
-    '/notification-test.html',
-    '/online-reports.html',
-    '/reports_central.html',
-    '/audit-logs.html',
-    '/site-integration.html',
-
-    // ===== مجلد driver =====
-    '/driver/',
-    '/driver/index.html',
-    '/driver/sw_driver.js',
-    '/driver/db.js',
-
-    // ===== مجلد phone =====
     '/phone/index.html',
     '/phone/add_order_ph.html',
     '/phone/orders.html',
     '/phone/manifest.json',
     '/phone/sw_phone.js',
-
-    // ===== ملفات JavaScript الأساسية =====
+    '/barcode-print.html',
+    '/stock-movements.html',
+    '/inventory.html',
+    '/notification-test.html',
+    '/driver/',
+    '/driver/index.html',
+    '/driver/sw_driver.js',
+    '/driver/db.js',
+    '/online-reports.html',
+    '/orders.html',
     '/db.js',
     '/offline-sw-core.js',
     '/offline-sync.js',
@@ -59,28 +49,20 @@ const STATIC_ASSETS = [
     '/number-utils.js',
     '/filter-utils.js',
     '/permissions.js',
-    '/notification-center-v3.js',
-    '/notification-settings-v3.js',
-    '/sidebar-config.js',
-
-    // ===== ملفات CSS =====
-    '/sidebar.css',
-    '/sidebar-v4.css',          // تمت إضافته مؤخراً
-
-    // ===== مكتبات خارجية =====
     '/html2canvas.min.js',
     '/html2pdf.bundle.min.js',
-
-    // ===== Service Worker وملفات المانيفست =====
+    '/sidebar-config.js',
+    '/sidebar.css',
+    '/audit-logs.html',
+    '/site-integration.html',
     '/firebase-messaging-sw.js',
     '/manifest.json',
     '/manifest_pos_s.json',
     '/manifest_pos.json',
-
-    // ===== الأيقونات =====
     '/icon-192x192.png',
     '/icon-512x512.png'
 ];
+
 // --------------------------------------------
 // 1️⃣ تثبيت SW (مع حذف الكاش القديم)
 // --------------------------------------------
