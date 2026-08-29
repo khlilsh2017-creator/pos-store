@@ -3,14 +3,14 @@
   "name": "صندوق البيع",
   "short_name": "انشاء طلبات الانترنت",
   "description": "واجهة الكاشير السريعة لابن المختار: إتمام عمليات البيع، طباعة الفواتير، والبحث عن المنتجات بلمسة واحدة.",
-  "start_url": "/phone/add_order_ph.html",
+  "start_url": "/phone/add_order_ph",
   "display": "standalone",
   "background_color": "#fff8e1",
   "theme_color": "#C62828",
   "orientation": "portrait",
   "dir": "rtl",
   "lang": "ar",
-  "scope": "/phone/add_order_ph.html",
+  "scope": "/phone/add_order_ph",
   "icons": [
     {
       "src": "/icon-192x192.png",
@@ -43,7 +43,7 @@
     {
       "name": "إدارة طلبات الإنترنت",
       "short_name": "إدارة الطلبات",
-      "url": "/phone/add_order_ph.html?next=orders.html",
+      "url": "/phone/add_order_ph?next=orders.html",
       "icons": [
         {
           "src": "/icon-192x192.png",
