@@ -73,7 +73,16 @@ const DEFAULT_NAV_STYLE = 'sidebar';
 
 function isDriverPage() { return /(^|\/)driver(\/|$)/i.test(window.location.pathname); }
 function resolveSidebarHref(href) { return isDriverPage() ? `../${href}` : href; }
-function currentFileName() { return window.location.pathname.split('/').pop() || 'index.html'; }
+
+// ========== التعديل الأساسي هنا ==========
+function currentFileName() {
+  let file = window.location.pathname.split('/').pop();
+  if (!file || file === '') return 'index.html';
+  file = file.split('?')[0].split('#')[0];
+  return file;
+}
+// =========================================
+
 function isActiveHref(href) { return currentFileName() === href; }
 function normalizeNavStyle(value) { return NAV_STYLES.includes(String(value)) ? String(value) : DEFAULT_NAV_STYLE; }
 function navStyleClass(style) { const normalized = normalizeNavStyle(style); return normalized === 'topbar-dropdown' ? 'nav-style-topbar' : normalized === 'app-launcher' ? 'nav-style-launcher' : 'nav-style-sidebar'; }
@@ -181,38 +190,31 @@ function ensureNavigationShell() {
   const existingSidebar = document.getElementById('sidebar-container');
   const existingMain = document.querySelector('.main-content, main, .content');
 
-  // إذا كان الهيكل موجوداً بالفعل، لا نفعّله مرة أخرى
   if (existingSidebar && existingMain && existingSidebar.parentElement?.classList.contains('app-wrapper')) return;
 
-  // إنشاء أو استخدام العناصر الموجودة
   const sidebarHost = existingSidebar || document.createElement('div');
   sidebarHost.id = 'sidebar-container';
 
   const main = existingMain || document.createElement('main');
   main.classList.add('main-content');
 
-  // إنشاء الغلاف (shell)
   const shell = document.createElement('div');
   shell.className = 'app-wrapper unified-shell';
 
-  // 1️⃣ نضيف sidebarHost و main إلى shell أولاً
   shell.appendChild(sidebarHost);
   shell.appendChild(main);
 
-  // 2️⃣ ننقل عناصر body الأخرى (ما عدا shell, sidebarHost, main, script, style) إلى main
   const children = Array.from(document.body.children);
   for (const child of children) {
     if (child === shell || child === sidebarHost || child === main ||
         child.tagName === 'SCRIPT' || child.tagName === 'STYLE') {
       continue;
     }
-    // ننقل الطفل إلى main إذا كان لا يزال في body ولم يُنقل بعد
     if (child.parentNode === document.body && child !== main) {
       main.appendChild(child);
     }
   }
 
-  // 3️⃣ نضع shell في بداية body (إذا لم يكن موجوداً بالفعل)
   if (!document.body.contains(shell)) {
     document.body.insertBefore(shell, document.body.firstChild);
   }
