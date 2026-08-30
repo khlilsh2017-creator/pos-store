@@ -451,19 +451,40 @@ function extractTopLevelFunctionNames(code) {
   return [...new Set(matches.filter((x) => x.indent === minIndent).map((x) => x.name))];
 }
 
-function wrapPageScript(code) {
-  const names = extractTopLevelFunctionNames(code);
+function wrapPageScript(code, names) {
   const exportsBlock = names.map((n) => `window.${n} = ${n};`).join('\n');
   return `(function(){\n${code}\n${exportsBlock}\n})();`;
 }
 
+/**
+ * أكثر من صفحة عندها دالة بنفس الاسم لكن منطق مختلف تماماً (مثال:
+ * addToCart / fetchProducts موجودة في sale.html وأيضاً بصفحة طلبات الإنترنت،
+ * وكل وحدة فيهم تشتغل على productsCache الخاص فيها فقط). بما أن التصدير
+ * لـ window يصير لكل صفحة بمجرد تنفيذ سكربتها، فآخر صفحة تمت زيارتها هي اللي
+ * "تكسب" window.addToCart. فلو رجعت لصفحة أقدم (مخزّنة، ما يُعاد حقن سكربتها)
+ * زر "إضافة منتج" فيها بينادي فعلياً دالة صفحة ثانية → "المنتج غير موجود".
+ *
+ * الحل: نحفظ نسخة من دوال كل صفحة فور تنفيذها لأول مرة في __pageExports،
+ * وعند أي عودة لصفحة سبق تحميلها نعيد ربطها بـ window قبل استدعاء init،
+ * فترجع window.foo تشير لتطبيق الصفحة المعروضة حالياً فعلاً.
+ */
+window.__pageExports = window.__pageExports || {};
+
+function restorePageExports(targetFile) {
+  const saved = window.__pageExports[targetFile];
+  if (saved) Object.assign(window, saved);
+}
+
 async function loadPageScripts(doc, targetFile) {
   if (window.__loadedPageScripts.has(targetFile)) {
-    // السكربت محمّل ومنفَّذ من قبل، فقط أعد استدعاء دالة تهيئة الصفحة
+    // السكربت محمّل ومنفَّذ من قبل: أعد ربط دواله الصحيحة بـ window أولاً
+    // (قد تكون انسحبت من صفحة زارها المستخدم بعدها)، ثم أعد تهيئتها.
+    restorePageExports(targetFile);
     reinitPageScripts(targetFile);
     return;
   }
   window.__loadedPageScripts.add(targetFile);
+  window.__pageExports[targetFile] = {};
 
   const scripts = Array.from(doc.querySelectorAll('script'));
   for (const scriptEl of scripts) {
@@ -472,10 +493,13 @@ async function loadPageScripts(doc, targetFile) {
       if (SHARED_PAGE_SCRIPTS.includes(scriptBaseName(src))) continue;
       await loadExternalScriptOnce(src);
     } else if (scriptEl.textContent.trim()) {
+      const names = extractTopLevelFunctionNames(scriptEl.textContent);
       const clone = document.createElement('script');
       clone.dataset.pageScript = targetFile;
-      clone.textContent = wrapPageScript(scriptEl.textContent);
-      document.body.appendChild(clone); // ينفَّذ فوراً عند الإدراج
+      clone.textContent = wrapPageScript(scriptEl.textContent, names);
+      document.body.appendChild(clone); // ينفَّذ فوراً وبشكل متزامن عند الإدراج
+      // نلتقط الآن نسخة "الصحيحة" لهذه الصفحة قبل أن تُطمَس بصفحة لاحقة
+      names.forEach((n) => { window.__pageExports[targetFile][n] = window[n]; });
     }
   }
   // ملاحظة: لا نستدعي reinitPageScripts هنا في أول زيارة، لأن سكربت الصفحة
