@@ -1,7 +1,7 @@
 /*
  * نظام التنقل الموحد لنظام نقاط البيع.
  * مصدر الروابط الوحيد هو NAV_GROUPS، وتدعم الواجهة ثلاثة أنماط قابلة للتبديل.
- * تمت إضافة التنقل الديناميكي (SPA) لمنع إعادة تحميل الصفحة.
+ * تمت إضافة التنقل الديناميكي مع تحميل الأنماط وإعادة التهيئة.
  */
 
 const NAV_GROUPS = [
@@ -316,7 +316,7 @@ function bindGlobalSearch() {
       const first = results.querySelector('a');
       if (first) {
         event.preventDefault();
-        navigateTo(first.getAttribute('href')); // استخدام التنقل الديناميكي
+        navigateTo(first.getAttribute('href'));
       }
     }
     if (event.key === 'Escape') { setSearchOpen(false); input.blur(); }
@@ -380,13 +380,12 @@ window.applyNavigationStyle = (style, persist = true) => { applyNavStyle(style, 
 window.refreshUnifiedNavigation = () => { const style = getStoredNavStyle(); applyNavStyle(style); bindSearchToggle(); bindGlobalSearch(); bindUserMenu(); bindTopbarDropdowns(); updateConnectionStatus(); };
 
 // ============================================================
-// ========== الجزء الجديد: التنقل الديناميكي (SPA) ==========
+// ========== الجزء الجديد: التنقل الديناميكي مع تحميل الأنماط ==========
 // ============================================================
 
 /**
- * تحميل صفحة جديدة ديناميكياً واستبدال المحتوى الرئيسي فقط.
- * @param {string} url - مسار الصفحة المطلوبة (نسبي)
- * @param {boolean} pushState - هل نضيف الحالة إلى history (صحيح للروابط العادية، خطأ للرجوع)
+ * تحميل صفحة جديدة ديناميكياً واستبدال المحتوى الرئيسي فقط،
+ * مع تحميل الأنماط (CSS) الخاصة بالصفحة.
  */
 function navigateTo(url, pushState = true) {
   if (!url || url.startsWith('#') || url.startsWith('javascript:')) return;
@@ -404,6 +403,11 @@ function navigateTo(url, pushState = true) {
     return;
   }
 
+  // إظهار مؤشر تحميل (اختياري)
+  // يمكنك تفعيله إذا أردت
+  // const loader = document.getElementById('loadingIndicator');
+  // if (loader) loader.style.display = 'block';
+
   fetch(url)
     .then(response => {
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -413,33 +417,60 @@ function navigateTo(url, pushState = true) {
       const parser = new DOMParser();
       const doc = parser.parseFromString(html, 'text/html');
 
+      // 1️⃣ استخراج المحتوى الجديد
       let newContent = doc.querySelector('.main-content') || doc.querySelector('.content');
       if (!newContent) {
+        // إذا لم يوجد المحتوى الرئيسي، انتقل بشكل تقليدي
         window.location.href = url;
         return;
       }
 
+      // 2️⃣ استخراج الأنماط (link و style) من الصفحة الجديدة
+      const newStyles = doc.querySelectorAll('link[rel="stylesheet"], style');
+      // إزالة الأنماط القديمة التي تم إضافتها ديناميكياً (لتجنب التكرار)
+      document.querySelectorAll('link[rel="stylesheet"][data-dynamic], style[data-dynamic]')
+        .forEach(el => el.remove());
+
+      // إضافة الأنماط الجديدة مع وضع علامة dynamic
+      newStyles.forEach(el => {
+        const clone = el.cloneNode(true);
+        clone.dataset.dynamic = 'true';
+        document.head.appendChild(clone);
+      });
+
+      // 3️⃣ استبدال المحتوى الحالي
       const currentContent = document.querySelector('.main-content') || document.querySelector('.content');
       if (currentContent) {
+        // حفظ حالة التمرير الحالية (اختياري)
+        // const scrollPos = currentContent.scrollTop;
         currentContent.innerHTML = newContent.innerHTML;
-        currentContent.scrollTop = 0;
+        currentContent.scrollTop = 0; // أو استخدم scrollPos
 
+        // تحديث عنوان الصفحة
         document.title = doc.title;
 
+        // تحديث مسار URL
         if (pushState) {
           window.history.pushState({ url: url }, '', url);
         }
 
-        // إعادة تهيئة أي مكونات داخل المحتوى الجديد (اختياري)
+        // إعادة تهيئة أي مكونات داخل المحتوى الجديد
+        // إذا كانت هناك دالة عامة لإعادة التهيئة، استدعها
         if (window.reinitPageContent) {
           window.reinitPageContent();
         }
 
-        // تحديث الحالة النشطة في القوائم
+        // تحديث الحالة النشطة في القوائم (Active state)
         refreshActiveStates();
+
+        // إعادة ربط أي أحداث للعناصر الجديدة (مثل النماذج)
+        rebindDynamicEvents();
       } else {
         window.location.href = url;
       }
+
+      // إخفاء مؤشر التحميل
+      // if (loader) loader.style.display = 'none';
     })
     .catch(err => {
       console.warn('فشل التحميل الديناميكي، يتم التحميل العادي:', err);
@@ -451,7 +482,7 @@ function navigateTo(url, pushState = true) {
  * تحديث الكلاسات النشطة في جميع القوائم بناءً على الصفحة الحالية.
  */
 function refreshActiveStates() {
-  // إزالة جميع الكلاسات النشطة
+  // إزالة جميع الكلاسات النشطة من الروابط
   document.querySelectorAll('.nav-sublink.active, .nav-home.active, .topbar-nav-home.active, .topbar-nav-link.active, .launcher-tile.active')
     .forEach(el => el.classList.remove('active'));
 
@@ -463,13 +494,14 @@ function refreshActiveStates() {
         const file = href.split('?')[0].split('#')[0];
         if (file === current) {
           link.classList.add('active');
+          // فتح المجموعة (details) التي تحتوي على الرابط
           const details = link.closest('.nav-group');
           if (details) details.setAttribute('open', '');
         }
       }
     });
 
-  // تحديث عنوان الصفحة ومسار التنقل
+  // تحديث عنوان الصفحة ومسار التنقل (breadcrumb)
   const page = getCurrentPageMeta();
   const titleEl = document.querySelector('.topbar-page-title h1');
   const breadcrumbEl = document.querySelector('.breadcrumb-label');
@@ -479,6 +511,23 @@ function refreshActiveStates() {
   if (breadcrumbEl) {
     breadcrumbEl.textContent = page.group;
   }
+}
+
+/**
+ * إعادة ربط الأحداث للعناصر التي تم تحميلها ديناميكياً.
+ * مثال: أزرار، نماذج، أحداث مخصصة.
+ */
+function rebindDynamicEvents() {
+  // مثال: إعادة ربط حدث النقر على أزرار معينة
+  document.querySelectorAll('.dynamic-click').forEach(el => {
+    el.addEventListener('click', function(e) {
+      // معالجة النقر
+      console.log('تم النقر على عنصر ديناميكي');
+    });
+  });
+
+  // إذا كنت تستخدم مكتبة مثل jQuery، يمكنك تفعيل الأحداث بشكل عام
+  // $(document).on('click', '.some-class', function() { ... });
 }
 
 // ========== اعتراض الروابط ==========
@@ -491,27 +540,28 @@ function initLinkInterceptor() {
     if (!link) return;
 
     const href = link.getAttribute('href');
+    // تجاهل الروابط التي تفتح في نافذة جديدة أو خارجية
     if (link.target === '_blank') return;
     if (href.startsWith('http') || href.startsWith('//')) return;
     if (href.startsWith('#') || href.startsWith('javascript:')) return;
 
+    // منع السلوك الافتراضي
     e.preventDefault();
     navigateTo(href);
   });
 
+  // معالجة أحداث الرجوع/التقدم
   window.addEventListener('popstate', function(event) {
     if (event.state && event.state.url) {
       navigateTo(event.state.url, false);
     } else {
+      // في حال عدم وجود حالة، نعيد تحميل الصفحة الحالية (fallback)
       window.location.reload();
     }
   });
 }
 
-// ============================================================
 // ========== التهيئة العامة ==========
-// ============================================================
-
 function initUnifiedNavigation() {
   const style = getStoredNavStyle();
   applyNavStyle(style);
@@ -520,13 +570,48 @@ function initUnifiedNavigation() {
   renderNavigationModeWithoutRecursion(style);
   if (style === 'sidebar') renderSidebar('sidebar-container');
   bindSearchToggle(); bindGlobalSearch(); bindUserMenu(); bindKeyboardShortcut(); bindTopbarDropdowns(); updateConnectionStatus();
-  if (!document.body.dataset.navigationConnectionBound) { document.body.dataset.navigationConnectionBound = 'true'; window.addEventListener('online', updateConnectionStatus); window.addEventListener('offline', updateConnectionStatus); }
+  if (!document.body.dataset.navigationConnectionBound) {
+    document.body.dataset.navigationConnectionBound = 'true';
+    window.addEventListener('online', updateConnectionStatus);
+    window.addEventListener('offline', updateConnectionStatus);
+  }
   window.POSNotificationCenter?.init?.();
 
   // تفعيل اعتراض الروابط (SPA)
   initLinkInterceptor();
+
+  // تأكد من أن Font Awesome محمل
+  ensureFontAwesome();
+}
+
+/**
+ * التأكد من تحميل Font Awesome (في حال فشل CDN).
+ */
+function ensureFontAwesome() {
+  // تحقق إذا كانت الأيقونات موجودة
+  const testIcon = document.createElement('i');
+  testIcon.className = 'fas fa-home';
+  testIcon.style.position = 'absolute';
+  testIcon.style.visibility = 'hidden';
+  document.body.appendChild(testIcon);
+  const computed = getComputedStyle(testIcon);
+  const hasFont = computed.fontFamily && computed.fontFamily.includes('Font Awesome');
+  testIcon.remove();
+
+  if (!hasFont) {
+    // أضف رابط CDN بديل
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css';
+    link.crossOrigin = 'anonymous';
+    document.head.appendChild(link);
+  }
 }
 
 /* يطبّق النمط قبل DOMContentLoaded لتقليل وميض التخطيط عند الانتقال بين الصفحات. */
-if (document.body) { const initialStyle = getStoredNavStyle(); document.body.classList.add(navStyleClass(initialStyle)); document.body.dataset.navStyle = initialStyle; }
+if (document.body) {
+  const initialStyle = getStoredNavStyle();
+  document.body.classList.add(navStyleClass(initialStyle));
+  document.body.dataset.navStyle = initialStyle;
+}
 document.addEventListener('DOMContentLoaded', initUnifiedNavigation);
