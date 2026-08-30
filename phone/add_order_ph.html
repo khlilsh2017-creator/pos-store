@@ -4853,7 +4853,7 @@
                 const orderId = params.get('order_id');
                 if (orderId) setTimeout(() => loadOrderForEdit(parseInt(orderId, 10)), 500);
                 if ('serviceWorker' in navigator) {
-                    navigator.serviceWorker.register('./sw_phone.js?v=' + new Date().getTime(), { scope: '/phone/' }).catch(error => console.warn('تعذر تسجيل Service Worker الهاتف', error));
+                    navigator.serviceWorker.register('./sw.js?v=' + new Date().getTime(), { scope: '/phone/' }).catch(error => console.warn('تعذر تسجيل Service Worker الهاتف', error));
                 }
                 if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission();
                 setAppLoaderState('ready');
