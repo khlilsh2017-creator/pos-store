@@ -387,6 +387,72 @@ window.refreshUnifiedNavigation = () => { const style = getStoredNavStyle(); app
  * تحميل صفحة جديدة ديناميكياً واستبدال المحتوى الرئيسي فقط،
  * مع تحميل الأنماط (CSS) الخاصة بالصفحة وإعادة تهيئة السكربتات.
  */
+/**
+ * السكربتات المشتركة المحمّلة أصلاً ضمن الهيكل العام (لا نعيد تحميلها لكل صفحة).
+ */
+const SHARED_PAGE_SCRIPTS = [
+  'sidebar-config.js', 'document-utils.js', 'notification-center-v3.js',
+  'date-utils.js', 'number-utils.js', 'permissions.js', 'offline-sync.js',
+];
+
+window.__loadedPageScripts = window.__loadedPageScripts || new Set();
+
+function scriptBaseName(src) {
+  try { return new URL(src, window.location.href).pathname.split('/').pop(); }
+  catch (e) { return src; }
+}
+
+function loadExternalScriptOnce(src) {
+  return new Promise((resolve) => {
+    const base = scriptBaseName(src);
+    if (document.querySelector(`script[src$="${base}"]`)) { resolve(); return; }
+    const el = document.createElement('script');
+    el.src = src;
+    el.onload = () => resolve();
+    el.onerror = () => resolve(); // لا نوقف التنقل بسبب فشل تحميل سكربت ثانوي
+    document.body.appendChild(el);
+  });
+}
+
+/**
+ * المشكلة الأساسية: navigateTo() كان يستبدل محتوى .main-content فقط، بينما
+ * منطق الصفحة الفعلي (جلب البيانات، window.onload... إلخ) موجود داخل <script>
+ * خارج .main-content تماماً. حتى لو كان داخله، وسم <script> لا يُنفَّذ أبداً
+ * عند إدراجه عبر innerHTML. لذلك كانت البيانات لا تُجلب أبداً بالتنقل الديناميكي،
+ * وتظهر فقط عند إعادة تحميل الصفحة بشكل كامل (لأن المتصفح حينها يوّلد كل
+ * السكربتات من جديد بشكل طبيعي).
+ *
+ * الحل: نجمع كل وسوم <script> من المستند الكامل الذي تم جلبه (وليس فقط من
+ * داخل .main-content)، ونعيد إنشاءها كعناصر <script> جديدة لتُنفَّذ فعلياً.
+ * نفعل هذا مرة واحدة فقط لكل صفحة (لتفادي أخطاء إعادة تعريف const/let)، وفي
+ * الزيارات التالية لنفس الصفحة نكتفي باستدعاء دالة init الخاصة بها.
+ */
+async function loadPageScripts(doc, targetFile) {
+  if (window.__loadedPageScripts.has(targetFile)) {
+    // السكربت محمّل ومنفَّذ من قبل، فقط أعد استدعاء دالة تهيئة الصفحة
+    reinitPageScripts(targetFile);
+    return;
+  }
+  window.__loadedPageScripts.add(targetFile);
+
+  const scripts = Array.from(doc.querySelectorAll('script'));
+  for (const scriptEl of scripts) {
+    const src = scriptEl.getAttribute('src');
+    if (src) {
+      if (SHARED_PAGE_SCRIPTS.includes(scriptBaseName(src))) continue;
+      await loadExternalScriptOnce(src);
+    } else if (scriptEl.textContent.trim()) {
+      const clone = document.createElement('script');
+      clone.dataset.pageScript = targetFile;
+      clone.textContent = scriptEl.textContent;
+      document.body.appendChild(clone); // ينفَّذ فوراً عند الإدراج
+    }
+  }
+  // ملاحظة: لا نستدعي reinitPageScripts هنا في أول زيارة، لأن سكربت الصفحة
+  // (بعد التعديل المطلوب في كل صفحة) يستدعي دالة init الخاصة به بنفسه بمجرد
+  // تنفيذه إن كانت الوثيقة محمّلة بالفعل. راجع نمط initSalePage في sale.html.
+}
+
 function navigateTo(url, pushState = true) {
   if (!url || url.startsWith('#') || url.startsWith('javascript:')) return;
   if (url.startsWith('http') || url.startsWith('//')) {
@@ -412,7 +478,7 @@ function navigateTo(url, pushState = true) {
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       return response.text();
     })
-    .then(html => {
+    .then(async html => {
       const parser = new DOMParser();
       const doc = parser.parseFromString(html, 'text/html');
 
@@ -446,9 +512,9 @@ function navigateTo(url, pushState = true) {
           window.history.pushState({ url: url }, '', url);
         }
 
-        // ===== 🔥 هنا نقوم بتهيئة الصفحة الجديدة =====
-        reinitPageScripts(targetFile);
-        // =============================================
+        // ===== 🔥 هنا نقوم بتحميل/تهيئة سكربتات الصفحة الجديدة فعلياً =====
+        await loadPageScripts(doc, targetFile);
+        // ====================================================================
 
         refreshActiveStates();
         rebindDynamicEvents();
@@ -469,6 +535,15 @@ function navigateTo(url, pushState = true) {
  * إعادة تهيئة السكربتات الخاصة بالصفحة بعد تحميل المحتوى ديناميكياً.
  * @param {string} pageName - اسم الصفحة (مثل 'sale.html')
  */
+function pageInitFunctionName(pageName) {
+  // يحوّل 'sale.html' إلى initSalePage، و'stock-movements.html' إلى initStockMovementsPage
+  const base = pageName.replace('.html', '');
+  const camel = base.split(/[-_]/).filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join('');
+  return 'init' + camel + 'Page';
+}
+
 function reinitPageScripts(pageName) {
   // 1. استدعاء دالة عامة إذا وجدت
   if (typeof window.initPage === 'function') {
@@ -476,7 +551,10 @@ function reinitPageScripts(pageName) {
   }
 
   // 2. استدعاء دالة خاصة باسم الصفحة (مثل initSalePage)
-  const funcName = 'init' + pageName.replace('.html', '').replace(/[-_]/g, '') + 'Page';
+  // ملاحظة: كانت هذه الدالة تبني الاسم بدون تحويل أول حرف من كل جزء إلى Capital
+  // (مثلاً 'initsalePage' بدل 'initSalePage')، لذا لم تكن تتطابق أبداً مع أي دالة
+  // init حقيقية معرّفة داخل الصفحات. تم إصلاحها عبر pageInitFunctionName أعلاه.
+  const funcName = pageInitFunctionName(pageName);
   if (typeof window[funcName] === 'function') {
     window[funcName]();
   }
