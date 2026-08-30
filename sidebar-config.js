@@ -1,7 +1,6 @@
 /*
  * نظام التنقل الموحد لنظام نقاط البيع.
  * مصدر الروابط الوحيد هو NAV_GROUPS، وتدعم الواجهة ثلاثة أنماط قابلة للتبديل.
- * تمت إضافة التنقل الديناميكي (SPA) لمنع إعادة تحميل الصفحة.
  */
 
 const NAV_GROUPS = [
@@ -74,15 +73,7 @@ const DEFAULT_NAV_STYLE = 'sidebar';
 
 function isDriverPage() { return /(^|\/)driver(\/|$)/i.test(window.location.pathname); }
 function resolveSidebarHref(href) { return isDriverPage() ? `../${href}` : href; }
-
-// دالة ذكية لقراءة اسم الملف الحالي
-function currentFileName() {
-  let file = window.location.pathname.split('/').pop();
-  if (!file || file === '') return 'index.html';
-  file = file.split('?')[0].split('#')[0];
-  return file;
-}
-
+function currentFileName() { return window.location.pathname.split('/').pop() || 'index.html'; }
 function isActiveHref(href) { return currentFileName() === href; }
 function normalizeNavStyle(value) { return NAV_STYLES.includes(String(value)) ? String(value) : DEFAULT_NAV_STYLE; }
 function navStyleClass(style) { const normalized = normalizeNavStyle(style); return normalized === 'topbar-dropdown' ? 'nav-style-topbar' : normalized === 'app-launcher' ? 'nav-style-launcher' : 'nav-style-sidebar'; }
@@ -190,31 +181,38 @@ function ensureNavigationShell() {
   const existingSidebar = document.getElementById('sidebar-container');
   const existingMain = document.querySelector('.main-content, main, .content');
 
+  // إذا كان الهيكل موجوداً بالفعل، لا نفعّله مرة أخرى
   if (existingSidebar && existingMain && existingSidebar.parentElement?.classList.contains('app-wrapper')) return;
 
+  // إنشاء أو استخدام العناصر الموجودة
   const sidebarHost = existingSidebar || document.createElement('div');
   sidebarHost.id = 'sidebar-container';
 
   const main = existingMain || document.createElement('main');
   main.classList.add('main-content');
 
+  // إنشاء الغلاف (shell)
   const shell = document.createElement('div');
   shell.className = 'app-wrapper unified-shell';
 
+  // 1️⃣ نضيف sidebarHost و main إلى shell أولاً
   shell.appendChild(sidebarHost);
   shell.appendChild(main);
 
+  // 2️⃣ ننقل عناصر body الأخرى (ما عدا shell, sidebarHost, main, script, style) إلى main
   const children = Array.from(document.body.children);
   for (const child of children) {
     if (child === shell || child === sidebarHost || child === main ||
         child.tagName === 'SCRIPT' || child.tagName === 'STYLE') {
       continue;
     }
+    // ننقل الطفل إلى main إذا كان لا يزال في body ولم يُنقل بعد
     if (child.parentNode === document.body && child !== main) {
       main.appendChild(child);
     }
   }
 
+  // 3️⃣ نضع shell في بداية body (إذا لم يكن موجوداً بالفعل)
   if (!document.body.contains(shell)) {
     document.body.insertBefore(shell, document.body.firstChild);
   }
@@ -311,16 +309,7 @@ function bindGlobalSearch() {
   input.dataset.bound = 'true';
   const renderResults = () => { const query = input.value.trim().toLowerCase(); const matches = allNavigationLinks().filter((link) => !query || link.label.toLowerCase().includes(query)).slice(0, 7); results.innerHTML = matches.length ? matches.map((link) => `<a href="${resolveSidebarHref(link.href)}" role="option"><i class="fas ${link.icon}"></i><span>${escapeHtml(link.label)}</span></a>`).join('') : '<div class="search-empty">لا توجد نتائج مطابقة</div>'; results.classList.add('visible'); };
   input.addEventListener('focus', () => { setSearchOpen(true); renderResults(); }); input.addEventListener('input', renderResults);
-  input.addEventListener('keydown', (event) => {
-    if (event.key === 'Enter') {
-      const first = results.querySelector('a');
-      if (first) {
-        event.preventDefault();
-        navigateTo(first.getAttribute('href')); // استخدام التنقل الديناميكي
-      }
-    }
-    if (event.key === 'Escape') { setSearchOpen(false); input.blur(); }
-  });
+  input.addEventListener('keydown', (event) => { if (event.key === 'Enter') { const first = results.querySelector('a'); if (first) window.location.href = first.href; } if (event.key === 'Escape') { setSearchOpen(false); input.blur(); } });
   if (!document.body.dataset.globalSearchDocumentBound) { document.body.dataset.globalSearchDocumentBound = 'true'; document.addEventListener('click', (event) => { if (!event.target.closest('.topbar-search')) document.querySelectorAll('.search-results').forEach((item) => item.classList.remove('visible')); }); }
 }
 function bindKeyboardShortcut() {
@@ -379,152 +368,6 @@ window.toggleSidebar = toggleSidebar;
 window.applyNavigationStyle = (style, persist = true) => { applyNavStyle(style, persist); bindSearchToggle(); bindGlobalSearch(); bindUserMenu(); };
 window.refreshUnifiedNavigation = () => { const style = getStoredNavStyle(); applyNavStyle(style); bindSearchToggle(); bindGlobalSearch(); bindUserMenu(); bindTopbarDropdowns(); updateConnectionStatus(); };
 
-// ============================================================
-// ========== الجزء الجديد: التنقل الديناميكي (SPA) ==========
-// ============================================================
-
-/**
- * تحميل صفحة جديدة ديناميكياً واستبدال المحتوى الرئيسي فقط.
- * @param {string} url - مسار الصفحة المطلوبة (نسبي)
- * @param {boolean} pushState - هل نضيف الحالة إلى history (صحيح للروابط العادية، خطأ للرجوع)
- */
-function navigateTo(url, pushState = true) {
-  if (!url || url.startsWith('#') || url.startsWith('javascript:')) return;
-  if (url.startsWith('http') || url.startsWith('//')) {
-    window.open(url, '_blank');
-    return;
-  }
-
-  const currentFile = currentFileName();
-  const targetFile = url.split('?')[0].split('#')[0];
-  if (targetFile === currentFile) {
-    if (url.includes('#')) {
-      window.location.hash = url.split('#')[1];
-    }
-    return;
-  }
-
-  fetch(url)
-    .then(response => {
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      return response.text();
-    })
-    .then(html => {
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(html, 'text/html');
-
-      // استخراج المحتوى الجديد
-      let newContent = doc.querySelector('.main-content') || doc.querySelector('.content');
-      if (!newContent) {
-        window.location.href = url;
-        return;
-      }
-
-      // استخراج الأنماط من الصفحة الجديدة
-      const newStyles = doc.querySelectorAll('link[rel="stylesheet"], style');
-      // إزالة الأنماط القديمة التي تم إضافتها ديناميكياً (لتجنب التكرار)
-      document.querySelectorAll('link[rel="stylesheet"][data-dynamic], style[data-dynamic]')
-        .forEach(el => el.remove());
-
-      // إضافة الأنماط الجديدة مع وضع علامة dynamic
-      newStyles.forEach(el => {
-        const clone = el.cloneNode(true);
-        clone.dataset.dynamic = 'true';
-        document.head.appendChild(clone);
-      });
-
-      // استبدال المحتوى الحالي
-      const currentContent = document.querySelector('.main-content') || document.querySelector('.content');
-      if (currentContent) {
-        currentContent.innerHTML = newContent.innerHTML;
-        currentContent.scrollTop = 0;
-
-        document.title = doc.title;
-
-        if (pushState) {
-          window.history.pushState({ url: url }, '', url);
-        }
-
-        if (window.reinitPageContent) {
-          window.reinitPageContent();
-        }
-
-        refreshActiveStates();
-      } else {
-        window.location.href = url;
-      }
-    })
-    .catch(err => {
-      console.warn('فشل التحميل الديناميكي، يتم التحميل العادي:', err);
-      window.location.href = url;
-    });
-}
-
-/**
- * تحديث الكلاسات النشطة في جميع القوائم بناءً على الصفحة الحالية.
- */
-function refreshActiveStates() {
-  // إزالة جميع الكلاسات النشطة
-  document.querySelectorAll('.nav-sublink.active, .nav-home.active, .topbar-nav-home.active, .topbar-nav-link.active, .launcher-tile.active')
-    .forEach(el => el.classList.remove('active'));
-
-  const current = currentFileName();
-  document.querySelectorAll('.nav-sublink, .nav-home, .topbar-nav-home, .topbar-nav-link, .launcher-tile')
-    .forEach(link => {
-      const href = link.getAttribute('href');
-      if (href) {
-        const file = href.split('?')[0].split('#')[0];
-        if (file === current) {
-          link.classList.add('active');
-          const details = link.closest('.nav-group');
-          if (details) details.setAttribute('open', '');
-        }
-      }
-    });
-
-  // تحديث عنوان الصفحة ومسار التنقل
-  const page = getCurrentPageMeta();
-  const titleEl = document.querySelector('.topbar-page-title h1');
-  const breadcrumbEl = document.querySelector('.breadcrumb-label');
-  if (titleEl) {
-    titleEl.innerHTML = `<i class="fas ${page.icon}" aria-hidden="true"></i>${escapeHtml(page.title)}`;
-  }
-  if (breadcrumbEl) {
-    breadcrumbEl.textContent = page.group;
-  }
-}
-
-// ========== اعتراض الروابط ==========
-function initLinkInterceptor() {
-  if (document.body.dataset.linkInterceptorBound === 'true') return;
-  document.body.dataset.linkInterceptorBound = 'true';
-
-  document.addEventListener('click', function(e) {
-    const link = e.target.closest('a[href]');
-    if (!link) return;
-
-    const href = link.getAttribute('href');
-    if (link.target === '_blank') return;
-    if (href.startsWith('http') || href.startsWith('//')) return;
-    if (href.startsWith('#') || href.startsWith('javascript:')) return;
-
-    e.preventDefault();
-    navigateTo(href);
-  });
-
-  window.addEventListener('popstate', function(event) {
-    if (event.state && event.state.url) {
-      navigateTo(event.state.url, false);
-    } else {
-      window.location.reload();
-    }
-  });
-}
-
-// ============================================================
-// ========== التهيئة العامة ==========
-// ============================================================
-
 function initUnifiedNavigation() {
   const style = getStoredNavStyle();
   applyNavStyle(style);
@@ -535,9 +378,6 @@ function initUnifiedNavigation() {
   bindSearchToggle(); bindGlobalSearch(); bindUserMenu(); bindKeyboardShortcut(); bindTopbarDropdowns(); updateConnectionStatus();
   if (!document.body.dataset.navigationConnectionBound) { document.body.dataset.navigationConnectionBound = 'true'; window.addEventListener('online', updateConnectionStatus); window.addEventListener('offline', updateConnectionStatus); }
   window.POSNotificationCenter?.init?.();
-
-  // تفعيل اعتراض الروابط (SPA)
-  initLinkInterceptor();
 }
 
 /* يطبّق النمط قبل DOMContentLoaded لتقليل وميض التخطيط عند الانتقال بين الصفحات. */
