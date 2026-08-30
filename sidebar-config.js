@@ -380,12 +380,12 @@ window.applyNavigationStyle = (style, persist = true) => { applyNavStyle(style, 
 window.refreshUnifiedNavigation = () => { const style = getStoredNavStyle(); applyNavStyle(style); bindSearchToggle(); bindGlobalSearch(); bindUserMenu(); bindTopbarDropdowns(); updateConnectionStatus(); };
 
 // ============================================================
-// ========== الجزء الجديد: التنقل الديناميكي مع تحميل الأنماط ==========
+// ========== الجزء الجديد: التنقل الديناميكي مع تحميل الأنماط وإعادة التهيئة ==========
 // ============================================================
 
 /**
  * تحميل صفحة جديدة ديناميكياً واستبدال المحتوى الرئيسي فقط،
- * مع تحميل الأنماط (CSS) الخاصة بالصفحة.
+ * مع تحميل الأنماط (CSS) الخاصة بالصفحة وإعادة تهيئة السكربتات.
  */
 function navigateTo(url, pushState = true) {
   if (!url || url.startsWith('#') || url.startsWith('javascript:')) return;
@@ -403,8 +403,7 @@ function navigateTo(url, pushState = true) {
     return;
   }
 
-  // إظهار مؤشر تحميل (اختياري)
-  // يمكنك تفعيله إذا أردت
+  // يمكنك تفعيل مؤشر تحميل هنا إذا أردت
   // const loader = document.getElementById('loadingIndicator');
   // if (loader) loader.style.display = 'block';
 
@@ -425,13 +424,11 @@ function navigateTo(url, pushState = true) {
         return;
       }
 
-      // 2️⃣ استخراج الأنماط (link و style) من الصفحة الجديدة
+      // 2️⃣ تحميل الأنماط (CSS) الخاصة بالصفحة الجديدة
       const newStyles = doc.querySelectorAll('link[rel="stylesheet"], style');
-      // إزالة الأنماط القديمة التي تم إضافتها ديناميكياً (لتجنب التكرار)
       document.querySelectorAll('link[rel="stylesheet"][data-dynamic], style[data-dynamic]')
         .forEach(el => el.remove());
 
-      // إضافة الأنماط الجديدة مع وضع علامة dynamic
       newStyles.forEach(el => {
         const clone = el.cloneNode(true);
         clone.dataset.dynamic = 'true';
@@ -441,29 +438,19 @@ function navigateTo(url, pushState = true) {
       // 3️⃣ استبدال المحتوى الحالي
       const currentContent = document.querySelector('.main-content') || document.querySelector('.content');
       if (currentContent) {
-        // حفظ حالة التمرير الحالية (اختياري)
-        // const scrollPos = currentContent.scrollTop;
         currentContent.innerHTML = newContent.innerHTML;
-        currentContent.scrollTop = 0; // أو استخدم scrollPos
+        currentContent.scrollTop = 0;
 
-        // تحديث عنوان الصفحة
         document.title = doc.title;
-
-        // تحديث مسار URL
         if (pushState) {
           window.history.pushState({ url: url }, '', url);
         }
 
-        // إعادة تهيئة أي مكونات داخل المحتوى الجديد
-        // إذا كانت هناك دالة عامة لإعادة التهيئة، استدعها
-        if (window.reinitPageContent) {
-          window.reinitPageContent();
-        }
+        // ===== 🔥 هنا نقوم بتهيئة الصفحة الجديدة =====
+        reinitPageScripts(targetFile);
+        // =============================================
 
-        // تحديث الحالة النشطة في القوائم (Active state)
         refreshActiveStates();
-
-        // إعادة ربط أي أحداث للعناصر الجديدة (مثل النماذج)
         rebindDynamicEvents();
       } else {
         window.location.href = url;
@@ -476,6 +463,32 @@ function navigateTo(url, pushState = true) {
       console.warn('فشل التحميل الديناميكي، يتم التحميل العادي:', err);
       window.location.href = url;
     });
+}
+
+/**
+ * إعادة تهيئة السكربتات الخاصة بالصفحة بعد تحميل المحتوى ديناميكياً.
+ * @param {string} pageName - اسم الصفحة (مثل 'sale.html')
+ */
+function reinitPageScripts(pageName) {
+  // 1. استدعاء دالة عامة إذا وجدت
+  if (typeof window.initPage === 'function') {
+    window.initPage();
+  }
+
+  // 2. استدعاء دالة خاصة باسم الصفحة (مثل initSalePage)
+  const funcName = 'init' + pageName.replace('.html', '').replace(/[-_]/g, '') + 'Page';
+  if (typeof window[funcName] === 'function') {
+    window[funcName]();
+  }
+
+  // 3. تنفيذ أي سكربت مدمج في الصفحة (اختياري، لكن الأفضل الاعتماد على دوال صريحة)
+  //    يمكنك استخراج <script> من المحتوى وتنفيذها، لكن الأفضل الاعتماد على دوال صريحة.
+
+  // 4. إعادة ربط الأحداث (لأزرار، نماذج، إلخ)
+  rebindDynamicEvents();
+
+  // 5. إذا كانت لديك مكتبة مثل Alpine.js أو Vue، قم بتهيئتها مجدداً
+  //    مثال: if (window.Alpine) Alpine.initTree(document.body);
 }
 
 /**
