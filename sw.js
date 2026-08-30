@@ -3,10 +3,10 @@
 // ============================================================
 importScripts('/offline-sw-core.js');
 
-const CACHE_NAME = 'ibn-mukhtar-pos-v33';
-const STATIC_CACHE = 'ibn-mukhtar-static-v33';
-const DYNAMIC_CACHE = 'ibn-mukhtar-dynamic-v33';
-const VERSION = '2026-08-31-offline-sync-v5';
+const CACHE_NAME = 'ibn-mukhtar-pos-v32';
+const STATIC_CACHE = 'ibn-mukhtar-static-v32';
+const DYNAMIC_CACHE = 'ibn-mukhtar-dynamic-v32';
+const VERSION = '2026-08-30-offline-sync-v5';
 
 const STATIC_ASSETS = [
     // ===== الصفحات الرئيسية =====
@@ -83,6 +83,60 @@ const STATIC_ASSETS = [
 ];
 // --------------------------------------------
 // 1️⃣ تثبيت SW (مع حذف الكاش القديم)
+// --------------------------------------------
+self.addEventListener('install', event => {
+    console.log('[SW] 📦 تثبيت الإصدار:', VERSION);
+    event.waitUntil(
+        caches.keys()
+            .then(keys => {
+                return Promise.all(
+                    keys.map(key => {
+                        if (key.startsWith('ibn-mukhtar-') && ![STATIC_CACHE, DYNAMIC_CACHE, OFFLINE_API_CACHE].includes(key)) {
+                            console.log('[SW] 🗑️ حذف الكاش القديم:', key);
+                            return caches.delete(key);
+                        }
+                    })
+                );
+            })
+            .then(() => caches.open(STATIC_CACHE))
+            .then(cache => {
+                console.log('[SW] 📦 تخزين الملفات الثابتة');
+                return Promise.all(STATIC_ASSETS.map(asset => cache.add(asset).catch(error => console.warn('[SW] تعذر تخزين', asset, error))));
+            })
+            .then(() => self.skipWaiting())
+            .catch(err => console.warn('[SW] ⚠️ فشل التخزين:', err))
+    );
+});
+
+// --------------------------------------------
+// 2️⃣ تفعيل SW (مع السيطرة على الصفحات فوراً)
+// --------------------------------------------
+self.addEventListener('activate', event => {
+    console.log('[SW] 🚀 تفعيل الإصدار:', VERSION);
+    event.waitUntil(
+        caches.keys()
+            .then(keys => {
+                return Promise.all(
+                    keys.filter(key => key !== STATIC_CACHE && key !== DYNAMIC_CACHE && key !== OFFLINE_API_CACHE)
+                        .map(key => {
+                            console.log('[SW] 🗑️ حذف الكاش القديم:', key);
+                            return caches.delete(key);
+                        })
+                );
+            })
+            .then(() => self.clients.claim())
+            .then(() => {
+                self.clients.matchAll({ type: 'window' }).then(clients => {
+                    clients.forEach(client => {
+                        client.postMessage({ action: 'reload', version: VERSION });
+                    });
+                });
+            })
+    );
+});
+
+// --------------------------------------------
+// 3️⃣ استراتيجية الجلب (Fetch)
 // --------------------------------------------
 self.addEventListener('fetch', event => {
     const { request } = event;
@@ -209,141 +263,6 @@ self.addEventListener('fetch', event => {
                         if (response && response.status === 200 && request.method === 'GET') {
                             const clone = response.clone();
                             caches.open(DYNAMIC_CACHE).then(cache => cache.put(url.pathname, clone));
-                        }
-                        return response;
-                    })
-                    .catch(() => new Response('', { status: 404, statusText: 'Not Found' }));
-            })
-    );
-});
-
-// --------------------------------------------
-// 2️⃣ تفعيل SW (مع السيطرة على الصفحات فوراً)
-// --------------------------------------------
-self.addEventListener('activate', event => {
-    console.log('[SW] 🚀 تفعيل الإصدار:', VERSION);
-    event.waitUntil(
-        caches.keys()
-            .then(keys => {
-                return Promise.all(
-                    keys.filter(key => key !== STATIC_CACHE && key !== DYNAMIC_CACHE && key !== OFFLINE_API_CACHE)
-                        .map(key => {
-                            console.log('[SW] 🗑️ حذف الكاش القديم:', key);
-                            return caches.delete(key);
-                        })
-                );
-            })
-            .then(() => self.clients.claim())
-            .then(() => {
-                self.clients.matchAll({ type: 'window' }).then(clients => {
-                    clients.forEach(client => {
-                        client.postMessage({ action: 'reload', version: VERSION });
-                    });
-                });
-            })
-    );
-});
-
-// --------------------------------------------
-// 3️⃣ استراتيجية الجلب (Fetch)
-// --------------------------------------------
-self.addEventListener('fetch', event => {
-    const { request } = event;
-    const url = new URL(request.url);
-    
-    // تحسين التعرف على صفحات التنقل بشكل أدق
-    const isHtmlPage = request.headers.get('Accept')?.includes('text/html') || 
-                       url.pathname.endsWith('.html') || 
-                       request.mode === 'navigate';
-
-    const isStaticAsset = STATIC_ASSETS.some(asset => url.pathname === asset || url.pathname + '/' === asset);
-    const isExternalLib = url.origin !== self.location.origin && 
-                          (url.pathname.includes('fonts.googleapis.com') || 
-                           url.pathname.includes('cdnjs.cloudflare.com') ||
-                           url.pathname.includes('cdn.jsdelivr.net'));
-
-    // API: كاش GET عند القراءة، وطابور دائم للطلبات الكتابية عند انقطاع الشبكة.
-    if (offlineIsApiRequest(url)) {
-        event.respondWith(offlineHandleApiRequest(request));
-        return;
-    }
-    if (url.pathname.includes('/api/') ||
-        url.pathname.includes('analytics') ||
-        url.pathname.includes('google-analytics') ||
-        url.pathname.includes('doubleclick.net')) {
-        return;
-    }
-
-    // ===== استراتيجية صفحات HTML (Network First) =====
-    if (isHtmlPage) {
-        event.respondWith(
-            fetch(request)
-                .then(response => {
-                    if (response && response.status === 200) {
-                        const clone = response.clone();
-                        caches.open(DYNAMIC_CACHE)
-                            .then(cache => cache.put(request, clone))
-                            .catch(() => {});
-                    }
-                    return response;
-                })
-                .catch(() => {
-                    return caches.match(request, { ignoreSearch: true })
-                        .then(cached => {
-                            if (cached) return cached;
-                            
-                            const fallbackUrl = url.pathname.endsWith('.html') 
-                                ? url.pathname.replace('.html', '') 
-                                : url.pathname + '.html';
-                                
-                            return caches.match(fallbackUrl, { ignoreSearch: true });
-                        })
-                        .then(finalCached => finalCached || new Response(OFFLINE_PAGE, {
-                            status: 503,
-                            headers: { 'Content-Type': 'text/html; charset=utf-8' }
-                        }));
-                })
-        );
-        return;
-    }
-
-    // ===== استراتيجية الموارد الثابتة (Cache First) =====
-    if (isStaticAsset || isExternalLib) {
-        event.respondWith(
-            caches.match(request, { ignoreSearch: true })
-                .then(cached => {
-                    if (cached) {
-                        fetch(request).then(response => {
-                            if(response && (response.status === 200 || response.type === 'opaque')) {
-                                caches.open(STATIC_CACHE).then(cache => cache.put(request, response.clone())).catch(() => {});
-                            }
-                        }).catch(() => {});
-                        return cached;
-                    }
-                    return fetch(request)
-                        .then(response => {
-                            if (response && (response.status === 200 || response.type === 'opaque')) {
-                                const clone = response.clone();
-                                caches.open(STATIC_CACHE).then(cache => cache.put(request, clone)).catch(() => {});
-                            }
-                            return response;
-                        })
-                        .catch(() => new Response('', { status: 503, statusText: 'Resource unavailable offline' }));
-                })
-        );
-        return;
-    }
-
-    // ===== للطلبات الأخرى (صور، ملفات غير مدرجة، إلخ) =====
-    event.respondWith(
-        caches.match(request, { ignoreSearch: true })
-            .then(cached => {
-                if (cached) return cached;
-                return fetch(request)
-                    .then(response => {
-                        if (response && response.status === 200 && request.method === 'GET') {
-                            const clone = response.clone();
-                            caches.open(DYNAMIC_CACHE).then(cache => cache.put(request, clone));
                         }
                         return response;
                     })
