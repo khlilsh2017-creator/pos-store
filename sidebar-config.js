@@ -427,6 +427,36 @@ function loadExternalScriptOnce(src) {
  * نفعل هذا مرة واحدة فقط لكل صفحة (لتفادي أخطاء إعادة تعريف const/let)، وفي
  * الزيارات التالية لنفس الصفحة نكتفي باستدعاء دالة init الخاصة بها.
  */
+/**
+ * كل صفحة عندها متغيرات/ثوابت على المستوى الأعلى بنفس الاسم أحياناً
+ * (مثال: `const API = '...'` موجود في sale.html وأيضاً في index.html).
+ * لما ننفّذ سكربت صفحة جديدة عبر <script> بينما سكربت صفحة سابقة لسا
+ * حي في نفس الـ document، يصير خطأ:
+ *   Uncaught SyntaxError: Identifier 'API' has already been declared
+ * وهذا يوقف تنفيذ السكربت بالكامل، فتختفي البيانات تماماً.
+ *
+ * الحل: نغلّف كود كل صفحة داخل (function(){ ... })() عشان يكون لكل صفحة
+ * نطاقها (scope) الخاص بها ولا تتصادم متغيراتها مع صفحة ثانية. وحتى تبقى
+ * الدوال المستخدمة داخل onclick="..." في الـ HTML شغالة (لأنها تُقرأ من
+ * النطاق العام window)، نكتشف تلقائياً كل دوال المستوى الأعلى (function
+ * name(...) الأقل تعشيشاً في الملف) ونصدّرها صراحة إلى window بعد التنفيذ.
+ */
+function extractTopLevelFunctionNames(code) {
+  const re = /^([ \t]*)(?:async\s+function|function)\s+([A-Za-z_$][A-Za-z0-9_$]*)\s*\(/gm;
+  const matches = [];
+  let m;
+  while ((m = re.exec(code))) matches.push({ indent: m[1].length, name: m[2] });
+  if (!matches.length) return [];
+  const minIndent = Math.min(...matches.map((x) => x.indent));
+  return [...new Set(matches.filter((x) => x.indent === minIndent).map((x) => x.name))];
+}
+
+function wrapPageScript(code) {
+  const names = extractTopLevelFunctionNames(code);
+  const exportsBlock = names.map((n) => `window.${n} = ${n};`).join('\n');
+  return `(function(){\n${code}\n${exportsBlock}\n})();`;
+}
+
 async function loadPageScripts(doc, targetFile) {
   if (window.__loadedPageScripts.has(targetFile)) {
     // السكربت محمّل ومنفَّذ من قبل، فقط أعد استدعاء دالة تهيئة الصفحة
@@ -444,7 +474,7 @@ async function loadPageScripts(doc, targetFile) {
     } else if (scriptEl.textContent.trim()) {
       const clone = document.createElement('script');
       clone.dataset.pageScript = targetFile;
-      clone.textContent = scriptEl.textContent;
+      clone.textContent = wrapPageScript(scriptEl.textContent);
       document.body.appendChild(clone); // ينفَّذ فوراً عند الإدراج
     }
   }
@@ -510,6 +540,13 @@ function navigateTo(url, pushState = true) {
         document.title = doc.title;
         if (pushState) {
           window.history.pushState({ url: url }, '', url);
+        }
+
+        // إن كانت الصفحة السابقة قد سجّلت دالة تنظيف (لإيقاف setInterval أو
+        // مستمعين لا يزال يعمل بعد مغادرتها)، ننفّذها الآن قبل تحميل الصفحة الجديدة.
+        if (typeof window.__pageCleanup === 'function') {
+          try { window.__pageCleanup(); } catch (e) { /* تجاهل */ }
+          window.__pageCleanup = null;
         }
 
         // ===== 🔥 هنا نقوم بتحميل/تهيئة سكربتات الصفحة الجديدة فعلياً =====
