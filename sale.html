@@ -4054,70 +4054,89 @@
             loadProductsFromLocal();
         });
 
-        window.onload = async function() {
-            loadCurrentUser();
-            updateOnlineStatus();
-            await loadSaleRules();
-            loadCartFromLocal();
+       // ================================================================
+//  24. INIT & EVENT LISTENERS (معدل للتهيئة العامة)
+// ================================================================
 
-            selectedCategoryId = null;
-            currentSearch = '';
-            document.getElementById('search-input').value = '';
-            document.getElementById('main-category').value = '';
-            document.getElementById('sub-category').style.display = 'none';
-            document.getElementById('sub-category').innerHTML = '<option value="">📂 اختر الفرع</option>';
+function initSalePage() {
+    loadCurrentUser();
+    updateOnlineStatus();
+    // تأكد من تحميل القواعد والبيانات الأساسية
+    // الكود التالي كان داخل window.onload سابقاً
+    // ===== نبدأ بتنفيذ التهيئة =====
+    (async function() {
+        await loadSaleRules();
+        loadCartFromLocal();
 
-            const params = new URLSearchParams(window.location.search);
-            const editId = params.get('edit');
-            if (editId) {
-                editInvoiceId = parseInt(editId);
-                document.getElementById('page-subtitle').innerText = `جاري تحميل الفاتورة #${editId}...`;
-                await loadInvoiceForEdit(editId);
-            } else {
-                document.getElementById('page-subtitle').innerText = 'إنشاء فاتورة جديدة';
-                const btnText = document.getElementById('submit-btn-text');
-                const btnIcon = document.getElementById('submit-btn-icon');
-                if (btnText) btnText.innerText = 'حفظ وبيع';
-                if (btnIcon) btnIcon.className = 'fas fa-save';
-                editInvoiceId = null;
-                document.getElementById('cancel-edit-btn').style.display = 'none';
-            }
+        selectedCategoryId = null;
+        currentSearch = '';
+        document.getElementById('search-input').value = '';
+        document.getElementById('main-category').value = '';
+        document.getElementById('sub-category').style.display = 'none';
+        document.getElementById('sub-category').innerHTML = '<option value="">📂 اختر الفرع</option>';
 
-            await loadCurrencies();
-            await loadWalletsFromServer();
-            populateCurrencySelects();
-            populateWalletSelects();
+        const params = new URLSearchParams(window.location.search);
+        const editId = params.get('edit');
+        if (editId) {
+            editInvoiceId = parseInt(editId);
+            document.getElementById('page-subtitle').innerText = `جاري تحميل الفاتورة #${editId}...`;
+            await loadInvoiceForEdit(editId);
+        } else {
+            document.getElementById('page-subtitle').innerText = 'إنشاء فاتورة جديدة';
+            const btnText = document.getElementById('submit-btn-text');
+            const btnIcon = document.getElementById('submit-btn-icon');
+            if (btnText) btnText.innerText = 'حفظ وبيع';
+            if (btnIcon) btnIcon.className = 'fas fa-save';
+            editInvoiceId = null;
+            document.getElementById('cancel-edit-btn').style.display = 'none';
+        }
 
-            const hasLocal = await loadProductsFromLocal();
+        await loadCurrencies();
+        await loadWalletsFromServer();
+        populateCurrencySelects();
+        populateWalletSelects();
 
-            if (navigator.onLine) {
-                await loadAllCategories();
-                await fetchProducts();
-                const count = await syncPendingSales();
-                if (count > 0) showToast(`✅ تمت مزامنة ${formatPosQuantity(count)} فاتورة معلقة`, 'success');
-            } else if (!hasLocal) {
-                showToast('⚠️ لا توجد بيانات محلية، يرجى الاتصال بالإنترنت أول مرة', 'warning');
-            }
+        const hasLocal = await loadProductsFromLocal();
 
-            await fetchCustomersList();
-            document.getElementById('barcode-input').focus();
+        if (navigator.onLine) {
+            await loadAllCategories();
+            await fetchProducts();
+            const count = await syncPendingSales();
+            if (count > 0) showToast(`✅ تمت مزامنة ${formatPosQuantity(count)} فاتورة معلقة`, 'success');
+        } else if (!hasLocal) {
+            showToast('⚠️ لا توجد بيانات محلية، يرجى الاتصال بالإنترنت أول مرة', 'warning');
+        }
 
-            document.querySelectorAll('.currency-select').forEach(sel => {
-                sel.addEventListener('change', function() {
-                    if (document.getElementById('payment-method').value === 'cash' ||
-                        document.getElementById('payment-method').value === 'wallet') {
-                        updateTotalsFromPaid();
-                    } else if (document.getElementById('payment-method').value === 'mixed') {
-                        updateTotalsFromPaidMixed();
-                    }
-                });
+        await fetchCustomersList();
+        document.getElementById('barcode-input').focus();
+
+        document.querySelectorAll('.currency-select').forEach(sel => {
+            sel.addEventListener('change', function() {
+                if (document.getElementById('payment-method').value === 'cash' ||
+                    document.getElementById('payment-method').value === 'wallet') {
+                    updateTotalsFromPaid();
+                } else if (document.getElementById('payment-method').value === 'mixed') {
+                    updateTotalsFromPaidMixed();
+                }
             });
+        });
 
-            handlePaymentMethodChange();
-            if (document.getElementById('payment-method').value === 'mixed') {
-                updateMixedDueAmounts();
-            }
-        };
+        handlePaymentMethodChange();
+        if (document.getElementById('payment-method').value === 'mixed') {
+            updateMixedDueAmounts();
+        }
+    })();
+}
+
+// ===== تنفيذ التهيئة عند تحميل الصفحة عادياً =====
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initSalePage);
+} else {
+    initSalePage();
+}
+
+// ===== جعل الدالة عامة ليستدعيها sidebar-config.js =====
+window.initSalePage = initSalePage;
 
         document.addEventListener('keydown', function(e) {
             if (e.ctrlKey && e.key === 'f') { e.preventDefault();
