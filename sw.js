@@ -141,6 +141,12 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
     const { request } = event;
     const url = new URL(request.url);
+
+    // تعريف isExternalLib هنا
+    const isExternalLib = url.origin !== self.location.origin && 
+                          (url.pathname.includes('fonts.googleapis.com') || 
+                           url.pathname.includes('cdnjs.cloudflare.com') ||
+                           url.pathname.includes('cdn.jsdelivr.net'));
     
     // ===== 1. معالجة طلبات API =====
     if (offlineIsApiRequest(url)) {
@@ -151,7 +157,7 @@ self.addEventListener('fetch', event => {
         url.pathname.includes('analytics') ||
         url.pathname.includes('google-analytics') ||
         url.pathname.includes('doubleclick.net')) {
-        return; // لا نتدخل في هذه الطلبات
+        return;
     }
 
     // ===== 2. تحديد نوع الطلب =====
@@ -159,16 +165,13 @@ self.addEventListener('fetch', event => {
                        url.pathname.endsWith('.html') || 
                        request.mode === 'navigate';
 
-    // هل هذا المسار ضمن قائمة الأصول الثابتة؟
     const isStaticAsset = STATIC_ASSETS.some(asset => url.pathname === asset || url.pathname + '/' === asset);
 
-    // إذا كان الملف ضمن الأصول الثابتة (مثل sale.html) نعامله كأصل ثابت
-    // لكن نعطيه أولوية Network First بدلاً من Cache First لضمان التحديث
+    // معالجة ملفات HTML الثابتة المدرجة (Network First)
     if (isStaticAsset && url.pathname.endsWith('.html')) {
         event.respondWith(
             fetch(request)
                 .then(response => {
-                    // إذا نجح الطلب وكان الحالة 200، نخزن النسخة في الكاش
                     if (response && response.status === 200) {
                         const clone = response.clone();
                         caches.open(STATIC_CACHE)
@@ -178,7 +181,6 @@ self.addEventListener('fetch', event => {
                     return response;
                 })
                 .catch(() => {
-                    // عند فشل الشبكة، نبحث في الكاش
                     return caches.match(url.pathname, { ignoreSearch: true })
                         .then(cached => cached || caches.match(request, { ignoreSearch: true }))
                         .then(finalCached => finalCached || new Response(OFFLINE_PAGE, {
@@ -190,7 +192,7 @@ self.addEventListener('fetch', event => {
         return;
     }
 
-    // ===== 3. معالجة صفحات HTML الأخرى (Network First) =====
+    // معالجة صفحات HTML الأخرى (Network First)
     if (isHtmlPage) {
         event.respondWith(
             fetch(request)
@@ -198,17 +200,15 @@ self.addEventListener('fetch', event => {
                     if (response && response.status === 200) {
                         const clone = response.clone();
                         caches.open(DYNAMIC_CACHE)
-                            .then(cache => cache.put(url.pathname, clone)) // نخزن بالمفتاح المسار فقط
+                            .then(cache => cache.put(url.pathname, clone))
                             .catch(() => {});
                     }
                     return response;
                 })
                 .catch(() => {
-                    // عند الفشل، نبحث في DYNAMIC_CACHE ثم STATIC_CACHE
                     return caches.match(url.pathname, { ignoreSearch: true })
                         .then(cached => {
                             if (cached) return cached;
-                            // نحاول إزالة .html والبحث عن المسار بدونه
                             const fallbackPath = url.pathname.replace(/\.html$/, '');
                             return caches.match(fallbackPath, { ignoreSearch: true });
                         })
@@ -221,13 +221,12 @@ self.addEventListener('fetch', event => {
         return;
     }
 
-    // ===== 4. معالجة الموارد الثابتة (Cache First مع تحديث في الخلفية) =====
+    // معالجة الموارد الثابتة (Cache First)
     if (isStaticAsset || isExternalLib) {
         event.respondWith(
             caches.match(url.pathname, { ignoreSearch: true })
                 .then(cached => {
                     if (cached) {
-                        // تحديث في الخلفية
                         fetch(request).then(response => {
                             if(response && (response.status === 200 || response.type === 'opaque')) {
                                 caches.open(STATIC_CACHE)
@@ -253,7 +252,7 @@ self.addEventListener('fetch', event => {
         return;
     }
 
-    // ===== 5. الطلبات الأخرى (صور، ملفات غير مدرجة) =====
+    // الطلبات الأخرى
     event.respondWith(
         caches.match(url.pathname, { ignoreSearch: true })
             .then(cached => {
@@ -270,7 +269,6 @@ self.addEventListener('fetch', event => {
             })
     );
 });
-
 // --------------------------------------------
 // 4️⃣ استقبال الإشعارات (Push) - النسخة المحسنة
 // --------------------------------------------
