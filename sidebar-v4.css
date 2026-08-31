@@ -16,38 +16,6 @@
   --nav-transition: .22s ease;
 }
 
-/* ========== التعديل الأساسي: تأثير الانتقال على المحتوى فقط ========== */
-/* تأثير انتقال سلس للمحتوى فقط دون الهيدر أو القائمة */
-.main-content, .content {
-    animation: smoothPageLoad 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
-}
-
-/* إخفاء شريط التمرير الافتراضي للـ body لمنع الوميض المزدوج */
-body {
-    overflow-y: hidden;
-}
-
-/* إعادة تفعيل التمرير للمحتوى الرئيسي فقط */
-.app-wrapper {
-    overflow: hidden;
-}
-.main-content, .content {
-    height: 100vh;
-    overflow-y: auto;
-}
-
-@keyframes smoothPageLoad {
-    0% {
-        opacity: 0;
-        transform: translateY(12px) scale(0.99);
-    }
-    100% {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-    }
-}
-/* ============================================================== */
-
 /* الحاويات المشتركة في الصفحات القديمة والجديدة */
 .app-wrapper,
 .app {
@@ -141,15 +109,14 @@ body {
 .sidebar-user-copy small { color: var(--sidebar-text-muted); font-size: .61rem; }
 .status-dot { color: #34d399; font-size: .55rem; }
 
-.sidebar-nav { 
-  flex: 1; 
-  min-height: 0; 
-  overflow-y: auto; 
-  padding-left: 5px;
+.sidebar-nav { flex: 1; min-height: 0; }
+.nav-section-caption {
+  padding: 12px 12px 6px;
+  color: #6f86a8;
+  font-size: .62rem;
+  font-weight: 800;
+  letter-spacing: .04em;
 }
-.sidebar-nav::-webkit-scrollbar { width: 4px; }
-.sidebar-nav::-webkit-scrollbar-track { background: transparent; }
-.sidebar-nav::-webkit-scrollbar-thumb { background: rgba(255,255,255,.18); border-radius: 6px; }
 .nav-home,
 .nav-group-title,
 .nav-sublink,
@@ -330,23 +297,14 @@ body.sidebar-collapsed .content { margin-right: 0 !important; }
   .app-wrapper > #sidebar-container,
   .app > #sidebar-container { width: 0; min-height: 0; flex-basis: 0; }
   .sidebar {
-  width: var(--sidebar-width);
-  min-height: 100vh;
-  height: 100dvh; 
-  position: sticky;
-  top: 0;
-  z-index: 1000;
-  display: flex;
-  flex-direction: column;
-  padding: 18px 13px 14px;
-  overflow-y: hidden; 
-  overflow-x: hidden;
-  direction: rtl;
-  color: var(--sidebar-text);
-  background: linear-gradient(180deg, #162946 0%, var(--sidebar-bg) 55%, #10203a 100%);
-  box-shadow: var(--sidebar-shadow);
-  transition: transform var(--nav-transition), width var(--nav-transition), padding var(--nav-transition), opacity var(--nav-transition);
-}
+    position: fixed !important;
+    inset: 0 0 0 auto !important;
+    width: min(86vw, 300px) !important;
+    min-height: 100vh;
+    transform: translateX(110%) !important;
+    opacity: 1;
+    box-shadow: 0 0 30px rgba(15,23,42,.26);
+  }
   body.sidebar-mobile-open .sidebar,
   body.sidebar-mobile-open .sidebar.hidden { transform: translateX(0) !important; }
   body.sidebar-mobile-open .sidebar-backdrop { display: block; position: fixed; inset: 0; z-index: 990; background: rgba(15,23,42,.42); }

@@ -1,7 +1,6 @@
 /*
  * نظام التنقل الموحد لنظام نقاط البيع.
  * مصدر الروابط الوحيد هو NAV_GROUPS، وتدعم الواجهة ثلاثة أنماط قابلة للتبديل.
- * تمت إضافة التنقل الديناميكي مع تحميل الأنماط وإعادة التهيئة.
  */
 
 const NAV_GROUPS = [
@@ -74,15 +73,7 @@ const DEFAULT_NAV_STYLE = 'sidebar';
 
 function isDriverPage() { return /(^|\/)driver(\/|$)/i.test(window.location.pathname); }
 function resolveSidebarHref(href) { return isDriverPage() ? `../${href}` : href; }
-
-// دالة ذكية لقراءة اسم الملف الحالي
-function currentFileName() {
-  let file = window.location.pathname.split('/').pop();
-  if (!file || file === '') return 'index.html';
-  file = file.split('?')[0].split('#')[0];
-  return file;
-}
-
+function currentFileName() { return window.location.pathname.split('/').pop() || 'index.html'; }
 function isActiveHref(href) { return currentFileName() === href; }
 function normalizeNavStyle(value) { return NAV_STYLES.includes(String(value)) ? String(value) : DEFAULT_NAV_STYLE; }
 function navStyleClass(style) { const normalized = normalizeNavStyle(style); return normalized === 'topbar-dropdown' ? 'nav-style-topbar' : normalized === 'app-launcher' ? 'nav-style-launcher' : 'nav-style-sidebar'; }
@@ -190,31 +181,38 @@ function ensureNavigationShell() {
   const existingSidebar = document.getElementById('sidebar-container');
   const existingMain = document.querySelector('.main-content, main, .content');
 
+  // إذا كان الهيكل موجوداً بالفعل، لا نفعّله مرة أخرى
   if (existingSidebar && existingMain && existingSidebar.parentElement?.classList.contains('app-wrapper')) return;
 
+  // إنشاء أو استخدام العناصر الموجودة
   const sidebarHost = existingSidebar || document.createElement('div');
   sidebarHost.id = 'sidebar-container';
 
   const main = existingMain || document.createElement('main');
   main.classList.add('main-content');
 
+  // إنشاء الغلاف (shell)
   const shell = document.createElement('div');
   shell.className = 'app-wrapper unified-shell';
 
+  // 1️⃣ نضيف sidebarHost و main إلى shell أولاً
   shell.appendChild(sidebarHost);
   shell.appendChild(main);
 
+  // 2️⃣ ننقل عناصر body الأخرى (ما عدا shell, sidebarHost, main, script, style) إلى main
   const children = Array.from(document.body.children);
   for (const child of children) {
     if (child === shell || child === sidebarHost || child === main ||
         child.tagName === 'SCRIPT' || child.tagName === 'STYLE') {
       continue;
     }
+    // ننقل الطفل إلى main إذا كان لا يزال في body ولم يُنقل بعد
     if (child.parentNode === document.body && child !== main) {
       main.appendChild(child);
     }
   }
 
+  // 3️⃣ نضع shell في بداية body (إذا لم يكن موجوداً بالفعل)
   if (!document.body.contains(shell)) {
     document.body.insertBefore(shell, document.body.firstChild);
   }
@@ -311,16 +309,7 @@ function bindGlobalSearch() {
   input.dataset.bound = 'true';
   const renderResults = () => { const query = input.value.trim().toLowerCase(); const matches = allNavigationLinks().filter((link) => !query || link.label.toLowerCase().includes(query)).slice(0, 7); results.innerHTML = matches.length ? matches.map((link) => `<a href="${resolveSidebarHref(link.href)}" role="option"><i class="fas ${link.icon}"></i><span>${escapeHtml(link.label)}</span></a>`).join('') : '<div class="search-empty">لا توجد نتائج مطابقة</div>'; results.classList.add('visible'); };
   input.addEventListener('focus', () => { setSearchOpen(true); renderResults(); }); input.addEventListener('input', renderResults);
-  input.addEventListener('keydown', (event) => {
-    if (event.key === 'Enter') {
-      const first = results.querySelector('a');
-      if (first) {
-        event.preventDefault();
-        navigateTo(first.getAttribute('href'));
-      }
-    }
-    if (event.key === 'Escape') { setSearchOpen(false); input.blur(); }
-  });
+  input.addEventListener('keydown', (event) => { if (event.key === 'Enter') { const first = results.querySelector('a'); if (first) window.location.href = first.href; } if (event.key === 'Escape') { setSearchOpen(false); input.blur(); } });
   if (!document.body.dataset.globalSearchDocumentBound) { document.body.dataset.globalSearchDocumentBound = 'true'; document.addEventListener('click', (event) => { if (!event.target.closest('.topbar-search')) document.querySelectorAll('.search-results').forEach((item) => item.classList.remove('visible')); }); }
 }
 function bindKeyboardShortcut() {
@@ -379,341 +368,6 @@ window.toggleSidebar = toggleSidebar;
 window.applyNavigationStyle = (style, persist = true) => { applyNavStyle(style, persist); bindSearchToggle(); bindGlobalSearch(); bindUserMenu(); };
 window.refreshUnifiedNavigation = () => { const style = getStoredNavStyle(); applyNavStyle(style); bindSearchToggle(); bindGlobalSearch(); bindUserMenu(); bindTopbarDropdowns(); updateConnectionStatus(); };
 
-// ============================================================
-// ========== الجزء الجديد: التنقل الديناميكي مع تحميل الأنماط وإعادة التهيئة ==========
-// ============================================================
-
-/**
- * تحميل صفحة جديدة ديناميكياً واستبدال المحتوى الرئيسي فقط،
- * مع تحميل الأنماط (CSS) الخاصة بالصفحة وإعادة تهيئة السكربتات.
- */
-/**
- * السكربتات المشتركة المحمّلة أصلاً ضمن الهيكل العام (لا نعيد تحميلها لكل صفحة).
- */
-const SHARED_PAGE_SCRIPTS = [
-  'sidebar-config.js', 'document-utils.js', 'notification-center-v3.js',
-  'date-utils.js', 'number-utils.js', 'permissions.js', 'offline-sync.js',
-];
-
-window.__loadedPageScripts = window.__loadedPageScripts || new Set();
-
-function scriptBaseName(src) {
-  try { return new URL(src, window.location.href).pathname.split('/').pop(); }
-  catch (e) { return src; }
-}
-
-function loadExternalScriptOnce(src) {
-  return new Promise((resolve) => {
-    const base = scriptBaseName(src);
-    if (document.querySelector(`script[src$="${base}"]`)) { resolve(); return; }
-    const el = document.createElement('script');
-    el.src = src;
-    el.onload = () => resolve();
-    el.onerror = () => resolve(); // لا نوقف التنقل بسبب فشل تحميل سكربت ثانوي
-    document.body.appendChild(el);
-  });
-}
-
-/**
- * المشكلة الأساسية: navigateTo() كان يستبدل محتوى .main-content فقط، بينما
- * منطق الصفحة الفعلي (جلب البيانات، window.onload... إلخ) موجود داخل <script>
- * خارج .main-content تماماً. حتى لو كان داخله، وسم <script> لا يُنفَّذ أبداً
- * عند إدراجه عبر innerHTML. لذلك كانت البيانات لا تُجلب أبداً بالتنقل الديناميكي،
- * وتظهر فقط عند إعادة تحميل الصفحة بشكل كامل (لأن المتصفح حينها يوّلد كل
- * السكربتات من جديد بشكل طبيعي).
- *
- * الحل: نجمع كل وسوم <script> من المستند الكامل الذي تم جلبه (وليس فقط من
- * داخل .main-content)، ونعيد إنشاءها كعناصر <script> جديدة لتُنفَّذ فعلياً.
- * نفعل هذا مرة واحدة فقط لكل صفحة (لتفادي أخطاء إعادة تعريف const/let)، وفي
- * الزيارات التالية لنفس الصفحة نكتفي باستدعاء دالة init الخاصة بها.
- */
-/**
- * كل صفحة عندها متغيرات/ثوابت على المستوى الأعلى بنفس الاسم أحياناً
- * (مثال: `const API = '...'` موجود في sale.html وأيضاً في index.html).
- * لما ننفّذ سكربت صفحة جديدة عبر <script> بينما سكربت صفحة سابقة لسا
- * حي في نفس الـ document، يصير خطأ:
- *   Uncaught SyntaxError: Identifier 'API' has already been declared
- * وهذا يوقف تنفيذ السكربت بالكامل، فتختفي البيانات تماماً.
- *
- * الحل: نغلّف كود كل صفحة داخل (function(){ ... })() عشان يكون لكل صفحة
- * نطاقها (scope) الخاص بها ولا تتصادم متغيراتها مع صفحة ثانية. وحتى تبقى
- * الدوال المستخدمة داخل onclick="..." في الـ HTML شغالة (لأنها تُقرأ من
- * النطاق العام window)، نكتشف تلقائياً كل دوال المستوى الأعلى (function
- * name(...) الأقل تعشيشاً في الملف) ونصدّرها صراحة إلى window بعد التنفيذ.
- */
-function extractTopLevelFunctionNames(code) {
-  const re = /^([ \t]*)(?:async\s+function|function)\s+([A-Za-z_$][A-Za-z0-9_$]*)\s*\(/gm;
-  const matches = [];
-  let m;
-  while ((m = re.exec(code))) matches.push({ indent: m[1].length, name: m[2] });
-  if (!matches.length) return [];
-  const minIndent = Math.min(...matches.map((x) => x.indent));
-  return [...new Set(matches.filter((x) => x.indent === minIndent).map((x) => x.name))];
-}
-
-function wrapPageScript(code, names) {
-  const exportsBlock = names.map((n) => `window.${n} = ${n};`).join('\n');
-  return `(function(){\n${code}\n${exportsBlock}\n})();`;
-}
-
-/**
- * أكثر من صفحة عندها دالة بنفس الاسم لكن منطق مختلف تماماً (مثال:
- * addToCart / fetchProducts موجودة في sale.html وأيضاً بصفحة طلبات الإنترنت،
- * وكل وحدة فيهم تشتغل على productsCache الخاص فيها فقط). بما أن التصدير
- * لـ window يصير لكل صفحة بمجرد تنفيذ سكربتها، فآخر صفحة تمت زيارتها هي اللي
- * "تكسب" window.addToCart. فلو رجعت لصفحة أقدم (مخزّنة، ما يُعاد حقن سكربتها)
- * زر "إضافة منتج" فيها بينادي فعلياً دالة صفحة ثانية → "المنتج غير موجود".
- *
- * الحل: نحفظ نسخة من دوال كل صفحة فور تنفيذها لأول مرة في __pageExports،
- * وعند أي عودة لصفحة سبق تحميلها نعيد ربطها بـ window قبل استدعاء init،
- * فترجع window.foo تشير لتطبيق الصفحة المعروضة حالياً فعلاً.
- */
-window.__pageExports = window.__pageExports || {};
-
-function restorePageExports(targetFile) {
-  const saved = window.__pageExports[targetFile];
-  if (saved) Object.assign(window, saved);
-}
-
-async function loadPageScripts(doc, targetFile) {
-  if (window.__loadedPageScripts.has(targetFile)) {
-    // السكربت محمّل ومنفَّذ من قبل: أعد ربط دواله الصحيحة بـ window أولاً
-    // (قد تكون انسحبت من صفحة زارها المستخدم بعدها)، ثم أعد تهيئتها.
-    restorePageExports(targetFile);
-    reinitPageScripts(targetFile);
-    return;
-  }
-  window.__loadedPageScripts.add(targetFile);
-  window.__pageExports[targetFile] = {};
-
-  const scripts = Array.from(doc.querySelectorAll('script'));
-  for (const scriptEl of scripts) {
-    const src = scriptEl.getAttribute('src');
-    if (src) {
-      if (SHARED_PAGE_SCRIPTS.includes(scriptBaseName(src))) continue;
-      await loadExternalScriptOnce(src);
-    } else if (scriptEl.textContent.trim()) {
-      const names = extractTopLevelFunctionNames(scriptEl.textContent);
-      const clone = document.createElement('script');
-      clone.dataset.pageScript = targetFile;
-      clone.textContent = wrapPageScript(scriptEl.textContent, names);
-      document.body.appendChild(clone); // ينفَّذ فوراً وبشكل متزامن عند الإدراج
-      // نلتقط الآن نسخة "الصحيحة" لهذه الصفحة قبل أن تُطمَس بصفحة لاحقة
-      names.forEach((n) => { window.__pageExports[targetFile][n] = window[n]; });
-    }
-  }
-  // ملاحظة: لا نستدعي reinitPageScripts هنا في أول زيارة، لأن سكربت الصفحة
-  // (بعد التعديل المطلوب في كل صفحة) يستدعي دالة init الخاصة به بنفسه بمجرد
-  // تنفيذه إن كانت الوثيقة محمّلة بالفعل. راجع نمط initSalePage في sale.html.
-}
-
-function navigateTo(url, pushState = true) {
-  if (!url || url.startsWith('#') || url.startsWith('javascript:')) return;
-  if (url.startsWith('http') || url.startsWith('//')) {
-    window.open(url, '_blank');
-    return;
-  }
-
-  const currentFile = currentFileName();
-  const targetFile = url.split('?')[0].split('#')[0];
-  if (targetFile === currentFile) {
-    if (url.includes('#')) {
-      window.location.hash = url.split('#')[1];
-    }
-    return;
-  }
-
-  // يمكنك تفعيل مؤشر تحميل هنا إذا أردت
-  // const loader = document.getElementById('loadingIndicator');
-  // if (loader) loader.style.display = 'block';
-
-  fetch(url)
-    .then(response => {
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      return response.text();
-    })
-    .then(async html => {
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(html, 'text/html');
-
-      // 1️⃣ استخراج المحتوى الجديد
-      let newContent = doc.querySelector('.main-content') || doc.querySelector('.content');
-      if (!newContent) {
-        // إذا لم يوجد المحتوى الرئيسي، انتقل بشكل تقليدي
-        window.location.href = url;
-        return;
-      }
-
-      // 2️⃣ تحميل الأنماط (CSS) الخاصة بالصفحة الجديدة
-      const newStyles = doc.querySelectorAll('link[rel="stylesheet"], style');
-      document.querySelectorAll('link[rel="stylesheet"][data-dynamic], style[data-dynamic]')
-        .forEach(el => el.remove());
-
-      newStyles.forEach(el => {
-        const clone = el.cloneNode(true);
-        clone.dataset.dynamic = 'true';
-        document.head.appendChild(clone);
-      });
-
-      // 3️⃣ استبدال المحتوى الحالي
-      const currentContent = document.querySelector('.main-content') || document.querySelector('.content');
-      if (currentContent) {
-        currentContent.innerHTML = newContent.innerHTML;
-        currentContent.scrollTop = 0;
-
-        document.title = doc.title;
-        if (pushState) {
-          window.history.pushState({ url: url }, '', url);
-        }
-
-        // إن كانت الصفحة السابقة قد سجّلت دالة تنظيف (لإيقاف setInterval أو
-        // مستمعين لا يزال يعمل بعد مغادرتها)، ننفّذها الآن قبل تحميل الصفحة الجديدة.
-        if (typeof window.__pageCleanup === 'function') {
-          try { window.__pageCleanup(); } catch (e) { /* تجاهل */ }
-          window.__pageCleanup = null;
-        }
-
-        // ===== 🔥 هنا نقوم بتحميل/تهيئة سكربتات الصفحة الجديدة فعلياً =====
-        await loadPageScripts(doc, targetFile);
-        // ====================================================================
-
-        refreshActiveStates();
-        rebindDynamicEvents();
-      } else {
-        window.location.href = url;
-      }
-
-      // إخفاء مؤشر التحميل
-      // if (loader) loader.style.display = 'none';
-    })
-    .catch(err => {
-      console.warn('فشل التحميل الديناميكي، يتم التحميل العادي:', err);
-      window.location.href = url;
-    });
-}
-
-/**
- * إعادة تهيئة السكربتات الخاصة بالصفحة بعد تحميل المحتوى ديناميكياً.
- * @param {string} pageName - اسم الصفحة (مثل 'sale.html')
- */
-function pageInitFunctionName(pageName) {
-  // يحوّل 'sale.html' إلى initSalePage، و'stock-movements.html' إلى initStockMovementsPage
-  const base = pageName.replace('.html', '');
-  const camel = base.split(/[-_]/).filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join('');
-  return 'init' + camel + 'Page';
-}
-
-function reinitPageScripts(pageName) {
-  // 1. استدعاء دالة عامة إذا وجدت
-  if (typeof window.initPage === 'function') {
-    window.initPage();
-  }
-
-  // 2. استدعاء دالة خاصة باسم الصفحة (مثل initSalePage)
-  // ملاحظة: كانت هذه الدالة تبني الاسم بدون تحويل أول حرف من كل جزء إلى Capital
-  // (مثلاً 'initsalePage' بدل 'initSalePage')، لذا لم تكن تتطابق أبداً مع أي دالة
-  // init حقيقية معرّفة داخل الصفحات. تم إصلاحها عبر pageInitFunctionName أعلاه.
-  const funcName = pageInitFunctionName(pageName);
-  if (typeof window[funcName] === 'function') {
-    window[funcName]();
-  }
-
-  // 3. تنفيذ أي سكربت مدمج في الصفحة (اختياري، لكن الأفضل الاعتماد على دوال صريحة)
-  //    يمكنك استخراج <script> من المحتوى وتنفيذها، لكن الأفضل الاعتماد على دوال صريحة.
-
-  // 4. إعادة ربط الأحداث (لأزرار، نماذج، إلخ)
-  rebindDynamicEvents();
-
-  // 5. إذا كانت لديك مكتبة مثل Alpine.js أو Vue، قم بتهيئتها مجدداً
-  //    مثال: if (window.Alpine) Alpine.initTree(document.body);
-}
-
-/**
- * تحديث الكلاسات النشطة في جميع القوائم بناءً على الصفحة الحالية.
- */
-function refreshActiveStates() {
-  // إزالة جميع الكلاسات النشطة من الروابط
-  document.querySelectorAll('.nav-sublink.active, .nav-home.active, .topbar-nav-home.active, .topbar-nav-link.active, .launcher-tile.active')
-    .forEach(el => el.classList.remove('active'));
-
-  const current = currentFileName();
-  document.querySelectorAll('.nav-sublink, .nav-home, .topbar-nav-home, .topbar-nav-link, .launcher-tile')
-    .forEach(link => {
-      const href = link.getAttribute('href');
-      if (href) {
-        const file = href.split('?')[0].split('#')[0];
-        if (file === current) {
-          link.classList.add('active');
-          // فتح المجموعة (details) التي تحتوي على الرابط
-          const details = link.closest('.nav-group');
-          if (details) details.setAttribute('open', '');
-        }
-      }
-    });
-
-  // تحديث عنوان الصفحة ومسار التنقل (breadcrumb)
-  const page = getCurrentPageMeta();
-  const titleEl = document.querySelector('.topbar-page-title h1');
-  const breadcrumbEl = document.querySelector('.breadcrumb-label');
-  if (titleEl) {
-    titleEl.innerHTML = `<i class="fas ${page.icon}" aria-hidden="true"></i>${escapeHtml(page.title)}`;
-  }
-  if (breadcrumbEl) {
-    breadcrumbEl.textContent = page.group;
-  }
-}
-
-/**
- * إعادة ربط الأحداث للعناصر التي تم تحميلها ديناميكياً.
- * مثال: أزرار، نماذج، أحداث مخصصة.
- */
-function rebindDynamicEvents() {
-  // مثال: إعادة ربط حدث النقر على أزرار معينة
-  document.querySelectorAll('.dynamic-click').forEach(el => {
-    el.addEventListener('click', function(e) {
-      // معالجة النقر
-      console.log('تم النقر على عنصر ديناميكي');
-    });
-  });
-
-  // إذا كنت تستخدم مكتبة مثل jQuery، يمكنك تفعيل الأحداث بشكل عام
-  // $(document).on('click', '.some-class', function() { ... });
-}
-
-// ========== اعتراض الروابط ==========
-function initLinkInterceptor() {
-  if (document.body.dataset.linkInterceptorBound === 'true') return;
-  document.body.dataset.linkInterceptorBound = 'true';
-
-  document.addEventListener('click', function(e) {
-    const link = e.target.closest('a[href]');
-    if (!link) return;
-
-    const href = link.getAttribute('href');
-    // تجاهل الروابط التي تفتح في نافذة جديدة أو خارجية
-    if (link.target === '_blank') return;
-    if (href.startsWith('http') || href.startsWith('//')) return;
-    if (href.startsWith('#') || href.startsWith('javascript:')) return;
-
-    // منع السلوك الافتراضي
-    e.preventDefault();
-    navigateTo(href);
-  });
-
-  // معالجة أحداث الرجوع/التقدم
-  window.addEventListener('popstate', function(event) {
-    if (event.state && event.state.url) {
-      navigateTo(event.state.url, false);
-    } else {
-      // في حال عدم وجود حالة، نعيد تحميل الصفحة الحالية (fallback)
-      window.location.reload();
-    }
-  });
-}
-
-// ========== التهيئة العامة ==========
 function initUnifiedNavigation() {
   const style = getStoredNavStyle();
   applyNavStyle(style);
@@ -722,48 +376,10 @@ function initUnifiedNavigation() {
   renderNavigationModeWithoutRecursion(style);
   if (style === 'sidebar') renderSidebar('sidebar-container');
   bindSearchToggle(); bindGlobalSearch(); bindUserMenu(); bindKeyboardShortcut(); bindTopbarDropdowns(); updateConnectionStatus();
-  if (!document.body.dataset.navigationConnectionBound) {
-    document.body.dataset.navigationConnectionBound = 'true';
-    window.addEventListener('online', updateConnectionStatus);
-    window.addEventListener('offline', updateConnectionStatus);
-  }
+  if (!document.body.dataset.navigationConnectionBound) { document.body.dataset.navigationConnectionBound = 'true'; window.addEventListener('online', updateConnectionStatus); window.addEventListener('offline', updateConnectionStatus); }
   window.POSNotificationCenter?.init?.();
-
-  // تفعيل اعتراض الروابط (SPA)
-  initLinkInterceptor();
-
-  // تأكد من أن Font Awesome محمل
-  ensureFontAwesome();
-}
-
-/**
- * التأكد من تحميل Font Awesome (في حال فشل CDN).
- */
-function ensureFontAwesome() {
-  // تحقق إذا كانت الأيقونات موجودة
-  const testIcon = document.createElement('i');
-  testIcon.className = 'fas fa-home';
-  testIcon.style.position = 'absolute';
-  testIcon.style.visibility = 'hidden';
-  document.body.appendChild(testIcon);
-  const computed = getComputedStyle(testIcon);
-  const hasFont = computed.fontFamily && computed.fontFamily.includes('Font Awesome');
-  testIcon.remove();
-
-  if (!hasFont) {
-    // أضف رابط CDN بديل
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css';
-    link.crossOrigin = 'anonymous';
-    document.head.appendChild(link);
-  }
 }
 
 /* يطبّق النمط قبل DOMContentLoaded لتقليل وميض التخطيط عند الانتقال بين الصفحات. */
-if (document.body) {
-  const initialStyle = getStoredNavStyle();
-  document.body.classList.add(navStyleClass(initialStyle));
-  document.body.dataset.navStyle = initialStyle;
-}
+if (document.body) { const initialStyle = getStoredNavStyle(); document.body.classList.add(navStyleClass(initialStyle)); document.body.dataset.navStyle = initialStyle; }
 document.addEventListener('DOMContentLoaded', initUnifiedNavigation);
