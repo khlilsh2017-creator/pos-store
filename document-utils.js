@@ -9,6 +9,14 @@
   const PAPER_KEY = 'pos_document_paper';
   const IDENTITY_KEY = 'pos_brand_identity';
   const DEFAULT_API = 'https://api.ibnalmukhtar.com';
+
+  // ==== مسارات المكتبات المحلية (عدّل حسب هيكل مشروعك) ====
+  const LOCAL_LIBS = {
+    html2pdf: '/libs/html2pdf.bundle.min.js',
+    html2canvas: '/libs/html2canvas.min.js',
+    xlsx: '/libs/xlsx.full.min.js'
+  };
+
   const PAPERS = {
     a4: { label: 'A4', css: 'A4 portrait', width: '190mm', format: 'a4', margin: 10, fontSize: '12px' },
     a5: { label: 'A5', css: 'A5 portrait', width: '138mm', format: 'a5', margin: 8, fontSize: '11px' },
@@ -96,18 +104,32 @@
   function setPaper(value) { if (PAPERS[value]) localStorage.setItem(PAPER_KEY, value); }
   function selectedPaper() { return PAPERS[paper()] || PAPERS.a4; }
 
-  function loadScript(src, test) {
+  // ===== دالة تحميل مكتبة مع دعم المسار المحلي والـ CDN كاحتياطي =====
+  function loadScript(cdnSrc, test, localPath) {
     if (test && test()) return Promise.resolve();
-    if (state.loading[src]) return state.loading[src];
-    state.loading[src] = new Promise((resolve, reject) => {
+    const actualSrc = localPath || cdnSrc;
+    if (state.loading[actualSrc]) return state.loading[actualSrc];
+    state.loading[actualSrc] = new Promise((resolve, reject) => {
       const element = document.createElement('script');
-      element.src = src;
+      element.src = actualSrc;
       element.async = true;
       element.onload = () => resolve();
-      element.onerror = () => reject(new Error('تعذر تحميل مكتبة التصدير؛ تحقق من اتصال الإنترنت'));
+      element.onerror = () => {
+        // إذا فشل المسار المحلي، حاول تحميل CDN كاحتياطي (إذا كان مختلفاً)
+        if (actualSrc !== cdnSrc) {
+          const fallbackElement = document.createElement('script');
+          fallbackElement.src = cdnSrc;
+          fallbackElement.async = true;
+          fallbackElement.onload = () => resolve();
+          fallbackElement.onerror = () => reject(new Error('تعذر تحميل المكتبة من المصدرين المحلي وCDN'));
+          document.head.appendChild(fallbackElement);
+        } else {
+          reject(new Error('تعذر تحميل المكتبة؛ تحقق من اتصال الإنترنت'));
+        }
+      };
       document.head.appendChild(element);
     });
-    return state.loading[src];
+    return state.loading[actualSrc];
   }
 
   function cloneClean(element) {
@@ -160,7 +182,9 @@
 
   async function exportPDF(element, options = {}) {
     if (!element) throw new Error('لا توجد بيانات لتصديرها');
-    await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js', () => typeof global.html2pdf === 'function');
+    await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js',
+                     () => typeof global.html2pdf === 'function',
+                     LOCAL_LIBS.html2pdf);
     const p = PAPERS[options.paper || paper()] || PAPERS.a4;
     const identity = getIdentity();
     
@@ -195,10 +219,11 @@
     }
   }
 
-  // --- دالة جديدة لتصدير كصورة (Image) ---
   async function exportImage(element, options = {}) {
     if (!element) throw new Error('لا توجد بيانات لتصديرها');
-    await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js', () => typeof global.html2canvas === 'function');
+    await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js',
+                     () => typeof global.html2canvas === 'function',
+                     LOCAL_LIBS.html2canvas);
     
     const p = PAPERS[options.paper || paper()] || PAPERS.a4;
     const identity = getIdentity();
@@ -246,7 +271,9 @@
 
   async function exportRowsExcel(rows, options = {}) {
     if (!Array.isArray(rows) || !rows.length) throw new Error('لا توجد بيانات قابلة للتصدير');
-    await loadScript('https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js', () => !!global.XLSX);
+    await loadScript('https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js',
+                     () => !!global.XLSX,
+                     LOCAL_LIBS.xlsx);
     const workbook = global.XLSX.utils.book_new();
     const worksheet = global.XLSX.utils.json_to_sheet(rows);
     global.XLSX.utils.book_append_sheet(workbook, worksheet, options.sheetName || 'بيانات');
@@ -256,7 +283,9 @@
   async function exportExcel(root, options = {}) {
     const tables = [...(root || document).querySelectorAll('table')];
     if (!tables.length) throw new Error('لا توجد جداول لتصديرها');
-    await loadScript('https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js', () => !!global.XLSX);
+    await loadScript('https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js',
+                     () => !!global.XLSX,
+                     LOCAL_LIBS.xlsx);
     const workbook = global.XLSX.utils.book_new();
     tables.forEach((table, index) => {
       const rows = tableRows(table);
@@ -302,7 +331,6 @@
     const items = invoiceRows(data);
     const currency = data.currency_code || data.currency || 'ريال';
     
-    // الحسابات
     const total = Number(data.total ?? data.total_amount ?? 0) || 0;
     const grossSubtotal = items.reduce((sum, item) => sum + ((Number(item.unit_price ?? item.price) || 0) * (Number(item.quantity) || 0)), 0);
     const itemDiscountTotal = items.reduce((sum, item) => sum + ((Number(item.discount || item.discount_amount) || 0) * (Number(item.quantity) || 0)), 0);
@@ -318,7 +346,6 @@
     const partyLabel = purchase ? 'المورد' : 'العميل';
     const title = data.title || (purchase ? 'فاتورة مشتريات' : (isOnlineOrder ? 'فاتورة طلب إنترنت' : (data.is_draft ? 'فاتورة مبدئية (مسودة)' : 'فاتورة مبيعات')));
     
-    // تفاصيل الدفع المتقدمة
     const paymentDetails = data.payment_details_html ? `<br><span style="font-size:0.9em; color:var(--pos-brand-primary, #1d4ed8); font-weight:bold; display:inline-block; margin-top:4px;">${data.payment_details_html}</span>` : '';
 
     const rows = items.map((item, index) => {
@@ -487,7 +514,6 @@
     return exportPDF(holder.firstElementChild, { title: options.title, filename: options.filename, paper: options.paper });
   }
 
-  // --- דالة التصدير كصورة للفاتورة ---
   async function exportInvoiceImage(data, options = {}) {
     const holder = document.createElement('div');
     holder.innerHTML = renderInvoice(data);
@@ -506,7 +532,6 @@
     return exportPDF(holder.firstElementChild, { title: options.title, filename: options.filename, paper: options.paper });
   }
 
-  // --- دالة التصدير كصورة للسند ---
   async function exportVoucherImage(data, options = {}) {
     const holder = document.createElement('div');
     holder.innerHTML = renderVoucher(data);
@@ -525,7 +550,6 @@
     return exportPDF(holder.firstElementChild, { title: options.title || 'كشف حساب', filename: options.filename || 'كشف_حساب.pdf', paper: 'a4' });
   }
 
-  // --- دالة التصدير كصورة لكشف الحساب ---
   async function exportStatementImage(data, options = {}) {
     const holder = document.createElement('div');
     holder.innerHTML = renderStatement(data);
@@ -669,6 +693,5 @@
   document.addEventListener('DOMContentLoaded', () => {
     loadIdentity();
     installToolbar();
-    // لا يتم تركيب شريط الترويسة/التصفية الموحد تلقائيًا داخل الصفحات.
   });
 })(window);
