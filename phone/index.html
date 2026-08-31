@@ -46,7 +46,11 @@ function logout(){localStorage.removeItem('pos_token');localStorage.removeItem('
 function showSession(user){$('loginCard').hidden=true;$('sessionCard').hidden=false;$('userLabel').textContent=(user?.name||user?.username||'مستخدم POS')+' · جلسة POS نشطة';}
 async function validateSession(){if(!token)return;try{const res=await fetch(API+'/auth/me',{headers:{Authorization:'Bearer '+token,'Content-Type':'application/json','X-Page-Name':'phone/index.html'}});const data=await res.json().catch(()=>({}));if(res.status===401||res.status===403){localStorage.removeItem('pos_token');localStorage.removeItem('pos_user');token='';$('sessionCard').hidden=true;$('loginCard').hidden=false;showNotice('انتهت صلاحية الجلسة، يرجى تسجيل الدخول مرة أخرى','error');return;}if(!res.ok||!data.user){const saved=localStorage.getItem('pos_user');if(saved){try{showSession(JSON.parse(saved));}catch(_){}}return;}showSession(data.user);}catch(_){const saved=localStorage.getItem('pos_user');if(saved){try{showSession(JSON.parse(saved));showNotice('أنت في وضع عدم الاتصال؛ الجلسة المحلية محفوظة','info');}catch(__){}}}}
 $('loginForm').addEventListener('submit',async e=>{e.preventDefault();const btn=$('loginBtn');btn.disabled=true;btn.textContent='جارٍ التحقق...';try{const res=await fetch(API+'/auth/login',{method:'POST',headers:{'Content-Type':'application/json','X-Page-Name':'phone/index.html'},body:JSON.stringify({username:$('username').value.trim(),password:$('password').value})});const data=await res.json().catch(()=>({}));if(!res.ok||!data.token)throw Error(data.error||'بيانات الدخول غير صحيحة');token=data.token;localStorage.setItem('pos_token',token);localStorage.setItem('pos_user',JSON.stringify(data.user||{}));const target=nextPage();if(target)location.href=target;else showSession(data.user||{});}catch(err){showNotice(err.message||'فشل تسجيل الدخول','error');}finally{btn.disabled=false;btn.textContent='تسجيل الدخول';}});
-if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js', {scope:'/'}).catch(()=>{});
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/phone/sw_phone.js?v=' + Date.now(), { scope: '/phone/' })
+    .then(() => console.log('✅ Service Worker للهاتف مسجل بنجاح'))
+    .catch(err => console.warn('⚠️ تعذر تسجيل Service Worker الهاتف', err));
+}
 validateSession();
 </script>
 </body>

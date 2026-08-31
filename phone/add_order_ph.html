@@ -4853,8 +4853,10 @@
                 const orderId = params.get('order_id');
                 if (orderId) setTimeout(() => loadOrderForEdit(parseInt(orderId, 10)), 500);
                 if ('serviceWorker' in navigator) {
-                    navigator.serviceWorker.register('./sw.js?v=' + new Date().getTime(), { scope: '/' }).catch(error => console.warn('تعذر تسجيل Service Worker الهاتف', error));
-                }
+  navigator.serviceWorker.register('/phone/sw_phone.js?v=' + Date.now(), { scope: '/phone/' })
+    .then(() => console.log('✅ Service Worker للهاتف مسجل بنجاح'))
+    .catch(err => console.warn('⚠️ تعذر تسجيل Service Worker الهاتف', err));
+}
                 if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission();
                 setAppLoaderState('ready');
             } catch (error) {
