@@ -1,6 +1,6 @@
 importScripts('/offline-sw-core.js');
 
-const CACHE_NAME = 'pos-phone-shell-v11-no-html-intercept';
+const CACHE_NAME = 'pos-phone-shell-v12-no-html-intercept';
 
 // قائمة الملفات الثابتة (باستثناء HTML)
 const STATIC_FILES = [
