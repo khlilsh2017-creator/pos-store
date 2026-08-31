@@ -72,9 +72,36 @@ const NAV_STYLES = Object.freeze(['sidebar', 'topbar-dropdown', 'app-launcher'])
 const DEFAULT_NAV_STYLE = 'sidebar';
 
 function isDriverPage() { return /(^|\/)driver(\/|$)/i.test(window.location.pathname); }
-function resolveSidebarHref(href) { return isDriverPage() ? `../${href}` : href; }
-function currentFileName() { return window.location.pathname.split('/').pop() || 'index.html'; }
-function isActiveHref(href) { return currentFileName() === href; }
+
+// دالة للحصول على المسار الحالي بدون شرط مائلة بادئة أو لاحقة
+function currentPath() {
+  return window.location.pathname.replace(/^\/|\/$/g, '');
+}
+
+// دالة لحل الرابط النهائي (مع مراعاة driver) وإرجاع مسار نظيف للمقارنة
+function resolveSidebarHref(href) {
+  // إزالة أي بادئة مثل './' أو '../' للحصول على اسم الملف النقي
+  const clean = href.replace(/^(\.\.?\/)+/, '');
+  return isDriverPage() ? `../${clean}` : clean;
+}
+
+// دالة للتحقق مما إذا كان الرابط هو الصفحة الحالية
+function isActiveHref(href) {
+  const current = currentPath();
+  // الحصول على المسار المستهدف بعد إزالة '../' أو './' وبدون إضافة '../'
+  const target = href.replace(/^(\.\.?\/)+/, '');
+  // في صفحة driver، المسار الحالي قد يبدأ بـ 'driver/'، لذا نحتاج إلى مقارنة الجزء الأخير
+  // نأخذ الجزء الأخير من المسار الحالي (اسم الملف) ونتحقق من تطابقه مع target
+  const currentFile = current.split('/').pop();
+  // نتحقق أيضاً من أن المسار الحالي ينتهي بـ target (للمسارات المتداخلة)
+  return currentFile === target || current.endsWith('/' + target) || current === target;
+}
+
+// دالة للاسم القديم للتوافق (تستخدم في بعض الأماكن)
+function currentFileName() {
+  return currentPath().split('/').pop() || 'index.html';
+}
+
 function normalizeNavStyle(value) { return NAV_STYLES.includes(String(value)) ? String(value) : DEFAULT_NAV_STYLE; }
 function navStyleClass(style) { const normalized = normalizeNavStyle(style); return normalized === 'topbar-dropdown' ? 'nav-style-topbar' : normalized === 'app-launcher' ? 'nav-style-launcher' : 'nav-style-sidebar'; }
 function getStoredNavStyle() { return normalizeNavStyle(localStorage.getItem('nav_style') || DEFAULT_NAV_STYLE); }
@@ -113,7 +140,7 @@ function renderSidebar(containerId = 'sidebar-container') {
   const groupsHtml = NAV_GROUPS.map((group) => {
     const links = group.links.filter(visibleLink);
     if (!links.length) return '';
-    const hasActive = links.some((link) => link.href === current);
+    const hasActive = links.some((link) => isActiveHref(link.href));
     const linksHtml = links.map((link) => linkMarkup(link, 'nav-sublink')).join('');
     return `<details class="nav-group" data-group="${group.id}" ${hasActive ? 'open' : ''}>
       <summary class="nav-group-title">

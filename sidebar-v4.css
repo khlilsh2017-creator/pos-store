@@ -37,18 +37,18 @@
 .main-content,
 .content { min-width: 0; }
 
-/* الشريط الجانبي */
+/* الشريط الجانبي - معدل */
 .sidebar {
   width: var(--sidebar-width);
   min-height: 100vh;
-  height: 100vh;
+  height: 100dvh;              /* استخدام dvh لدعم الجوال */
   position: sticky;
   top: 0;
   z-index: 1000;
   display: flex;
   flex-direction: column;
   padding: 18px 13px 14px;
-  overflow-y: auto;
+  overflow-y: hidden;          /* منع تمرير الحاوية بالكامل */
   overflow-x: hidden;
   direction: rtl;
   color: var(--sidebar-text);
@@ -109,7 +109,24 @@
 .sidebar-user-copy small { color: var(--sidebar-text-muted); font-size: .61rem; }
 .status-dot { color: #34d399; font-size: .55rem; }
 
-.sidebar-nav { flex: 1; min-height: 0; }
+/* منطقة القوائم - تمرير داخلي فقط */
+.sidebar-nav {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;           /* التمرير هنا فقط */
+  padding-left: 5px;          /* مسافة لشريط التمرير */
+}
+.sidebar-nav::-webkit-scrollbar {
+  width: 4px;
+}
+.sidebar-nav::-webkit-scrollbar-track {
+  background: transparent;
+}
+.sidebar-nav::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,.18);
+  border-radius: 6px;
+}
+
 .nav-section-caption {
   padding: 12px 12px 6px;
   color: #6f86a8;
@@ -180,7 +197,13 @@
 }
 .nav-sublink.active i { color: #bfdbfe; }
 
-.sidebar-footer { margin-top: 13px; padding-top: 11px; border-top: 1px solid var(--sidebar-border); }
+/* تذييل الشريط - ثابت في الأسفل */
+.sidebar-footer {
+  flex-shrink: 0;            /* يمنع الانكماش */
+  margin-top: auto;          /* يدفع إلى أسفل الحاوية */
+  padding-top: 11px;
+  border-top: 1px solid var(--sidebar-border);
+}
 .nav-footer-link {
   width: 100%;
   gap: 10px;
