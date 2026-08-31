@@ -1,13 +1,9 @@
 importScripts('/offline-sw-core.js');
 
-// غيّر اسم الكاش لفرض تحديثه
-const PHONE_CACHE = 'pos-phone-shell-v9-fixed-redirect';
+const CACHE_NAME = 'pos-phone-shell-v11-no-html-intercept';
 
-// قائمة الملفات الأساسية (تأكد من صحة المسارات)
-const PHONE_SHELL = [
-  '/phone/index.html',
-  '/phone/orders.html',
-  '/phone/add_order_ph.html',
+// قائمة الملفات الثابتة (باستثناء HTML)
+const STATIC_FILES = [
   '/phone/manifest.json',
   '/phone/sw_phone.js',
   '/offline-sw-core.js',
@@ -19,25 +15,24 @@ const PHONE_SHELL = [
   '/sidebar-config.js',
   '/icon-192x192.png',
   '/icon-512x512.png',
-  // أضف المكتبات المستخدمة في الجوال إن وجدت
   '/html2canvas.min.js',
   '/html2pdf.bundle.min.js'
 ];
 
 self.addEventListener('install', event => {
   event.waitUntil(
-    caches.open(PHONE_CACHE)
-      .then(cache => cache.addAll(PHONE_SHELL))
+    caches.open(CACHE_NAME)
+      .then(cache => cache.addAll(STATIC_FILES))
       .then(() => self.skipWaiting())
-      .catch(error => console.error('[PHONE SW] فشل تثبيت الملفات:', error))
+      .catch(err => console.error('[SW] تثبيت فاشل:', err))
   );
 });
 
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(keys => Promise.all(
-      keys.filter(key => key.startsWith('pos-phone-shell-') && key !== PHONE_CACHE)
-          .map(key => caches.delete(key))
+      keys.filter(k => k.startsWith('pos-phone-shell-') && k !== CACHE_NAME)
+          .map(k => caches.delete(k))
     )).then(() => self.clients.claim())
   );
 });
@@ -46,68 +41,27 @@ self.addEventListener('fetch', event => {
   const request = event.request;
   const url = new URL(request.url);
 
-  // معالجة طلبات API (من الدوال المستوردة)
+  // تجاهل طلبات HTML – نتركها للشبكة مباشرة
+  if (url.pathname.endsWith('.html')) {
+    // نمرر الطلب للشبكة بدون أي تدخل من الـ SW
+    return;
+  }
+
+  // معالجة طلبات API (إن وجدت)
   if (typeof offlineIsApiRequest === 'function' && offlineIsApiRequest(url)) {
     event.respondWith(offlineHandleApiRequest(request));
     return;
   }
 
-  // تجاهل الطلبات غير GET أو من أصول أخرى
-  if (request.method !== 'GET' || url.origin !== self.location.origin) return;
-
-  // تجاهل طلبات API و JSON
+  // تجاهل الطلبات غير GET أو من خارج النطاق
+  if (request.method !== 'GET') return;
+  if (url.origin !== self.location.origin) return;
   if (url.pathname.startsWith('/api/')) return;
-  if (url.pathname.endsWith('.json') && !url.pathname.startsWith('/phone/')) return;
 
-  // ========================================
-  // معالجة صفحات HTML (المشكلة الرئيسية)
-  // ========================================
-  if (url.pathname.endsWith('.html')) {
-    event.respondWith(
-      // استراتيجية الشبكة أولاً مع متابعة إعادة التوجيه إجبارياً
-      fetch(request, { redirect: 'follow' })
-        .then(response => {
-          // نخزن فقط الاستجابات الناجحة (كود 200) لتجنب تخزين إعادة التوجيه
-          if (response.status === 200) {
-            const clone = response.clone();
-            caches.open(PHONE_CACHE).then(cache => cache.put(request, clone));
-          }
-          return response;
-        })
-        .catch(() => {
-          // عند فشل الشبكة، نبحث في الكاش
-          return caches.match(request, { ignoreSearch: true })
-            .then(cached => {
-              if (cached) return cached;
-              // إذا لم تكن الصفحة في الكاش، نعيد صفحة الخطأ أو index.html
-              return caches.match('/phone/index.html', { ignoreSearch: true });
-            });
-        })
-    );
-    return;
-  }
-
-  // ========================================
-  // باقي الموارد (صور، ملفات JS، CSS)
-  // ========================================
+  // للموارد الأخرى (صور، JS، CSS) – نستخدم الكاش أولاً ثم الشبكة
   event.respondWith(
-    caches.match(request, { ignoreSearch: true })
-      .then(cached => {
-        if (cached) return cached;
-        return fetch(request, { redirect: 'follow' })
-          .then(response => {
-            if (response.status === 200) {
-              const clone = response.clone();
-              caches.open(PHONE_CACHE).then(cache => cache.put(request, clone));
-            }
-            return response;
-          })
-          .catch(() => {
-            return new Response('غير متاح', {
-              status: 503,
-              headers: { 'Content-Type': 'text/plain; charset=utf-8' }
-            });
-          });
-      })
+    caches.match(request)
+      .then(cached => cached || fetch(request, { redirect: 'follow' }))
+      .catch(() => new Response('', { status: 503 }))
   );
 });
