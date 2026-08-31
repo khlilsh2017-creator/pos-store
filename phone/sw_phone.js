@@ -1,5 +1,9 @@
 importScripts('/offline-sw-core.js');
-const PHONE_CACHE = 'pos-phone-shell-v8-offline-sync';
+
+// غيّر اسم الكاش لفرض تحديثه
+const PHONE_CACHE = 'pos-phone-shell-v9-fixed-redirect';
+
+// قائمة الملفات الأساسية (تأكد من صحة المسارات)
 const PHONE_SHELL = [
   '/phone/index.html',
   '/phone/orders.html',
@@ -14,13 +18,16 @@ const PHONE_SHELL = [
   '/permissions.js',
   '/sidebar-config.js',
   '/icon-192x192.png',
-  '/icon-512x512.png'
+  '/icon-512x512.png',
+  // أضف المكتبات المستخدمة في الجوال إن وجدت
+  '/html2canvas.min.js',
+  '/html2pdf.bundle.min.js'
 ];
 
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(PHONE_CACHE)
-      .then(cache => cache.addAll(PHONE_SHELL))  // تضمين جميع الملفات أو فشل التثبيت
+      .then(cache => cache.addAll(PHONE_SHELL))
       .then(() => self.skipWaiting())
       .catch(error => console.error('[PHONE SW] فشل تثبيت الملفات:', error))
   );
@@ -40,7 +47,7 @@ self.addEventListener('fetch', event => {
   const url = new URL(request.url);
 
   // معالجة طلبات API (من الدوال المستوردة)
-  if (offlineIsApiRequest(url)) {
+  if (typeof offlineIsApiRequest === 'function' && offlineIsApiRequest(url)) {
     event.respondWith(offlineHandleApiRequest(request));
     return;
   }
@@ -48,32 +55,59 @@ self.addEventListener('fetch', event => {
   // تجاهل الطلبات غير GET أو من أصول أخرى
   if (request.method !== 'GET' || url.origin !== self.location.origin) return;
 
-  // تجاهل طلبات API و JSON (ما عدا JSON في /phone/)
+  // تجاهل طلبات API و JSON
   if (url.pathname.startsWith('/api/')) return;
   if (url.pathname.endsWith('.json') && !url.pathname.startsWith('/phone/')) return;
 
-  event.respondWith(
-    caches.match(request, { ignoreSearch: true })
-      .then(cached => {
-        if (cached) return cached;
-
-        // محاولة جلب من الشبكة وتخزين النسخة
-        return fetch(request).then(response => {
-          if (response.ok) {
+  // ========================================
+  // معالجة صفحات HTML (المشكلة الرئيسية)
+  // ========================================
+  if (url.pathname.endsWith('.html')) {
+    event.respondWith(
+      // استراتيجية الشبكة أولاً مع متابعة إعادة التوجيه إجبارياً
+      fetch(request, { redirect: 'follow' })
+        .then(response => {
+          // نخزن فقط الاستجابات الناجحة (كود 200) لتجنب تخزين إعادة التوجيه
+          if (response.status === 200) {
             const clone = response.clone();
             caches.open(PHONE_CACHE).then(cache => cache.put(request, clone));
           }
           return response;
-        }).catch(() => {
-          // إذا كان الطلب لصفحة HTML، نعيد الصفحة الرئيسية بدلاً من رسالة الخطأ
-          if (url.pathname.endsWith('.html')) {
-            return caches.match('/phone/index.html', { ignoreSearch: true });
-          }
-          return new Response('غير متاح دون اتصال', { 
-            status: 503, 
-            headers: { 'Content-Type': 'text/plain; charset=utf-8' } 
+        })
+        .catch(() => {
+          // عند فشل الشبكة، نبحث في الكاش
+          return caches.match(request, { ignoreSearch: true })
+            .then(cached => {
+              if (cached) return cached;
+              // إذا لم تكن الصفحة في الكاش، نعيد صفحة الخطأ أو index.html
+              return caches.match('/phone/index.html', { ignoreSearch: true });
+            });
+        })
+    );
+    return;
+  }
+
+  // ========================================
+  // باقي الموارد (صور، ملفات JS، CSS)
+  // ========================================
+  event.respondWith(
+    caches.match(request, { ignoreSearch: true })
+      .then(cached => {
+        if (cached) return cached;
+        return fetch(request, { redirect: 'follow' })
+          .then(response => {
+            if (response.status === 200) {
+              const clone = response.clone();
+              caches.open(PHONE_CACHE).then(cache => cache.put(request, clone));
+            }
+            return response;
+          })
+          .catch(() => {
+            return new Response('غير متاح', {
+              status: 503,
+              headers: { 'Content-Type': 'text/plain; charset=utf-8' }
+            });
           });
-        });
       })
   );
 });

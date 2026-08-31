@@ -1,16 +1,16 @@
 {
   "id": "com.pos.ibnalmukhtar.cashier",
-  "name": "صندوق البيع",
-  "short_name": "انشاء طلبات الانترنت",
+  "name": "صندوق البيع - ابن المختار",
+  "short_name": "صندوق البيع",
   "description": "واجهة الكاشير السريعة لابن المختار: إتمام عمليات البيع، طباعة الفواتير، والبحث عن المنتجات بلمسة واحدة.",
-  "start_url": "/phone/add_order_ph",
+  "start_url": "/phone/add_order_ph.html",
   "display": "standalone",
   "background_color": "#fff8e1",
   "theme_color": "#C62828",
   "orientation": "portrait",
   "dir": "rtl",
   "lang": "ar",
-  "scope": "/phone/add_order_ph",
+  "scope": "/phone/",
   "icons": [
     {
       "src": "/icon-192x192.png",
@@ -25,10 +25,7 @@
       "purpose": "maskable"
     }
   ],
-  "categories": [
-    "shopping",
-    "productivity"
-  ],
+  "categories": ["shopping", "productivity"],
   "screenshots": [
     {
       "src": "/screenshots/cashier-invoice.png",
@@ -43,7 +40,7 @@
     {
       "name": "إدارة طلبات الإنترنت",
       "short_name": "إدارة الطلبات",
-      "url": "/phone/add_order_ph?next=orders.html",
+      "url": "/phone/orders.html",
       "icons": [
         {
           "src": "/icon-192x192.png",
