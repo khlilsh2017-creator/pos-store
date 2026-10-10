@@ -2817,17 +2817,34 @@
                 const walletPaid = parseFloat(document.getElementById('wallet-paid')?.value) || 0;
                 if (paymentMethod.includes('محفظة') && walletName) paymentDetails.push(`المحفظة: ${walletName}`);
                 if (paymentMethod.includes('مختلط')) { if (cashPaid > 0) paymentDetails.push(`نقداً: ${formatPosMoney(cashPaid)}`); if (walletPaid > 0) paymentDetails.push(`محفظة: ${formatPosMoney(walletPaid)}`); }
+                const orderIdVal = orderData?.id || (document.getElementById('display-order-id')?.innerText !== '--' ? document.getElementById('display-order-id')?.innerText : '') || '';
+                const orderNumber = orderData?.invoice_number || orderIdVal || 'جديد';
+                const hasRealNumber = orderNumber && orderNumber !== 'جديد' && orderNumber !== '--';
+                const invoiceTitle = orderData?.is_draft
+                    ? 'فاتورة مبدئية (مسودة)'
+                    : (hasRealNumber ? `فاتورة طلب إنترنت #${orderNumber}` : 'فاتورة طلب إنترنت');
+                const driverEl = document.getElementById('driverSelect');
+                const driverName = orderData?.driver_name || (driverEl && driverEl.selectedIndex > 0 && driverEl.value ? driverEl.options[driverEl.selectedIndex].text.trim() : '');
+                const governorate = orderData?.governorate || selectedCustomerData?.governorate || document.getElementById('modal-governorate')?.value || '';
+                const deliveryType = orderData?.delivery_type || selectedCustomerData?.deliveryType || selectedCustomerData?.delivery_type || document.getElementById('modal-deliveryType')?.value || '';
+
                 const invoiceData = {
                     type: 'sale',
-                    title: orderData?.is_draft ? 'فاتورة مبدئية (مسودة)' : 'فاتورة مبيعات',
+                    is_online_order: true,
+                    online_order_id: hasRealNumber ? (orderData?.id || orderNumber) : undefined,
+                    order_number: hasRealNumber ? (orderData?.id || orderNumber) : undefined,
+                    title: invoiceTitle,
                     is_draft: Boolean(orderData?.is_draft),
-                    number: orderData?.invoice_number || orderData?.id || document.getElementById('display-order-id')?.innerText || 'جديد',
+                    number: orderNumber,
                     invoice_number: orderData?.invoice_number || orderData?.id || document.getElementById('display-invoice-number')?.innerText || '',
                     created_at: orderData?.created_at || orderData?.order_date || new Date().toISOString(),
                     party: customerName,
                     customer_name: customerName,
                     customer_phone: customerPhone,
                     customer_address: customerAddress,
+                    governorate: governorate,
+                    delivery_type: deliveryType,
+                    driver_name: driverName,
                     payment_method: paymentMethod,
                     payment_details_html: paymentDetails.join(' | '),
                     status: orderData?.status || (orderData?.is_draft ? 'مسودة' : 'مكتملة'),

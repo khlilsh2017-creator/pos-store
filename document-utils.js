@@ -452,6 +452,28 @@
               </tr>`;
     }).join('');
 
+    const hasStats = data.orders_count != null || data.total_delivery_fees != null;
+    const statsHtml = hasStats ? `
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0;font-size:.85rem;text-align:center;">
+            <div style="background:#f0f4f9;padding:8px;border-radius:8px;">
+                <div style="font-size:.7rem;color:#64748b;">عدد الطلبات</div>
+                <div style="font-weight:800;color:#1a56db;">${data.orders_count ?? '—'}</div>
+            </div>
+            <div style="background:#f0f4f9;padding:8px;border-radius:8px;">
+                <div style="font-size:.7rem;color:#64748b;">إجمالي رسوم التوصيل</div>
+                <div style="font-weight:800;color:#16a34a;">${fmtMoney(data.total_delivery_fees ?? 0, currency)}</div>
+            </div>
+            <div style="background:#f0f4f9;padding:8px;border-radius:8px;">
+                <div style="font-size:.7rem;color:#64748b;">إجمالي المدين</div>
+                <div style="font-weight:800;color:#dc2626;">${fmtMoney(data.total_debit ?? 0, currency)}</div>
+            </div>
+            <div style="background:#f0f4f9;padding:8px;border-radius:8px;">
+                <div style="font-size:.7rem;color:#64748b;">الرصيد النهائي</div>
+                <div style="font-weight:800;color:#1a56db;">${fmtMoney(data.final_balance ?? 0, currency)}</div>
+            </div>
+        </div>
+    ` : '';
+
     return `<div class="pos-unified-invoice pos-doc">
         ${renderBrandHeader(identity, title, data, options)}
         <section class="pos-invoice-meta">
@@ -461,6 +483,7 @@
             <div><strong>الرصيد السابق قبل الفترة:</strong> <span dir="ltr">${fmtMoney(data.opening_balance || data.previous_balance || 0, currency)}</span></div>
         </section>
         
+        ${statsHtml}
         <table>
             <thead>
                 <tr>

@@ -1410,11 +1410,83 @@
                 font-size: 0.7rem;
             }
         }
+        /* ============================================================
+           نافذة تأكيد مخصصة (بدل confirm() الأصلية)
+           ============================================================ */
+        .confirm-overlay{
+            position:fixed;inset:0;z-index:10050;
+            background:rgba(0,0,0,.5);
+            backdrop-filter:blur(3px);
+            display:none;
+            align-items:center;justify-content:center;
+            padding:14px;
+            animation:fadeInConfirm .18s ease-out;
+        }
+        .confirm-overlay.active{display:flex;}
+        @keyframes fadeInConfirm{from{opacity:0;}to{opacity:1;}}
+        .confirm-box{
+            width:100%;max-width:420px;
+            background:var(--card);
+            border-radius:var(--radius);
+            padding:22px 18px;
+            box-shadow:var(--shadow-lg);
+            animation:popInConfirm .22s cubic-bezier(.4,0,.2,1);
+            text-align:center;
+            border:1px solid var(--border);
+        }
+        @keyframes popInConfirm{
+            from{transform:scale(.92) translateY(10px);opacity:0;}
+            to{transform:scale(1) translateY(0);opacity:1;}
+        }
+        .confirm-icon{
+            width:64px;height:64px;
+            border-radius:50%;
+            display:grid;place-items:center;
+            font-size:1.7rem;
+            margin:0 auto 12px;
+            background:var(--warning-light);color:var(--warning);
+        }
+        .confirm-icon.danger{background:var(--danger-light);color:var(--danger);}
+        .confirm-icon.success{background:var(--success-light);color:var(--success);}
+        .confirm-icon.info{background:#e0f2fe;color:var(--info);}
+        .confirm-icon.warning{background:var(--warning-light);color:var(--warning);}
+        .confirm-title{
+            font-size:1rem;
+            font-weight:800;
+            color:var(--text);
+            margin:0 0 8px;
+        }
+        .confirm-message{
+            font-size:.82rem;
+            color:var(--text-secondary);
+            line-height:1.7;
+            margin:0 0 18px;
+            white-space:pre-line;
+        }
+        .confirm-actions{
+            display:grid;
+            grid-template-columns:1fr 1fr;
+            gap:8px;
+        }
+        .confirm-actions .btn{min-height:46px;font-size:.85rem;}
+        @media(max-width:480px){
+            .confirm-overlay{align-items:flex-end;padding:0;}
+            .confirm-box{
+                max-width:none;
+                border-radius:18px 18px 0 0;
+                padding:22px 16px calc(22px + var(--safe-bottom));
+                animation:slideUpConfirm .25s cubic-bezier(.4,0,.2,1);
+            }
+            @keyframes slideUpConfirm{
+                from{transform:translateY(30px);opacity:.6;}
+                to{transform:translateY(0);opacity:1;}
+            }
+        }
     </style>
     <script src="../date-utils.js"></script>
     <script src="../number-utils.js"></script>
     <script src="../permissions.js"></script>
-    <script src="/offline-sync.js"></script>
+    <script src="../offline-sync.js"></script>
 </head>
 <body>
 
@@ -1472,7 +1544,7 @@
             <input type="text" id="top-search-input" class="input-field input-field-sm" placeholder="🔍 بحث عن منتج..." autocomplete="off" />
             <button class="btn btn-sm btn-primary" onclick="triggerSearch()"><i class="fas fa-search"></i></button>
             <button class="btn btn-sm btn-outline" onclick="clearSearch()"><i class="fas fa-times"></i></button>
-            <span class="search-hint" id="search-hint">(ابحث بـ 4 أحرف فأكثر)</span>
+            <span class="search-hint" id="search-hint">(ابحث بـ 3 أحرف فأكثر)</span>
         </div>
         <!-- القائمة المنسدلة لنتائج البحث -->
         <div class="search-dropdown" id="search-dropdown"></div>
@@ -1664,7 +1736,7 @@
         <div class="bottom-actions">
             <button class="btn btn-success" onclick="submitOrder(false)" style="padding: 10px 4px;"><i class="fas fa-save"></i> حفظ</button>
             
-            <button class="btn btn-warning" onclick="submitOrder(false)" style="padding: 10px 4px;"><i class="fas fa-bolt"></i> سريع</button>
+            <button class="btn btn-warning" onclick="submitOrder(false, true)" style="padding: 10px 4px;"><i class="fas fa-bolt"></i> سريع</button>
             <button class="btn btn-outline" onclick="saveDraft()" style="padding: 10px 4px;"><i class="fas fa-download"></i> مسودة</button>
             <button class="btn btn-outline" onclick="openDraftsModal()" style="padding: 10px 4px;"><i class="fas fa-folder-open"></i></button>
             <button class="btn btn-outline" onclick="openEditOrdersModal()" style="flex:0 0 auto;"><i class="fas fa-edit"></i></button>
@@ -1704,11 +1776,11 @@
         <div class="modal-overlay" id="invoice-choice-modal">
             <div class="modal-box invoice-choice-box">
                 <div class="modal-header">
-                    <h3><i class="fas fa-file-invoice text-primary"></i> الطلب محفوظ</h3>
+                    <h3 id="invoice-choice-header"><i class="fas fa-file-invoice text-primary"></i> الطلب محفوظ</h3>
                     <button class="close-btn" id="invoice-choice-close" onclick="chooseInvoiceAction('skip')" aria-label="إغلاق">&times;</button>
                 </div>
                 <div id="invoice-choice-content">
-                    <p class="invoice-choice-intro">هل تريد تحميل أو حفظ أو طباعة الفاتورة؟</p>
+                    <p class="invoice-choice-intro" id="invoice-choice-intro">هل تريد تحميل أو حفظ أو طباعة الفاتورة؟</p>
                     <div class="invoice-choice-actions">
                         <button class="btn btn-primary" onclick="chooseInvoiceAction('download')"><i class="fas fa-file-pdf"></i> PDF</button>
                         <button class="btn btn-success" onclick="chooseInvoiceAction('image')"><i class="fas fa-image"></i> صورة</button>
@@ -1720,6 +1792,25 @@
                     <i class="fas fa-spinner fa-spin"></i>
                     <strong>جاري إنشاء الفاتورة…</strong>
                     <div style="font-size:.82rem;color:var(--text-secondary);">يرجى الانتظار حتى يكتمل الملف</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- نافذة التأكيد المخصصة -->
+        <div class="confirm-overlay" id="custom-confirm-modal" role="alertdialog" aria-modal="true">
+            <div class="confirm-box">
+                <div class="confirm-icon warning" id="custom-confirm-icon">
+                    <i class="fas fa-exclamation-triangle" id="custom-confirm-icon-inner"></i>
+                </div>
+                <h3 class="confirm-title" id="custom-confirm-title">تأكيد العملية</h3>
+                <p class="confirm-message" id="custom-confirm-message">هل أنت متأكد؟</p>
+                <div class="confirm-actions">
+                    <button type="button" class="btn btn-outline" id="custom-confirm-cancel" onclick="closeConfirmModal(false)">
+                        <i class="fas fa-times"></i> <span id="custom-confirm-cancel-text">إلغاء</span>
+                    </button>
+                    <button type="button" class="btn btn-primary" id="custom-confirm-ok" onclick="closeConfirmModal(true)">
+                        <i class="fas fa-check" id="custom-confirm-ok-icon"></i> <span id="custom-confirm-ok-text">موافق</span>
+                    </button>
                 </div>
             </div>
         </div>
@@ -1870,6 +1961,38 @@
         let currentFetchId = 0; // متغير العداد لمنع تداخل البحث
 
         // ================================================================
+        //  تطبيع رقم الهاتف اليمني: إزالة رمز الدولة + التحقق من الطول
+        // ================================================================
+        function normalizeYemeniPhone(input) {
+            if (!input) return '';
+            // احتفظ بالأرقام فقط
+            let digits = String(input).replace(/\D/g, '');
+
+            // إزالة رمز الدولة اليمني 967 بجميع أشكاله
+            if (digits.startsWith('00967')) {
+                digits = digits.slice(5);
+            } else if (digits.startsWith('967') && digits.length > 9) {
+                digits = digits.slice(3);
+            } else if (digits.startsWith('009') && digits.length > 11) {
+                // أي رمز دولة آخر يبدأ بـ 00
+                digits = digits.slice(digits.startsWith('00') ? 2 : 0);
+                if (digits.startsWith('967')) digits = digits.slice(3);
+            }
+
+            // إزالة الصفر البادئ الشائع (0777... ← 777...)
+            if (digits.startsWith('0') && digits.length > 9) {
+                digits = digits.slice(1);
+            }
+
+            return digits;
+        }
+
+        function isValidYemeniPhone(input) {
+            const digits = normalizeYemeniPhone(input);
+            return /^[0-9]{9}$/.test(digits);  // 9 أرقام بالضبط
+        }
+
+        // ================================================================
         //  SAFE STORAGE & NETWORK HELPERS
         // ================================================================
         const APP_VERSION = '2.1.0';
@@ -1989,6 +2112,7 @@
         let draftSaveTimer = null;
         let lastSubmitFingerprint = null;
         let pendingInvoiceSnapshot = null;
+        let pendingInvoiceIsDraft = false;   // ✅ جديد
         let updatingMixedFromCash = false;
         let updatingMixedFromWallet = false;
         let updatingDiscountFromPaid = false;
@@ -2009,14 +2133,27 @@
             allow_below_cost: false
         };
 
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        let audioCtx = null;
+        function getAudioContext() {
+            if (!audioCtx) {
+                try {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                } catch (_) {}
+            }
+            if (audioCtx && audioCtx.state === 'suspended') {
+                audioCtx.resume().catch(() => {});
+            }
+            return audioCtx;
+        }
 
         function playSound(frequency = 800, duration = 100) {
             try {
-                const oscillator = audioCtx.createOscillator();
-                const gainNode = audioCtx.createGain();
+                const ctx = getAudioContext();
+                if (!ctx) return;
+                const oscillator = ctx.createOscillator();
+                const gainNode = ctx.createGain();
                 oscillator.connect(gainNode);
-                gainNode.connect(audioCtx.destination);
+                gainNode.connect(ctx.destination);
                 oscillator.frequency.value = frequency;
                 gainNode.gain.value = 0.1;
                 oscillator.start();
@@ -2177,7 +2314,7 @@
             const searchInput = document.getElementById('top-search-input');
             if (searchInput) searchInput.value = '';
             const hint = document.getElementById('search-hint');
-            if (hint) { hint.textContent = '(ابحث بـ 4 أحرف فأكثر)'; hint.style.color = 'var(--muted)'; }
+            if (hint) { hint.textContent = '(ابحث بـ 3 أحرف فأكثر)'; hint.style.color = 'var(--muted)'; }
             const dropdown = document.getElementById('search-dropdown');
             if (dropdown) dropdown.style.display = 'none';
 
@@ -2484,14 +2621,14 @@
             saveFilterState();
                         searchTimeout = setTimeout(() => fetchProducts(currentSearch, selectedCategoryId), 350);
             const hint = document.getElementById('search-hint');
-            if (searchTerm.length >= 4) {
+            if (searchTerm.length >= 3) {
                 hint.textContent = `(بحث عن: "${searchTerm}")`;
                 hint.style.color = 'var(--success)';
             } else if (searchTerm.length > 0) {
-                hint.textContent = `(ادخل 4 أحرف على الأقل، لديك ${formatPosQuantity(searchTerm.length)})`;
+                hint.textContent = `(ادخل 3 أحرف على الأقل، لديك ${formatPosQuantity(searchTerm.length)})`;
                 hint.style.color = 'var(--warning)';
             } else {
-                hint.textContent = '(ابحث بـ 4 أحرف فأكثر)';
+                hint.textContent = '(ابحث بـ 3 أحرف فأكثر)';
                 hint.style.color = 'var(--muted)';
             }
         }
@@ -2503,7 +2640,7 @@
                 currentSearch = '';
                 const hint = document.getElementById('search-hint');
                 if (hint) {
-                    hint.textContent = '(ابحث بـ 4 أحرف فأكثر)';
+                    hint.textContent = '(ابحث بـ 3 أحرف فأكثر)';
                     hint.style.color = 'var(--muted)';
                 }
                 saveFilterState();
@@ -2518,14 +2655,14 @@
             clearTimeout(searchTimeout);
             const term = this.value.trim();
             const hint = document.getElementById('search-hint');
-            if (term.length > 0 && term.length < 4) {
-                hint.textContent = `(ادخل 4 أحرف على الأقل، لديك ${formatPosQuantity(term.length)})`;
+            if (term.length > 0 && term.length < 3) {
+                hint.textContent = `(ادخل 3 أحرف على الأقل، لديك ${formatPosQuantity(term.length)})`;
                 hint.style.color = 'var(--warning)';
                 const dropdown = document.getElementById('search-dropdown');
                 if (dropdown) dropdown.style.display = 'none';
                 return;
             }
-            if (term.length >= 4) {
+            if (term.length >= 3) {
                 hint.textContent = `(بحث عن: "${term}")`;
                 hint.style.color = 'var(--success)';
                 searchTimeout = setTimeout(() => {
@@ -2534,12 +2671,12 @@
                     fetchProducts(currentSearch, selectedCategoryId);
                 }, 300);
             } else {
-                hint.textContent = '(ابحث بـ 4 أحرف فأكثر)';
+                hint.textContent = '(ابحث بـ 3 أحرف فأكثر)';
                 hint.style.color = 'var(--muted)';
                 if (term.length === 0) {
                     currentSearch = '';
                     saveFilterState();
-                                        searchTimeout = setTimeout(() => fetchProducts('', selectedCategoryId), 350);
+                    searchTimeout = setTimeout(() => fetchProducts('', selectedCategoryId), 350);
                     const dropdown = document.getElementById('search-dropdown');
                     if (dropdown) dropdown.style.display = 'none';
                 }
@@ -2604,9 +2741,9 @@
 
             const fetchId = ++currentFetchId;
 
-            if (currentSearch.length > 0 && currentSearch.length < 4) {
+            if (currentSearch.length > 0 && currentSearch.length < 3) {
                 if (dropdown) dropdown.style.display = 'none';
-                if (countLabel) countLabel.textContent = 'اكتب 4 أحرف للبحث';
+                if (countLabel) countLabel.textContent = 'اكتب 3 أحرف للبحث';
                 setProgress(100); setTimeout(() => setProgress(0), 500);
                 return;
             }
@@ -2671,44 +2808,10 @@
                     (p.barcode && p.barcode.includes(currentSearch))
                 );
                 if (selectedCategoryId) filtered = filtered.filter(p => p.category_id == selectedCategoryId);
-                
-                // نبقي productsCache كاملة؛ النتائج المفلترة للعرض فقط.
                 renderSearchDropdown(filtered);
                 if (countLabel) countLabel.textContent = `عدد المنتجات: ${formatPosQuantity(filtered.length)} (بحث محلي)`;
                 setProgress(100); setTimeout(() => setProgress(0), 500);
                 return;
-            }
-
-            try {
-                let url = `${API}/products?limit=3000`;
-                if (selectedCategoryId) url += `&category_id=${selectedCategoryId}`;
-                if (currentSort) url += `&sort=${encodeURIComponent(currentSort)}`;
-                url += `&_t=${new Date().getTime()}`;
-
-                const res = await fetchWithTimeout(url, { headers: { 'Authorization': `Bearer ${token}` } });
-                
-                if (fetchId !== currentFetchId) return;
-
-                const data = await res.json();
-                const searchResults = data.products || [];
-                
-                productsCache = searchResults; // 👈 التعديل: تحديث الذاكرة هنا لكي تعمل دالة الإضافة بنجاح
-                renderSearchDropdown(searchResults);
-                
-                if (countLabel) countLabel.textContent = `نتائج البحث: ${formatPosQuantity(searchResults.length)}`;
-                setProgress(100); setTimeout(() => setProgress(0), 500);
-            } catch (err) {
-                if (fetchId !== currentFetchId) return;
-                
-                const localProducts = await getLocalProducts();
-                let filtered = localProducts.filter(p =>
-                    (p.name && p.name.toLowerCase().includes(currentSearch.toLowerCase())) ||
-                    (p.barcode && p.barcode.includes(currentSearch))
-                );
-                
-                // نبقي productsCache كاملة عند فشل أي طلب احتياطي.
-                renderSearchDropdown(filtered);
-                setProgress(100); setTimeout(() => setProgress(0), 500);
             }
         }
 
@@ -2784,7 +2887,7 @@
                 currentSearch = '';
                 const hint = document.getElementById('search-hint');
                 if (hint) {
-                    hint.textContent = '(ابحث بـ 4 أحرف فأكثر)';
+                    hint.textContent = '(ابحث بـ 3 أحرف فأكثر)';
                     hint.style.color = 'var(--muted)';
                 }
                 fetchProducts('', selectedCategoryId);
@@ -2839,30 +2942,37 @@
         }
 
         async function fetchCustomersList() {
-            if (!navigator.onLine) {
-                const local = await getLocalCustomers();
-                customersCache = local;
-                return;
-            }
-            try {
-                const res = await fetchWithTimeout(`${API}/customers?limit=2000`, { headers: { 'Authorization': `Bearer ${token}` } });
-                const data = await res.json();
-                customersCache = data.customers || [];
-                await saveCustomersToLocal(customersCache);
-            } catch (err) {
-                const local = await getLocalCustomers();
-                customersCache = local;
-            }
-        }
+    if (!navigator.onLine) {
+        const local = await getLocalCustomers();
+        customersCache = local;
+        return;
+    }
+    try {
+        // تغيير المسار من /customers إلى /online-customers (نفس السحابة)
+        const res = await fetch(`${API}/online-customers?limit=2000`, {
+            cache: 'no-store',
+            headers: { 'Authorization': `Bearer ${token}`, 'Cache-Control': 'no-cache' }
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+        customersCache = Array.isArray(data.customers) ? data.customers : [];
+        // يمكنك حفظها محلياً أيضاً
+        await saveCustomersToLocal(customersCache);
+    } catch (err) {
+        customersCache = [];
+        showToast(`تعذر تحميل العملاء من قاعدة البيانات: ${err.message}`, 'error');
+    }
+}
 
         function searchCustomerByPhone(phone) {
             if (!phone || phone.length < 4) return null;
-            const found = customersCache.find(c => {
-                if (c.phone && c.phone === phone) return true;
-                if (c.phones && Array.isArray(c.phones)) return c.phones.some(p => p === phone);
+            const target = normalizeYemeniPhone(phone);
+            if (!target) return null;
+            return customersCache.find(c => {
+                if (c.phone && normalizeYemeniPhone(c.phone) === target) return true;
+                if (Array.isArray(c.phones)) return c.phones.some(p => normalizeYemeniPhone(p) === target);
                 return false;
-            });
-            return found || null;
+            }) || null;
         }
 
         function fillCustomerModalFields(customer) {
@@ -2933,9 +3043,49 @@
                 <button type="button" class="btn btn-danger btn-xs" onclick="this.parentElement.remove()"><i class="fas fa-times"></i></button>
             `;
             container.appendChild(div);
+
+            // ✅ تطبيع عند اللصق والكتابة للحقول الإضافية
+            const input = div.querySelector('.modal-extra-phone');
+            if (input) {
+                input.addEventListener('paste', function (e) {
+                    e.preventDefault();
+                    const pasted = (e.clipboardData || window.clipboardData).getData('text');
+                    this.value = normalizeYemeniPhone(pasted);
+                });
+                input.addEventListener('input', function () {
+                    const cleaned = this.value.replace(/\D/g, '');
+                    if (cleaned !== this.value) this.value = cleaned;
+                });
+            }
         }
 
         document.getElementById('modal-addPhoneBtn')?.addEventListener('click', function() { addModalExtraPhone(''); });
+
+        // تطبيع فوري عند اللصق أو الكتابة لحقل الهاتف الرئيسي
+        (function setupMainPhoneNormalization() {
+            const mainInput = document.getElementById('modal-mainPhone');
+            if (!mainInput) return;
+
+            // عند اللصق: احذف رمز الدولة قبل إدراج القيمة
+            mainInput.addEventListener('paste', function (e) {
+                e.preventDefault();
+                const pasted = (e.clipboardData || window.clipboardData).getData('text');
+                const clean = normalizeYemeniPhone(pasted);
+                // أدخل النص النظيف في الموضع الحالي
+                const start = this.selectionStart ?? this.value.length;
+                const end = this.selectionEnd ?? this.value.length;
+                const newValue = this.value.slice(0, start) + clean + this.value.slice(end);
+                this.value = newValue;
+                // شغّل حدث input يدويًا لكي يعمل البحث عن العميل
+                this.dispatchEvent(new Event('input', { bubbles: true }));
+            });
+
+            // عند الكتابة: احذف ما ليس رقمًا
+            mainInput.addEventListener('input', function () {
+                const cleaned = this.value.replace(/\D/g, '');
+                if (cleaned !== this.value) this.value = cleaned;
+            });
+        })();
 
         document.getElementById('modal-mainPhone')?.addEventListener('input', function() {
             clearTimeout(phoneSearchTimeout);
@@ -2949,19 +3099,48 @@
         });
 
         function confirmCustomerData() {
-            const mainPhone = document.getElementById('modal-mainPhone')?.value.trim();
-            if (!mainPhone) { showToast('رقم الهاتف مطلوب', 'warning'); return; }
+            let mainPhone = document.getElementById('modal-mainPhone')?.value.trim();
+            // ✅ طبّع الرقم واحذف رمز الدولة إن وُجد
+            mainPhone = normalizeYemeniPhone(mainPhone);
+            if (mainPhone) {
+                document.getElementById('modal-mainPhone').value = mainPhone;
+            }
+
+            if (!mainPhone) {
+                showToast('رقم الهاتف مطلوب', 'warning');
+                return;
+            }
+
+            // ✅ التحقق من 9 أرقام
+            if (!/^[0-9]{9}$/.test(mainPhone)) {
+                showToast('رقم الهاتف يجب أن يكون 9 أرقام بالضبط (مثال: 777123456)', 'warning');
+                return;
+            }
+
             const address = document.getElementById('modal-address')?.value.trim();
             if (!address) { showToast('العنوان مطلوب', 'warning'); return; }
+
+            // ✅ تطبيع الأرقام الإضافية والتحقق منها
             const extraInputs = document.querySelectorAll('#modal-extraPhonesContainer .modal-extra-phone');
-            const extraPhones = Array.from(extraInputs).map(inp => inp.value.trim()).filter(p => p !== '');
+            const extraPhones = [];
+            for (const inp of extraInputs) {
+                const normalized = normalizeYemeniPhone(inp.value.trim());
+                if (!normalized) continue;
+                if (!/^[0-9]{9}$/.test(normalized)) {
+                    showToast(`رقم إضافي غير صحيح: "${inp.value.trim()}" (يجب 9 أرقام)`, 'warning');
+                    return;
+                }
+                inp.value = normalized;
+                extraPhones.push(normalized);
+            }
+
             selectedCustomerData = {
-                mainPhone: mainPhone,
+                mainPhone,
                 name: document.getElementById('modal-customerName')?.value.trim() || '',
                 governorate: document.getElementById('modal-governorate')?.value || 'صنعاء',
-                address: address,
+                address,
                 deliveryType: document.getElementById('modal-deliveryType')?.value || 'داخل صنعاء',
-                extraPhones: extraPhones
+                extraPhones
             };
             updateCustomerSummary();
             closeModal('customer-modal');
@@ -2992,6 +3171,76 @@
         function closeModal(id) { const el = document.getElementById(id); if (el) el.classList.remove('active'); }
         document.querySelectorAll('.modal-overlay').forEach(el => {
             el.addEventListener('click', function(e) { if (e.target === this) closeModal(this.id); });
+        });
+
+        // ============================================================
+        //  نافذة تأكيد مخصصة (بديل confirm الأصلية)
+        // ============================================================
+        let _customConfirmResolver = null;
+
+        /**
+         * عرض نافذة تأكيد.
+         * @param {string} message - نص الرسالة (يدعم \n)
+         * @param {object} [opts]
+         * @param {string} [opts.title='تأكيد العملية']
+         * @param {string} [opts.okText='موافق']
+         * @param {string} [opts.cancelText='إلغاء']
+         * @param {string} [opts.type='warning'] - warning|danger|success|info
+         * @param {string} [opts.icon] - أيقونة Font Awesome مخصصة
+         * @returns {Promise<boolean>}
+         */
+        function showConfirmModal(message, opts = {}) {
+            return new Promise((resolve) => {
+                _customConfirmResolver = resolve;
+
+                const overlay = document.getElementById('custom-confirm-modal');
+                if (!overlay) { resolve(window.confirm(message)); return; }
+
+                const type = opts.type || 'warning';
+                const iconMap = {
+                    warning: 'fa-exclamation-triangle',
+                    danger: 'fa-exclamation-circle',
+                    success: 'fa-check-circle',
+                    info: 'fa-info-circle'
+                };
+
+                document.getElementById('custom-confirm-title').textContent = opts.title || 'تأكيد العملية';
+                document.getElementById('custom-confirm-message').textContent = message || 'هل أنت متأكد؟';
+                document.getElementById('custom-confirm-ok-text').textContent = opts.okText || 'موافق';
+                document.getElementById('custom-confirm-cancel-text').textContent = opts.cancelText || 'إلغاء';
+                document.getElementById('custom-confirm-ok-icon').className = 'fas ' + (opts.icon || 'fa-check');
+
+                // الأيقونة الكبيرة حسب النوع
+                const iconEl = document.getElementById('custom-confirm-icon');
+                iconEl.className = 'confirm-icon ' + type;
+                document.getElementById('custom-confirm-icon-inner').className =
+                    'fas ' + (opts.icon && opts.icon.startsWith('fa-') ? opts.icon : iconMap[type] || 'fa-question');
+
+                // لون زر الموافقة
+                const okBtn = document.getElementById('custom-confirm-ok');
+                if (type === 'danger') okBtn.className = 'btn btn-danger';
+                else if (type === 'success') okBtn.className = 'btn btn-success';
+                else if (type === 'warning') okBtn.className = 'btn btn-warning';
+                else okBtn.className = 'btn btn-primary';
+
+                overlay.classList.add('active');
+            });
+        }
+
+        function closeConfirmModal(result) {
+            const overlay = document.getElementById('custom-confirm-modal');
+            if (overlay) overlay.classList.remove('active');
+            if (_customConfirmResolver) {
+                _customConfirmResolver(result === true);
+                _customConfirmResolver = null;
+            }
+        }
+
+        // إغلاق بمفتاح Escape
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape' && document.getElementById('custom-confirm-modal')?.classList.contains('active')) {
+                closeConfirmModal(false);
+            }
         });
 
         async function showProductDetails(productId) {
@@ -3132,13 +3381,25 @@
                 currentSearch = '';
                 const hint = document.getElementById('search-hint');
                 if (hint) {
-                    hint.textContent = '(ابحث بـ 4 أحرف فأكثر)';
+                    hint.textContent = '(ابحث بـ 3 أحرف فأكثر)';
                     hint.style.color = 'var(--muted)';
                 }
                 const dropdown = document.getElementById('search-dropdown');
                 if (dropdown) dropdown.style.display = 'none';
                 fetchProducts('', selectedCategoryId);
             }
+        }
+
+        async function confirmRemoveFromEditModal(index) {
+            const item = cart[index];
+            if (!item) return;
+            const proceed = await showConfirmModal(
+                `سيتم حذف "${item.name || 'هذا المنتج'}" من الفاتورة.\n\nهل أنت متأكد؟`,
+                { title: 'حذف المنتج', type: 'danger', icon: 'fa-trash', okText: 'نعم، حذف' }
+            );
+            if (!proceed) return;
+            closeModal('edit-cart-item-modal');
+            await removeItem(index, true);
         }
 
         function openEditCartItemModal(index) {
@@ -3161,13 +3422,13 @@
                 <div class="modal-actions">
                     <button class="btn btn-outline" onclick="closeModal('edit-cart-item-modal')">إلغاء</button>
                     <button class="btn btn-primary" onclick="confirmEditCartItem()">تحديث</button>
-                    <button class="btn btn-danger" onclick="removeItem(${index});closeModal('edit-cart-item-modal')">حذف</button>
+                    <button class="btn btn-danger" onclick="confirmRemoveFromEditModal(${index})">حذف</button>
                 </div>
             `;
             openModal('edit-cart-item-modal');
         }
 
-        function confirmEditCartItem() {
+        async function confirmEditCartItem() {
             const priceInput = document.getElementById('edit-sale-price');
             const qtyInput = document.getElementById('edit-quantity');
             const discountInput = document.getElementById('edit-item-discount');
@@ -3191,7 +3452,11 @@
             const cost = item.cost || 0;
             const finalPrice = Math.max(0, price - discount);
             if (!appSettings.allow_below_cost && finalPrice < cost) {
-                if (!confirm(`⚠️ السعر بعد الخصم (${formatPosMoney(finalPrice)}) أقل من التكلفة (${formatPosMoney(cost)}). متابعة؟`)) return;
+                const proceed = await showConfirmModal(
+                    `⚠️ السعر بعد الخصم (${formatPosMoney(finalPrice)}) أقل من التكلفة (${formatPosMoney(cost)}).\n\nهل تريد المتابعة على أي حال؟`,
+                    { title: 'سعر أقل من التكلفة', type: 'warning', okText: 'متابعة' }
+                );
+                if (!proceed) return;
             }
             
             cart[index].price = price; 
@@ -3278,7 +3543,25 @@
             renderCart();
         }
 
-        function removeItem(index) { cart.splice(index, 1); saveCartToLocal(); renderCart(); playClickSound(); }
+        async function removeItem(index, skipConfirm = false) {
+            const item = cart[index];
+            if (!item) return;
+
+            if (!skipConfirm) {
+                const name = item.name || 'هذا المنتج';
+                const proceed = await showConfirmModal(
+                    `سيتم حذف "${name}" من الفاتورة.\n\nهل أنت متأكد؟`,
+                    { title: 'حذف المنتج', type: 'danger', icon: 'fa-trash', okText: 'نعم، حذف' }
+                );
+                if (!proceed) return;
+            }
+
+            cart.splice(index, 1);
+            saveCartToLocal();
+            renderCart();
+            playClickSound();
+            showToast('🗑️ تم حذف المنتج', 'info', { sound: false });
+        }
 
         function renderCart() {
             const container = document.getElementById('cart-items');
@@ -3340,7 +3623,7 @@
                 const item = wrapper.querySelector('.cart-item');
                 if (item) {
                     if (diff > 0 && diff < 80) {
-                        item.style.transform = `translateX(${formatPosNumber(-diff)}px)`;
+                        item.style.transform = `translateX(${-diff}px)`;
                         wrapper.style.transform = `translateX(0)`;
                     } else if (diff >= 80) {
                         wrapper.classList.add('swiped');
@@ -3361,7 +3644,20 @@
             if (wrapper) {
                 if (diff >= 80) {
                     wrapper.classList.add('swiped');
-                    setTimeout(() => { removeItem(index); }, 300);
+                    setTimeout(async () => {
+                        const name = cart[index]?.name || 'هذا المنتج';
+                        const proceed = await showConfirmModal(
+                            `سيتم حذف "${name}" من الفاتورة.\n\nهل أنت متأكد؟`,
+                            { title: 'حذف المنتج', type: 'danger', icon: 'fa-trash', okText: 'نعم، حذف' }
+                        );
+                        if (proceed) {
+                            removeItem(index, true);
+                        } else {
+                            wrapper.classList.remove('swiped');
+                            const item = wrapper.querySelector('.cart-item');
+                            if (item) item.style.transform = '';
+                        }
+                    }, 300);
                 } else {
                     wrapper.classList.remove('swiped');
                     const item = wrapper.querySelector('.cart-item');
@@ -3383,7 +3679,9 @@
             const subtotal = cart.reduce((s, i) => s + ((i.price || 0) - (i.discount || 0)) * i.quantity, 0);
             const discount = parseFloat(document.getElementById('cart-discount')?.value) || 0;
             const discountType = document.getElementById('discount-type')?.value || 'fixed';
-            let discountAmount = discountType === 'percentage' ? subtotal * (discount / 100) : discount;
+            let discountAmount = discountType === 'percentage'
+                ? subtotal * (Math.min(discount, 100) / 100)
+                : Math.min(discount, subtotal);
             const fee = parseFloat(document.getElementById('deliveryFee')?.value) || 0;
             const feePaidWithOrder = document.getElementById('deliveryFeePayment')?.value === 'مع الطلب';
             const total = Math.max(0, subtotal - discountAmount + (feePaidWithOrder ? fee : 0));
@@ -3454,7 +3752,9 @@
             const subtotal = cart.reduce((s, i) => s + ((i.price || 0) - (i.discount || 0)) * i.quantity, 0);
             const discount = parseFloat(document.getElementById('cart-discount')?.value) || 0;
             const discountType = document.getElementById('discount-type')?.value || 'fixed';
-            let discountAmount = discountType === 'percentage' ? subtotal * (discount / 100) : discount;
+            let discountAmount = discountType === 'percentage'
+                ? subtotal * (Math.min(discount, 100) / 100)
+                : Math.min(discount, subtotal);
             const fee = parseFloat(document.getElementById('deliveryFee')?.value) || 0;
             const feePaidWithOrder = document.getElementById('deliveryFeePayment')?.value === 'مع الطلب';
             const totalDue = Math.max(0, subtotal - discountAmount + (feePaidWithOrder ? fee : 0));
@@ -3546,7 +3846,9 @@
             const subtotal = cart.reduce((s, i) => s + ((i.price || 0) - (i.discount || 0)) * i.quantity, 0);
             const discount = parseFloat(document.getElementById('cart-discount')?.value) || 0;
             const discountType = document.getElementById('discount-type')?.value || 'fixed';
-            let discountAmount = discountType === 'percentage' ? subtotal * (discount / 100) : discount;
+            let discountAmount = discountType === 'percentage'
+                ? subtotal * (Math.min(discount, 100) / 100)
+                : Math.min(discount, subtotal);
             const fee = parseFloat(document.getElementById('deliveryFee')?.value) || 0;
             const feePaidWithOrder = document.getElementById('deliveryFeePayment')?.value === 'مع الطلب';
             const totalDue = Math.max(0, subtotal - discountAmount + (feePaidWithOrder ? fee : 0));
@@ -3599,6 +3901,8 @@
         }
 
         function resetOrderForm() {
+            clearTimeout(draftSaveTimer);
+            draftSaveTimer = null;
             cart = [];
             safeRemoveItem('pos_cart_online');
             setElementValue('cart-discount', 0);
@@ -3855,9 +4159,15 @@
                 const isPrepaid = normalizedPaymentMethod.includes('مدفوع مسبقاً');
                 let details = {};
                 if (order.actual_payment_details) {
-                    details = typeof order.actual_payment_details === 'string' ? JSON.parse(order.actual_payment_details) : order.actual_payment_details;
+                    try {
+                        details = typeof order.actual_payment_details === 'string'
+                            ? JSON.parse(order.actual_payment_details)
+                            : order.actual_payment_details;
+                    } catch (_) {
+                        details = order;
+                    }
                 } else {
-                    details = order; 
+                    details = order;
                 }
 
                 if (isPrepaid) {
@@ -3921,7 +4231,11 @@
 
         async function cancelOrder() {
             if (!editingOrderId) return showToast('لا يوجد طلب لإلغائه', 'warning');
-            if (!confirm('هل أنت متأكد من إلغاء هذا الطلب؟')) return;
+            const proceed = await showConfirmModal(
+                `سيتم إلغاء الطلب رقم #${editingOrderId} نهائيًا.\n\nهل أنت متأكد؟`,
+                { title: 'إلغاء الطلب', type: 'danger', icon: 'fa-trash', okText: 'نعم، إلغاء' }
+            );
+            if (!proceed) return;
             try {
                 const res = await fetchWithTimeout(`${API}/online-orders/cancel`, {
                     method: 'POST',
@@ -3939,7 +4253,7 @@
             } catch (err) { showToast(err.message || 'خطأ في الاتصال', 'error'); }
         }
 
-       async function submitOrder(generateInvoice = false) {
+       async function submitOrder(generateInvoice = false, skipWarnings = false) {
     if (isSubmittingOrder) return showToast('⏳ جارٍ حفظ الطلب، يرجى الانتظار', 'info');
     if (cart.length === 0) return showToast('⚠️ السلة فارغة', 'warning');
     if (!selectedCustomerData) { showToast('⚠️ يرجى إدخال بيانات العميل', 'warning'); openCustomerModal(); return; }
@@ -3947,6 +4261,29 @@
     const mainPhone = selectedCustomerData.mainPhone;
     const address = selectedCustomerData.address;
     if (!mainPhone || !address) { showToast('رقم الهاتف والعنوان مطلوبان', 'warning'); openCustomerModal(); return; }
+
+    // ============================================================
+    //  تحقق: مندوب ورسوم التوصيل
+    // ============================================================
+    if (!skipWarnings) {
+        const driverVal = document.getElementById('driverSelect')?.value;
+        const feeVal = parseFloat(document.getElementById('deliveryFee')?.value) || 0;
+        const missing = [];
+        if (!driverVal) missing.push('لم تحدد مندوبًا');
+        if (feeVal <= 0) missing.push('لم تكتب رسوم التوصيل');
+
+        if (missing.length > 0) {
+            const proceed = await showConfirmModal(
+                `⚠️ تنبيه:\n• ${missing.join('\n• ')}\n\nهل تريد المتابعة وحفظ الطلب على أي حال؟`,
+                { title: 'تنبيه قبل الحفظ', type: 'warning', icon: 'fa-exclamation-triangle', okText: 'متابعة الحفظ', cancelText: 'الرجوع' }
+            );
+            if (!proceed) {
+                const driverSelect = document.getElementById('driverSelect');
+                if (driverSelect) driverSelect.focus();
+                return;
+            }
+        }
+    }
 
     setProgress(20);
     const extraPhones = selectedCustomerData.extraPhones || [];
@@ -3956,7 +4293,9 @@
     const subtotal = cart.reduce((s, i) => s + ((i.price || 0) - (i.discount || 0)) * i.quantity, 0);
     const discount = parseFloat(document.getElementById('cart-discount')?.value) || 0;
     const discountType = document.getElementById('discount-type')?.value || 'fixed';
-    let discountAmount = discountType === 'percentage' ? subtotal * (discount / 100) : discount;
+    let discountAmount = discountType === 'percentage'
+        ? subtotal * (Math.min(discount, 100) / 100)
+        : Math.min(discount, subtotal);
     const fee = parseFloat(document.getElementById('deliveryFee')?.value) || 0;
     const paymentMethod = document.getElementById('payment-method')?.value || 'عند الاستلام';
     const isCashOnDelivery = paymentMethod === 'عند الاستلام';
@@ -4052,10 +4391,11 @@
         discount_amount: discountAmount,
         discount_type: discountType,
         order_date: (() => {
-    const value = document.getElementById('order_date')?.value;
-    // القيمة المدخلة في datetime-local هي بتوقيت اليمن، وتُحفظ كـ UTC في قاعدة البيانات.
-    return value ? POSDate.inputToUTC(value) : undefined;
-})(),
+            const value = document.getElementById('order_date')?.value;
+            if (!value) return undefined;
+            try { return POSDate.inputToUTC(value); }
+            catch (e) { console.warn('فشل تحويل التاريخ:', e); return undefined; }
+        })(),
     };
 
     // معرف محلي يساعد على منع الضغط المتكرر أثناء إنشاء طلب جديد.
@@ -4063,7 +4403,11 @@
     const fingerprint = JSON.stringify({ ...payload, client_request_id: undefined });
     const previous = safeGetItem('pos_last_order_fingerprint', null);
     if (!editingOrderId && previous && previous.key === fingerprint && Date.now() - Number(previous.at || 0) < 60000) {
-        if (!confirm('تم إرسال طلب مطابق خلال أقل من دقيقة. هل تريد المتابعة مرة أخرى؟')) return;
+        const proceed = await showConfirmModal(
+            'تم إرسال طلب مطابق خلال أقل من دقيقة.\nهل تريد المتابعة مرة أخرى؟',
+            { title: 'طلب مطابق', type: 'warning', okText: 'متابعة الحفظ' }
+        );
+        if (!proceed) return;
     }
     safeSetItem('pos_last_order_fingerprint', { key: fingerprint, at: Date.now() });
     lastSubmitFingerprint = fingerprint;
@@ -4099,9 +4443,10 @@
             if (orderId) document.getElementById('display-order-id').innerText = orderId;
             if (invoiceNum) document.getElementById('display-invoice-number').innerText = invoiceNum;
 
-            showToast(`✅ ${formatPosNumber(editingOrderId ? 'تم تحديث' : 'تم حفظ')} الطلب ${formatPosNumber(orderId || '')}`, 'success', { sound: false });
+            showToast(`✅ ${editingOrderId ? 'تم تحديث' : 'تم حفظ'} الطلب ${orderId || ''}`, 'success', { sound: false });
 
             pendingInvoiceSnapshot = captureInvoiceSnapshot(orderId);
+            pendingInvoiceIsDraft = false;   // ✅ تأكيد أنها فاتورة طلب وليست مسودة
 
             if (currentDraftId) {
                 let drafts = safeGetItem('pos_drafts_list', []);
@@ -4133,7 +4478,8 @@
             const fieldIds = [
                 'order-currency-select', 'cart-discount', 'discount-type', 'deliveryFee',
                 'deliveryFeePayment', 'payment-method', 'wallet-currency-select', 'paid-amount',
-                'mixed-cash-currency', 'mixed-wallet-currency', 'cash-paid', 'wallet-paid'
+                'mixed-cash-currency', 'mixed-wallet-currency', 'cash-paid', 'wallet-paid',
+                'driverSelect', 'notes'
             ];
             const fields = {};
             fieldIds.forEach(id => {
@@ -4152,6 +4498,20 @@
 
         function openInvoiceChoiceModal() {
             if (!pendingInvoiceSnapshot || !pendingInvoiceSnapshot.cart?.length) return;
+
+            const headerEl = document.getElementById('invoice-choice-header');
+            if (headerEl) {
+                headerEl.innerHTML = pendingInvoiceIsDraft
+                    ? '<i class="fas fa-file-invoice text-warning"></i> المسودة محفوظة'
+                    : '<i class="fas fa-file-invoice text-primary"></i> الطلب محفوظ';
+            }
+            const introEl = document.getElementById('invoice-choice-intro');
+            if (introEl) {
+                introEl.textContent = pendingInvoiceIsDraft
+                    ? 'هل تريد تحميل أو حفظ أو طباعة فاتورة المسودة؟'
+                    : 'هل تريد تحميل أو حفظ أو طباعة الفاتورة؟';
+            }
+
             setInvoiceModalLoading(false);
             openModal('invoice-choice-modal');
         }
@@ -4172,16 +4532,21 @@
 
         function chooseInvoiceAction(action) {
             if (invoiceGenerationInProgress) return;
+
             if (action === 'skip') {
                 pendingInvoiceSnapshot = null;
+                pendingInvoiceIsDraft = false;
                 closeModal('invoice-choice-modal');
                 return;
             }
             if (!pendingInvoiceSnapshot || !pendingInvoiceSnapshot.cart?.length) return;
+
             const snapshot = pendingInvoiceSnapshot;
+            const isDraft = pendingInvoiceIsDraft;          // ✅ اقرأ الحالة قبل المسح
             pendingInvoiceSnapshot = null;
+            pendingInvoiceIsDraft = false;
             setInvoiceModalLoading(true);
-            queueInvoiceGeneration(false, snapshot, action);
+            queueInvoiceGeneration(isDraft, snapshot, action);   // ✅ مرّر القيمة الفعلية
         }
 
         function queueInvoiceGeneration(isDraft, snapshot, action = 'download') {
@@ -4232,7 +4597,9 @@
                 const rawSubtotal = cart.reduce((s, i) => s + ((i.price || 0) - (i.discount || 0)) * i.quantity, 0);
                 const rawDiscount = parseFloat(document.getElementById('cart-discount')?.value) || 0;
                 const discountType = document.getElementById('discount-type')?.value || 'fixed';
-                let rawDiscountAmount = discountType === 'percentage' ? rawSubtotal * (rawDiscount / 100) : rawDiscount;
+                let rawDiscountAmount = discountType === 'percentage'
+                    ? rawSubtotal * (Math.min(rawDiscount, 100) / 100)
+                    : Math.min(rawDiscount, rawSubtotal);
                 const rawFee = parseFloat(document.getElementById('deliveryFee')?.value) || 0;
                 const feePaidWithOrder = document.getElementById('deliveryFeePayment')?.value === 'مع الطلب';
                 const rawTotal = Math.max(0, rawSubtotal - rawDiscountAmount + (feePaidWithOrder ? rawFee : 0));
@@ -4267,20 +4634,40 @@
                     paymentDetailsHtml = detailsArr.length > 0 ? detailsArr.join(' | ') : 'لم يتم تحديد المبلغ';
                 }
 
-                const titleText = isDraft ? "فاتورة مبدئية (مسودة)" : escapeHTML(shopName);
+                const driverEl = document.getElementById('driverSelect');
+                const driverName = (driverEl && driverEl.selectedIndex > 0 && driverEl.value)
+                    ? driverEl.options[driverEl.selectedIndex].text.trim()
+                    : '';
+                const governorate = selectedCustomerData?.governorate || document.getElementById('modal-governorate')?.value || '';
+                const deliveryType = selectedCustomerData?.deliveryType || selectedCustomerData?.delivery_type || document.getElementById('modal-deliveryType')?.value || '';
+
                 const orderIdRaw = document.getElementById('display-order-id')?.innerText;
                 const orderIdForName = (orderIdRaw && orderIdRaw !== '--') ? orderIdRaw : 'جديد';
-                                const fileName = isDraft ? `مسودة_طلب_${new Date().getTime()}.pdf` : `فاتورة_رقم_${orderIdForName}.pdf`;
+                const hasRealOrderId = orderIdForName && orderIdForName !== 'جديد' && orderIdForName !== '--';
+                const invoiceTitle = isDraft
+                    ? "فاتورة مبدئية (مسودة)"
+                    : (hasRealOrderId ? `فاتورة طلب إنترنت #${orderIdForName}` : 'فاتورة طلب إنترنت');
+                const titleText = invoiceTitle;
+                const fileName = isDraft ? `مسودة_طلب_${new Date().getTime()}.pdf` : `فاتورة_طلب_${orderIdForName}.pdf`;
 
                 // تستخدم الفاتورة الحديثة المحرك الموحد في جميع صيغ الإخراج.
                 if (window.POSDocs) {
                     const invoiceData = {
                         type: 'sale',
-                        title: isDraft ? 'فاتورة مبدئية (مسودة)' : 'فاتورة مبيعات',
+                        is_online_order: true,
+                        online_order_id: hasRealOrderId ? orderIdForName : undefined,
+                        order_number: hasRealOrderId ? orderIdForName : undefined,
+                        title: invoiceTitle,
                         is_draft: isDraft,
                         number: orderIdForName,
                         date: POSDate.localized(new Date(), { dateStyle: 'medium', timeStyle: 'short' }),
                         party: customerName,
+                        customer_name: customerName,
+                        customer_phone: customerPhone,
+                        customer_address: customerAddress,
+                        governorate: governorate,
+                        delivery_type: deliveryType,
+                        driver_name: driverName,
                         payment_method: paymentMethod,
                         payment_details_html: paymentDetailsHtml,
                         status: isDraft ? 'مسودة' : 'مكتملة',
@@ -4298,9 +4685,10 @@
                         subtotal,
                         discount: discountAmount,
                         additional: feePaidWithOrder ? fee : 0,
+                        delivery_fee: fee,
                         total,
                         paid: isDraft ? 0 : (paymentMethod === 'عند الاستلام' ? 0 : (parseFloat(document.getElementById('paid-amount')?.value) || 0) / rate),
-                        notes: isDraft ? 'فاتورة مبدئية — غير معتمدة' : 'شكراً لتعاملكم معنا'
+                        notes: isDraft ? 'فاتورة مبدئية — غير معتمدة' : (document.getElementById('notes')?.value || 'شكراً لتعاملكم معنا')
                     };
                     const task = action === 'print'
                         ? POSDocs.printInvoiceData(invoiceData, { title: invoiceData.title })
@@ -4316,12 +4704,16 @@
                 const invoiceHtml = `
                     <div style="font-family:'Cairo', sans-serif; direction:rtl; padding:20px; width:720px; background:#ffffff; color:#0f172a; margin:0 auto;">
                         <div style="text-align:center; border-bottom:2px solid #1a56db; padding-bottom:15px; margin-bottom:20px;">
-                            <h2 style="color:${formatPosNumber(isDraft ? '#dc2626' : '#1a56db')}; margin:0; font-size:1.8rem;">${titleText}</h2>
+                            <h2 style="color:${isDraft ? '#dc2626' : '#1a56db'}; margin:0; font-size:1.8rem;">${titleText}</h2>
                             ${isDraft ? '' : `<p style="font-size:1.1rem; color:#475569; margin:8px 0 0 0;">الهاتف: ${escapeHTML(shopPhone)}</p>`}
                         </div>
                         
                         <div style="background:#f8fafc; padding:15px; border-radius:8px; border:1px solid #e2e8f0; margin-bottom:20px;">
                             <table style="width:100%; border-collapse:collapse; font-size:1rem;">
+                                <tr>
+                                    <td style="padding:6px; text-align:right; width:50%;"><strong>نوع المستند:</strong> طلب إنترنت</td>
+                                    <td style="padding:6px; text-align:left; width:50%;"><strong>رقم الطلب:</strong> <span dir="ltr">${orderIdForName}</span></td>
+                                </tr>
                                 <tr>
                                     <td style="padding:6px; text-align:right; width:50%;"><strong>العميل:</strong> ${escapeHTML(customerName)}</td>
                                     <td style="padding:6px; text-align:left; width:50%;"><strong>التاريخ:</strong> ${new Date().toLocaleString('ar-SA')}</td>
@@ -4329,15 +4721,24 @@
                                 <tr>
                                     <td style="padding:6px; text-align:right; vertical-align:top;"><strong>الهاتف:</strong> <span dir="ltr">${escapeHTML(customerPhone)}</span></td>
                                     <td style="padding:6px; text-align:left; vertical-align:top;">
-                                        <strong>طريقة الدفع:</strong> ${formatPosMoney(paymentMethod)}<br>
+                                        <strong>طريقة الدفع:</strong> ${escapeHTML(paymentMethod)}<br>
                                         <span style="font-size:0.9rem; color:#1a56db; font-weight:bold; display:inline-block; margin-top:4px;">
-                                            ${formatPosMoney(paymentDetailsHtml)}
+                                            ${paymentDetailsHtml}
                                         </span>
                                     </td>
                                 </tr>
                                 <tr>
                                     <td colspan="2" style="padding:6px; text-align:right;"><strong>العنوان:</strong> ${escapeHTML(customerAddress)}</td>
                                 </tr>
+                                ${(governorate || deliveryType) ? `
+                                <tr>
+                                    ${governorate ? `<td style="padding:6px; text-align:right;"><strong>المحافظة:</strong> ${escapeHTML(governorate)}</td>` : ''}
+                                    ${deliveryType ? `<td style="padding:6px; text-align:left;"><strong>نوع التوصيل:</strong> ${escapeHTML(deliveryType)}</td>` : ''}
+                                </tr>` : ''}
+                                ${driverName ? `
+                                <tr>
+                                    <td colspan="2" style="padding:6px; text-align:right;"><strong>المندوب:</strong> ${escapeHTML(driverName)}</td>
+                                </tr>` : ''}
                             </table>
                         </div>
 
@@ -4507,7 +4908,12 @@
             updateDraftStatus(isAuto ? 'تم الحفظ التلقائي' : 'تم حفظ المسودة', 'var(--success)');
             if (!isAuto) showToast('✅ تم حفظ المسودة في الجهاز بنجاح', 'success');
 
-            // حفظ المسودة لا يفتح نافذة فاتورة تلقائيًا؛ الطباعة تتم من زر الفاتورة عند الحاجة.
+            if (!isAuto) {
+                // ✅ عند الحفظ اليدوي: اعرض خيارات الفاتورة (PDF/صورة/طباعة)
+                pendingInvoiceSnapshot = captureInvoiceSnapshot('مسودة');
+                pendingInvoiceIsDraft = true;
+                setTimeout(() => openInvoiceChoiceModal(), 0);
+            }
         }
 
         function openDraftsModal() {
@@ -4582,8 +4988,12 @@
             showToast('✅ تم استرجاع بيانات المسودة', 'success');
         }
 
-        function deleteDraft(draftId) {
-            if(!confirm('هل أنت متأكد من حذف هذه المسودة نهائياً؟')) return;
+        async function deleteDraft(draftId) {
+            const proceed = await showConfirmModal(
+                'سيتم حذف هذه المسودة نهائيًا ولا يمكن استرجاعها.\n\nهل أنت متأكد؟',
+                { title: 'حذف المسودة', type: 'danger', icon: 'fa-trash', okText: 'نعم، حذف' }
+            );
+            if (!proceed) return;
             let drafts = safeGetItem('pos_drafts_list', []);
             drafts = drafts.filter(d => d.id !== draftId);
             safeSetItem('pos_drafts_list', drafts);
@@ -4898,6 +5308,55 @@
                 btn.appendChild(ripple);
                 setTimeout(() => ripple.remove(), 600);
             }
+        });
+
+        // ================================================================
+        //  منع الخروج من الصفحة عند وجود منتجات في السلة
+        // ================================================================
+        function hasUnsavedCartItems() {
+            return Array.isArray(cart) && cart.length > 0 && !editingOrderId;
+        }
+
+        window.addEventListener('beforeunload', function (e) {
+            if (hasUnsavedCartItems()) {
+                e.preventDefault();
+                e.returnValue = '';
+                return '';
+            }
+        });
+
+        // منع روابط التنقل الداخلية (زر إدارة الطلبات، إلخ)
+        document.addEventListener('click', async function (e) {
+            const link = e.target.closest('a[href]');
+            if (!link) return;
+            if (!hasUnsavedCartItems()) return;
+
+            const href = link.getAttribute('href');
+            if (!href || href.startsWith('#') || href.startsWith('javascript:')) return;
+
+            e.preventDefault();
+            e.stopPropagation();
+
+            const proceed = await showConfirmModal(
+                '⚠️ لديك منتجات في السلة لم تُحفظ.\n\nهل تريد الخروج وفقدانها؟',
+                { title: 'تنبيه', type: 'warning', icon: 'fa-exclamation-triangle', okText: 'نعم، خروج', cancelText: 'البقاء' }
+            );
+            if (proceed) {
+                window.location.href = href;
+            }
+        }, true);
+
+        // منع زر الرجوع/الرجوع للخلف عند وجود منتجات
+        history.pushState(null, '', location.href);
+        window.addEventListener('popstate', function () {
+            if (hasUnsavedCartItems()) {
+                const proceed = confirm('⚠️ لديك منتجات في السلة لم تُحفظ.\n\nهل تريد الرجوع وفقدانها؟');
+                if (!proceed) {
+                    history.pushState(null, '', location.href);
+                    return;
+                }
+            }
+            history.back();
         });
 
         console.log('📱 واجهة الجوال جاهزة (بدون تعليق بحث أو تخريب التخزين)');
