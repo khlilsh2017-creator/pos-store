@@ -1407,6 +1407,22 @@
         await fetchOrders(1);
         setupTabs();
 
+        let desktopSearchDebounce = null;
+        document.getElementById('filterSearch')?.addEventListener('input', () => {
+            clearTimeout(desktopSearchDebounce);
+            desktopSearchDebounce = setTimeout(() => fetchOrders(1), 350);
+        });
+        document.getElementById('filterSearch')?.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                clearTimeout(desktopSearchDebounce);
+                fetchOrders(1);
+            }
+        });
+        document.getElementById('filterStatus')?.addEventListener('change', () => fetchOrders(1));
+        document.getElementById('filterDriver')?.addEventListener('change', () => fetchOrders(1));
+        document.getElementById('filterDateFrom')?.addEventListener('change', () => fetchOrders(1));
+        document.getElementById('filterDateTo')?.addEventListener('change', () => fetchOrders(1));
+
         setInterval(() => {
             if (document.hidden || !navigator.onLine) return;
             const activeTab = document.querySelector('.tab-content.active');
@@ -1508,12 +1524,40 @@
         const to = document.getElementById('filterDateTo').value;
         const search = document.getElementById('filterSearch').value.trim();
 
+        if (search) {
+            let url = `/online-orders?page=1&limit=100&search=${encodeURIComponent(search)}`;
+            if (status) url += `&status=${encodeURIComponent(status)}`;
+            if (driver) url += `&driver_id=${driver}`;
+            if (from) url += `&date_from=${from}`;
+            if (to) url += `&date_to=${to}`;
+
+            const data = await apiFetch(url);
+            if (!data) return;
+            let allOrders = data.orders || [];
+            const totalP = Number(data.pagination?.total_pages || data.pagination?.pages || 1);
+            if (totalP > 1) {
+                const pageReqs = [];
+                for (let pNum = 2; pNum <= Math.min(totalP, 15); pNum++) {
+                    pageReqs.push(apiFetch(`${url}&page=${pNum}`));
+                }
+                const extra = await Promise.all(pageReqs);
+                for (const res of extra) {
+                    if (res && res.orders) allOrders = allOrders.concat(res.orders);
+                }
+            }
+            ordersData = allOrders;
+            totalPages = 1;
+            currentPage = 1;
+            renderOrders();
+            renderPagination();
+            return;
+        }
+
         let url = `/online-orders?page=${page}&limit=20`;
         if (status) url += `&status=${encodeURIComponent(status)}`;
         if (driver) url += `&driver_id=${driver}`;
         if (from) url += `&date_from=${from}`;
         if (to) url += `&date_to=${to}`;
-        if (search) url += `&search=${encodeURIComponent(search)}`;
 
         const data = await apiFetch(url);
         if (!data) return;
@@ -1560,6 +1604,11 @@
 
     function renderPagination() {
         const container = document.getElementById('pagination');
+        const search = document.getElementById('filterSearch')?.value.trim();
+        if (search) {
+            container.innerHTML = ordersData.length > 0 ? `<div class="text-muted text-center" style="padding:8px;font-size:0.85rem;"><i class="fas fa-check-circle text-success"></i> تم البحث في كامل الصفحات للفترة المحددة: تم العثور على <strong>${ordersData.length}</strong> طلب</div>` : '';
+            return;
+        }
         if (totalPages <= 1) { container.innerHTML = ''; return; }
         let html = '';
         for (let i = 1; i <= totalPages; i++) {

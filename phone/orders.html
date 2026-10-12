@@ -56,6 +56,7 @@
       <section class="toolbar">
         <div class="search-row">
           <input class="input" id="searchInput" placeholder="ابحث برقم الطلب أو الهاتف أو اسم العميل" enterkeyhint="search">
+          <button class="search-filter-btn" id="searchClearBtn" type="button" onclick="clearOrdersSearch()" style="display:none;" title="مسح البحث" aria-label="مسح البحث">✕</button>
           <button class="search-filter-btn" id="ordersDateToggleBtn" type="button" onclick="toggleOrdersDateBox()" title="تصفية بالتاريخ" aria-label="تصفية بالتاريخ">📅</button>
           <button class="search-btn" onclick="loadOrders(1)" aria-label="بحث">⌕</button>
         </div>
@@ -551,6 +552,14 @@ function clearOrdersDateFilter(){
     try { localStorage.removeItem('pos_phone_orders_date_preset'); } catch (_) {}
     loadOrders(1);
 }
+
+function clearOrdersSearch(){
+    const input = $('searchInput');
+    if(input) input.value = '';
+    const btn = $('searchClearBtn');
+    if(btn) btn.style.display = 'none';
+    loadOrders(1);
+}
 function userCan(permission){
     if(window.POSPermissions?.can)return window.POSPermissions.can(permission);
     if(currentUser?.role==='admin')return true;
@@ -742,18 +751,11 @@ async function printOrdersList(){
 }
 async function loadOrders(page=1, options={}){
     currentPage=page;
-    const params=new URLSearchParams({page,limit:'20'});
     const search=$('searchInput')?.value.trim()||'';
     const status=$('statusFilter')?.value||'';
     const driver=$('driverFilter')?.value||'';
     const dateFrom=$('orderDateFrom')?.value||'';
     const dateTo=$('orderDateTo')?.value||'';
-
-    if(search)params.set('search',search);
-    if(status)params.set('status',status);
-    if(driver)params.set('driver_id',driver);
-    if(dateFrom)params.set('date_from',dateFrom);
-    if(dateTo)params.set('date_to',dateTo);
 
     const btn=$('ordersDateToggleBtn');
     if(btn){
@@ -761,7 +763,109 @@ async function loadOrders(page=1, options={}){
         else btn.classList.remove('active-filter');
     }
 
+    const clearBtn=$('searchClearBtn');
+    if(clearBtn) clearBtn.style.display = search ? 'inline-flex' : 'none';
+
     setSilentLoading(true);
+
+    // ========================================================
+    // حالة البحث: البحث في كامل الصفحات للفترة المحددة
+    // ========================================================
+    if(search){
+        let allOrders = [];
+        let networkSuccess = false;
+        try {
+            // طلب أول دفعة بحد أقصى 100 طلب (الحد الأقصى للخادم)
+            const searchParams = new URLSearchParams({ page: '1', limit: '100', search });
+            if(status) searchParams.set('status', status);
+            if(driver) searchParams.set('driver_id', driver);
+            if(dateFrom) searchParams.set('date_from', dateFrom);
+            if(dateTo) searchParams.set('date_to', dateTo);
+
+            const firstRes = await api('/online-orders?' + searchParams.toString(), { silent: true, timeout: 8000 });
+            if(firstRes && (Array.isArray(firstRes.orders) || Array.isArray(firstRes.data))){
+                networkSuccess = true;
+                allOrders = firstRes.orders || firstRes.data || [];
+                const p = firstRes.pagination || {};
+                const totalP = Number(p.total_pages || p.pages || 1);
+
+                // إذا كانت نتائج البحث تتجاوز صفحة واحدة، نجلب كافة الصفحات بالتوازي لتغطية كامل النتائج للفترة
+                if(totalP > 1){
+                    const maxP = Math.min(totalP, 15);
+                    const pageRequests = [];
+                    for(let pNum = 2; pNum <= maxP; pNum++){
+                        const nextParams = new URLSearchParams(searchParams);
+                        nextParams.set('page', String(pNum));
+                        pageRequests.push(api('/online-orders?' + nextParams.toString(), { silent: true, timeout: 8000 }));
+                    }
+                    const extraResults = await Promise.all(pageRequests);
+                    for(const res of extraResults){
+                        if(res && (Array.isArray(res.orders) || Array.isArray(res.data))){
+                            allOrders = allOrders.concat(res.orders || res.data || []);
+                        }
+                    }
+                }
+            }
+        } catch(err) {
+            console.warn('Search across all pages network fetch failed:', err);
+        }
+        setSilentLoading(false);
+
+        if(networkSuccess){
+            orders = allOrders;
+            totalPages = 1;
+            currentPage = 1;
+            renderOrders();
+            return;
+        }
+
+        // في حال انقطاع الشبكة أثناء البحث: نبحث محلياً عبر كامل البيانات المخزنة
+        try {
+            const cachedRaw = localStorage.getItem('pos_phone_cache_orders');
+            if(cachedRaw){
+                const cached = JSON.parse(cachedRaw);
+                const cachedList = cached.orders || (Array.isArray(cached) ? cached : null);
+                if(cachedList && Array.isArray(cachedList) && cachedList.length){
+                    const s = search.toLowerCase();
+                    orders = cachedList.filter(o => {
+                        const idStr = String(o?.id || '').toLowerCase();
+                        const numStr = String(o?.order_number || '').toLowerCase();
+                        const nameStr = String(o?.customer_name || '').toLowerCase();
+                        const phoneStr = String(o?.customer_phone || '').toLowerCase();
+                        const invStr = String(o?.invoice_number || '').toLowerCase();
+                        if(!idStr.includes(s) && !numStr.includes(s) && !nameStr.includes(s) && !phoneStr.includes(s) && !invStr.includes(s)) return false;
+                        if(status && String(o?.status || '').trim() !== status) return false;
+                        if(driver && String(o?.assigned_driver_id || o?.driver_id || '') !== String(driver)) return false;
+                        const d = String(o?.order_date || o?.created_at || '').slice(0, 10);
+                        if(dateFrom && d && d < dateFrom) return false;
+                        if(dateTo && d && d > dateTo) return false;
+                        return true;
+                    });
+                    totalPages = 1;
+                    currentPage = 1;
+                    renderOrders();
+                    showNotice(`أنت في وضع عدم الاتصال: تم البحث في البيانات المحلية (وجد ${orders.length} طلب)`, 'info');
+                    return;
+                }
+            }
+        } catch(_) {}
+
+        const list = $('ordersList');
+        if(list){
+            list.innerHTML = `<div class="empty"><i>⚡</i>تعذر الاتصال بالخادم للبحث ولا توجد بيانات محلية مطابقة<br><button class="btn btn-primary" style="margin-top:12px;" onclick="loadOrders(1)">إعادة المحاولة ↻</button></div>`;
+        }
+        return;
+    }
+
+    // ========================================================
+    // التصفح العادي (بدون بحث نصي): بالصفحات المعتادة (20 طلب)
+    // ========================================================
+    const params=new URLSearchParams({page: String(page), limit:'20'});
+    if(status)params.set('status',status);
+    if(driver)params.set('driver_id',driver);
+    if(dateFrom)params.set('date_from',dateFrom);
+    if(dateTo)params.set('date_to',dateTo);
+
     let data = null;
     try {
         data = await api('/online-orders?'+params.toString(), { silent: true, timeout: 8000 });
@@ -776,7 +880,7 @@ async function loadOrders(page=1, options={}){
         const p = data.pagination || {};
         totalPages = Number(p.total_pages || p.pages || Math.ceil(Number(p.total || orders.length) / 20) || 1);
         try{
-            if(!search && !status && !driver && page === 1){
+            if(!status && !driver && page === 1){
                 localStorage.setItem('pos_phone_cache_orders', JSON.stringify({ orders, totalPages, timestamp: Date.now() }));
             }
         }catch(_){}
@@ -791,8 +895,19 @@ async function loadOrders(page=1, options={}){
             const cached = JSON.parse(cachedRaw);
             const cachedList = cached.orders || (Array.isArray(cached) ? cached : null);
             if(cachedList && Array.isArray(cachedList) && cachedList.length){
-                orders = cachedList;
-                totalPages = cached.totalPages || 1;
+                let filtered = [...cachedList];
+                if(status) filtered = filtered.filter(o => String(o?.status || '').trim() === status);
+                if(driver) filtered = filtered.filter(o => String(o?.assigned_driver_id || o?.driver_id || '') === String(driver));
+                if(dateFrom) filtered = filtered.filter(o => {
+                    const d = String(o?.order_date || o?.created_at || '').slice(0, 10);
+                    return !d || d >= dateFrom;
+                });
+                if(dateTo) filtered = filtered.filter(o => {
+                    const d = String(o?.order_date || o?.created_at || '').slice(0, 10);
+                    return !d || d <= dateTo;
+                });
+                orders = filtered;
+                totalPages = 1;
                 renderOrders();
                 showNotice('أنت في وضع عدم الاتصال؛ تم استرجاع الطلبات المحفوظة محلياً', 'info');
                 return;
@@ -810,12 +925,18 @@ function renderOrders(){
     try {
         const list=$('ordersList');
         if(!list) return;
+        const search = $('searchInput')?.value.trim() || '';
+        const dateFrom = $('orderDateFrom')?.value || '';
+        const dateTo = $('orderDateTo')?.value || '';
+
         if($('statCount')) $('statCount').textContent=orders.length.toLocaleString('ar-SA');
         if($('statPending')) $('statPending').textContent=orders.filter(o=>!['تم التسليم','ملغي','مرتجع كلي','فشل التسليم','فشل'].includes(String(o?.status||''))).length.toLocaleString('ar-SA');
         if($('statTotal')) $('statTotal').textContent=num(orders.reduce((s,o)=>s+Number(o?.total_amount||0),0));
-        if($('pageLabel')) $('pageLabel').textContent=`صفحة ${currentPage} من ${totalPages}`;
+        if($('pageLabel')) $('pageLabel').textContent=search ? `نتائج البحث (${orders.length} طلب)` : `صفحة ${currentPage} من ${totalPages}`;
+
         if(!orders.length){
-            list.innerHTML='<div class="empty"><i>⌂</i>لا توجد طلبات مطابقة للبحث</div>';
+            const periodText = (dateFrom || dateTo) ? ' خلال الفترة المحددة' : '';
+            list.innerHTML=search ? `<div class="empty"><i>🔍</i>لا توجد طلبات مطابقة للبحث "<strong>${esc(search)}</strong>"${periodText}</div>` : `<div class="empty"><i>⌂</i>لا توجد طلبات${periodText}</div>`;
             renderPagination();
             return;
         }
@@ -830,7 +951,25 @@ function renderOrders(){
         if(list) list.innerHTML='<div class="empty text-danger"><i>⚠️</i>حدث خطأ أثناء عرض الطلبات: ' + esc(err.message) + '</div>';
     }
 }
-function renderPagination(){$('pagination').innerHTML=totalPages>1?`<button ${currentPage<=1?'disabled':''} onclick="loadOrders(${currentPage-1})">السابق</button><span class="muted">${currentPage} / ${totalPages}</span><button ${currentPage>=totalPages?'disabled':''} onclick="loadOrders(${currentPage+1})">التالي</button>`:'';}
+function renderPagination(){
+    const search = $('searchInput')?.value.trim() || '';
+    const pag = $('pagination');
+    if(!pag) return;
+    if(search){
+        if(orders.length > 0){
+            pag.innerHTML = `
+                <div style="text-align:center;padding:7px 12px;font-size:0.75rem;color:var(--muted);background:var(--card);border-radius:10px;border:1px solid var(--line);margin:10px 0;display:flex;align-items:center;justify-content:center;gap:6px;">
+                    <i class="fas fa-check-circle" style="color:var(--green,#10b981);"></i>
+                    <span>تم البحث في كامل الصفحات للفترة المحددة: تم العثور على <strong>${orders.length}</strong> طلب</span>
+                </div>
+            `;
+        } else {
+            pag.innerHTML = '';
+        }
+        return;
+    }
+    pag.innerHTML = totalPages>1 ? `<button ${currentPage<=1?'disabled':''} onclick="loadOrders(${currentPage-1})">السابق</button><span class="muted">${currentPage} / ${totalPages}</span><button ${currentPage>=totalPages?'disabled':''} onclick="loadOrders(${currentPage+1})">التالي</button>` : '';
+}
 async function openDetail(id){const data=await api('/online-orders/'+id);if(!data)return;detailOrder=data.order||data;renderDetail();$('detailBackdrop').classList.add('open');}
 function renderDetail(){const o=detailOrder;const items=o.items||[];$('detailTitle').textContent='تفاصيل طلب #'+(o.id||'');let statusLogHtml='';if(o.status_log&&o.status_log.length){statusLogHtml=`<h3 class="subheading" style="margin-top:14px;"><i class="fas fa-history text-muted"></i> سجل الحالات</h3><div class="items">${o.status_log.map(log=>`<div class="item" style="padding:6px 9px;"><div class="item-line" style="font-size:.72rem;"><span>${esc(log.old_status||'جديد')} ← <strong>${esc(log.new_status)}</strong></span><span class="muted">${esc(date(log.change_date))}</span></div>${log.notes?`<small class="muted">ملاحظة: ${esc(log.notes)}</small>`:''}</div>`).join('')}</div>`;}$('detailContent').innerHTML=`<div class="detail-list"><div class="detail"><label>العميل</label><strong>${esc(o.customer_name||'غير محدد')}</strong></div><div class="detail"><label>الهاتف</label><strong dir="ltr">${esc(o.customer_phone||'-')}</strong></div><div class="detail full"><label>العنوان</label><strong>${esc(o.customer_address||'-')}</strong></div><div class="detail"><label>المحافظة</label><strong>${esc(o.governorate||'-')}</strong></div><div class="detail"><label>نوع التوصيل</label><strong>${esc(o.delivery_type||'-')}</strong></div><div class="detail"><label>المندوب</label><strong>${esc(o.driver_name||'غير مسند')}</strong></div><div class="detail"><label>طريقة الدفع</label><strong>${esc(o.payment_method||'-')}</strong></div><div class="detail"><label>رسوم التوصيل</label><strong>${num(o.delivery_fee)} ريال — ${esc(o.delivery_fee_payment||'-')}</strong></div><div class="detail"><label>الإجمالي</label><strong>${num(o.total_amount)} ريال</strong></div><div class="detail"><label>المحصل</label><strong>${num(o.actual_collected)} ريال</strong></div><div class="detail full"><label>ملاحظات الطلب</label><strong>${esc(o.notes||'لا توجد')}</strong></div></div><h3 class="subheading">المنتجات (${items.length})</h3><div class="items">${items.length?items.map(i=>{const d=Number(i.discount||i.discount_amount||0);return `<div class="item"><div class="item-line"><span>${esc((i.variant_label&&!String(i.product_name||'').includes(String(i.variant_label)))?`${i.product_name||'منتج'} — ${i.variant_label}`:(i.product_name||'منتج'))}</span><span>${num(i.line_total??i.total_price??((Number(i.unit_price||0)-d)*Number(i.quantity||0)))} ريال</span></div><small>الكمية: ${esc(i.quantity||0)} · السعر: ${num(i.unit_price)} ريال${d>0?` · <span class="discount">خصم الوحدة: ${num(d)} ريال</span>`:''}</small>${i.note||i.notes?`<small>ملاحظة: ${esc(i.note||i.notes)}</small>`:''}</div>`}).join(''):'<div class="empty">لا توجد بنود</div>'}</div>${statusLogHtml}${userCan('delivery.orders.manage')?`<div class="status-editor"><label>تحديث حالة الطلب</label><select class="select" id="detailStatus"><option>جديد</option><option>قيد التجهيز</option><option>مُسند لمندوب</option><option>خرج للتوصيل</option><option>تم التسليم</option><option>فشل التسليم</option><option>ملغي</option><option>مرتجع جزئي</option><option>مرتجع كلي</option></select><label>ملاحظة التغيير</label><input class="input" id="detailStatusNote" placeholder="اختياري"></div>`:''}`;if($('detailStatus'))$('detailStatus').value=o.status||'جديد';const actions=[];if(canEdit(o))actions.push(`<button class="btn btn-amber" onclick="editOrder()">تعديل الطلب</button>`);if(canAssign(o))actions.push(`<button class="btn btn-soft" onclick="closeDetail();openAssign(${Number(o.id)})">إسناد مندوب</button>`);const allowedReturnStatuses=['تم التسليم','مرتجع جزئي'];if(allowedReturnStatuses.includes(String(o.status||'').trim()))actions.push(`<button class="btn btn-warning" onclick="closeDetail();openCreateReturnMobile(${Number(o.id)})"><i class="fas fa-undo-alt"></i> طلب إرجاع</button>`);actions.push(`<button class="btn btn-gray" onclick="printOrder()">طباعة الفاتورة</button>`);if(userCan('delivery.orders.manage'))actions.push(`<button class="btn btn-primary wide" onclick="updateStatus()">حفظ الحالة والملاحظة</button>`);if(userCan('online_orders.cancel')&&!['ملغي','تم التسليم','مرتجع كلي','مرتجع جزئي','فشل التسليم','فشل'].includes(String(o.status||'').trim()))actions.push(`<button class="btn btn-red wide" onclick="cancelOrder(${Number(o.id)})">إلغاء الطلب</button>`);actions.push('<button class="btn btn-gray wide" onclick="closeDetail()">إغلاق</button>');$('detailActions').innerHTML=actions.join('');}
 function closeDetail(){$('detailBackdrop').classList.remove('open');}
@@ -1800,9 +1939,31 @@ if ('serviceWorker' in navigator && (location.protocol === 'http:' || location.p
 }
 $('statusFilter')?.addEventListener('change',()=>loadOrders(1));
 $('driverFilter')?.addEventListener('change',()=>loadOrders(1));
-$('searchInput')?.addEventListener('keydown',e=>{if(e.key==='Enter')loadOrders(1)});
-$('orderDateFrom')?.addEventListener('change',()=>{document.querySelectorAll('.date-preset-btn').forEach(b=>b.classList.remove('active-preset'));try{localStorage.removeItem('pos_phone_orders_date_preset');}catch(_){}});
-$('orderDateTo')?.addEventListener('change',()=>{document.querySelectorAll('.date-preset-btn').forEach(b=>b.classList.remove('active-preset'));try{localStorage.removeItem('pos_phone_orders_date_preset');}catch(_){}});
+
+let searchDebounceTimer = null;
+$('searchInput')?.addEventListener('input', (e) => {
+    const val = e.target.value.trim();
+    const clearBtn = $('searchClearBtn');
+    if (clearBtn) clearBtn.style.display = val ? 'inline-flex' : 'none';
+    clearTimeout(searchDebounceTimer);
+    searchDebounceTimer = setTimeout(() => loadOrders(1), 350);
+});
+$('searchInput')?.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+        clearTimeout(searchDebounceTimer);
+        loadOrders(1);
+    }
+});
+$('orderDateFrom')?.addEventListener('change',()=>{
+    document.querySelectorAll('.date-preset-btn').forEach(b=>b.classList.remove('active-preset'));
+    try{localStorage.removeItem('pos_phone_orders_date_preset');}catch(_){}
+    loadOrders(1);
+});
+$('orderDateTo')?.addEventListener('change',()=>{
+    document.querySelectorAll('.date-preset-btn').forEach(b=>b.classList.remove('active-preset'));
+    try{localStorage.removeItem('pos_phone_orders_date_preset');}catch(_){}
+    loadOrders(1);
+});
 $('statementFrom')?.addEventListener('change',()=>{document.querySelectorAll('.stmt-preset-btn').forEach(b=>b.classList.remove('active-preset'));try{localStorage.removeItem('pos_phone_statement_date_preset');}catch(_){}});
 $('statementTo')?.addEventListener('change',()=>{document.querySelectorAll('.stmt-preset-btn').forEach(b=>b.classList.remove('active-preset'));try{localStorage.removeItem('pos_phone_statement_date_preset');}catch(_){}});
 $('settlementCash')?.addEventListener('input',()=>{if($('settlementMethod').value==='mixed'){const c=parseFloat($('settlementCash').value||0),w=parseFloat($('settlementWallet').value||0);$('settlementAmount').value=(c+w).toFixed(2);updateSettlementSummaryMobile();}});

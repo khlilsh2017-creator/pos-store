@@ -157,6 +157,36 @@
         .invoice-items-table { width:100%; border-collapse:collapse; margin:10px 0; font-size:0.8rem; }
         .invoice-items-table th { background:var(--surface-secondary); padding:8px; text-align:right; font-size:0.75rem; }
         .invoice-items-table td { padding:6px 8px; border-bottom:1px solid var(--border); }
+        #invoiceSheet { max-height: 92vh; }
+        .exit-modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.9);
+            max-width: 360px;
+            width: 90%;
+            background: var(--surface);
+            border-radius: var(--radius-md);
+            padding: 24px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+            z-index: 400;
+            text-align: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.25s cubic-bezier(0.32,0.72,0,1);
+        }
+        .exit-modal.active {
+            transform: translate(-50%, -50%) scale(1);
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .exit-modal .exit-icon { font-size: 3rem; margin-bottom: 8px; }
+        .exit-modal h3 { font-size: 1.2rem; color: var(--text-primary); margin-bottom: 8px; font-weight: 700; }
+        .exit-modal p { font-size: 0.9rem; color: var(--text-muted); margin-bottom: 22px; line-height: 1.5; }
+        .exit-modal .exit-actions { display: flex; gap: 10px; justify-content: center; }
+        .exit-modal .exit-actions .btn { flex: 1; padding: 12px; font-weight: 700; border-radius: var(--radius-xs); cursor: pointer; }
+        .btn-full-invoice { width: 100%; margin-top: 8px; padding: 8px 12px; font-size: 0.82rem; font-weight: 600; border: 1.5px solid var(--primary); background: transparent; color: var(--primary); border-radius: var(--radius-xs); cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 6px; }
+        .btn-full-invoice:hover, .btn-full-invoice:active { background: rgba(52,152,219,0.08); }
         .empty-state { text-align:center; padding:40px 20px; color:var(--text-muted); }
         .empty-state .empty-icon { font-size:3rem; display:block; margin-bottom:12px; }
         .loading-state { text-align:center; padding:40px; color:var(--text-muted); }
@@ -252,6 +282,18 @@
         <div class="modal-handle"></div>
         <span class="close-sheet" onclick="closeInvoiceModal()">✕</span>
         <div id="invoiceContent"></div>
+    </div>
+
+    <!-- نافذة تأكيد الخروج من التطبيق -->
+    <div class="modal-overlay" id="exitOverlay" onclick="closeExitModal()"></div>
+    <div class="exit-modal" id="exitConfirmModal">
+        <div class="exit-icon">🚪</div>
+        <h3>الخروج من التطبيق</h3>
+        <p>هل أنت متأكد من رغبتك في الخروج من تطبيق المندوب؟</p>
+        <div class="exit-actions">
+            <button class="btn btn-danger" onclick="confirmExitApp()">نعم، خروج</button>
+            <button class="btn btn-outline" onclick="closeExitModal()">إلغاء (البقاء)</button>
+        </div>
     </div>
 
     <script>
@@ -936,39 +978,149 @@
             setupCentralSWMessageListener();
         }
 
-       async function initializePushNotifications() {
-    try {
-        swRegistration = await registerServiceWorker();
-        if (!swRegistration) {
-            console.warn('Service Worker غير متاح');
-            return;
-        }
-        setupSWMessageListener();
-        const pushEnabled = localStorage.getItem('pushEnabled') === 'true';
-        
-        if (pushEnabled && Notification.permission === 'granted') {
-            // 1. التحقق من وجود التوكن المسبق في التخزين المحلي
-            const existingToken = localStorage.getItem('fcmToken');
-            
-            if (existingToken) {
-                // 2. إذا كان موجوداً، نكتفي بتفعيل الواجهة دون إرسال طلب جديد للسيرفر
-                isPushEnabled = true;
-                updateNotificationUI(true);
-            } else {
-                // 3. إذا لم يكن موجوداً، نقوم بتسجيله من جديد
-                const enabled = await registerForPushNotifications();
-                isPushEnabled = enabled === true;
-                updateNotificationUI(isPushEnabled);
+        function playNotificationSound() {
+            try {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (AudioCtx) {
+                    const ctx = new AudioCtx();
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+                    osc.frequency.setValueAtTime(880, ctx.currentTime + 0.1);
+                    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+                    osc.start();
+                    osc.stop(ctx.currentTime + 0.4);
+                }
+            } catch (e) {}
+            if ('vibrate' in navigator) {
+                try { navigator.vibrate([200, 100, 200]); } catch (e) {}
             }
-        } else {
-            isPushEnabled = false;
-            updateNotificationUI(false);
         }
-    } catch (err) {
-        console.error('خطأ في تهيئة الإشعارات:', err);
-        updateNotificationUI(false);
-    }
-}
+
+        async function initializePushNotifications() {
+            try {
+                swRegistration = await registerServiceWorker();
+                if (!swRegistration) {
+                    console.warn('Service Worker غير متاح');
+                    return;
+                }
+                setupSWMessageListener();
+
+                // 1. استقبال الإشعارات في الواجهة النشطة (Foreground FCM)
+                if (typeof messaging !== 'undefined' && messaging && !window._fcmOnMessageAttached) {
+                    window._fcmOnMessageAttached = true;
+                    messaging.onMessage((payload) => {
+                        console.log('📬 إشعار جديد في الواجهة (Foreground):', payload);
+                        const title = payload.notification?.title || payload.data?.title || '📦 إشعار جديد';
+                        const body = payload.notification?.body || payload.data?.body || '';
+                        const orderId = payload.data?.order_id || null;
+
+                        playNotificationSound();
+                        showToast(`🔔 ${title}: ${body}`);
+                        refreshOrders().catch(console.warn);
+                        if (orderId) {
+                            showOrderUpdateDialog(orderId);
+                        }
+                    });
+                }
+
+                // 2. التحقق من إذن الإشعارات وتحديث توكن FCM لدى السيرفر
+                const driverId = getDriverId();
+                if (!driverId) return;
+
+                if (Notification.permission === 'granted') {
+                    let token = localStorage.getItem('fcmToken');
+                    try {
+                        if (typeof messaging !== 'undefined' && messaging) {
+                            const freshToken = await messaging.getToken({
+                                vapidKey: VAPID_PUBLIC_KEY,
+                                serviceWorkerRegistration: swRegistration
+                            });
+                            if (freshToken) token = freshToken;
+                        }
+                    } catch (te) {
+                        console.warn('تعذر استخراج توكن FCM طازج:', te);
+                    }
+
+                    if (token) {
+                        localStorage.setItem('fcmToken', token);
+                        await sendTokenToServer(token, driverId);
+                        isPushEnabled = true;
+                        updateNotificationUI(true);
+                    } else {
+                        const enabled = await registerForPushNotifications();
+                        isPushEnabled = enabled === true;
+                        updateNotificationUI(isPushEnabled);
+                    }
+                } else {
+                    isPushEnabled = false;
+                    updateNotificationUI(false);
+                }
+            } catch (err) {
+                console.error('خطأ في تهيئة الإشعارات:', err);
+                updateNotificationUI(false);
+            }
+        }
+
+        // =============================================================
+        // الفحص اللحظي الذكي للطلبات الجديدة في الخلفية
+        // =============================================================
+        let realtimeOrdersInterval = null;
+        function startRealtimeOrdersPolling() {
+            if (realtimeOrdersInterval) clearInterval(realtimeOrdersInterval);
+            realtimeOrdersInterval = setInterval(() => {
+                if (!document.hidden && navigator.onLine && getToken() && currentView === 'orders') {
+                    silentCheckForNewOrders();
+                }
+            }, 15000);
+        }
+
+        async function silentCheckForNewOrders() {
+            const driverId = getDriverId();
+            if (!driverId || !navigator.onLine) return;
+            try {
+                const data = await fetchDriverOrders(driverId, 1, currentStatusFilter, currentPeriod, 500);
+                const incomingOrders = data.orders || [];
+
+                let hasNewOrders = false;
+                let newestOrder = null;
+                if (currentOrders && currentOrders.length > 0) {
+                    const currentIds = new Set(currentOrders.map(o => String(o.id)));
+                    for (const order of incomingOrders) {
+                        if (!currentIds.has(String(order.id))) {
+                            hasNewOrders = true;
+                            newestOrder = order;
+                            break;
+                        }
+                    }
+                }
+
+                const newOrders = await applyPendingOperationsToOrders(incomingOrders);
+                currentOrders = newOrders;
+                await bulkPutOrders(newOrders, driverId);
+                applyFiltersAndRender();
+
+                if (hasNewOrders && newestOrder) {
+                    playNotificationSound();
+                    showToast(`🔔 وصلك طلب جديد #${newestOrder.id} - ${newestOrder.customer_name || 'عميل'}`);
+                }
+            } catch (e) {}
+        }
+
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden && navigator.onLine && getToken() && currentView === 'orders') {
+                refreshOrders().catch(console.warn);
+            }
+        });
+        window.addEventListener('focus', () => {
+            if (navigator.onLine && getToken() && currentView === 'orders') {
+                refreshOrders().catch(console.warn);
+            }
+        });
 
         // =============================================================
         // 5. دوال API
@@ -1548,15 +1700,16 @@ function renderOrders(orders) {
                 ${noteHtml}
                 <div class="order-items-preview">
                     <table><thead><tr><th>المنتج</th><th>الكمية</th><th>السعر</th><th>الإجمالي</th><th>ملاحظة</th></tr></thead>
-                    <tbody>${itemsHtml}${!showAll ? `<tr><td colspan="5" style="text-align:center;"><button class="invoice-btn" onclick="showInvoice(${order.id})">📄 عرض الفاتورة الكاملة (${items.length} منتج)</button></td></tr>` : ''}</tbody></table>
+                    <tbody>${itemsHtml}${!showAll ? `<tr><td colspan="5" style="text-align:center;"><button class="invoice-btn" onclick="showInvoice('${order.id}')">📄 عرض بقية الأصناف (${items.length} منتج)</button></td></tr>` : ''}</tbody></table>
                 </div>
                 <div class="amount-info">
                     <span>💰 ${order.total_amount} ريال</span>
                     ${order.delivery_fee ? `<span>🚚 ${order.delivery_fee}</span>` : ''}
                     <span>${isPrepaid ? '💳 مدفوع مسبقاً' : '💵 عند الاستلام'}</span>
-                    ${dueAmount > 0 ? `<span class="due-group"><span class="due">المستحق: ${dueAmount.toFixed(2)} ريال</span>${isMixed && !isFinished ? `<button type="button" class="refresh-due-btn" title="تحديث المبلغ المستحق" aria-label="تحديث المبلغ المستحق" onclick="refreshOrderDue(${order.id}, this)">🔄</button>` : ''}</span>` : ''}
+                    ${dueAmount > 0 ? `<span class="due-group"><span class="due">المستحق: ${dueAmount.toFixed(2)} ريال</span>${isMixed && !isFinished ? `<button type="button" class="refresh-due-btn" title="تحديث المبلغ المستحق" aria-label="تحديث المبلغ المستحق" onclick="refreshOrderDue('${order.id}', this)">🔄</button>` : ''}</span>` : ''}
                 </div>
                 ${returnInfoHtml}
+                <button type="button" class="btn-full-invoice" onclick="showInvoice('${order.id}')">📄 عرض تفاصيل الفاتورة كاملة</button>
                 ${actionButtonsHtml}
             </div>`;
     });
@@ -1578,36 +1731,207 @@ function renderOrders(orders) {
     return null;
 }
 
-        function showInvoice(orderId) {
-            const order = currentOrders.find(o => String(o.id) === String(orderId));
-            if (!order) return;
+        async function showInvoice(orderId) {
+            let order = currentOrders.find(o => String(o.id) === String(orderId));
+
+            try {
+                history.pushState({ modal: 'invoice', orderId: String(orderId) }, '');
+            } catch (e) {}
+
+            const sheet = document.getElementById('invoiceSheet');
+            const overlay = document.getElementById('invoiceOverlay');
+            const content = document.getElementById('invoiceContent');
+            if (!sheet || !overlay || !content) return;
+
+            content.innerHTML = `<div class="loading-state">⏳ جاري تحميل تفاصيل الفاتورة #${orderId}...</div>`;
+            sheet.classList.add('active');
+            overlay.classList.add('active');
+
+            if (!order || !order.items || order.items.length === 0) {
+                if (navigator.onLine) {
+                    try {
+                        const data = await apiCall(`/orders/${orderId}`, 'GET');
+                        if (data && data.order) {
+                            order = data.order;
+                            const idx = currentOrders.findIndex(o => String(o.id) === String(orderId));
+                            if (idx !== -1) currentOrders[idx] = { ...currentOrders[idx], ...order };
+                            else currentOrders.push(order);
+                        }
+                    } catch (e) {
+                        console.warn('تعذر جلب تفاصيل الفاتورة من السيرفر:', e);
+                    }
+                }
+            }
+
+            if (!order) {
+                content.innerHTML = `
+                    <div class="empty-state">
+                        <span class="empty-icon">⚠️</span>
+                        <span>تعذر العثور على بيانات الفاتورة #${orderId}</span>
+                        <button class="btn btn-primary" style="margin-top:14px; width:100%;" onclick="closeInvoiceModal()">رجوع</button>
+                    </div>`;
+                return;
+            }
+
             const items = order.items || [];
             const sortedItems = [...items].sort((a, b) => (b.id || 0) - (a.id || 0));
-            let tableHtml =
-                `<table class="invoice-items-table"><thead><tr><th>المنتج</th><th>الكمية</th><th>السعر</th><th>الإجمالي</th><th>ملاحظة</th></tr></thead><tbody>`;
-            sortedItems.forEach(item => {
-                const itemNote = item.note || item.notes || item.product_note || '';
-                tableHtml +=
-                    `<tr><td>${item.product_name || item.product_id}</td><td>${item.quantity}</td><td>${item.unit_price}</td><td>${item.line_total}</td><td>${itemNote}</td></tr>`;
-            });
-            tableHtml +=
-                `</tbody><tfoot><tr><td colspan="4"><strong>الإجمالي</strong></td><td><strong>${order.total_amount}</strong></td></tr>${order.delivery_fee ? `<tr><td colspan="4">رسوم التوصيل</td><td>${order.delivery_fee}</td></tr>` : ''}</tfoot></table>`;
-            document.getElementById('invoiceContent').innerHTML = `
-                <h3>📄 فاتورة الطلب #${order.id}</h3>
-                <p><strong>👤 العميل:</strong> ${order.customer_name}</p>
-                <p><strong>📍 العنوان:</strong> ${order.customer_address || 'لا يوجد'}</p>
-                <p><strong>📞 الهاتف:</strong> ${order.customer_phone || ''}</p>
-                <p><strong>💳 طريقة الدفع:</strong> ${order.payment_method || 'غير محدد'}</p>
-                ${order.notes ? `<p><strong>📝 ملاحظة:</strong> ${order.notes}</p>` : ''}
-                ${tableHtml}
+
+            let rawDate = order.order_date || order.created_at || '';
+            let formattedDate = 'غير محدد';
+            if (rawDate) {
+                const dateObj = new Date(rawDate.replace(' ', 'T') + 'Z');
+                formattedDate = dateObj.toLocaleString('ar-SA', {
+                    year: 'numeric', month: '2-digit', day: '2-digit',
+                    hour: '2-digit', minute: '2-digit', hour12: true
+                });
+            }
+
+            const isPrepaid = isPrepaidOrder(order);
+            const isMixed = isMixedOrder(order);
+            const dueAmount = getOrderDueAmount(order);
+            const deliveryFee = parseFloat(order.delivery_fee || 0);
+            const totalAmount = parseFloat(order.total_amount || 0);
+            const isFinished = ['تم التسليم', 'فشل التسليم', 'ملغي', 'مرتجع جزئي', 'مرتجع كلي'].includes(order.status || '');
+
+            let phones = [];
+            if (Array.isArray(order.customer_phones) && order.customer_phones.length > 0) {
+                phones = order.customer_phones;
+            } else if (order.customer_phone) {
+                phones = order.customer_phone.split(/[,-]/).map(p => p.trim()).filter(Boolean);
+            }
+
+            let phoneButtonsHtml = '';
+            if (phones.length > 0) {
+                phones.forEach(p => {
+                    const cleanPhone = p.replace(/\D/g, '');
+                    if (cleanPhone) {
+                        phoneButtonsHtml += `
+                            <a href="tel:${cleanPhone}" class="btn call" style="flex:1; text-align:center; padding:8px 10px; font-size:0.8rem; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; gap:4px; background:#e0f2fe; color:#0369a1; border-radius:8px;">📞 ${p}</a>
+                            <a href="https://wa.me/${cleanPhone}" target="_blank" class="btn whatsapp" style="flex:1; text-align:center; padding:8px 10px; font-size:0.8rem; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; gap:4px; background:#dcfce7; color:#15803d; border-radius:8px;">💬 واتساب</a>
+                        `;
+                    }
+                });
+            }
+
+            const orderNote = order.notes || order.note || '';
+            const addressText = order.customer_address || 'لا يوجد عنوان محدد';
+            const mapUrl = detectMapLink(addressText + ' ' + orderNote);
+            let mapButtonHtml = '';
+            if (mapUrl) {
+                mapButtonHtml = `<a href="${mapUrl}" target="_blank" class="btn" style="flex:1; text-align:center; padding:8px 10px; font-size:0.8rem; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; gap:4px; background:#fef3c7; color:#b45309; border-radius:8px;">🗺️ فتح الموقع على الخريطة</a>`;
+            }
+
+            let tableHtml = '';
+            if (sortedItems.length > 0) {
+                tableHtml = `
+                    <table class="invoice-items-table" style="width:100%; margin:10px 0;">
+                        <thead>
+                            <tr style="background:var(--surface-secondary);">
+                                <th style="padding:8px; text-align:right;">المنتج</th>
+                                <th style="padding:8px; text-align:center;">الكمية</th>
+                                <th style="padding:8px; text-align:center;">السعر</th>
+                                <th style="padding:8px; text-align:center;">الإجمالي</th>
+                                <th style="padding:8px; text-align:right;">ملاحظة</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${sortedItems.map(item => `
+                                <tr>
+                                    <td style="padding:8px; border-bottom:1px solid var(--border); font-weight:600;">${item.product_name || item.product_id}</td>
+                                    <td style="padding:8px; text-align:center; border-bottom:1px solid var(--border);">${item.quantity}</td>
+                                    <td style="padding:8px; text-align:center; border-bottom:1px solid var(--border);">${parseFloat(item.unit_price || 0).toFixed(2)}</td>
+                                    <td style="padding:8px; text-align:center; border-bottom:1px solid var(--border); font-weight:700;">${parseFloat(item.line_total || 0).toFixed(2)}</td>
+                                    <td style="padding:8px; border-bottom:1px solid var(--border); color:var(--text-muted); font-size:0.75rem;">${item.note || item.notes || item.product_note || '-'}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+            } else {
+                tableHtml = `<div style="text-align:center; padding:15px; color:var(--text-muted); font-size:0.85rem;">📦 لا توجد أصناف مفصلة مسجلة في هذا الطلب</div>`;
+            }
+
+            let quickActionsHtml = '';
+            if (!isFinished) {
+                quickActionsHtml = `
+                    <div style="display:flex; gap:10px; margin-top:16px;">
+                        <button class="btn btn-success" style="flex:1; padding:12px; font-weight:700;" onclick="closeInvoiceModal(false); openDeliveryModal('${order.id}', 'تم التوصيل');">✅ تم التوصيل</button>
+                        <button class="btn btn-danger" style="flex:1; padding:12px; font-weight:700;" onclick="closeInvoiceModal(false); openDeliveryModal('${order.id}', 'فشل');">❌ فشل التسليم</button>
+                    </div>
+                `;
+            }
+
+            content.innerHTML = `
+                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding-bottom:10px; margin-bottom:14px;">
+                    <h3 style="margin:0; font-size:1.15rem; color:var(--text-primary);">📄 فاتورة الطلب #${order.id}</h3>
+                    <span class="order-status-badge badge-progress" style="font-size:0.75rem; padding:4px 10px;">${order.status || 'جديد'}</span>
+                </div>
+
+                <div style="font-size:0.8rem; color:var(--text-muted); margin-bottom:12px; display:flex; align-items:center; gap:6px;">
+                    <span>🕒 تاريخ الطلب:</span> <strong>${formattedDate}</strong>
+                </div>
+
+                <!-- بطاقة العميل والتوصيل -->
+                <div class="invoice-card-section" style="background:var(--surface-secondary); border-radius:12px; padding:12px; margin-bottom:14px; font-size:0.85rem;">
+                    <div style="margin-bottom:6px;"><strong>👤 العميل:</strong> ${order.customer_name || 'غير محدد'}</div>
+                    <div style="margin-bottom:6px;"><strong>📍 العنوان:</strong> ${addressText}</div>
+                    ${orderNote ? `<div style="margin-bottom:6px; color:#d97706;"><strong>📝 ملاحظة:</strong> ${orderNote}</div>` : ''}
+                    ${phoneButtonsHtml || mapButtonHtml ? `
+                        <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:10px;">
+                            ${phoneButtonsHtml}
+                            ${mapButtonHtml}
+                        </div>
+                    ` : ''}
+                </div>
+
+                <!-- جدول الأصناف -->
+                <div style="margin-bottom:14px;">
+                    <div style="font-weight:700; font-size:0.9rem; margin-bottom:6px; color:var(--text-primary);">📦 الأصناف (${sortedItems.length}):</div>
+                    ${tableHtml}
+                </div>
+
+                <!-- الصندوق المالي -->
+                <div style="background:var(--surface-secondary); border-radius:12px; padding:14px; font-size:0.88rem; line-height:1.7;">
+                    <div style="display:flex; justify-content:space-between;">
+                        <span>إجمالي المنتجات:</span>
+                        <strong>${(totalAmount - deliveryFee).toFixed(2)} ريال</strong>
+                    </div>
+                    <div style="display:flex; justify-content:space-between;">
+                        <span>رسوم التوصيل (${order.delivery_fee_payment || 'مع الطلب'}):</span>
+                        <strong>${deliveryFee.toFixed(2)} ريال</strong>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; border-top:1px dashed var(--border); padding-top:6px; margin-top:6px; font-size:1rem; font-weight:800; color:var(--primary);">
+                        <span>إجمالي الطلب:</span>
+                        <span>${totalAmount.toFixed(2)} ريال</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; margin-top:4px;">
+                        <span>طريقة الدفع:</span>
+                        <span style="font-weight:700; color:var(--text-secondary);">${order.payment_method || 'غير محدد'}</span>
+                    </div>
+                    ${dueAmount > 0 ? `
+                        <div style="display:flex; justify-content:space-between; background:#dcfce7; color:#166534; padding:8px 10px; border-radius:8px; margin-top:8px; font-weight:800; font-size:0.95rem;">
+                            <span>💵 المستحق تحصيله نقداً:</span>
+                            <span>${dueAmount.toFixed(2)} ريال</span>
+                        </div>
+                    ` : `
+                        <div style="background:#e0f2fe; color:#0369a1; padding:8px 10px; border-radius:8px; margin-top:8px; font-weight:700; font-size:0.85rem; text-align:center;">
+                            ✅ الطلب مدفوع مسبقاً (لا يوجد مبلغ مطلوب تحصيله)
+                        </div>
+                    `}
+                </div>
+
+                ${quickActionsHtml}
+
+                <button type="button" class="btn btn-outline" style="width:100%; margin-top:14px; padding:12px; font-weight:700; font-size:0.9rem;" onclick="closeInvoiceModal()">✕ إغلاق الفاتورة والعودة للطلبات</button>
             `;
-            document.getElementById('invoiceSheet').classList.add('active');
-            document.getElementById('invoiceOverlay').classList.add('active');
         }
 
-        function closeInvoiceModal() {
-            document.getElementById('invoiceSheet').classList.remove('active');
-            document.getElementById('invoiceOverlay').classList.remove('active');
+        function closeInvoiceModal(updateHistory = true) {
+            document.getElementById('invoiceSheet')?.classList.remove('active');
+            document.getElementById('invoiceOverlay')?.classList.remove('active');
+            if (updateHistory && history.state && history.state.modal === 'invoice') {
+                try { history.back(); } catch (e) {}
+            }
         }
 
         // ============ نافذة منبثقة عند تحديث الطلب ============
@@ -2299,6 +2623,9 @@ function renderOrders(orders) {
             }
 
             activeModalOrderId = orderId;
+            try {
+                history.pushState({ modal: 'delivery', orderId: String(orderId) }, '');
+            } catch (e) {}
 
             // جلب العملات والمحافظ في الخلفية إن لم تكن محملة دون حظر المودال
             if (!currencies || currencies.length === 0) {
@@ -2607,7 +2934,7 @@ function renderOrders(orders) {
             }
         }
 
-        function closeModalSheet() {
+        function closeModalSheet(updateHistory = true) {
             document.getElementById('modalSheet')?.classList.remove('active');
             document.getElementById('modalOverlay')?.classList.remove('active');
             if (activeModalOrderId) {
@@ -2615,6 +2942,9 @@ function renderOrders(orders) {
                 activeModalOrderId = null;
             }
             isSubmitting = false;
+            if (updateHistory && history.state && history.state.modal === 'delivery') {
+                try { history.back(); } catch (e) {}
+            }
         }
 
         // =============================================================
@@ -2861,9 +3191,88 @@ function renderOrders(orders) {
             return false;
         }
 
+        let isExitingApp = false;
+
+        function showExitConfirmationModal() {
+            const modal = document.getElementById('exitConfirmModal');
+            const overlay = document.getElementById('exitOverlay');
+            if (modal) modal.classList.add('active');
+            if (overlay) overlay.classList.add('active');
+        }
+
+        function closeExitModal() {
+            const modal = document.getElementById('exitConfirmModal');
+            const overlay = document.getElementById('exitOverlay');
+            if (modal) modal.classList.remove('active');
+            if (overlay) overlay.classList.remove('active');
+        }
+
+        function confirmExitApp() {
+            isExitingApp = true;
+            closeExitModal();
+            try {
+                if (window.navigator && window.navigator.app && window.navigator.app.exitApp) {
+                    window.navigator.app.exitApp();
+                    return;
+                }
+            } catch (e) {}
+            try {
+                window.close();
+            } catch (e) {}
+            history.go(-2);
+        }
+
+        // اعتراض زر الرجوع لمنع الخروج المفاجئ وإغلاق النوافذ أولاً
+        window.addEventListener('popstate', (e) => {
+            if (isExitingApp) return;
+
+            // 1. إذا كانت الفاتورة مفتوحة -> إغلاق الفاتورة فقط والعودة للطلبات دون خروج
+            const invoiceSheet = document.getElementById('invoiceSheet');
+            if (invoiceSheet && invoiceSheet.classList.contains('active')) {
+                closeInvoiceModal(false);
+                return;
+            }
+
+            // 2. إذا كان مودال التوصيل مفتوحاً -> إغلاقه فقط
+            const modalSheet = document.getElementById('modalSheet');
+            if (modalSheet && modalSheet.classList.contains('active')) {
+                closeModalSheet(false);
+                return;
+            }
+
+            // 3. إذا كان مودال تأكيد الخروج مفتوحاً -> إغلاقه
+            const exitModal = document.getElementById('exitConfirmModal');
+            if (exitModal && exitModal.classList.contains('active')) {
+                closeExitModal();
+                return;
+            }
+
+            // 4. إذا كانت لوحة الاتصال مفتوحة -> إغلاقها
+            const connPanel = document.getElementById('connectionPanel');
+            if (connPanel && connPanel.classList.contains('show')) {
+                connPanel.classList.remove('show');
+                return;
+            }
+
+            // 5. إذا كان المستخدم في الشاشة الرئيسية وضغط زر الرجوع للخروج من التطبيق:
+            // إعادة الحالة لمنع المتصفح من إغلاق التطبيق مباشرة، ثم سؤاله للتأكيد
+            try {
+                history.pushState({ app: 'driver-main' }, '');
+            } catch (err) {}
+            showExitConfirmationModal();
+        });
+
         async function initApp() {
             updateEnhancedConnectionStatus();
             loadFilterSettings();
+
+            // تهيئة السجل لحماية الرجوع ومنع الخروج العرضي
+            try {
+                if (!history.state || !history.state.root) {
+                    history.replaceState({ root: true, page: 'root' }, '');
+                    history.pushState({ app: 'driver-main' }, '');
+                }
+            } catch (e) {}
 
             const token = getToken();
             const driverId = getDriverId();
@@ -2888,7 +3297,6 @@ function renderOrders(orders) {
                     renderDashboardSkeleton();
                     loadDashboard().catch(console.warn);
                 } else {
-                    // تم العرض فورياً من الكاش! نقوم بتحديث البيانات بهدوء في الخلفية
                     if (navigator.onLine) {
                         refreshOrders().catch(console.warn);
                     }
@@ -2906,6 +3314,9 @@ function renderOrders(orders) {
                 try {
                     installEnhancedSyncIntegration();
                     updateSyncCounter().catch(console.warn);
+
+                    // تفعيل الفحص اللحظي للطلبات في الخلفية
+                    startRealtimeOrdersPolling();
 
                     if ('serviceWorker' in navigator) {
                         initializePushNotifications().catch(e => console.warn('Push init error:', e));
@@ -2993,6 +3404,9 @@ function renderOrders(orders) {
         window.instantRenderFromCache = instantRenderFromCache;
         window.updateNavSelection = updateNavSelection;
         window.initApp = initApp;
+        window.closeExitModal = closeExitModal;
+        window.confirmExitApp = confirmExitApp;
+        window.showExitConfirmationModal = showExitConfirmationModal;
 
         const styleEl = document.createElement('style');
         styleEl.textContent = `
