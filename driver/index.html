@@ -3798,17 +3798,24 @@ function renderOrders(orders) {
 
             overlay.classList.add('active');
             modal.classList.add('active');
+            try {
+                history.pushState({ modal: 'welcome' }, '');
+            } catch (e) {}
         }
 
-        function closeWelcomeModal() {
+        function closeWelcomeModal(updateHistory = true) {
             const modal = document.getElementById('welcomeModal');
             const overlay = document.getElementById('welcomeOverlay');
             if (modal) modal.classList.remove('active');
             if (overlay) overlay.classList.remove('active');
+            if (updateHistory && history.state && history.state.modal === 'welcome') {
+                setIgnoreNextPopState();
+                try { history.back(); } catch (e) { ignoreNextPopState = false; }
+            }
         }
 
         function exploreOrdersFromWelcome() {
-            closeWelcomeModal();
+            closeWelcomeModal(false);
             openSwipeableCardsModal();
         }
 
@@ -3842,6 +3849,13 @@ function renderOrders(orders) {
                 if (dotsContainer) dotsContainer.innerHTML = '';
                 overlay.classList.add('active');
                 modal.classList.add('active');
+                try {
+                    if (history.state && history.state.modal === 'welcome') {
+                        history.replaceState({ modal: 'swipeCards' }, '');
+                    } else if (!history.state || history.state.modal !== 'swipeCards') {
+                        history.pushState({ modal: 'swipeCards' }, '');
+                    }
+                } catch (e) {}
                 return;
             }
 
@@ -3928,7 +3942,7 @@ function renderOrders(orders) {
                 let moreRow = !showAll ? `
                     <tr>
                         <td colspan="5" style="text-align:center; padding:6px 4px;">
-                            <button type="button" class="btn-more-items-highlight" onclick="closeSwipeableCardsModal(); showInvoice('${order.id}')">
+                            <button type="button" class="btn-more-items-highlight" onclick="closeSwipeableCardsModal(false); showInvoice('${order.id}')">
                                 <span>⚠️ متبقي ${remainingCount} أصناف أخرى (إجمالي ${items.length})</span>
                                 <span style="font-size:0.68rem; opacity:0.95;">اضغط لعرض الفاتورة بالكامل 📄</span>
                             </button>
@@ -3944,8 +3958,8 @@ function renderOrders(orders) {
                 } else {
                     actionsHtml = `
                         <div class="action-buttons" style="margin-top:8px;">
-                            <button class="btn btn-success" onclick="closeSwipeableCardsModal(); openDeliveryModal('${order.id}', 'تم التوصيل')">✅ تم</button>
-                            <button class="btn btn-danger" onclick="closeSwipeableCardsModal(); openDeliveryModal('${order.id}', 'فشل')">❌ فشل</button>
+                            <button class="btn btn-success" onclick="closeSwipeableCardsModal(false); openDeliveryModal('${order.id}', 'تم التوصيل')">✅ تم</button>
+                            <button class="btn btn-danger" onclick="closeSwipeableCardsModal(false); openDeliveryModal('${order.id}', 'فشل')">❌ فشل</button>
                         </div>
                     `;
                 }
@@ -3992,7 +4006,7 @@ function renderOrders(orders) {
                             ${dueAmount > 0 ? `<span class="due-group"><span class="due">المستحق: ${dueAmount.toFixed(2)} ريال</span></span>` : ''}
                         </div>
 
-                        <button type="button" class="btn-full-invoice ${hasManyItems ? 'has-many' : ''}" style="margin:6px 0;" onclick="closeSwipeableCardsModal(); showInvoice('${order.id}')">
+                        <button type="button" class="btn-full-invoice ${hasManyItems ? 'has-many' : ''}" style="margin:6px 0;" onclick="closeSwipeableCardsModal(false); showInvoice('${order.id}')">
                             📄 عرض تفاصيل الفاتورة كاملة ${hasManyItems ? `(🔥 متبقي ${remainingCount})` : ''}
                         </button>
 
@@ -4025,6 +4039,13 @@ function renderOrders(orders) {
 
             overlay.classList.add('active');
             modal.classList.add('active');
+            try {
+                if (history.state && history.state.modal === 'welcome') {
+                    history.replaceState({ modal: 'swipeCards' }, '');
+                } else if (!history.state || history.state.modal !== 'swipeCards') {
+                    history.pushState({ modal: 'swipeCards' }, '');
+                }
+            } catch (e) {}
         }
 
         function updateSwipeUI() {
@@ -4068,11 +4089,15 @@ function renderOrders(orders) {
             }
         }
 
-        function closeSwipeableCardsModal() {
+        function closeSwipeableCardsModal(updateHistory = true) {
             const modal = document.getElementById('swipeCardsModal');
             const overlay = document.getElementById('swipeCardsOverlay');
             if (modal) modal.classList.remove('active');
             if (overlay) overlay.classList.remove('active');
+            if (updateHistory && history.state && history.state.modal === 'swipeCards') {
+                setIgnoreNextPopState();
+                try { history.back(); } catch (e) { ignoreNextPopState = false; }
+            }
         }
 
         // معالجة الرجوع لإغلاق النوافذ المفتوحة أولاً بسلاسة دون اعتراض الخروج من التطبيق
@@ -4083,17 +4108,17 @@ function renderOrders(orders) {
                 return;
             }
 
-            // 1. إذا كان عارض البطاقات مفتوحاً -> إغلاقه
+            // 1. إذا كان عارض البطاقات مفتوحاً -> إغلاقه بسلاسة والرجوع للشاشة الرئيسية
             const swipeModal = document.getElementById('swipeCardsModal');
             if (swipeModal && swipeModal.classList.contains('active')) {
-                closeSwipeableCardsModal();
+                closeSwipeableCardsModal(false);
                 return;
             }
 
-            // 2. إذا كانت نافذة الترحيب مفتوحة -> إغلاقها
+            // 2. إذا كانت نافذة الترحيب مفتوحة -> إغلاقها بسلاسة والرجوع للشاشة الرئيسية
             const welcomeModal = document.getElementById('welcomeModal');
             if (welcomeModal && welcomeModal.classList.contains('active')) {
-                closeWelcomeModal();
+                closeWelcomeModal(false);
                 return;
             }
 
