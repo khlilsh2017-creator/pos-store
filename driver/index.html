@@ -588,11 +588,11 @@
         <div class="swipe-cards-track" id="swipeCardsTrack"></div>
         <div class="swipe-nav-footer">
             <button type="button" class="swipe-nav-btn" id="swipePrevBtn" onclick="swipePrevCard()">
-                <span>◀</span> <span>السابق</span>
+                <span>السابق</span> <span>▶</span>
             </button>
             <div class="swipe-dots-container" id="swipeDotsContainer"></div>
             <button type="button" class="swipe-nav-btn" id="swipeNextBtn" onclick="swipeNextCard()">
-                <span>التالي</span> <span>▶</span>
+                <span>◀</span> <span>التالي</span>
             </button>
         </div>
     </div>
@@ -1632,7 +1632,43 @@
             updateSyncCounter();
         }
 
+        function parseOrderDate(order) {
+            if (!order) return null;
+            const raw = order.order_date || order.created_at || order.createdAt;
+            if (!raw) return null;
+            if (raw instanceof Date) return isNaN(raw.getTime()) ? null : raw;
+            if (typeof raw === 'number') return new Date(raw);
+            try {
+                const str = String(raw).trim().replace(' ', 'T');
+                const d = new Date(str.includes('Z') || str.includes('+') ? str : str + 'Z');
+                if (!isNaN(d.getTime())) return d;
+                const dFallback = new Date(str);
+                return isNaN(dFallback.getTime()) ? null : dFallback;
+            } catch (e) {
+                return null;
+            }
+        }
+
+        function isOrderDelivered(order) {
+            if (!order) return false;
+            const s = String(order.status || '').trim();
+            return s === 'تم التسليم' || s === 'تم التوصيل' || s.toLowerCase() === 'delivered';
+        }
+
+        function isOrderActivePending(order) {
+            if (!order) return false;
+            const s = String(order.status || '').trim();
+            const finishedStatuses = [
+                'تم التسليم', 'تم التوصيل', 'delivered',
+                'فشل التسليم', 'فشل', 'failed',
+                'ملغي', 'cancelled',
+                'مرتجع جزئي', 'مرتجع كلي', 'returned'
+            ];
+            return !finishedStatuses.includes(s);
+        }
+
         function filterOrdersByPeriod(orders, period) {
+            if (!Array.isArray(orders)) return [];
             if (!period || period === 'all') return orders;
             const now = new Date();
             let startDate = new Date();
@@ -1655,11 +1691,11 @@
                 default:
                     return orders;
             }
+            const startMs = startDate.getTime();
             return orders.filter(order => {
-                const created = order.created_at || order.createdAt;
-                if (!created) return false;
-                const d = new Date(created);
-                return d >= startDate && d <= now;
+                const d = parseOrderDate(order);
+                if (!d) return true;
+                return d.getTime() >= startMs;
             });
         }
 
@@ -1676,6 +1712,7 @@
             const filteredFinal = filterOrdersByPeriod(currentOrders, currentPeriod)
                 .filter(order => currentStatusFilter ? order.status === currentStatusFilter : true);
             renderOrders(filteredFinal);
+            updateWelcomeModalIfOpen();
         }
 
         // ============ دوال التحديث الفوري للقائمة ============
@@ -1795,6 +1832,7 @@
             document.getElementById('periodFilter').value = currentPeriod;
             renderOrders(orders);
             updateSyncCounter();
+            updateWelcomeModalIfOpen();
         }
 
                 function isPrepaidOrder(order) {
@@ -3720,10 +3758,29 @@ function renderOrders(orders) {
             const alreadyShown = sessionStorage.getItem('driverWelcomeShown');
             if (alreadyShown) return;
 
-            setTimeout(() => {
-                showWelcomeEncouragementModal();
-                sessionStorage.setItem('driverWelcomeShown', 'true');
-            }, 450);
+            // التأكد من جاهزية الطلبات محلياً قبل فتح النافذة لضمان دقة العدد 100%
+            if (!currentOrders || currentOrders.length === 0) {
+                getAll(STORES.ORDERS).then(localOrders => {
+                    const driverOrders = (localOrders || []).filter(o => o.driver_id == driverId);
+                    if (driverOrders && driverOrders.length > 0) {
+                        currentOrders = driverOrders;
+                    }
+                    setTimeout(() => {
+                        showWelcomeEncouragementModal();
+                        sessionStorage.setItem('driverWelcomeShown', 'true');
+                    }, 300);
+                }).catch(() => {
+                    setTimeout(() => {
+                        showWelcomeEncouragementModal();
+                        sessionStorage.setItem('driverWelcomeShown', 'true');
+                    }, 300);
+                });
+            } else {
+                setTimeout(() => {
+                    showWelcomeEncouragementModal();
+                    sessionStorage.setItem('driverWelcomeShown', 'true');
+                }, 300);
+            }
         }
 
         function showWelcomeEncouragementModal() {
@@ -3738,27 +3795,37 @@ function renderOrders(orders) {
             const themeClass = isDayTime ? 'day-theme' : 'night-theme';
             const periodTitle = isDayTime ? 'صباح الخير والهمّة والبركة' : 'مساء الخير والسلامة والتيسير';
 
-            // حساب الطلبات النشطة للتوصيل
-            const activeOrders = (currentOrders || []).filter(o => !['تم التسليم', 'فشل التسليم', 'ملغي'].includes(o.status));
-            const activeCount = activeOrders.length;
-            const totalCount = (currentOrders || []).length;
+            // تحديد الفترة النشطة ومسماها
+            const activePeriod = currentPeriod || localStorage.getItem('driverPeriod') || 'all';
+            const periodLabel = getPeriodLabel(activePeriod);
+
+            // تصفية الطلبات بحسب الفترة النشطة المحددة بدقة
+            const periodOrders = filterOrdersByPeriod(currentOrders || [], activePeriod);
+            
+            // حساب الطلبات التي لم تُسلّم بعد خلال هذه الفترة
+            const undeliveredOrders = periodOrders.filter(isOrderActivePending);
+            const undeliveredCount = undeliveredOrders.length;
+            const totalPeriodCount = periodOrders.length;
+            const deliveredCount = periodOrders.filter(isOrderDelivered).length;
 
             let statMsg = '';
             let badgeText = '';
-            if (activeCount > 0) {
-                statMsg = `📦 لديك حالياً <strong style="color:var(--primary); font-size:1.05rem;">${activeCount}</strong> طلبات جاهزة للتوصيل`;
-                badgeText = `${activeCount} طلب`;
-            } else if (totalCount > 0) {
-                statMsg = `🎉 جميع طلباتك اليوم (${totalCount}) مكتملة أو مسجلة بنجاح!`;
-                badgeText = `${totalCount} طلب`;
+            if (undeliveredCount > 0) {
+                statMsg = `📦 لديك حالياً <strong style="color:var(--primary); font-size:1.05rem;">${undeliveredCount}</strong> طلبات لم يتم توصيلها بعد خلال فترة (<span style="color:var(--primary); font-weight:700;">${periodLabel}</span>)`;
+                badgeText = `${undeliveredCount} لم تُسلّم`;
+            } else if (totalPeriodCount > 0) {
+                statMsg = `🎉 جميع طلبات فترة (<span style="color:var(--success); font-weight:700;">${periodLabel}</span>) مكتملة ومسلمة بنجاح (${deliveredCount} من ${totalPeriodCount})`;
+                badgeText = `مكتمل (${totalPeriodCount})`;
             } else {
-                statMsg = `✨ لا توجد طلبات مسندة حالياً - بانتظار الجديد`;
+                statMsg = `✨ لا توجد طلبات مسندة خلال فترة (<span style="color:var(--text-primary); font-weight:700;">${periodLabel}</span>) - بانتظار الجديد`;
                 badgeText = `0 طلب`;
             }
 
             const modal = document.getElementById('welcomeModal');
             const overlay = document.getElementById('welcomeOverlay');
             if (!modal || !overlay) return;
+
+            const cardsCountToExplore = undeliveredCount > 0 ? undeliveredCount : totalPeriodCount;
 
             modal.innerHTML = `
                 <div class="welcome-header-banner ${themeClass}">
@@ -3779,15 +3846,15 @@ function renderOrders(orders) {
                         <div id="welcomeTipText" style="font-size:0.88rem; line-height:1.65; color:var(--text-primary); font-weight:500;">${tip.text}</div>
                     </div>
 
-                    <div class="welcome-orders-stat">
-                        <span class="stat-text">${statMsg}</span>
-                        <span class="stat-badge">${badgeText}</span>
+                    <div class="welcome-orders-stat" id="welcomeOrdersStatContainer">
+                        <span class="stat-text" id="welcomeStatText">${statMsg}</span>
+                        <span class="stat-badge" id="welcomeStatBadge">${badgeText}</span>
                     </div>
 
                     <div class="welcome-actions">
                         <button type="button" class="welcome-btn-explore" onclick="exploreOrdersFromWelcome()">
                             <span>🎴 عرض الطلبات كبطاقات</span>
-                            <span style="background:rgba(255,255,255,0.25); padding:2px 8px; border-radius:10px; font-size:0.75rem;">${activeCount > 0 ? activeCount : totalCount}</span>
+                            <span id="welcomeCardsCountBadge" style="background:rgba(255,255,255,0.25); padding:2px 8px; border-radius:10px; font-size:0.75rem;">${cardsCountToExplore}</span>
                         </button>
                         <button type="button" class="welcome-btn-skip" onclick="closeWelcomeModal()">
                             تخطي العرض إلى القائمة الرئيسية ✕
@@ -3801,6 +3868,40 @@ function renderOrders(orders) {
             try {
                 history.pushState({ modal: 'welcome' }, '');
             } catch (e) {}
+        }
+
+        function updateWelcomeModalIfOpen() {
+            const modal = document.getElementById('welcomeModal');
+            if (!modal || !modal.classList.contains('active')) return;
+
+            const activePeriod = currentPeriod || localStorage.getItem('driverPeriod') || 'all';
+            const periodLabel = getPeriodLabel(activePeriod);
+            const periodOrders = filterOrdersByPeriod(currentOrders || [], activePeriod);
+            const undeliveredOrders = periodOrders.filter(isOrderActivePending);
+            const undeliveredCount = undeliveredOrders.length;
+            const totalPeriodCount = periodOrders.length;
+            const deliveredCount = periodOrders.filter(isOrderDelivered).length;
+
+            let statMsg = '';
+            let badgeText = '';
+            if (undeliveredCount > 0) {
+                statMsg = `📦 لديك حالياً <strong style="color:var(--primary); font-size:1.05rem;">${undeliveredCount}</strong> طلبات لم يتم توصيلها بعد خلال فترة (<span style="color:var(--primary); font-weight:700;">${periodLabel}</span>)`;
+                badgeText = `${undeliveredCount} لم تُسلّم`;
+            } else if (totalPeriodCount > 0) {
+                statMsg = `🎉 جميع طلبات فترة (<span style="color:var(--success); font-weight:700;">${periodLabel}</span>) مكتملة ومسلمة بنجاح (${deliveredCount} من ${totalPeriodCount})`;
+                badgeText = `مكتمل (${totalPeriodCount})`;
+            } else {
+                statMsg = `✨ لا توجد طلبات مسندة خلال فترة (<span style="color:var(--text-primary); font-weight:700;">${periodLabel}</span>) - بانتظار الجديد`;
+                badgeText = `0 طلب`;
+            }
+
+            const statTextEl = document.getElementById('welcomeStatText');
+            const statBadgeEl = document.getElementById('welcomeStatBadge');
+            const cardsCountEl = document.getElementById('welcomeCardsCountBadge');
+
+            if (statTextEl) statTextEl.innerHTML = statMsg;
+            if (statBadgeEl) statBadgeEl.textContent = badgeText;
+            if (cardsCountEl) cardsCountEl.textContent = undeliveredCount > 0 ? undeliveredCount : totalPeriodCount;
         }
 
         function closeWelcomeModal(updateHistory = true) {
@@ -3821,10 +3922,48 @@ function renderOrders(orders) {
 
         let currentSwipeIndex = 0;
         let swipeCardsList = [];
+        let isProgrammaticScrolling = false;
 
-        function openSwipeableCardsModal() {
-            const activeOrders = (currentOrders || []).filter(o => !['تم التسليم', 'فشل التسليم', 'ملغي'].includes(o.status));
-            swipeCardsList = activeOrders.length > 0 ? activeOrders : (currentOrders || []);
+        function detectActiveCardIndex() {
+            const track = document.getElementById('swipeCardsTrack');
+            if (!track || !track.children || track.children.length === 0) return 0;
+            const trackRect = track.getBoundingClientRect();
+            const trackCenter = trackRect.left + trackRect.width / 2;
+
+            let closestIndex = 0;
+            let minDistance = Infinity;
+
+            for (let i = 0; i < track.children.length; i++) {
+                const card = track.children[i];
+                const cardRect = card.getBoundingClientRect();
+                const cardCenter = cardRect.left + cardRect.width / 2;
+                const dist = Math.abs(trackCenter - cardCenter);
+                if (dist < minDistance) {
+                    minDistance = dist;
+                    closestIndex = i;
+                }
+            }
+            return closestIndex;
+        }
+
+        function openSwipeableCardsModal(targetOrders = null) {
+            const activePeriod = currentPeriod || localStorage.getItem('driverPeriod') || 'all';
+            const periodLabel = getPeriodLabel(activePeriod);
+
+            let ordersForCards = [];
+            if (Array.isArray(targetOrders) && targetOrders.length > 0) {
+                ordersForCards = targetOrders;
+            } else {
+                const periodOrders = filterOrdersByPeriod(currentOrders || [], activePeriod);
+                if (currentStatusFilter) {
+                    ordersForCards = periodOrders.filter(o => o.status === currentStatusFilter);
+                } else {
+                    const pending = periodOrders.filter(isOrderActivePending);
+                    ordersForCards = pending.length > 0 ? pending : periodOrders;
+                }
+            }
+
+            swipeCardsList = ordersForCards;
 
             const modal = document.getElementById('swipeCardsModal');
             const overlay = document.getElementById('swipeCardsOverlay');
@@ -3840,13 +3979,18 @@ function renderOrders(orders) {
                 track.innerHTML = `
                     <div style="text-align:center; padding:50px 20px; color:var(--text-muted); width:100%; display:flex; flex-direction:column; align-items:center; justify-content:center;">
                         <span style="font-size:3.5rem; display:block; margin-bottom:12px;">🎉</span>
-                        <h3 style="color:var(--text-primary); margin-bottom:8px; font-size:1.15rem;">لا توجد طلبات معلقة حالياً</h3>
-                        <p style="font-size:0.88rem; max-width:280px; line-height:1.6;">جميع طلباتك مكتملة أو لم تُسند إليك طلبات جديدة بعد.</p>
+                        <h3 style="color:var(--text-primary); margin-bottom:8px; font-size:1.15rem;">لا توجد طلبات معلقة خلال فترة (${periodLabel})</h3>
+                        <p style="font-size:0.88rem; max-width:280px; line-height:1.6;">جميع طلبات هذه الفترة مكتملة ومسلمة أو لم تُسند إليك طلبات بعد.</p>
                         <button class="btn btn-primary" onclick="closeSwipeableCardsModal()" style="margin-top:20px; width:fit-content; padding:10px 24px; border-radius:12px;">العودة للقائمة الرئيسية</button>
                     </div>
                 `;
-                if (counter) counter.textContent = '0 طلب';
+                if (counter) counter.textContent = `0 طلب (${periodLabel})`;
                 if (dotsContainer) dotsContainer.innerHTML = '';
+                const prevBtn = document.getElementById('swipePrevBtn');
+                const nextBtn = document.getElementById('swipeNextBtn');
+                if (prevBtn) prevBtn.disabled = true;
+                if (nextBtn) nextBtn.disabled = true;
+
                 overlay.classList.add('active');
                 modal.classList.add('active');
                 try {
@@ -3871,9 +4015,8 @@ function renderOrders(orders) {
                 const dueAmount = getOrderDueAmount(order);
 
                 let formattedDate = 'غير محدد';
-                const rawDate = order.order_date || order.created_at;
-                if (rawDate) {
-                    const dateObj = new Date(rawDate.replace(' ', 'T') + 'Z');
+                const dateObj = parseOrderDate(order);
+                if (dateObj) {
                     formattedDate = dateObj.toLocaleString('ar-SA', {
                         year: 'numeric', month: '2-digit', day: '2-digit',
                         hour: '2-digit', minute: '2-digit', hour12: true
@@ -4017,28 +4160,42 @@ function renderOrders(orders) {
 
             track.innerHTML = slidesHtml;
 
+            // توليد نقاط التنقل أو العداد المدمج
             let dotsHtml = '';
-            swipeCardsList.forEach((_, i) => {
-                dotsHtml += `<div class="swipe-dot ${i === 0 ? 'active' : ''}" onclick="goToSwipeCard(${i})"></div>`;
-            });
+            if (swipeCardsList.length <= 15) {
+                swipeCardsList.forEach((_, i) => {
+                    dotsHtml += `<div class="swipe-dot ${i === 0 ? 'active' : ''}" onclick="goToSwipeCard(${i})"></div>`;
+                });
+            } else {
+                dotsHtml = `<span id="swipeDotsCompactCounter" style="font-size:0.75rem; color:var(--text-muted); font-weight:700;">1 / ${swipeCardsList.length}</span>`;
+            }
             if (dotsContainer) dotsContainer.innerHTML = dotsHtml;
 
             updateSwipeUI();
 
+            // الاستماع لحركة التمرير باللمس وتحديث البطاقة النشطة بدقة فائقة متوافقة مع RTL
             track.onscroll = () => {
+                if (isProgrammaticScrolling) return;
                 clearTimeout(track._scrollTimer);
                 track._scrollTimer = setTimeout(() => {
-                    const cardWidth = track.firstElementChild ? track.firstElementChild.offsetWidth + 16 : 1;
-                    const newIndex = Math.round(track.scrollLeft / cardWidth);
+                    const newIndex = detectActiveCardIndex();
                     if (newIndex >= 0 && newIndex < swipeCardsList.length && newIndex !== currentSwipeIndex) {
                         currentSwipeIndex = newIndex;
                         updateSwipeUI();
                     }
-                }, 60);
+                }, 40);
             };
 
             overlay.classList.add('active');
             modal.classList.add('active');
+
+            // محاذاة أول بطاقة لضمان التمركز الأولي
+            setTimeout(() => {
+                if (track.firstElementChild) {
+                    track.firstElementChild.scrollIntoView({ behavior: 'auto', inline: 'center', block: 'nearest' });
+                }
+            }, 50);
+
             try {
                 if (history.state && history.state.modal === 'welcome') {
                     history.replaceState({ modal: 'swipeCards' }, '');
@@ -4049,9 +4206,12 @@ function renderOrders(orders) {
         }
 
         function updateSwipeUI() {
+            const activePeriod = currentPeriod || localStorage.getItem('driverPeriod') || 'all';
+            const periodLabel = getPeriodLabel(activePeriod);
+
             const counter = document.getElementById('swipeCardsCounter');
             if (counter && swipeCardsList.length > 0) {
-                counter.textContent = `طلب ${currentSwipeIndex + 1} من ${swipeCardsList.length}`;
+                counter.textContent = `طلب ${currentSwipeIndex + 1} من ${swipeCardsList.length} (${periodLabel})`;
             }
 
             const prevBtn = document.getElementById('swipePrevBtn');
@@ -4064,6 +4224,11 @@ function renderOrders(orders) {
                 if (idx === currentSwipeIndex) dot.classList.add('active');
                 else dot.classList.remove('active');
             });
+
+            const compactCounter = document.getElementById('swipeDotsCompactCounter');
+            if (compactCounter) {
+                compactCounter.textContent = `${currentSwipeIndex + 1} / ${swipeCardsList.length}`;
+            }
         }
 
         function goToSwipeCard(index) {
@@ -4072,7 +4237,12 @@ function renderOrders(orders) {
             const track = document.getElementById('swipeCardsTrack');
             const slide = track ? track.children[index] : null;
             if (slide) {
+                isProgrammaticScrolling = true;
                 slide.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+                clearTimeout(track._scrollResetTimer);
+                track._scrollResetTimer = setTimeout(() => {
+                    isProgrammaticScrolling = false;
+                }, 400);
             }
             updateSwipeUI();
         }
@@ -4290,6 +4460,7 @@ function renderOrders(orders) {
         window.swipeNextCard = swipeNextCard;
         window.swipePrevCard = swipePrevCard;
         window.goToSwipeCard = goToSwipeCard;
+        window.updateWelcomeModalIfOpen = updateWelcomeModalIfOpen;
 
         const styleEl = document.createElement('style');
         styleEl.textContent = `

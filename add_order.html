@@ -738,9 +738,13 @@
                         <option value="">بدون تصنيف</option>
                     </select>
                 </div>
+                <div id="new-product-loading-indicator" style="display:none;margin:10px 0 4px;padding:10px 14px;border-radius:10px;background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8;font-size:0.85rem;font-weight:700;text-align:center;align-items:center;justify-content:center;gap:8px;">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <span>جاري إضافة المنتج... يرجى الانتظار</span>
+                </div>
                 <div class="modal-actions">
-                    <button class="btn btn-outline" onclick="closeModal('add-product-modal')">إلغاء</button>
-                    <button class="btn btn-success" onclick="confirmAddProduct()"><i class="fas fa-save"></i> إضافة</button>
+                    <button class="btn btn-outline" id="btn-cancel-add-product" onclick="closeModal('add-product-modal')">إلغاء</button>
+                    <button class="btn btn-success" id="btn-save-new-product" onclick="confirmAddProduct()"><i class="fas fa-save"></i> حفظ</button>
                 </div>
             </div>
         </div>
