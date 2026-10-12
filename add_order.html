@@ -3037,12 +3037,28 @@
             });
         }
 
+        let isSubmittingProduct = false;
+
         function openAddProductModal() {
+            isSubmittingProduct = false;
+            const saveBtn = document.getElementById('btn-save-new-product');
+            const cancelBtn = document.getElementById('btn-cancel-add-product');
+            const loadingIndicator = document.getElementById('new-product-loading-indicator');
+            if (saveBtn) {
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = '<i class="fas fa-save"></i> حفظ';
+            }
+            if (cancelBtn) cancelBtn.disabled = false;
+            if (loadingIndicator) loadingIndicator.style.display = 'none';
+
             openModal('add-product-modal');
-            document.getElementById('new-product-name').focus();
+            const nameInput = document.getElementById('new-product-name');
+            if (nameInput) setTimeout(() => nameInput.focus(), 150);
         }
 
         async function confirmAddProduct() {
+            if (isSubmittingProduct) return;
+
             const name = document.getElementById('new-product-name').value.trim();
             const price = parseFloat(document.getElementById('new-product-price').value);
             const cost = parseFloat(document.getElementById('new-product-cost').value) || 0;
@@ -3053,6 +3069,20 @@
             if (!name) return showToast('اسم المنتج مطلوب', 'warning');
             if (isNaN(price) || price < 0) return showToast('سعر البيع غير صالح', 'warning');
 
+            isSubmittingProduct = true;
+            const saveBtn = document.getElementById('btn-save-new-product');
+            const cancelBtn = document.getElementById('btn-cancel-add-product');
+            const loadingIndicator = document.getElementById('new-product-loading-indicator');
+
+            if (saveBtn) {
+                saveBtn.disabled = true;
+                saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري إضافة المنتج...';
+            }
+            if (cancelBtn) cancelBtn.disabled = true;
+            if (loadingIndicator) loadingIndicator.style.display = 'flex';
+
+            showToast('⏳ جاري إضافة المنتج...', 'info');
+
             try {
                 const res = await fetch(`${API}/products`, {
                     method: 'POST',
@@ -3061,7 +3091,7 @@
                 });
                 const data = await res.json();
                 if (res.ok && data.success) {
-                    showToast(`✅ تم إضافة المنتج "${name}"`, 'success');
+                    showToast(`✅ تم إضافة المنتج "${name}" بنجاح`, 'success');
                     closeModal('add-product-modal');
                     const newProduct = { id: data.id, name, price, cost, stock_quantity: stock };
                     productsCache.push(newProduct);
@@ -3078,7 +3108,15 @@
                     showToast(data.error || 'فشل إضافة المنتج', 'error');
                 }
             } catch (err) {
-                showToast(err.message || 'خطأ في الاتصال', 'error');
+                showToast(err.message || 'خطأ في الاتصال بالخادم', 'error');
+            } finally {
+                isSubmittingProduct = false;
+                if (saveBtn) {
+                    saveBtn.disabled = false;
+                    saveBtn.innerHTML = '<i class="fas fa-save"></i> حفظ';
+                }
+                if (cancelBtn) cancelBtn.disabled = false;
+                if (loadingIndicator) loadingIndicator.style.display = 'none';
             }
         }
 
