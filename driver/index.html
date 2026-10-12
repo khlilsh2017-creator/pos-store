@@ -118,7 +118,28 @@
         .phone-actions .call { background:var(--success); color:white; }
         .phone-actions .whatsapp { background:#25D366; color:white; }
         .phone-actions .map-link { background:var(--indigo); color:white; }
+        .phone-actions .web-link { background:#2563eb; color:white; }
         .order-note { background:#fef9e7; padding:8px 14px; border-radius:var(--radius-xs); border-right:3px solid var(--warning); margin:8px 0; font-size:0.78rem; color:#7d6608; }
+        .note-link-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #2563eb;
+            color: white !important;
+            text-decoration: none;
+            padding: 5px 12px;
+            border-radius: 10px;
+            font-size: 0.74rem;
+            font-weight: 700;
+            box-shadow: 0 2px 5px rgba(37,99,235,0.22);
+            transition: all 0.2s;
+            width: fit-content;
+        }
+        .note-link-btn:active { transform: scale(0.96); }
+        .note-link-btn.is-map {
+            background: #4f46e5;
+            box-shadow: 0 2px 5px rgba(79,70,229,0.22);
+        }
         .order-items-preview { margin:8px 0; background:var(--surface-secondary); border-radius:var(--radius-xs); padding:10px; font-size:0.78rem; }
         .order-items-preview table { width:100%; border-collapse:collapse; }
         .order-items-preview th { text-align:right; padding:4px 6px; border-bottom:1px solid var(--border); color:var(--text-secondary); font-size:0.7rem; }
@@ -1818,6 +1839,72 @@
             }
         }
 
+        // =============================================================
+        // دوال استخراج الروابط ومعاينة الملاحظات
+        // =============================================================
+        function extractAllUrls(text) {
+            if (!text) return [];
+            const urlPattern = /\b(https?:\/\/[^\s<>"'()]+|www\.[^\s<>"'()]+)/gi;
+            const matches = text.match(urlPattern) || [];
+            const urls = [];
+            for (let u of matches) {
+                let clean = u.trim().replace(/[.,;:!?)]+$/, '');
+                if (clean.toLowerCase().startsWith('www.')) clean = 'https://' + clean;
+                if (!urls.includes(clean)) urls.push(clean);
+            }
+            return urls;
+        }
+
+        function isMapUrl(url) {
+            if (!url) return false;
+            return /google\.com\/maps|maps\.google|maps\.apple|maps\.app\.goo\.gl|goo\.gl\/maps|waze\.com/i.test(url);
+        }
+
+        function detectMapLink(text) {
+            if (!text) return null;
+            const urls = extractAllUrls(text);
+            return urls.find(u => isMapUrl(u)) || null;
+        }
+
+        function renderOrderNoteHtml(orderNote) {
+            if (!orderNote) return '';
+            const urls = extractAllUrls(orderNote);
+            let cleanText = orderNote;
+            urls.forEach(u => {
+                cleanText = cleanText.split(u).join('');
+                const withoutProto = u.replace(/^https?:\/\//i, '');
+                cleanText = cleanText.split(withoutProto).join('');
+            });
+            cleanText = cleanText.trim();
+
+            let buttonsHtml = '';
+            if (urls.length > 0) {
+                buttonsHtml = `
+                    <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:${cleanText ? '6px' : '0'};">
+                        ${urls.map(url => {
+                            const isMap = isMapUrl(url);
+                            const label = isMap ? '🗺️ فتح رابط الموقع (الخريطة)' : '🔗 فتح الرابط المرفق';
+                            const cls = isMap ? 'note-link-btn is-map' : 'note-link-btn';
+                            return `
+                                <a href="${url}" target="_blank" rel="noopener noreferrer" class="${cls}">
+                                    <span>${label}</span> <span style="font-size:0.85em;">↗</span>
+                                </a>
+                            `;
+                        }).join('')}
+                    </div>
+                `;
+            }
+
+            if (!cleanText && urls.length === 0) return '';
+
+            return `
+                <div class="order-note">
+                    ${cleanText ? `<div>📝 ${cleanText}</div>` : ''}
+                    ${buttonsHtml}
+                </div>
+            `;
+        }
+
 function renderOrders(orders) {
     const container = document.getElementById('ordersList');
     if (!container) return;
@@ -1881,12 +1968,16 @@ function renderOrders(orders) {
         const addressText = order.customer_address || '';
         const combinedText = addressText + ' ' + orderNote;
         
-        // --- استخراج رابط الخريطة ---
+        // --- استخراج رابط الخريطة وأي روابط مرفقة ---
         const mapUrl = detectMapLink(combinedText);
-        let mapButtonHtml = '';
+        const allUrls = extractAllUrls(combinedText);
+        let linkButtonsHtml = '';
         if (mapUrl) {
-            mapButtonHtml = `<a href="${mapUrl}" target="_blank" class="map-link" style="flex:1; text-align:center;">🗺️ فتح الخريطة</a>`;
+            linkButtonsHtml += `<a href="${mapUrl}" target="_blank" class="map-link" style="flex:1; text-align:center;">🗺️ فتح الخريطة</a>`;
         }
+        allUrls.filter(u => u !== mapUrl).forEach(otherUrl => {
+            linkButtonsHtml += `<a href="${otherUrl}" target="_blank" class="web-link" style="flex:1; text-align:center;">🔗 فتح الرابط</a>`;
+        });
 
         // --- معالجة الأرقام المتعددة ---
         let phones = [];
@@ -1914,9 +2005,8 @@ function renderOrders(orders) {
         }
         // -------------------------------
 
-        // إخفاء الرابط من الملاحظات حتى لا يظهر كنص طويل ومزعج إذا أردت
-        const cleanNote = mapUrl ? orderNote.replace(mapUrl, '').trim() : orderNote;
-        const noteHtml = cleanNote ? `<div class="order-note">📝 ${cleanNote}</div>` : '';
+        // معالجة الملاحظات وإظهار زر فتح الرابط فوراً إذا وجد أي رابط بالملاحظات
+        const noteHtml = renderOrderNoteHtml(orderNote);
 
         let statusBadgeClass = 'badge-new';
         switch (order.status) {
@@ -2030,7 +2120,7 @@ function renderOrders(orders) {
                     ${phoneTextHtml}
                     <div class="phone-actions" style="margin-top: 8px; display: flex; gap: 6px; flex-wrap: wrap;">
                         ${phoneButtonsHtml}
-                        ${mapButtonHtml}
+                        ${linkButtonsHtml}
                     </div>
                 </div>
                 ${noteHtml}
@@ -2051,20 +2141,6 @@ function renderOrders(orders) {
     });
     container.innerHTML = html;
     updateSyncCounter();
-}
-        function detectMapLink(text) {
-    if (!text) return null;
-    const patterns = [
-        /\bhttps?:\/\/(?:www\.)?google\.com\/maps\/place\/[^\s]+/i,
-        /\bhttps?:\/\/(?:www\.)?google\.com\/maps\/@[^\s]+/i,
-        /\bhttps?:\/\/maps\.apple\.com\/\?q=[^\s]+/i,
-        /\bhttps?:\/\/waze\.com\/ul\?q=[^\s]+/i,
-        /\bhttps?:\/\/maps\.google\.com\/\?q=[^\s]+/i,
-        /\bhttps?:\/\/goo\.gl\/maps\/[^\s]+/i,
-        /\bhttps?:\/\/maps\.app\.goo\.gl\/[^\s]+/i
-    ];
-    for (const pattern of patterns) { const match = text.match(pattern); if (match) return match[0]; }
-    return null;
 }
 
         async function showInvoice(orderId) {
@@ -2151,11 +2227,15 @@ function renderOrders(orders) {
 
             const orderNote = order.notes || order.note || '';
             const addressText = order.customer_address || 'لا يوجد عنوان محدد';
+            const allUrls = extractAllUrls(addressText + ' ' + orderNote);
             const mapUrl = detectMapLink(addressText + ' ' + orderNote);
             let mapButtonHtml = '';
             if (mapUrl) {
-                mapButtonHtml = `<a href="${mapUrl}" target="_blank" class="btn" style="flex:1; text-align:center; padding:8px 10px; font-size:0.8rem; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; gap:4px; background:#fef3c7; color:#b45309; border-radius:8px;">🗺️ فتح الموقع على الخريطة</a>`;
+                mapButtonHtml += `<a href="${mapUrl}" target="_blank" class="btn" style="flex:1; text-align:center; padding:8px 10px; font-size:0.8rem; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; gap:4px; background:#fef3c7; color:#b45309; border-radius:8px;">🗺️ فتح الموقع على الخريطة</a>`;
             }
+            allUrls.filter(u => u !== mapUrl).forEach(otherUrl => {
+                mapButtonHtml += `<a href="${otherUrl}" target="_blank" class="btn" style="flex:1; text-align:center; padding:8px 10px; font-size:0.8rem; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; gap:4px; background:#eff6ff; color:#1d4ed8; border-radius:8px;">🔗 فتح الرابط المرفق</a>`;
+            });
 
             let tableHtml = '';
             if (sortedItems.length > 0) {
@@ -2211,7 +2291,7 @@ function renderOrders(orders) {
                 <div class="invoice-card-section" style="background:var(--surface-secondary); border-radius:12px; padding:12px; margin-bottom:14px; font-size:0.85rem;">
                     <div style="margin-bottom:6px;"><strong>👤 العميل:</strong> ${order.customer_name || 'غير محدد'}</div>
                     <div style="margin-bottom:6px;"><strong>📍 العنوان:</strong> ${addressText}</div>
-                    ${orderNote ? `<div style="margin-bottom:6px; color:#d97706;"><strong>📝 ملاحظة:</strong> ${orderNote}</div>` : ''}
+                    ${renderOrderNoteHtml(orderNote)}
                     ${phoneButtonsHtml || mapButtonHtml ? `
                         <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:10px;">
                             ${phoneButtonsHtml}
@@ -3714,8 +3794,16 @@ function renderOrders(orders) {
 
                 const orderNote = order.notes || order.note || '';
                 const addressText = order.customer_address || '';
-                const mapUrl = detectMapLink(addressText + ' ' + orderNote);
-                let mapBtn = mapUrl ? `<a href="${mapUrl}" target="_blank" class="map-link" style="flex:1; text-align:center;">🗺️ فتح الخريطة</a>` : '';
+                const combinedText = addressText + ' ' + orderNote;
+                const mapUrl = detectMapLink(combinedText);
+                const allUrls = extractAllUrls(combinedText);
+                let linkBtns = '';
+                if (mapUrl) {
+                    linkBtns += `<a href="${mapUrl}" target="_blank" class="map-link" style="flex:1; text-align:center;">🗺️ فتح الخريطة</a>`;
+                }
+                allUrls.filter(u => u !== mapUrl).forEach(otherUrl => {
+                    linkBtns += `<a href="${otherUrl}" target="_blank" class="web-link" style="flex:1; text-align:center;">🔗 فتح الرابط</a>`;
+                });
 
                 let phones = [];
                 if (Array.isArray(order.customer_phones) && order.customer_phones.length > 0) phones = order.customer_phones;
@@ -3734,8 +3822,7 @@ function renderOrders(orders) {
                     });
                 }
 
-                const cleanNote = mapUrl ? orderNote.replace(mapUrl, '').trim() : orderNote;
-                const noteHtml = cleanNote ? `<div class="order-note" style="margin:6px 0;">📝 ${cleanNote}</div>` : '';
+                const noteHtml = renderOrderNoteHtml(orderNote);
 
                 let statusBadgeClass = 'badge-new';
                 switch (order.status) {
