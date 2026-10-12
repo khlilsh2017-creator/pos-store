@@ -89,6 +89,18 @@
         .order-card.completed { border-right:4px solid var(--success); }
         .order-card.failed { border-right:4px solid var(--danger); }
         .order-card.returned { border-right:4px solid var(--warning); }
+        .order-card.has-many-items { border-color:#f59e0b; background:linear-gradient(to left, rgba(254, 243, 199, 0.28), var(--surface) 35%); }
+        .order-card.has-many-items:not(.completed):not(.failed):not(.returned) { border-right:5px solid #f59e0b; }
+        .badge-items-count { font-size:0.72rem; padding:3px 9px; border-radius:12px; font-weight:700; display:inline-flex; align-items:center; gap:5px; white-space:nowrap; }
+        .badge-items-normal { background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; }
+        .badge-items-many { background:#fef3c7; color:#92400e; border:1.5px solid #f59e0b; box-shadow:0 1px 4px rgba(245, 158, 11, 0.22); animation:pulseBadgeMany 2.5s infinite ease-in-out; }
+        @keyframes pulseBadgeMany { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.03); } }
+        .remaining-items-pill { background:#ea580c; color:white; padding:1px 7px; border-radius:10px; font-size:0.68rem; font-weight:800; display:inline-block; }
+        .btn-more-items-highlight { background:linear-gradient(135deg, #f59e0b, #d97706) !important; color:white !important; border:none !important; border-radius:18px !important; padding:8px 14px !important; font-size:0.75rem !important; font-weight:700 !important; cursor:pointer !important; box-shadow:0 2px 6px rgba(217, 119, 6, 0.28) !important; display:inline-flex !important; flex-direction:column !important; align-items:center !important; gap:2px !important; width:92% !important; margin:3px auto !important; transition:transform 0.15s ease !important; }
+        .btn-more-items-highlight:hover, .btn-more-items-highlight:active { transform:scale(0.98) !important; }
+        .btn-full-invoice.has-many { border-color:#f59e0b; color:#b45309; background:#fffbeb; font-weight:700; }
+        .btn-full-invoice.has-many:hover, .btn-full-invoice.has-many:active { background:#fef3c7; }
+        .has-many-tag { background:#f59e0b; color:white; padding:2px 8px; border-radius:12px; font-size:0.72rem; font-weight:800; }
         .order-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:8px; }
         .order-id { font-weight:700; color:var(--text-primary); font-size:0.95rem; }
         .order-status-badge { padding:5px 14px; border-radius:20px; font-size:0.7rem; font-weight:600; }
@@ -1642,6 +1654,19 @@ function renderOrders(orders) {
         }
         const isFinished = ['تم التسليم', 'فشل التسليم', 'ملغي', 'مرتجع جزئي', 'مرتجع كلي'].includes(statusText);
         
+        const hasManyItems = items.length > 3;
+        const remainingCount = Math.max(0, items.length - 3);
+        const finalCardClass = [cardClass, hasManyItems ? 'has-many-items' : ''].filter(Boolean).join(' ');
+
+        let itemsBadgeHtml = '';
+        if (items.length > 0) {
+            if (hasManyItems) {
+                itemsBadgeHtml = `<span class="badge-items-count badge-items-many" title="طلب متعدد الأصناف أكثر من 3">📦 ${items.length} أصناف <span class="remaining-items-pill">متبقي ${remainingCount}</span></span>`;
+            } else {
+                itemsBadgeHtml = `<span class="badge-items-count badge-items-normal">📦 ${items.length} أصناف</span>`;
+            }
+        }
+
         let itemsHtml = '';
         const showAll = items.length <= 3;
         const displayedItems = showAll ? items : items.slice(0, 3);
@@ -1650,6 +1675,20 @@ function renderOrders(orders) {
             const noteCell = itemNote ? `<span class="item-note">📌 ${itemNote}</span>` : '';
             itemsHtml += `<tr><td>${item.product_name || item.product_id}</td><td>${item.quantity}</td><td>${item.unit_price}</td><td>${item.line_total}</td><td>${noteCell}</td></tr>`;
         });
+
+        let moreItemsRowHtml = '';
+        if (!showAll) {
+            moreItemsRowHtml = `
+                <tr>
+                    <td colspan="5" style="text-align:center; padding:8px 4px;">
+                        <button type="button" class="btn-more-items-highlight" onclick="showInvoice('${order.id}')">
+                            <span>⚠️ متبقي ${remainingCount} أصناف أخرى لم تُعرض (إجمالي ${items.length})</span>
+                            <span style="font-size:0.7rem; opacity:0.95;">اضغط هنا لعرض الفاتورة بالكامل 📄</span>
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }
 
         let actionButtonsHtml = '';
         if (isReturned || isCancelled) {
@@ -1681,13 +1720,35 @@ function renderOrders(orders) {
             `;
         }
 
+        let fullInvoiceBtnHtml = '';
+        if (hasManyItems) {
+            fullInvoiceBtnHtml = `
+                <button type="button" class="btn-full-invoice has-many" onclick="showInvoice('${order.id}')">
+                    <span>📄 عرض تفاصيل الفاتورة كاملة</span>
+                    <span class="has-many-tag">🔥 ${items.length} أصناف (متبقي ${remainingCount})</span>
+                </button>
+            `;
+        } else {
+            fullInvoiceBtnHtml = `
+                <button type="button" class="btn-full-invoice" onclick="showInvoice('${order.id}')">
+                    📄 عرض تفاصيل الفاتورة كاملة (${items.length} أصناف)
+                </button>
+            `;
+        }
+
         html += `
-            <div class="order-card ${cardClass}" data-order-id="${order.id}">
+            <div class="order-card ${finalCardClass}" data-order-id="${order.id}">
                 <div style="font-size: 0.75rem; color: var(--primary); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; font-weight: 600; background: var(--surface-secondary); padding: 4px 10px; border-radius: 8px; width: fit-content;">
                     <span>🕒</span> <span>${formattedDate}</span>
                 </div>
                 
-                <div class="order-header"><span class="order-id">📦 طلب #${order.id}</span><span class="order-status-badge ${statusBadgeClass}">${statusText}</span></div>
+                <div class="order-header">
+                    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                        <span class="order-id">📦 طلب #${order.id}</span>
+                        ${itemsBadgeHtml}
+                    </div>
+                    <span class="order-status-badge ${statusBadgeClass}">${statusText}</span>
+                </div>
                 <div class="customer-info">
                     <div class="info-row"><span class="info-icon">👤</span> ${order.customer_name}</div>
                     <div class="info-row"><span class="info-icon">📍</span> ${addressText.replace(mapUrl||'', '').trim() || 'لا يوجد عنوان'}</div>
@@ -1700,7 +1761,7 @@ function renderOrders(orders) {
                 ${noteHtml}
                 <div class="order-items-preview">
                     <table><thead><tr><th>المنتج</th><th>الكمية</th><th>السعر</th><th>الإجمالي</th><th>ملاحظة</th></tr></thead>
-                    <tbody>${itemsHtml}${!showAll ? `<tr><td colspan="5" style="text-align:center;"><button class="invoice-btn" onclick="showInvoice('${order.id}')">📄 عرض بقية الأصناف (${items.length} منتج)</button></td></tr>` : ''}</tbody></table>
+                    <tbody>${itemsHtml}${moreItemsRowHtml}</tbody></table>
                 </div>
                 <div class="amount-info">
                     <span>💰 ${order.total_amount} ريال</span>
@@ -1709,7 +1770,7 @@ function renderOrders(orders) {
                     ${dueAmount > 0 ? `<span class="due-group"><span class="due">المستحق: ${dueAmount.toFixed(2)} ريال</span>${isMixed && !isFinished ? `<button type="button" class="refresh-due-btn" title="تحديث المبلغ المستحق" aria-label="تحديث المبلغ المستحق" onclick="refreshOrderDue('${order.id}', this)">🔄</button>` : ''}</span>` : ''}
                 </div>
                 ${returnInfoHtml}
-                <button type="button" class="btn-full-invoice" onclick="showInvoice('${order.id}')">📄 عرض تفاصيل الفاتورة كاملة</button>
+                ${fullInvoiceBtnHtml}
                 ${actionButtonsHtml}
             </div>`;
     });
@@ -1886,7 +1947,10 @@ function renderOrders(orders) {
 
                 <!-- جدول الأصناف -->
                 <div style="margin-bottom:14px;">
-                    <div style="font-weight:700; font-size:0.9rem; margin-bottom:6px; color:var(--text-primary);">📦 الأصناف (${sortedItems.length}):</div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                        <div style="font-weight:700; font-size:0.9rem; color:var(--text-primary);">📦 أصناف الفاتورة (${sortedItems.length}):</div>
+                        ${sortedItems.length > 3 ? `<span class="badge-items-count badge-items-many" style="font-size:0.75rem;">🔥 طلب متعدد (${sortedItems.length} صنف)</span>` : ''}
+                    </div>
                     ${tableHtml}
                 </div>
 
@@ -3222,16 +3286,59 @@ function renderOrders(orders) {
         function confirmExitApp() {
             isExitingApp = true;
             closeExitModal();
+
+            // 1. محاولة إغلاق التطبيق إذا كان داخل تطبيق أندرويد أصلي (Cordova / Capacitor / WebView)
             try {
-                if (window.navigator && window.navigator.app && window.navigator.app.exitApp) {
+                if (window.navigator && window.navigator.app && typeof window.navigator.app.exitApp === 'function') {
                     window.navigator.app.exitApp();
                     return;
                 }
+                if (window.Android && typeof window.Android.closeApp === 'function') {
+                    window.Android.closeApp();
+                    return;
+                }
             } catch (e) {}
+
+            // 2. محاولة إغلاق النافذة/التبويب مباشرة للمتصفحات التي تسمح بذلك
             try {
+                window.open('', '_self');
                 window.close();
             } catch (e) {}
-            history.go(-2);
+
+            // 3. عرض شاشة خروج واضحة ورسمية تملأ الشاشة فوراً
+            // بحيث لا يشعر المندوب أن الضغط على الزر لم يفعل شيئاً في متصفحات الجوال التي تحظر window.close
+            let exitOverlay = document.getElementById('appTerminatedScreen');
+            if (!exitOverlay) {
+                exitOverlay = document.createElement('div');
+                exitOverlay.id = 'appTerminatedScreen';
+                exitOverlay.innerHTML = `
+                    <div style="position:fixed;inset:0;background:#0f172a;color:#fff;z-index:999999;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;direction:rtl;font-family:system-ui,-apple-system,sans-serif;">
+                        <div style="font-size:4.5rem;margin-bottom:16px;">🚪</div>
+                        <h2 style="font-size:1.6rem;margin-bottom:10px;font-weight:800;color:#f8fafc;">تم إغلاق التطبيق بنجاح</h2>
+                        <p style="color:#94a3b8;font-size:0.95rem;max-width:320px;line-height:1.6;margin-bottom:24px;">
+                            تم إنهاء جلسة العمل بأمان. يمكنك الآن إغلاق هذا التبويب أو التمرير للعودة إلى شاشة هاتفك الرئيسية.
+                        </p>
+                        <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;">
+                            <button onclick="window.close()" style="background:#334155;color:#e2e8f0;border:1px solid #475569;padding:12px 22px;border-radius:12px;font-size:0.9rem;font-weight:600;cursor:pointer;">
+                                ✕ إغلاق التبويب الآن
+                            </button>
+                            <button onclick="location.reload()" style="background:#2563eb;color:#fff;border:none;padding:12px 22px;border-radius:12px;font-size:0.9rem;font-weight:700;cursor:pointer;box-shadow:0 4px 12px rgba(37,99,235,0.35);">
+                                🔄 إعادة فتح التطبيق
+                            </button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(exitOverlay);
+            } else {
+                exitOverlay.style.display = 'block';
+            }
+
+            // 4. محاولة الرجوع بالسجل للخروج من تاريخ التصفح إن أمكن
+            try {
+                if (window.history.length > 1) {
+                    window.history.go(-(window.history.length));
+                }
+            } catch (e) {}
         }
 
         // اعتراض زر الرجوع لمنع الخروج المفاجئ وإغلاق النوافذ أولاً
