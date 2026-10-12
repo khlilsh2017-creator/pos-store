@@ -170,33 +170,286 @@
         .invoice-items-table th { background:var(--surface-secondary); padding:8px; text-align:right; font-size:0.75rem; }
         .invoice-items-table td { padding:6px 8px; border-bottom:1px solid var(--border); }
         #invoiceSheet { max-height: 92vh; }
-        .exit-modal {
+        /* --- نافذة الترحيب والتشجيع اليومية --- */
+        .welcome-modal {
             position: fixed;
             top: 50%;
             left: 50%;
-            transform: translate(-50%, -50%) scale(0.9);
-            max-width: 360px;
-            width: 90%;
+            transform: translate(-50%, -50%) scale(0.92);
+            max-width: 420px;
+            width: 92%;
             background: var(--surface);
-            border-radius: var(--radius-md);
-            padding: 24px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.35);
-            z-index: 400;
+            border-radius: 24px;
+            padding: 0;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.3);
+            z-index: 500;
             text-align: center;
             opacity: 0;
             pointer-events: none;
-            transition: all 0.25s cubic-bezier(0.32,0.72,0,1);
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            overflow: hidden;
         }
-        .exit-modal.active {
+        .welcome-modal.active {
             transform: translate(-50%, -50%) scale(1);
             opacity: 1;
             pointer-events: auto;
         }
-        .exit-modal .exit-icon { font-size: 3rem; margin-bottom: 8px; }
-        .exit-modal h3 { font-size: 1.2rem; color: var(--text-primary); margin-bottom: 8px; font-weight: 700; }
-        .exit-modal p { font-size: 0.9rem; color: var(--text-muted); margin-bottom: 22px; line-height: 1.5; }
-        .exit-modal .exit-actions { display: flex; gap: 10px; justify-content: center; }
-        .exit-modal .exit-actions .btn { flex: 1; padding: 12px; font-weight: 700; border-radius: var(--radius-xs); cursor: pointer; }
+        .welcome-header-banner {
+            padding: 24px 20px 18px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .welcome-header-banner.day-theme {
+            background: linear-gradient(135deg, #fef3c7 0%, #fed7aa 50%, #fef08a 100%);
+            color: #9a3412;
+        }
+        .welcome-header-banner.night-theme {
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 60%, #312e81 100%);
+            color: #f8fafc;
+        }
+        .welcome-time-icon {
+            font-size: 3rem;
+            margin-bottom: 6px;
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.15));
+            animation: floatIcon 3s ease-in-out infinite;
+        }
+        @keyframes floatIcon {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+        .welcome-greeting-title {
+            font-size: 1.25rem;
+            font-weight: 800;
+            margin: 0;
+            letter-spacing: -0.3px;
+        }
+        .welcome-greeting-subtitle {
+            font-size: 0.82rem;
+            opacity: 0.9;
+            margin-top: 4px;
+            font-weight: 600;
+        }
+        .welcome-body {
+            padding: 18px 20px 22px;
+        }
+        .welcome-quote-card {
+            background: var(--surface-secondary);
+            border-radius: 14px;
+            padding: 12px 16px;
+            margin-bottom: 16px;
+            font-size: 0.86rem;
+            line-height: 1.6;
+            color: var(--text-primary);
+            border-right: 4px solid var(--primary);
+            text-align: right;
+        }
+        .welcome-orders-stat {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 14px;
+            padding: 12px 14px;
+            margin-bottom: 18px;
+            color: #1e40af;
+        }
+        .welcome-orders-stat .stat-text {
+            font-size: 0.86rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            text-align: right;
+        }
+        .welcome-orders-stat .stat-badge {
+            background: #2563eb;
+            color: white;
+            font-weight: 800;
+            font-size: 0.88rem;
+            padding: 3px 12px;
+            border-radius: 20px;
+            white-space: nowrap;
+        }
+        .welcome-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .welcome-btn-explore {
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            color: white;
+            border: none;
+            border-radius: 14px;
+            padding: 13px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 4px 14px rgba(37,99,235,0.35);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+        .welcome-btn-explore:active {
+            transform: scale(0.98);
+        }
+        .welcome-btn-skip {
+            background: transparent;
+            color: var(--text-secondary);
+            border: 1.5px solid var(--border);
+            border-radius: 14px;
+            padding: 11px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .welcome-btn-skip:hover {
+            background: var(--surface-secondary);
+        }
+
+        /* --- عارض الطلبات كبطاقات قابلة للتمرير (Swipeable Cards Modal) --- */
+        .swipe-modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.95);
+            max-width: 500px;
+            width: 95%;
+            max-height: 94vh;
+            height: 88vh;
+            background: var(--surface);
+            border-radius: 24px;
+            box-shadow: 0 25px 70px rgba(0,0,0,0.4);
+            z-index: 550;
+            display: flex;
+            flex-direction: column;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+            overflow: hidden;
+        }
+        .swipe-modal.active {
+            transform: translate(-50%, -50%) scale(1);
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .swipe-modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 18px;
+            border-bottom: 1px solid var(--border);
+            background: var(--surface);
+            flex-shrink: 0;
+        }
+        .swipe-modal-header .header-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .swipe-modal-header .modal-title {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin: 0;
+        }
+        .swipe-counter-pill {
+            background: #e0f2fe;
+            color: #0369a1;
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 3px 10px;
+            border-radius: 20px;
+        }
+        .swipe-cards-track {
+            flex: 1;
+            overflow-x: auto;
+            overflow-y: hidden;
+            scroll-snap-type: x mandatory;
+            -webkit-overflow-scrolling: touch;
+            display: flex;
+            gap: 16px;
+            padding: 14px 16px;
+            scrollbar-width: none;
+        }
+        .swipe-cards-track::-webkit-scrollbar {
+            display: none;
+        }
+        .swipe-card-slide {
+            flex: 0 0 100%;
+            scroll-snap-align: center;
+            background: var(--surface);
+            border: 1.5px solid var(--border);
+            border-radius: 18px;
+            padding: 14px 16px;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+            position: relative;
+        }
+        .swipe-card-slide.has-many-items {
+            border-color: #f59e0b;
+            background: linear-gradient(to bottom, rgba(254, 243, 199, 0.22), var(--surface) 22%);
+        }
+        .swipe-nav-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 16px;
+            border-top: 1px solid var(--border);
+            background: var(--surface-secondary);
+            flex-shrink: 0;
+            gap: 8px;
+        }
+        .swipe-nav-btn {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            padding: 8px 14px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .swipe-nav-btn:hover {
+            background: #f1f5f9;
+        }
+        .swipe-nav-btn:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+        }
+        .swipe-dots-container {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            flex-wrap: wrap;
+            justify-content: center;
+            max-width: 140px;
+        }
+        .swipe-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #cbd5e1;
+            transition: all 0.25s;
+            cursor: pointer;
+        }
+        .swipe-dot.active {
+            width: 20px;
+            border-radius: 10px;
+            background: var(--primary);
+        }
         .btn-full-invoice { width: 100%; margin-top: 8px; padding: 8px 12px; font-size: 0.82rem; font-weight: 600; border: 1.5px solid var(--primary); background: transparent; color: var(--primary); border-radius: var(--radius-xs); cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 6px; }
         .btn-full-invoice:hover, .btn-full-invoice:active { background: rgba(52,152,219,0.08); }
         .empty-state { text-align:center; padding:40px 20px; color:var(--text-muted); }
@@ -296,15 +549,30 @@
         <div id="invoiceContent"></div>
     </div>
 
-    <!-- نافذة تأكيد الخروج من التطبيق -->
-    <div class="modal-overlay" id="exitOverlay" onclick="closeExitModal()"></div>
-    <div class="exit-modal" id="exitConfirmModal">
-        <div class="exit-icon">🚪</div>
-        <h3>الخروج من التطبيق</h3>
-        <p>هل أنت متأكد من رغبتك في الخروج من تطبيق المندوب؟</p>
-        <div class="exit-actions">
-            <button class="btn btn-danger" onclick="confirmExitApp()">نعم، خروج</button>
-            <button class="btn btn-outline" onclick="closeExitModal()">إلغاء (البقاء)</button>
+    <!-- نافذة الترحيب والتشجيع اليومية للمندوب -->
+    <div class="modal-overlay" id="welcomeOverlay" onclick="closeWelcomeModal()"></div>
+    <div class="welcome-modal" id="welcomeModal"></div>
+
+    <!-- نافذة استعراض الطلبات كبطاقات قابلة للتمرير (Swipeable Cards Carousel) -->
+    <div class="modal-overlay" id="swipeCardsOverlay" onclick="closeSwipeableCardsModal()"></div>
+    <div class="swipe-modal" id="swipeCardsModal">
+        <div class="swipe-modal-header">
+            <div class="header-info">
+                <span style="font-size: 1.3rem;">🎴</span>
+                <h3 class="modal-title">استعراض الطلبات</h3>
+                <span class="swipe-counter-pill" id="swipeCardsCounter">طلب 1 من 1</span>
+            </div>
+            <span class="close-sheet" style="position:static; margin:0;" onclick="closeSwipeableCardsModal()">✕</span>
+        </div>
+        <div class="swipe-cards-track" id="swipeCardsTrack"></div>
+        <div class="swipe-nav-footer">
+            <button type="button" class="swipe-nav-btn" id="swipePrevBtn" onclick="swipePrevCard()">
+                <span>◀</span> <span>السابق</span>
+            </button>
+            <div class="swipe-dots-container" id="swipeDotsContainer"></div>
+            <button type="button" class="swipe-nav-btn" id="swipeNextBtn" onclick="swipeNextCard()">
+                <span>التالي</span> <span>▶</span>
+            </button>
         </div>
     </div>
 
@@ -1455,6 +1723,13 @@
                     <span class="summary-text">📊 إجمالي رسوم التوصيل (الفترة)</span>
                     <span class="summary-value" id="periodSummaryValue">${(account.total_fees || 0).toFixed(2)} ريال</span>
                     <span class="orders-count" id="periodOrdersCount">(${totalItems || 0} طلب)</span>
+                </div>
+
+                <div style="margin: 8px 0; display:flex; gap:8px;">
+                    <button type="button" class="btn btn-primary" onclick="openSwipeableCardsModal()" style="border-radius:14px; padding:10px 16px; font-weight:700; gap:8px; box-shadow:0 3px 10px rgba(37,99,235,0.22); font-size:0.84rem;">
+                        <span>🎴 استعراض الطلبات كبطاقات</span>
+                        <span style="background:rgba(255,255,255,0.25); padding:2px 8px; border-radius:10px; font-size:0.75rem;">${(orders||[]).length}</span>
+                    </button>
                 </div>
 
                 <div id="ordersList"></div>
@@ -3079,6 +3354,8 @@ function renderOrders(orders) {
                     }
 
                     showToast('✅ تم الدخول بنجاح');
+                    sessionStorage.removeItem('driverWelcomeShown');
+                    checkAndShowWelcomePrompt();
                 } else {
                     errorDiv.textContent = 'بيانات غير صالحة';
                     errorDiv.style.display = 'block';
@@ -3098,6 +3375,7 @@ function renderOrders(orders) {
             totalBalance = 0;
             localStorage.removeItem('driverBalance');
             localStorage.removeItem('lastAccountData');
+            sessionStorage.removeItem('driverWelcomeShown');
 
             try {
                 const db = await openDB();
@@ -3267,138 +3545,424 @@ function renderOrders(orders) {
             return false;
         }
 
-        let isExitingApp = false;
+        // =============================================================
+        // 16. رسائل الترحيب والتشجيع واستعراض الطلبات كبطاقات متحركة
+        // =============================================================
+        const DAY_ENCOURAGEMENTS = [
+            { text: "صباح الخير والرزق المبارك يا كابتن! يوم جديد مليء بالهمة والنشاط، نسأل الله لك التوفيق والقيادة الآمنة في كل طريق. ☀️" },
+            { text: "صباح النشاط والهمة العالية! أنت الواجهة المتميزة لخدمتنا وسر سعادة عملائنا، انطلاقة موفقة ويوم حافل بالإنجازات. 🚀" },
+            { text: "بداية يوم مباركة وتيسير في كل خطوة! توكل على الله ودع الابتسامة عنوانك، تمنياتنا لك بوردية خفيفة وسلسة. 🌟" },
+            { text: "صباح التفاؤل والبركة يا بطل! جهودك دائماً تصنع الفرق، نسأل الله أن يبارك في رزقك ويحفظك في حلك وترحالك. 💪" },
+            { text: "يوم جديد وإشراقة جميلة! طلبات اليوم بانتظار سرعتك وإتقانك المعتاد، حياك الله وبالتوفيق في كل مشوار. 🎯" }
+        ];
 
-        function showExitConfirmationModal() {
-            const modal = document.getElementById('exitConfirmModal');
-            const overlay = document.getElementById('exitOverlay');
-            if (modal) modal.classList.add('active');
-            if (overlay) overlay.classList.add('active');
+        const NIGHT_ENCOURAGEMENTS = [
+            { text: "مساء الخير والبركة يا غالي! نسأل الله لك وردية ميسرة وسلامة دائمة في كل طريق ووجهة. 🌙" },
+            { text: "عساك عالقوة يا كابتن! جهودك في كل وقت محل فخر وتقدير، القيادة الهادئة سر الأمان.. تمنياتنا لك بمساء عامر بالرزق. ⭐" },
+            { text: "مساء الهمة والعزيمة! نسأل الله أن ييسر لك كل أمر ويفتح لك أبواب الخير، مساء هادئ وتوصيل سريع وموفق. 🚗" },
+            { text: "مساء النشاط والبركة يا بطل! أوقات مسائية عامرة بالتوفيق، قد بحذر وسلامة.. تمنياتنا لك بأفضل الأوقات. ✨" },
+            { text: "حياك الله في الوردية المسائية! حضورك وهمتك تضيء العمل، نتمنى لك وقتاً ممتعاً وإنجازاً سريعاً لكل الطلبات. 🌟" }
+        ];
+
+        function checkAndShowWelcomePrompt() {
+            const token = getToken();
+            const driverId = getDriverId();
+            if (!token || !driverId) return;
+
+            const alreadyShown = sessionStorage.getItem('driverWelcomeShown');
+            if (alreadyShown) return;
+
+            setTimeout(() => {
+                showWelcomeEncouragementModal();
+                sessionStorage.setItem('driverWelcomeShown', 'true');
+            }, 450);
         }
 
-        function closeExitModal() {
-            const modal = document.getElementById('exitConfirmModal');
-            const overlay = document.getElementById('exitOverlay');
+        function showWelcomeEncouragementModal() {
+            const driverName = getDriverName() || 'كابتن';
+            const now = new Date();
+            const hour = now.getHours();
+            const isDayTime = hour >= 5 && hour < 17; // فترة النهار من 5 فجراً حتى 5 مساءً
+
+            const list = isDayTime ? DAY_ENCOURAGEMENTS : NIGHT_ENCOURAGEMENTS;
+            const item = list[Math.floor(Math.random() * list.length)];
+
+            const timeIcon = isDayTime ? '☀️' : '🌙';
+            const themeClass = isDayTime ? 'day-theme' : 'night-theme';
+            const periodTitle = isDayTime ? 'صباح الخير والهمّة' : 'مساء الخير والبركة';
+
+            // حساب الطلبات النشطة للتوصيل
+            const activeOrders = (currentOrders || []).filter(o => !['تم التسليم', 'فشل التسليم', 'ملغي'].includes(o.status));
+            const activeCount = activeOrders.length;
+            const totalCount = (currentOrders || []).length;
+
+            let statMsg = '';
+            let badgeText = '';
+            if (activeCount > 0) {
+                statMsg = `📦 لديك حالياً <strong style="color:var(--primary); font-size:1.05rem;">${activeCount}</strong> طلبات جاهزة للتوصيل`;
+                badgeText = `${activeCount} طلب`;
+            } else if (totalCount > 0) {
+                statMsg = `🎉 جميع طلباتك اليوم (${totalCount}) مكتملة أو مسجلة بنجاح!`;
+                badgeText = `${totalCount} طلب`;
+            } else {
+                statMsg = `✨ لا توجد طلبات مسندة حالياً - بانتظار الجديد`;
+                badgeText = `0 طلب`;
+            }
+
+            const modal = document.getElementById('welcomeModal');
+            const overlay = document.getElementById('welcomeOverlay');
+            if (!modal || !overlay) return;
+
+            modal.innerHTML = `
+                <div class="welcome-header-banner ${themeClass}">
+                    <div class="welcome-time-icon">${timeIcon}</div>
+                    <h3 class="welcome-greeting-title">${periodTitle}، ${driverName}!</h3>
+                    <div class="welcome-greeting-subtitle">${isDayTime ? 'أشرقت شمس يوم جديد 🚀' : 'مساء الهدوء والسلامة 🚗'}</div>
+                </div>
+                <div class="welcome-body">
+                    <div class="welcome-quote-card">
+                        <div style="font-weight:700; color:var(--primary); margin-bottom:4px; font-size:0.8rem;">💡 رسالة اليوم لك:</div>
+                        <div style="font-size:0.86rem; line-height:1.6;">${item.text}</div>
+                    </div>
+
+                    <div class="welcome-orders-stat">
+                        <span class="stat-text">${statMsg}</span>
+                        <span class="stat-badge">${badgeText}</span>
+                    </div>
+
+                    <div class="welcome-actions">
+                        <button type="button" class="welcome-btn-explore" onclick="exploreOrdersFromWelcome()">
+                            <span>🎴 عرض الطلبات كبطاقات</span>
+                            <span style="background:rgba(255,255,255,0.25); padding:2px 8px; border-radius:10px; font-size:0.75rem;">${activeCount > 0 ? activeCount : totalCount}</span>
+                        </button>
+                        <button type="button" class="welcome-btn-skip" onclick="closeWelcomeModal()">
+                            تخطي العرض إلى القائمة الرئيسية ✕
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            overlay.classList.add('active');
+            modal.classList.add('active');
+        }
+
+        function closeWelcomeModal() {
+            const modal = document.getElementById('welcomeModal');
+            const overlay = document.getElementById('welcomeOverlay');
             if (modal) modal.classList.remove('active');
             if (overlay) overlay.classList.remove('active');
         }
 
-        function confirmExitApp() {
-            isExitingApp = true;
-            closeExitModal();
-
-            // 1. محاولة إغلاق التطبيق إذا كان داخل تطبيق أندرويد أصلي (Cordova / Capacitor / WebView)
-            try {
-                if (window.navigator && window.navigator.app && typeof window.navigator.app.exitApp === 'function') {
-                    window.navigator.app.exitApp();
-                    return;
-                }
-                if (window.Android && typeof window.Android.closeApp === 'function') {
-                    window.Android.closeApp();
-                    return;
-                }
-            } catch (e) {}
-
-            // 2. محاولة إغلاق النافذة/التبويب مباشرة للمتصفحات التي تسمح بذلك
-            try {
-                window.open('', '_self');
-                window.close();
-            } catch (e) {}
-
-            // 3. عرض شاشة خروج واضحة ورسمية تملأ الشاشة فوراً
-            // بحيث لا يشعر المندوب أن الضغط على الزر لم يفعل شيئاً في متصفحات الجوال التي تحظر window.close
-            let exitOverlay = document.getElementById('appTerminatedScreen');
-            if (!exitOverlay) {
-                exitOverlay = document.createElement('div');
-                exitOverlay.id = 'appTerminatedScreen';
-                exitOverlay.innerHTML = `
-                    <div style="position:fixed;inset:0;background:#0f172a;color:#fff;z-index:999999;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;direction:rtl;font-family:system-ui,-apple-system,sans-serif;">
-                        <div style="font-size:4.5rem;margin-bottom:16px;">🚪</div>
-                        <h2 style="font-size:1.6rem;margin-bottom:10px;font-weight:800;color:#f8fafc;">تم إغلاق التطبيق بنجاح</h2>
-                        <p style="color:#94a3b8;font-size:0.95rem;max-width:320px;line-height:1.6;margin-bottom:24px;">
-                            تم إنهاء جلسة العمل بأمان. يمكنك الآن إغلاق هذا التبويب أو التمرير للعودة إلى شاشة هاتفك الرئيسية.
-                        </p>
-                        <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;">
-                            <button onclick="window.close()" style="background:#334155;color:#e2e8f0;border:1px solid #475569;padding:12px 22px;border-radius:12px;font-size:0.9rem;font-weight:600;cursor:pointer;">
-                                ✕ إغلاق التبويب الآن
-                            </button>
-                            <button onclick="location.reload()" style="background:#2563eb;color:#fff;border:none;padding:12px 22px;border-radius:12px;font-size:0.9rem;font-weight:700;cursor:pointer;box-shadow:0 4px 12px rgba(37,99,235,0.35);">
-                                🔄 إعادة فتح التطبيق
-                            </button>
-                        </div>
-                    </div>
-                `;
-                document.body.appendChild(exitOverlay);
-            } else {
-                exitOverlay.style.display = 'block';
-            }
-
-            // 4. محاولة الرجوع بالسجل للخروج من تاريخ التصفح إن أمكن
-            try {
-                if (window.history.length > 1) {
-                    window.history.go(-(window.history.length));
-                }
-            } catch (e) {}
+        function exploreOrdersFromWelcome() {
+            closeWelcomeModal();
+            openSwipeableCardsModal();
         }
 
-        // اعتراض زر الرجوع لمنع الخروج المفاجئ وإغلاق النوافذ أولاً
-        window.addEventListener('popstate', (e) => {
-            if (isExitingApp) return;
+        let currentSwipeIndex = 0;
+        let swipeCardsList = [];
 
-            // إذا كان الرجوع بسبب إغلاق نافذة أو مودال برمجياً (مثل النقر على X أو إغلاق الفاتورة)
+        function openSwipeableCardsModal() {
+            const activeOrders = (currentOrders || []).filter(o => !['تم التسليم', 'فشل التسليم', 'ملغي'].includes(o.status));
+            swipeCardsList = activeOrders.length > 0 ? activeOrders : (currentOrders || []);
+
+            const modal = document.getElementById('swipeCardsModal');
+            const overlay = document.getElementById('swipeCardsOverlay');
+            const track = document.getElementById('swipeCardsTrack');
+            const counter = document.getElementById('swipeCardsCounter');
+            const dotsContainer = document.getElementById('swipeDotsContainer');
+
+            if (!modal || !overlay || !track) return;
+
+            currentSwipeIndex = 0;
+
+            if (swipeCardsList.length === 0) {
+                track.innerHTML = `
+                    <div style="text-align:center; padding:50px 20px; color:var(--text-muted); width:100%; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+                        <span style="font-size:3.5rem; display:block; margin-bottom:12px;">🎉</span>
+                        <h3 style="color:var(--text-primary); margin-bottom:8px; font-size:1.15rem;">لا توجد طلبات معلقة حالياً</h3>
+                        <p style="font-size:0.88rem; max-width:280px; line-height:1.6;">جميع طلباتك مكتملة أو لم تُسند إليك طلبات جديدة بعد.</p>
+                        <button class="btn btn-primary" onclick="closeSwipeableCardsModal()" style="margin-top:20px; width:fit-content; padding:10px 24px; border-radius:12px;">العودة للقائمة الرئيسية</button>
+                    </div>
+                `;
+                if (counter) counter.textContent = '0 طلب';
+                if (dotsContainer) dotsContainer.innerHTML = '';
+                overlay.classList.add('active');
+                modal.classList.add('active');
+                return;
+            }
+
+            let slidesHtml = '';
+            swipeCardsList.forEach((order, idx) => {
+                const isPrepaid = isPrepaidOrder(order);
+                const isCompleted = order.status === 'تم التسليم';
+                const isFailed = order.status === 'فشل التسليم';
+                const isReturned = order.status === 'مرتجع جزئي' || order.status === 'مرتجع كلي';
+                const isCancelled = order.status === 'ملغي';
+                const statusText = order.status || 'جديد';
+                const items = [...(order.items || [])].sort((a, b) => (b.id || 0) - (a.id || 0));
+                const dueAmount = getOrderDueAmount(order);
+
+                let formattedDate = 'غير محدد';
+                const rawDate = order.order_date || order.created_at;
+                if (rawDate) {
+                    const dateObj = new Date(rawDate.replace(' ', 'T') + 'Z');
+                    formattedDate = dateObj.toLocaleString('ar-SA', {
+                        year: 'numeric', month: '2-digit', day: '2-digit',
+                        hour: '2-digit', minute: '2-digit', hour12: true
+                    });
+                }
+
+                const orderNote = order.notes || order.note || '';
+                const addressText = order.customer_address || '';
+                const mapUrl = detectMapLink(addressText + ' ' + orderNote);
+                let mapBtn = mapUrl ? `<a href="${mapUrl}" target="_blank" class="map-link" style="flex:1; text-align:center;">🗺️ فتح الخريطة</a>` : '';
+
+                let phones = [];
+                if (Array.isArray(order.customer_phones) && order.customer_phones.length > 0) phones = order.customer_phones;
+                else if (order.customer_phone) phones = order.customer_phone.split(/[,-]/).map(p => p.trim()).filter(Boolean);
+
+                let phoneBtns = '';
+                if (phones.length > 0) {
+                    phones.forEach(p => {
+                        const clean = p.replace(/\D/g,'');
+                        if (clean) {
+                            phoneBtns += `
+                                <a href="tel:${clean}" class="call" style="flex:1; text-align:center;">📞 ${p}</a>
+                                <a href="https://wa.me/${clean}" target="_blank" class="whatsapp" style="flex:1; text-align:center;">💬 واتس</a>
+                            `;
+                        }
+                    });
+                }
+
+                const cleanNote = mapUrl ? orderNote.replace(mapUrl, '').trim() : orderNote;
+                const noteHtml = cleanNote ? `<div class="order-note" style="margin:6px 0;">📝 ${cleanNote}</div>` : '';
+
+                let statusBadgeClass = 'badge-new';
+                switch (order.status) {
+                    case 'تم التسليم': statusBadgeClass = 'badge-delivered'; break;
+                    case 'فشل التسليم': statusBadgeClass = 'badge-failed'; break;
+                    case 'قيد التوصيل': statusBadgeClass = 'badge-progress'; break;
+                    case 'مرتجع جزئي':
+                    case 'مرتجع كلي': statusBadgeClass = 'badge-returned'; break;
+                    case 'ملغي': statusBadgeClass = 'badge-failed'; break;
+                }
+
+                const isFinished = ['تم التسليم', 'فشل التسليم', 'ملغي', 'مرتجع جزئي', 'مرتجع كلي'].includes(statusText);
+                const hasManyItems = items.length > 3;
+                const remainingCount = Math.max(0, items.length - 3);
+
+                const itemsBadge = hasManyItems 
+                    ? `<span class="badge-items-count badge-items-many">📦 ${items.length} أصناف <span class="remaining-items-pill">متبقي ${remainingCount}</span></span>`
+                    : (items.length > 0 ? `<span class="badge-items-count badge-items-normal">📦 ${items.length} أصناف</span>` : '');
+
+                let itemsPreviewHtml = '';
+                const showAll = items.length <= 3;
+                const displayed = showAll ? items : items.slice(0, 3);
+                displayed.forEach(it => {
+                    const itNote = it.note || it.notes || it.product_note || '';
+                    const nCell = itNote ? `<span class="item-note">📌 ${itNote}</span>` : '';
+                    itemsPreviewHtml += `<tr><td>${it.product_name || it.product_id}</td><td>${it.quantity}</td><td>${it.unit_price}</td><td>${it.line_total}</td><td>${nCell}</td></tr>`;
+                });
+
+                let moreRow = !showAll ? `
+                    <tr>
+                        <td colspan="5" style="text-align:center; padding:6px 4px;">
+                            <button type="button" class="btn-more-items-highlight" onclick="closeSwipeableCardsModal(); showInvoice('${order.id}')">
+                                <span>⚠️ متبقي ${remainingCount} أصناف أخرى (إجمالي ${items.length})</span>
+                                <span style="font-size:0.68rem; opacity:0.95;">اضغط لعرض الفاتورة بالكامل 📄</span>
+                            </button>
+                        </td>
+                    </tr>
+                ` : '';
+
+                let actionsHtml = '';
+                if (isReturned || isCancelled) {
+                    actionsHtml = `<div style="text-align:center; color:var(--text-muted); font-size:0.75rem; padding:6px;">🔁 طلب مرتجع/ملغي</div>`;
+                } else if (isFinished) {
+                    actionsHtml = `<div style="text-align:center; color:var(--text-muted); font-size:0.75rem; padding:6px;">✔️ تم الانتهاء من الطلب</div>`;
+                } else {
+                    actionsHtml = `
+                        <div class="action-buttons" style="margin-top:8px;">
+                            <button class="btn btn-success" onclick="closeSwipeableCardsModal(); openDeliveryModal('${order.id}', 'تم التوصيل')">✅ تم</button>
+                            <button class="btn btn-danger" onclick="closeSwipeableCardsModal(); openDeliveryModal('${order.id}', 'فشل')">❌ فشل</button>
+                        </div>
+                    `;
+                }
+
+                slidesHtml += `
+                    <div class="swipe-card-slide ${hasManyItems ? 'has-many-items' : ''}" data-index="${idx}" data-order-id="${order.id}">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                            <div style="font-size:0.72rem; color:var(--primary); font-weight:600; background:var(--surface-secondary); padding:3px 8px; border-radius:6px;">
+                                🕒 ${formattedDate}
+                            </div>
+                            <span style="font-size:0.72rem; color:var(--text-muted); font-weight:700;">بطاقة ${idx + 1} من ${swipeCardsList.length}</span>
+                        </div>
+
+                        <div class="order-header" style="margin-bottom:8px;">
+                            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                                <span class="order-id" style="font-size:1.05rem;">📦 طلب #${order.id}</span>
+                                ${itemsBadge}
+                            </div>
+                            <span class="order-status-badge ${statusBadgeClass}">${statusText}</span>
+                        </div>
+
+                        <div class="customer-info" style="margin-bottom:8px;">
+                            <div class="info-row"><span class="info-icon">👤</span> <strong>${order.customer_name}</strong></div>
+                            <div class="info-row"><span class="info-icon">📍</span> ${addressText.replace(mapUrl||'', '').trim() || 'لا يوجد عنوان'}</div>
+                            <div class="phone-actions" style="margin-top:6px; display:flex; gap:6px; flex-wrap:wrap;">
+                                ${phoneBtns}
+                                ${mapBtn}
+                            </div>
+                        </div>
+
+                        ${noteHtml}
+
+                        <div class="order-items-preview" style="margin:6px 0;">
+                            <table>
+                                <thead><tr><th>المنتج</th><th>الكمية</th><th>السعر</th><th>الإجمالي</th><th>ملاحظة</th></tr></thead>
+                                <tbody>${itemsPreviewHtml}${moreRow}</tbody>
+                            </table>
+                        </div>
+
+                        <div class="amount-info" style="margin:6px 0;">
+                            <span>💰 ${order.total_amount} ريال</span>
+                            ${order.delivery_fee ? `<span>🚚 ${order.delivery_fee}</span>` : ''}
+                            <span>${isPrepaid ? '💳 مدفوع مسبقاً' : '💵 عند الاستلام'}</span>
+                            ${dueAmount > 0 ? `<span class="due-group"><span class="due">المستحق: ${dueAmount.toFixed(2)} ريال</span></span>` : ''}
+                        </div>
+
+                        <button type="button" class="btn-full-invoice ${hasManyItems ? 'has-many' : ''}" style="margin:6px 0;" onclick="closeSwipeableCardsModal(); showInvoice('${order.id}')">
+                            📄 عرض تفاصيل الفاتورة كاملة ${hasManyItems ? `(🔥 متبقي ${remainingCount})` : ''}
+                        </button>
+
+                        ${actionsHtml}
+                    </div>
+                `;
+            });
+
+            track.innerHTML = slidesHtml;
+
+            let dotsHtml = '';
+            swipeCardsList.forEach((_, i) => {
+                dotsHtml += `<div class="swipe-dot ${i === 0 ? 'active' : ''}" onclick="goToSwipeCard(${i})"></div>`;
+            });
+            if (dotsContainer) dotsContainer.innerHTML = dotsHtml;
+
+            updateSwipeUI();
+
+            track.onscroll = () => {
+                clearTimeout(track._scrollTimer);
+                track._scrollTimer = setTimeout(() => {
+                    const cardWidth = track.firstElementChild ? track.firstElementChild.offsetWidth + 16 : 1;
+                    const newIndex = Math.round(track.scrollLeft / cardWidth);
+                    if (newIndex >= 0 && newIndex < swipeCardsList.length && newIndex !== currentSwipeIndex) {
+                        currentSwipeIndex = newIndex;
+                        updateSwipeUI();
+                    }
+                }, 60);
+            };
+
+            overlay.classList.add('active');
+            modal.classList.add('active');
+        }
+
+        function updateSwipeUI() {
+            const counter = document.getElementById('swipeCardsCounter');
+            if (counter && swipeCardsList.length > 0) {
+                counter.textContent = `طلب ${currentSwipeIndex + 1} من ${swipeCardsList.length}`;
+            }
+
+            const prevBtn = document.getElementById('swipePrevBtn');
+            const nextBtn = document.getElementById('swipeNextBtn');
+            if (prevBtn) prevBtn.disabled = currentSwipeIndex <= 0;
+            if (nextBtn) nextBtn.disabled = currentSwipeIndex >= swipeCardsList.length - 1;
+
+            const dots = document.querySelectorAll('.swipe-dot');
+            dots.forEach((dot, idx) => {
+                if (idx === currentSwipeIndex) dot.classList.add('active');
+                else dot.classList.remove('active');
+            });
+        }
+
+        function goToSwipeCard(index) {
+            if (index < 0 || index >= swipeCardsList.length) return;
+            currentSwipeIndex = index;
+            const track = document.getElementById('swipeCardsTrack');
+            const slide = track ? track.children[index] : null;
+            if (slide) {
+                slide.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+            }
+            updateSwipeUI();
+        }
+
+        function swipeNextCard() {
+            if (currentSwipeIndex < swipeCardsList.length - 1) {
+                goToSwipeCard(currentSwipeIndex + 1);
+            }
+        }
+
+        function swipePrevCard() {
+            if (currentSwipeIndex > 0) {
+                goToSwipeCard(currentSwipeIndex - 1);
+            }
+        }
+
+        function closeSwipeableCardsModal() {
+            const modal = document.getElementById('swipeCardsModal');
+            const overlay = document.getElementById('swipeCardsOverlay');
+            if (modal) modal.classList.remove('active');
+            if (overlay) overlay.classList.remove('active');
+        }
+
+        // معالجة الرجوع لإغلاق النوافذ المفتوحة أولاً بسلاسة دون اعتراض الخروج من التطبيق
+        window.addEventListener('popstate', (e) => {
             if (ignoreNextPopState) {
                 ignoreNextPopState = false;
                 clearTimeout(ignorePopStateTimer);
                 return;
             }
 
-            // 1. إذا كانت الفاتورة مفتوحة -> إغلاق الفاتورة فقط والعودة للطلبات دون خروج ودون رسائل
+            // 1. إذا كان عارض البطاقات مفتوحاً -> إغلاقه
+            const swipeModal = document.getElementById('swipeCardsModal');
+            if (swipeModal && swipeModal.classList.contains('active')) {
+                closeSwipeableCardsModal();
+                return;
+            }
+
+            // 2. إذا كانت نافذة الترحيب مفتوحة -> إغلاقها
+            const welcomeModal = document.getElementById('welcomeModal');
+            if (welcomeModal && welcomeModal.classList.contains('active')) {
+                closeWelcomeModal();
+                return;
+            }
+
+            // 3. إذا كانت الفاتورة مفتوحة -> إغلاقها
             const invoiceSheet = document.getElementById('invoiceSheet');
             if (invoiceSheet && invoiceSheet.classList.contains('active')) {
                 closeInvoiceModal(false);
                 return;
             }
 
-            // 2. إذا كان مودال التوصيل مفتوحاً -> إغلاقه فقط
+            // 4. إذا كان مودال التوصيل مفتوحاً -> إغلاقه
             const modalSheet = document.getElementById('modalSheet');
             if (modalSheet && modalSheet.classList.contains('active')) {
                 closeModalSheet(false);
                 return;
             }
 
-            // 3. إذا كان مودال تأكيد الخروج مفتوحاً -> إغلاقه
-            const exitModal = document.getElementById('exitConfirmModal');
-            if (exitModal && exitModal.classList.contains('active')) {
-                closeExitModal();
-                return;
-            }
-
-            // 4. إذا كانت لوحة الاتصال مفتوحة -> إغلاقها
+            // 5. إذا كانت لوحة الاتصال مفتوحة -> إغلاقها
             const connPanel = document.getElementById('connectionPanel');
             if (connPanel && connPanel.classList.contains('show')) {
                 connPanel.classList.remove('show');
                 return;
             }
 
-            // 5. إذا كان المستخدم في الشاشة الرئيسية وضغط زر الرجوع للخروج من التطبيق:
-            // إعادة الحالة لمنع المتصفح من إغلاق التطبيق مباشرة، ثم سؤاله للتأكيد
-            try {
-                history.pushState({ app: 'driver-main' }, '');
-            } catch (err) {}
-            showExitConfirmationModal();
+            // السماح للمتصفح بالرجوع الطبيعي دون أي حظر أو نوافذ تأكيد خروج
         });
 
         async function initApp() {
             updateEnhancedConnectionStatus();
             loadFilterSettings();
-
-            // تهيئة السجل لحماية الرجوع ومنع الخروج العرضي
-            try {
-                if (!history.state || !history.state.root) {
-                    history.replaceState({ root: true, page: 'root' }, '');
-                    history.pushState({ app: 'driver-main' }, '');
-                }
-            } catch (e) {}
 
             const token = getToken();
             const driverId = getDriverId();
@@ -3433,6 +3997,9 @@ function renderOrders(orders) {
 
             // 2. تشغيل مهام الخلفية بشكل مستقل دون حظر الواجهة إطلاقاً
             runBackgroundStartupTasks();
+
+            // 3. عرض رسالة الترحيب والتشجيع اليومية للمندوب مع إحصائية الطلبات
+            checkAndShowWelcomePrompt();
         }
 
         function runBackgroundStartupTasks() {
@@ -3530,9 +4097,13 @@ function renderOrders(orders) {
         window.instantRenderFromCache = instantRenderFromCache;
         window.updateNavSelection = updateNavSelection;
         window.initApp = initApp;
-        window.closeExitModal = closeExitModal;
-        window.confirmExitApp = confirmExitApp;
-        window.showExitConfirmationModal = showExitConfirmationModal;
+        window.showWelcomeEncouragementModal = showWelcomeEncouragementModal;
+        window.closeWelcomeModal = closeWelcomeModal;
+        window.openSwipeableCardsModal = openSwipeableCardsModal;
+        window.closeSwipeableCardsModal = closeSwipeableCardsModal;
+        window.swipeNextCard = swipeNextCard;
+        window.swipePrevCard = swipePrevCard;
+        window.goToSwipeCard = goToSwipeCard;
 
         const styleEl = document.createElement('style');
         styleEl.textContent = `
