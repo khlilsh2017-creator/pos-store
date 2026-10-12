@@ -1926,11 +1926,22 @@ function renderOrders(orders) {
             `;
         }
 
+        let ignoreNextPopState = false;
+        let ignorePopStateTimer = null;
+        function setIgnoreNextPopState() {
+            ignoreNextPopState = true;
+            clearTimeout(ignorePopStateTimer);
+            ignorePopStateTimer = setTimeout(() => {
+                ignoreNextPopState = false;
+            }, 600);
+        }
+
         function closeInvoiceModal(updateHistory = true) {
             document.getElementById('invoiceSheet')?.classList.remove('active');
             document.getElementById('invoiceOverlay')?.classList.remove('active');
             if (updateHistory && history.state && history.state.modal === 'invoice') {
-                try { history.back(); } catch (e) {}
+                setIgnoreNextPopState();
+                try { history.back(); } catch (e) { ignoreNextPopState = false; }
             }
         }
 
@@ -1945,7 +1956,7 @@ function renderOrders(orders) {
                 <h3>🔄 تم تحديث طلب</h3>
                 <p>تم تحديث الطلب #${orderId}، هل تريد عرضه؟</p>
                 <div style="display:flex; gap:10px; margin-top:20px;">
-                    <button class="btn btn-primary" onclick="viewOrder('${orderId}'); closeModalSheet();">🔍 عرض الطلب</button>
+                    <button class="btn btn-primary" onclick="closeModalSheet(false); viewOrder('${orderId}');">🔍 عرض الطلب</button>
                     <button class="btn btn-outline" onclick="closeModalSheet();">⏳ لاحقاً</button>
                 </div>
             `;
@@ -2943,7 +2954,8 @@ function renderOrders(orders) {
             }
             isSubmitting = false;
             if (updateHistory && history.state && history.state.modal === 'delivery') {
-                try { history.back(); } catch (e) {}
+                setIgnoreNextPopState();
+                try { history.back(); } catch (e) { ignoreNextPopState = false; }
             }
         }
 
@@ -3226,7 +3238,14 @@ function renderOrders(orders) {
         window.addEventListener('popstate', (e) => {
             if (isExitingApp) return;
 
-            // 1. إذا كانت الفاتورة مفتوحة -> إغلاق الفاتورة فقط والعودة للطلبات دون خروج
+            // إذا كان الرجوع بسبب إغلاق نافذة أو مودال برمجياً (مثل النقر على X أو إغلاق الفاتورة)
+            if (ignoreNextPopState) {
+                ignoreNextPopState = false;
+                clearTimeout(ignorePopStateTimer);
+                return;
+            }
+
+            // 1. إذا كانت الفاتورة مفتوحة -> إغلاق الفاتورة فقط والعودة للطلبات دون خروج ودون رسائل
             const invoiceSheet = document.getElementById('invoiceSheet');
             if (invoiceSheet && invoiceSheet.classList.contains('active')) {
                 closeInvoiceModal(false);
