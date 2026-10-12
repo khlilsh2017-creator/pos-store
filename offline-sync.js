@@ -1,11 +1,13 @@
 /* واجهة المزامنة الدائمة للصفحات */
 (function () {
   'use strict';
+  const isSupportedProtocol = location.protocol === 'http:' || location.protocol === 'https:';
   const path = window.location.pathname;
-  const isPhone = path.startsWith('/phone/');
-  const isDriver = path === '/driver' || path.startsWith('/driver/');
-  const swUrl = isPhone ? '/phone/sw_phone.js' : isDriver ? '/driver/sw_driver.js' : '/sw.js';
-  const scope = isPhone ? '/phone/' : isDriver ? '/driver/' : '/';
+  const isPhone = path.includes('/phone/');
+  const isDriver = path.includes('/driver/') || path.endsWith('/driver');
+  const posPrefix = path.includes('/pos/') ? '/pos' : '';
+  const swUrl = isPhone ? `${posPrefix}/phone/sw_phone.js` : isDriver ? `${posPrefix}/driver/sw_driver.js` : `${posPrefix}/sw.js`;
+  const scope = isPhone ? `${posPrefix}/phone/` : isDriver ? `${posPrefix}/driver/` : `${posPrefix}/`;
   let registration = null;
   let status = navigator.onLine ? 'online' : 'offline';
   let pending = 0;
@@ -31,7 +33,7 @@
     setIndicator(status, pending);
   }
   async function register() {
-    if (!('serviceWorker' in navigator)) return null;
+    if (!('serviceWorker' in navigator) || !isSupportedProtocol) return null;
     try {
       registration = await navigator.serviceWorker.register(swUrl, { scope });
       await navigator.serviceWorker.ready;
@@ -43,6 +45,7 @@
     } catch (error) { console.warn('تعذر تفعيل المزامنة المحلية:', error); return null; }
   }
   async function syncNowUnlocked() {
+    if (!isSupportedProtocol) return false;
     const reg = registration || await register();
     if (!reg) return false;
     const active = reg.active || navigator.serviceWorker.controller;
@@ -90,16 +93,18 @@
     createIndicator();
     window.addEventListener('online', () => { setIndicator('online'); syncNow(); });
     window.addEventListener('offline', () => setIndicator('offline'));
-    navigator.serviceWorker?.addEventListener('message', event => {
-      const data = event.data || {};
-      if (data.type === 'OFFLINE_SYNC_STATUS' || data.type === 'SYNC_STATUS') {
-        setIndicator(data.status || 'idle', data.pending || 0);
-        if (data.status === 'completed' && typeof window.refreshAfterOfflineSync === 'function') window.refreshAfterOfflineSync();
-      }
-    });
+    if (isSupportedProtocol) {
+      navigator.serviceWorker?.addEventListener('message', event => {
+        const data = event.data || {};
+        if (data.type === 'OFFLINE_SYNC_STATUS' || data.type === 'SYNC_STATUS') {
+          setIndicator(data.status || 'idle', data.pending || 0);
+          if (data.status === 'completed' && typeof window.refreshAfterOfflineSync === 'function') window.refreshAfterOfflineSync();
+        }
+      });
+      register().then(() => { if (navigator.onLine) syncNow(); });
+      setInterval(() => { if (navigator.onLine) syncNow(); }, 60 * 1000);
+    }
     window.POSOffline = { syncNow, status: () => ({ status, pending }), retryBlocked: async () => { const reg = registration || await register(); (reg?.active || navigator.serviceWorker.controller)?.postMessage({ type: 'OFFLINE_RETRY_BLOCKED' }); } };
-    register().then(() => { if (navigator.onLine) syncNow(); });
-    setInterval(() => { if (navigator.onLine) syncNow(); }, 60 * 1000);
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', install, { once: true }); else install();
 })();

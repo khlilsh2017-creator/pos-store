@@ -186,6 +186,33 @@
         @media (max-width:380px) { .balance-amount { font-size:1.6rem; } .stat-value { font-size:1rem; } .btn { font-size:0.7rem; padding:7px 8px; } }
     
 .connection-panel{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 12px;margin:8px 12px;border-radius:12px;font-size:.78rem;transition:.25s ease}.connection-panel.online{background:#ecfdf5;color:#166534;border:1px solid #bbf7d0}.connection-panel.offline{background:#fff7ed;color:#9a3412;border:1px solid #fed7aa}.sync-status.sync-running{background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe}.sync-status.sync-success{background:#ecfdf5;color:#166534;border:1px solid #bbf7d0}.sync-status.sync-error{background:#fff7ed;color:#9a3412;border:1px solid #fed7aa}.sync-spinner{display:inline-block;width:14px;height:14px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:syncSpin .8s linear infinite}@keyframes syncSpin{to{transform:rotate(360deg)}}
+
+        /* Skeleton Loading Animations */
+        @keyframes skeletonShimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        .skeleton-box {
+            background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+            background-size: 200% 100%;
+            animation: skeletonShimmer 1.5s infinite ease-in-out;
+            border-radius: var(--radius-xs);
+        }
+        .skeleton-card {
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 16px;
+            margin-bottom: 12px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-sm);
+        }
+        .skeleton-balance {
+            background: linear-gradient(135deg, #1e3a5f, #0f172a);
+            border-radius: var(--radius);
+            padding: 20px;
+            margin-bottom: 14px;
+            box-shadow: var(--shadow);
+        }
 </style>
 </head>
 <body>
@@ -198,7 +225,7 @@
                     🔔 <span class="badge-dot"></span>
                 </button>
                 <div class="driver-info">
-                    <span class="connection-label" id="connectionLabel">متصل</span>
+                    <span class="connection-label" id="headerConnectionLabel">متصل</span>
                     <span class="driver-badge" id="driverNameDisplay">مندوب</span>
                     <button class="logout-btn" onclick="logout()">خروج</button>
                 </div>
@@ -332,6 +359,22 @@
             await put(STORES.ORDERS, order);
         }
 
+        async function bulkPutOrders(orders, driverId) {
+            if (!orders || orders.length === 0) return;
+            const db = await openDB();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(STORES.ORDERS, 'readwrite');
+                const store = tx.objectStore(STORES.ORDERS);
+                for (const order of orders) {
+                    if (driverId && !order.driver_id) order.driver_id = Number(driverId);
+                    store.put(order);
+                }
+                tx.oncomplete = () => resolve();
+                tx.onerror = () => reject(tx.error);
+                tx.onabort = () => reject(tx.error);
+            });
+        }
+
         function generateOperationId() {
             if (window.crypto && typeof window.crypto.randomUUID === 'function') {
                 return window.crypto.randomUUID();
@@ -397,8 +440,8 @@
 
             for (const op of pending) {
                 if (op.store !== STORES.ORDERS || op.type !== 'update') continue;
-                const orderId = Number(op.data.order_id);
-                const order = result.find(item => Number(item.id) === orderId);
+                const orderId = String(op.data.order_id);
+                const order = result.find(item => String(item.id) === orderId);
                 if (!order) continue;
 
                 if (op.data.delivery_status) {
@@ -417,46 +460,104 @@
             return result;
         }
 
-        async function markOperationSynced(opId) {
+        async function markOperationSynced(opKey) {
+            if (opKey === undefined || opKey === null) return;
             const db = await openDB();
             return new Promise((resolve, reject) => {
                 const tx = db.transaction(STORES.OPERATIONS, 'readwrite');
                 const store = tx.objectStore(STORES.OPERATIONS);
-                const request = store.get(opId);
-                request.onsuccess = () => {
-                    const op = request.result;
-                    if (op) { op.synced = true; store.put(op); }
+                const handleOp = (op) => {
+                    if (op) { op.synced = true; op.synced_at = new Date().toISOString(); store.put(op); }
                     resolve();
                 };
-                request.onerror = () => reject(request.error);
+                if (typeof opKey === 'string' && isNaN(Number(opKey))) {
+                    try {
+                        const index = store.index('operation_id');
+                        const req = index.get(opKey);
+                        req.onsuccess = () => handleOp(req.result);
+                        req.onerror = () => reject(req.error);
+                    } catch (e) {
+                        const req = store.getAll();
+                        req.onsuccess = () => {
+                            const found = (req.result || []).find(x => x.operation_id === opKey);
+                            handleOp(found);
+                        };
+                        req.onerror = () => reject(req.error);
+                    }
+                } else {
+                    const req = store.get(Number(opKey) || opKey);
+                    req.onsuccess = () => handleOp(req.result);
+                    req.onerror = () => reject(req.error);
+                }
             });
         }
 
-        async function deleteOperation(opId) {
+        async function deleteOperation(opKey) {
+            if (opKey === undefined || opKey === null) return;
             const db = await openDB();
             return new Promise((resolve, reject) => {
                 const tx = db.transaction(STORES.OPERATIONS, 'readwrite');
                 const store = tx.objectStore(STORES.OPERATIONS);
-                const request = store.delete(opId);
-                request.onsuccess = () => resolve();
-                request.onerror = () => reject(request.error);
+                if (typeof opKey === 'string' && isNaN(Number(opKey))) {
+                    try {
+                        const index = store.index('operation_id');
+                        const req = index.getKey(opKey);
+                        req.onsuccess = () => {
+                            if (req.result !== undefined) {
+                                store.delete(req.result);
+                            }
+                            resolve();
+                        };
+                        req.onerror = () => reject(req.error);
+                    } catch (e) {
+                        const req = store.getAll();
+                        req.onsuccess = () => {
+                            const found = (req.result || []).find(x => x.operation_id === opKey);
+                            if (found && found.id !== undefined) store.delete(found.id);
+                            resolve();
+                        };
+                        req.onerror = () => reject(req.error);
+                    }
+                } else {
+                    const req = store.delete(Number(opKey) || opKey);
+                    req.onsuccess = () => resolve();
+                    req.onerror = () => reject(req.error);
+                }
             });
         }
 
         // =============================================================
         // 3. دوال المزامنة والعداد
         // =============================================================
+        async function countPendingOperations() {
+            const db = await openDB();
+            return new Promise((resolve) => {
+                try {
+                    const tx = db.transaction(STORES.OPERATIONS, 'readonly');
+                    const store = tx.objectStore(STORES.OPERATIONS);
+                    const index = store.index('synced');
+                    const countRequest = index.count(IDBKeyRange.only(false));
+                    countRequest.onsuccess = () => resolve(countRequest.result || 0);
+                    countRequest.onerror = () => {
+                        getPendingOperations().then(ops => resolve(ops.length)).catch(() => resolve(0));
+                    };
+                } catch (e) {
+                    getPendingOperations().then(ops => resolve(ops.length)).catch(() => resolve(0));
+                }
+            });
+        }
+
         async function updateSyncCounter() {
-            const pending = await getPendingOperations();
+            const pendingCount = await countPendingOperations();
             const statusEl = document.getElementById('syncStatus');
             const countEl = document.getElementById('syncCount');
-            if (pending.length > 0 && statusEl) {
+            if (pendingCount > 0 && statusEl) {
                 statusEl.classList.remove('hidden');
-                if (countEl) countEl.textContent = pending.length;
+                if (countEl) countEl.textContent = pendingCount;
             } else if (statusEl) {
                 statusEl.classList.add('hidden');
             }
-            return pending.length;
+            return pendingCount;
         }
 
         function markOrderAsPending(orderId) {
@@ -473,30 +574,56 @@
         // =============================================================
         // Background Sync + ترقية IndexedDB الآمنة + مؤشرات الحالة
         // =============================================================
-        const BACKGROUND_SYNC_TAG = 'driver-orders-pending-v1';
+        const BACKGROUND_SYNC_TAG = 'driver-orders-pending-v3';
+
+        async function getSafeSWRegistration(timeoutMs = 1500) {
+            if (swRegistration) return swRegistration;
+            if (!('serviceWorker' in navigator)) return null;
+            try {
+                return await Promise.race([
+                    navigator.serviceWorker.ready,
+                    new Promise(res => setTimeout(() => res(null), timeoutMs))
+                ]);
+            } catch (e) {
+                return null;
+            }
+        }
 
         async function sendTokenToServiceWorker() {
             const token = getToken();
             if (!token || !('serviceWorker' in navigator)) return;
-            const registration = swRegistration || await navigator.serviceWorker.ready;
-            registration.active?.postMessage({ type: 'DRIVER_SET_SYNC_TOKEN', token });
+            try {
+                const registration = await getSafeSWRegistration();
+                if (registration && registration.active) {
+                    registration.active.postMessage({ type: 'DRIVER_SET_SYNC_TOKEN', token });
+                }
+            } catch (e) {
+                console.warn('تعذر إرسال التوكن لـ SW:', e);
+            }
         }
 
         async function registerBackgroundSync() {
             if (!('serviceWorker' in navigator)) return false;
-            const registration = swRegistration || await navigator.serviceWorker.ready;
-            if (!registration.sync) return false;
-            await registration.sync.register(BACKGROUND_SYNC_TAG);
-            return true;
+            try {
+                const registration = await getSafeSWRegistration();
+                if (!registration || !registration.sync) return false;
+                await registration.sync.register(BACKGROUND_SYNC_TAG);
+                return true;
+            } catch (e) {
+                console.warn('تعذر تسجيل Background Sync:', e);
+                return false;
+            }
         }
 
         function updateEnhancedConnectionStatus() {
             const online = navigator.onLine;
             const dot = document.getElementById('connectionStatus');
             const label = document.getElementById('connectionLabel');
+            const headerLabel = document.getElementById('headerConnectionLabel');
             const panel = document.getElementById('connectionPanel');
             const hint = document.getElementById('connectionHint');
             if (dot) dot.className = 'online-status ' + (online ? 'online' : 'offline');
+            if (headerLabel) headerLabel.textContent = online ? 'متصل' : 'غير متصل';
             if (label) label.textContent = online ? 'متصل — جاهز للمزامنة' : 'غير متصل — سيتم الحفظ محلياً';
             if (hint) hint.textContent = online ? 'تتم مزامنة العمليات المعلقة تلقائياً' : 'ستُرسل العمليات عند عودة الاتصال';
             if (panel) panel.className = 'connection-panel ' + (online ? 'online' : 'offline');
@@ -526,6 +653,8 @@
         }
 
         async function prepareDatabaseUpgradeSafely() {
+            const UPGRADE_KEY = 'db_upgrade_safe_v10_done';
+            if (localStorage.getItem(UPGRADE_KEY)) return;
             let oldDb = null;
             try { oldDb = await openCurrentDbForMigration(); } catch (e) { console.warn('تعذر فتح قاعدة البيانات القديمة:', e); return; }
             if (!oldDb || !oldDb.objectStoreNames.contains(STORES.OPERATIONS) || !navigator.onLine || !getToken()) { oldDb?.close(); return; }
@@ -537,19 +666,74 @@
                         if (response.ok || response.status === 409) await new Promise((resolve,reject) => { const tx=oldDb.transaction(STORES.OPERATIONS,'readwrite'); const store=tx.objectStore(STORES.OPERATIONS); const r=store.get(op.id); r.onsuccess=()=>{if(r.result){r.result.synced=true;r.result.synced_at=new Date().toISOString();store.put(r.result)}}; tx.oncomplete=resolve; tx.onerror=()=>reject(tx.error); });
                     } catch (e) { console.warn('ستبقى العملية للمزامنة اللاحقة:', op.operation_id); }
                 }
+                localStorage.setItem(UPGRADE_KEY, 'true');
             } finally { oldDb.close(); }
         }
 
         async function syncBeforeDashboardLoad() {
             if (!navigator.onLine || !getToken()) return;
-            await sendTokenToServiceWorker();
-            await registerBackgroundSync();
-            await syncAllOperations();
+            try {
+                await sendTokenToServiceWorker();
+                await registerBackgroundSync();
+                await syncAllOperations();
+            } catch (err) {
+                console.warn('تعذر المزامنة السريعة قبل تحميل اللوحة:', err);
+            }
+        }
+
+        let swMessageListenerAttached = false;
+        function setupCentralSWMessageListener() {
+            if (!navigator.serviceWorker || swMessageListenerAttached) return;
+            swMessageListenerAttached = true;
+
+            navigator.serviceWorker.addEventListener('message', event => {
+                const data = event.data || {};
+
+                if (data.action === 'reload' || data === 'skipWaiting') {
+                    console.log('🔄 إعادة تحميل الصفحة بأمر من Service Worker');
+                    window.location.reload(true);
+                    return;
+                }
+
+                if (data.type === 'SYNC_STATUS') {
+                    updateEnhancedSyncIndicator(data.status, data.pending || 0, data.synced || 0);
+                    if (data.status === 'completed') {
+                        refreshOrders();
+                    }
+                    return;
+                }
+
+                if (data.type === 'NEW_NOTIFICATION') {
+                    const payload = data.payload || {};
+                    showToast(`📩 ${payload.title || 'إشعار'}: ${payload.body || ''}`);
+                    getPendingOperations().then(pending => {
+                        const affected = payload.order_id && pending.some(op =>
+                            op.store === STORES.ORDERS &&
+                            op.type === 'update' &&
+                            Number(op.data?.order_id) === Number(payload.order_id)
+                        );
+                        if (!affected) refreshOrders();
+                        else updateSyncCounter();
+                    });
+                    if (payload.order_id) {
+                        showOrderUpdateDialog(payload.order_id);
+                    }
+                    return;
+                }
+
+                if (data.type === 'OPEN_ORDER') {
+                    const orderId = parseInt(data.order_id);
+                    if (orderId) {
+                        showOrderUpdateDialog(orderId);
+                    }
+                    return;
+                }
+            });
         }
 
         function installEnhancedSyncIntegration() {
             updateEnhancedConnectionStatus();
-            navigator.serviceWorker?.addEventListener('message', event => { const d=event.data||{}; if(d.type==='SYNC_STATUS'){ updateEnhancedSyncIndicator(d.status,d.pending||0,d.synced||0); if(d.status==='completed') refreshOrders(); } });
+            setupCentralSWMessageListener();
         }
 
         // 4. Service Worker والإشعارات (FCM)
@@ -559,24 +743,32 @@
         async function registerServiceWorker() {
             try {
                 if (!('serviceWorker' in navigator)) {
-                    throw new Error('المتصفح لا يدعم Service Worker');
+                    console.warn('المتصفح لا يدعم Service Worker');
+                    return null;
                 }
 
-                const swPath = '/driver/sw_driver.js';
-                const check = await fetch(swPath, { cache: 'no-store' });
-                const contentType = check.headers.get('content-type') || '';
+                const currentPath = window.location.pathname;
+                const basePath = currentPath.substring(0, currentPath.lastIndexOf('/') + 1) || '/driver/';
+                const swPath = basePath.endsWith('/') ? `${basePath}sw_driver.js` : `${basePath}/sw_driver.js`;
 
-                if (!check.ok) {
-                    throw new Error(`ملف ${swPath} غير موجود: HTTP ${check.status}`);
+                let registration = null;
+                try {
+                    registration = await navigator.serviceWorker.register(swPath, {
+                        scope: basePath,
+                        updateViaCache: 'none'
+                    });
+                } catch (firstErr) {
+                    try {
+                        registration = await navigator.serviceWorker.register('/driver/sw_driver.js', {
+                            scope: '/driver/',
+                            updateViaCache: 'none'
+                        });
+                    } catch (secErr) {
+                        console.warn('تعذر تسجيل Service Worker بالمسارين:', firstErr, secErr);
+                        swRegistration = null;
+                        return null;
+                    }
                 }
-                if (!contentType.includes('javascript') && !contentType.includes('ecmascript')) {
-                    throw new Error(`MIME غير صحيح لملف Service Worker: ${contentType}`);
-                }
-
-                const registration = await navigator.serviceWorker.register(swPath, {
-                    scope: '/driver/',
-                    updateViaCache: 'none'
-                });
 
                 swRegistration = registration;
                 console.log('✅ تم تسجيل Driver Service Worker:', registration.scope);
@@ -585,7 +777,11 @@
                     registration.waiting.postMessage({ type: 'SKIP_WAITING' });
                 }
 
-                await navigator.serviceWorker.ready;
+                await Promise.race([
+                    navigator.serviceWorker.ready,
+                    new Promise(res => setTimeout(res, 2000))
+                ]);
+
                 if (registration.active) {
                     console.log('✅ الـ SW نشط:', registration.active.scriptURL);
                 }
@@ -619,7 +815,10 @@
                         return false;
                     }
                 }
-                await navigator.serviceWorker.ready;
+                await Promise.race([
+                    navigator.serviceWorker.ready,
+                    new Promise(res => setTimeout(res, 2000))
+                ]);
 
                 const token = await messaging.getToken({
                     vapidKey: VAPID_PUBLIC_KEY,
@@ -685,7 +884,11 @@
         async function unsubscribeFromPush() {
             try {
                 if (!swRegistration) {
-                    swRegistration = await navigator.serviceWorker.ready;
+                    swRegistration = await getSafeSWRegistration();
+                }
+                if (!swRegistration) {
+                    showToast('الإشعارات غير متاحة حالياً');
+                    return;
                 }
                 const subscription = await swRegistration.pushManager.getSubscription();
                 if (subscription) {
@@ -730,34 +933,8 @@
         }
 
         function setupSWMessageListener() {
-    if (!navigator.serviceWorker) return;
-    navigator.serviceWorker.addEventListener('message', event => {
-        // معالجة الإشعارات الجديدة
-        if (event.data && event.data.type === 'NEW_NOTIFICATION') {
-            const payload = event.data.payload || {};
-            showToast(`📩 ${payload.title || 'إشعار'}: ${payload.body || ''}`);
-            getPendingOperations().then(pending => {
-                const affected = payload.order_id && pending.some(op =>
-                    op.store === STORES.ORDERS &&
-                    op.type === 'update' &&
-                    Number(op.data.order_id) === Number(payload.order_id)
-                );
-                if (!affected) refreshOrders();
-                else updateSyncCounter();
-            });
-            if (payload.order_id) {
-                showOrderUpdateDialog(payload.order_id);
-            }
+            setupCentralSWMessageListener();
         }
-        // معالجة فتح طلب محدد من الإشعار
-        if (event.data && event.data.type === 'OPEN_ORDER') {
-            const orderId = parseInt(event.data.order_id);
-            if (orderId) {
-                showOrderUpdateDialog(orderId); // أو يمكنك استدعاء viewOrder(orderId) مباشرة
-            }
-        }
-    });
-}
 
        async function initializePushNotifications() {
     try {
@@ -859,7 +1036,7 @@
             return data;
         }
 
-        async function fetchDriverOrders(driverId, page = 1, status = '', period = 'all', limit = 10000) {
+        async function fetchDriverOrders(driverId, page = 1, status = '', period = 'all', limit = 500) {
             const params = new URLSearchParams();
             params.append('driver_id', driverId);
             if (status) params.append('status', status);
@@ -902,15 +1079,57 @@
             if (notice) notice.classList.add('hidden');
         }
 
-        function showLoading() {
+        function renderDashboardSkeleton() {
+            document.getElementById('pageTitle').textContent = '📦 طلباتي';
             document.getElementById('mainContent').innerHTML = `
                 <div id="syncStatus" class="sync-status hidden">
                     <span>🔄 جاري المزامنة...</span>
                     <span class="sync-count" id="syncCount">0</span>
                     <span>عملية معلقة</span>
                 </div>
-                <div class="loading-state">⏳ جاري تحميل البيانات...</div>
+                <div class="skeleton-balance">
+                    <div class="skeleton-box" style="width:40%; height:14px; margin-bottom:12px; opacity:0.6;"></div>
+                    <div class="skeleton-box" style="width:65%; height:38px; margin-bottom:10px; opacity:0.85;"></div>
+                    <div class="skeleton-box" style="width:30%; height:12px; opacity:0.4;"></div>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-card" style="padding:12px;"><div class="skeleton-box" style="width:100%; height:45px;"></div></div>
+                    <div class="stat-card" style="padding:12px;"><div class="skeleton-box" style="width:100%; height:45px;"></div></div>
+                    <div class="stat-card" style="padding:12px;"><div class="skeleton-box" style="width:100%; height:45px;"></div></div>
+                    <div class="stat-card" style="padding:12px;"><div class="skeleton-box" style="width:100%; height:45px;"></div></div>
+                </div>
+                <div style="display:flex; gap:8px; margin-bottom:14px; overflow-x:hidden;">
+                    <div class="skeleton-box" style="width:25%; height:36px; border-radius:20px;"></div>
+                    <div class="skeleton-box" style="width:25%; height:36px; border-radius:20px;"></div>
+                    <div class="skeleton-box" style="width:25%; height:36px; border-radius:20px;"></div>
+                    <div class="skeleton-box" style="width:25%; height:36px; border-radius:20px;"></div>
+                </div>
+                <div class="skeleton-card">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
+                        <div class="skeleton-box" style="width:35%; height:18px;"></div>
+                        <div class="skeleton-box" style="width:25%; height:18px; border-radius:12px;"></div>
+                    </div>
+                    <div class="skeleton-box" style="width:75%; height:14px; margin-bottom:8px;"></div>
+                    <div class="skeleton-box" style="width:50%; height:14px; margin-bottom:16px;"></div>
+                    <div class="skeleton-box" style="width:100%; height:40px; border-radius:8px;"></div>
+                </div>
+                <div class="skeleton-card">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
+                        <div class="skeleton-box" style="width:35%; height:18px;"></div>
+                        <div class="skeleton-box" style="width:25%; height:18px; border-radius:12px;"></div>
+                    </div>
+                    <div class="skeleton-box" style="width:75%; height:14px; margin-bottom:8px;"></div>
+                    <div class="skeleton-box" style="width:50%; height:14px; margin-bottom:16px;"></div>
+                    <div class="skeleton-box" style="width:100%; height:40px; border-radius:8px;"></div>
+                </div>
             `;
+        }
+
+        function showLoading() {
+            if (document.getElementById('ordersList')) {
+                return;
+            }
+            renderDashboardSkeleton();
             updateSyncCounter();
         }
 
@@ -958,12 +1177,18 @@
         }
 
         function updateBalanceDisplay() {
-            const balanceCard = document.querySelector('.balance-amount');
-            if (balanceCard) {
+            const balanceCards = document.querySelectorAll('.balance-amount');
+            balanceCards.forEach(balanceCard => {
                 const balanceClass = totalBalance >= 0 ? 'positive' : 'negative';
                 balanceCard.className = `balance-amount ${balanceClass}`;
                 balanceCard.textContent = Math.abs(totalBalance).toFixed(2);
-            }
+            });
+        }
+
+        function applyFiltersAndRender() {
+            const filteredFinal = filterOrdersByPeriod(currentOrders, currentPeriod)
+                .filter(order => currentStatusFilter ? order.status === currentStatusFilter : true);
+            renderOrders(filteredFinal);
         }
 
         // ============ دوال التحديث الفوري للقائمة ============
@@ -978,7 +1203,7 @@
 
             try {
                 const filteredData = await fetchDriverOrders(
-                    driverId, 1, currentStatusFilter, currentPeriod, 5000
+                    driverId, 1, currentStatusFilter, currentPeriod, 500
                 );
                 const serverOrders = filteredData.orders || [];
                 const account = filteredData.account || {};
@@ -986,32 +1211,19 @@
 
                 currentOrders = mergedOrders;
 
-                const db = await openDB();
-                const tx = db.transaction(STORES.ORDERS, 'readwrite');
-                const store = tx.objectStore(STORES.ORDERS);
-                for (const order of mergedOrders) {
-                    if (!order.driver_id) order.driver_id = Number(driverId);
-                    await new Promise((resolve, reject) => {
-                        const request = store.put(order);
-                        request.onsuccess = resolve;
-                        request.onerror = () => reject(request.error);
-                    });
-                }
-                await new Promise((resolve, reject) => {
-                    tx.oncomplete = resolve;
-                    tx.onerror = () => reject(tx.error);
-                    tx.onabort = () => reject(tx.error);
-                });
+                await bulkPutOrders(mergedOrders, driverId);
 
                 if (account.balance !== undefined) {
                     totalBalance = account.balance;
                     localStorage.setItem('driverBalance', String(totalBalance));
                     updateBalanceDisplay();
                 }
+                if (account && Object.keys(account).length > 0) {
+                    lastAccountData = account;
+                    localStorage.setItem('lastAccountData', JSON.stringify(account));
+                }
 
-                const filteredFinal = filterOrdersByPeriod(currentOrders, currentPeriod)
-                    .filter(order => currentStatusFilter ? order.status === currentStatusFilter : true);
-                renderOrders(filteredFinal);
+                applyFiltersAndRender();
                 hideOfflineNotice();
             } catch (err) {
                 console.warn('فشل تحديث الطلبات، سيتم عرض البيانات المحلية:', err);
@@ -1024,9 +1236,7 @@
             if (!driverId) return;
             getAll(STORES.ORDERS).then(localOrders => {
                 currentOrders = localOrders.filter(o => o.driver_id == driverId);
-                const filteredFinal = filterOrdersByPeriod(currentOrders, currentPeriod)
-                    .filter(o => currentStatusFilter ? o.status === currentStatusFilter : true);
-                renderOrders(filteredFinal);
+                applyFiltersAndRender();
                 showOfflineNotice();
             });
         }
@@ -1111,23 +1321,29 @@
             return Math.max(0, parseFloat(rawDue) || 0);
         }
 
-        async function rollbackLocalOrderUpdate(orderId, originalOrder) {
-            document.getElementById('modalSheet')?.classList.remove('active');
-            document.getElementById('modalOverlay')?.classList.remove('active');
-            const index = currentOrders.findIndex(item => Number(item.id) === Number(orderId));
-            if (index !== -1) currentOrders[index] = { ...originalOrder };
-            await updateOrderLocally({ ...originalOrder });
-            renderOrders(currentOrders);
+        function setOrderButtonsDisabled(orderId, disabled) {
             const card = document.querySelector(`.order-card[data-order-id="${orderId}"]`);
-            card?.querySelectorAll('.action-buttons .btn').forEach(btn => {
-                btn.disabled = false;
-                btn.style.opacity = '1';
-                btn.style.cursor = 'pointer';
+            if (!card) return;
+            card.querySelectorAll('.action-buttons .btn').forEach(btn => {
+                btn.disabled = disabled;
+                btn.style.opacity = disabled ? '0.6' : '1';
+                btn.style.cursor = disabled ? 'not-allowed' : 'pointer';
             });
         }
 
+        async function rollbackLocalOrderUpdate(orderId, originalOrder) {
+            document.getElementById('modalSheet')?.classList.remove('active');
+            document.getElementById('modalOverlay')?.classList.remove('active');
+            const restoredOrder = typeof structuredClone === 'function' ? structuredClone(originalOrder) : JSON.parse(JSON.stringify(originalOrder));
+            const index = currentOrders.findIndex(item => String(item.id) === String(orderId));
+            if (index !== -1) currentOrders[index] = restoredOrder;
+            await updateOrderLocally(restoredOrder);
+            applyFiltersAndRender();
+            setOrderButtonsDisabled(orderId, false);
+        }
+
         async function refreshOrderDue(orderId, buttonEl) {
-            const order = currentOrders.find(o => Number(o.id) === Number(orderId));
+            const order = currentOrders.find(o => String(o.id) === String(orderId));
             if (!order) { showToast('❌ الطلب غير موجود'); return; }
             if (!navigator.onLine) { showToast('📴 لا يمكن تحديث المستحق دون اتصال'); return; }
             if (!isMixedOrder(order)) { showToast('ℹ️ تحديث المستحق متاح للطلبات المختلطة فقط'); return; }
@@ -1142,16 +1358,16 @@
             try {
                 const driverId = getDriverId();
                 if (!driverId) throw new Error('لم يتم العثور على حساب المندوب');
-                const data = await fetchDriverOrders(driverId, 1, '', 'all', 5000);
-                const serverOrder = (data.orders || []).find(item => Number(item.id) === Number(orderId));
+                const data = await fetchDriverOrders(driverId, 1, '', 'all', 500);
+                const serverOrder = (data.orders || []).find(item => String(item.id) === String(orderId));
                 if (!serverOrder) throw new Error('تعذر العثور على الطلب في الخادم');
                 const merged = await applyPendingOperationsToOrders([serverOrder]);
                 const refreshedOrder = merged[0] || serverOrder;
-                const index = currentOrders.findIndex(item => Number(item.id) === Number(orderId));
+                const index = currentOrders.findIndex(item => String(item.id) === String(orderId));
                 if (index === -1) throw new Error('تعذر تحديث الطلب محلياً');
                 currentOrders[index] = refreshedOrder;
                 await updateOrderLocally(refreshedOrder);
-                renderOrders(currentOrders);
+                applyFiltersAndRender();
                 showToast(`✅ تم تحديث المستحق للطلب #${orderId}`);
             } catch (err) {
                 if (buttonEl) {
@@ -1207,8 +1423,7 @@ function renderOrders(orders) {
         const isCancelled = order.status === 'ملغي';
         const cardClass = isCompleted ? 'completed' : (isFailed ? 'failed' : (isReturned ? 'returned' : ''));
         const statusText = order.status || 'جديد';
-        let items = order.items || [];
-        items = items.sort((a, b) => (b.id || 0) - (a.id || 0));
+        const items = [...(order.items || [])].sort((a, b) => (b.id || 0) - (a.id || 0));
         
         const dueAmount = getOrderDueAmount(order);
 
@@ -1292,8 +1507,8 @@ function renderOrders(orders) {
         } else {
             actionButtonsHtml = `
                 <div class="action-buttons">
-                    <button class="btn btn-success" onclick="openDeliveryModal(${order.id}, 'تم التوصيل')">✅ تم</button>
-                    <button class="btn btn-danger" onclick="openDeliveryModal(${order.id}, 'فشل')">❌ فشل</button>
+                    <button class="btn btn-success" onclick="openDeliveryModal('${order.id}', 'تم التوصيل')">✅ تم</button>
+                    <button class="btn btn-danger" onclick="openDeliveryModal('${order.id}', 'فشل')">❌ فشل</button>
                 </div>
             `;
         }
@@ -1351,23 +1566,23 @@ function renderOrders(orders) {
         function detectMapLink(text) {
     if (!text) return null;
     const patterns = [
-        /https?:\/\/(?:www\.)?google\.com\/maps\/place\/[^\s]+/i,
-        /https?:\/\/(?:www\.)?google\.com\/maps\/@[^\s]+/i,
-        /https?:\/\/maps\.apple\.com\/\?q=[^\s]+/i,
-        /https?:\/\/waze\.com\/ul\?q=[^\s]+/i,
-        /https?:\/\/maps\.google\.com\/\?q=[^\s]+/i,
-        /https?:\/\/goo\.gl\/maps\/[^\s]+/i,
-        /https?:\/\/maps\.app\.goo\.gl\/[^\s]+/i  // <--- تم إضافة دعم الروابط الحديثة لخرائط جوجل هنا
+        /\bhttps?:\/\/(?:www\.)?google\.com\/maps\/place\/[^\s]+/i,
+        /\bhttps?:\/\/(?:www\.)?google\.com\/maps\/@[^\s]+/i,
+        /\bhttps?:\/\/maps\.apple\.com\/\?q=[^\s]+/i,
+        /\bhttps?:\/\/waze\.com\/ul\?q=[^\s]+/i,
+        /\bhttps?:\/\/maps\.google\.com\/\?q=[^\s]+/i,
+        /\bhttps?:\/\/goo\.gl\/maps\/[^\s]+/i,
+        /\bhttps?:\/\/maps\.app\.goo\.gl\/[^\s]+/i
     ];
     for (const pattern of patterns) { const match = text.match(pattern); if (match) return match[0]; }
     return null;
 }
 
         function showInvoice(orderId) {
-            const order = currentOrders.find(o => o.id === orderId);
+            const order = currentOrders.find(o => String(o.id) === String(orderId));
             if (!order) return;
             const items = order.items || [];
-            const sortedItems = items.sort((a, b) => (b.id || 0) - (a.id || 0));
+            const sortedItems = [...items].sort((a, b) => (b.id || 0) - (a.id || 0));
             let tableHtml =
                 `<table class="invoice-items-table"><thead><tr><th>المنتج</th><th>الكمية</th><th>السعر</th><th>الإجمالي</th><th>ملاحظة</th></tr></thead><tbody>`;
             sortedItems.forEach(item => {
@@ -1406,7 +1621,7 @@ function renderOrders(orders) {
                 <h3>🔄 تم تحديث طلب</h3>
                 <p>تم تحديث الطلب #${orderId}، هل تريد عرضه؟</p>
                 <div style="display:flex; gap:10px; margin-top:20px;">
-                    <button class="btn btn-primary" onclick="viewOrder(${orderId}); closeModalSheet();">🔍 عرض الطلب</button>
+                    <button class="btn btn-primary" onclick="viewOrder('${orderId}'); closeModalSheet();">🔍 عرض الطلب</button>
                     <button class="btn btn-outline" onclick="closeModalSheet();">⏳ لاحقاً</button>
                 </div>
             `;
@@ -1415,7 +1630,7 @@ function renderOrders(orders) {
         }
 
         function viewOrder(orderId) {
-            const order = currentOrders.find(o => o.id === orderId);
+            const order = currentOrders.find(o => String(o.id) === String(orderId));
             if (order) {
                 showInvoice(orderId);
             } else {
@@ -1427,7 +1642,7 @@ function renderOrders(orders) {
             try {
                 const data = await apiCall(`/orders/${orderId}`, 'GET');
                 if (data.order) {
-                    const existing = currentOrders.find(o => o.id === data.order.id);
+                    const existing = currentOrders.find(o => String(o.id) === String(data.order.id));
                     if (existing) Object.assign(existing, data.order);
                     else currentOrders.push(data.order);
                     showInvoice(data.order.id);
@@ -1548,24 +1763,20 @@ function renderOrders(orders) {
             if (navigator.onLine) {
                 try {
                     await loadInitialData();
-                    const filteredData = await fetchDriverOrders(driverId, 1, currentStatusFilter, currentPeriod, 5000);
+                    const filteredData = await fetchDriverOrders(driverId, 1, currentStatusFilter, currentPeriod, 500);
                     const newOrders = await applyPendingOperationsToOrders(filteredData.orders || []);
                     const account = filteredData.account || {};
 
-                    // تحديث IndexedDB
-                    const db = await openDB();
-                    let tx = db.transaction(STORES.ORDERS, 'readwrite');
-                    let store = tx.objectStore(STORES.ORDERS);
-                    for (const order of newOrders) {
-                        if (!order.driver_id) order.driver_id = parseInt(driverId);
-                        await store.put(order);
-                    }
-                    await tx.done;
+                    // تحديث IndexedDB باستخدام معاملة واحدة آمنة
+                    await bulkPutOrders(newOrders, driverId);
 
                     currentOrders = newOrders;
                     totalBalance = account.balance ?? 0;
                     localStorage.setItem('driverBalance', totalBalance.toString());
                     lastAccountData = account;
+                    if (account && Object.keys(account).length > 0) {
+                        localStorage.setItem('lastAccountData', JSON.stringify(account));
+                    }
 
                     const filteredFinal = filterOrdersByPeriod(currentOrders, currentPeriod)
                         .filter(o => currentStatusFilter ? o.status === currentStatusFilter : true);
@@ -1581,43 +1792,47 @@ function renderOrders(orders) {
             }
 
             const name = getDriverName();
-            if (name) document.getElementById('driverNameDisplay').textContent = name;
+            const driverNameEl = document.getElementById('driverNameDisplay');
+            if (name && driverNameEl) driverNameEl.textContent = name;
             await updateSyncCounter();
         }
 
-function useLocalOrdersForDashboard() {
-    const driverId = getDriverId();
-    if (!driverId) return;
-    getAll(STORES.ORDERS).then(localOrders => {
-        const driverOrders = localOrders.filter(o => o.driver_id == driverId);
-        if (driverOrders.length === 0) {
-            // لا توجد بيانات محلية، اعرض رسالة واضحة
-            document.getElementById('mainContent').innerHTML = `
-                <div id="syncStatus" class="sync-status hidden">
-                    <span>🔄 جاري المزامنة...</span>
-                    <span class="sync-count" id="syncCount">0</span>
-                    <span>عملية معلقة</span>
-                </div>
-                <div class="empty-state">
-                    <span class="empty-icon">📴</span>
-                    <span>لا توجد طلبات مخزنة محلياً. يرجى الاتصال بالإنترنت لتحميل الطلبات.</span>
-                    <br><br>
-                    <button class="btn btn-primary" onclick="loadDashboard()">🔄 إعادة المحاولة</button>
-                </div>
-            `;
-            document.getElementById('pageTitle').textContent = '📦 طلباتي';
-            updateSyncCounter();
-            return;
+        function useLocalOrdersForDashboard() {
+            const driverId = getDriverId();
+            if (!driverId) return;
+            getAll(STORES.ORDERS).then(localOrders => {
+                const driverOrders = localOrders.filter(o => o.driver_id == driverId);
+                if (driverOrders.length === 0) {
+                    // لا توجد بيانات محلية، اعرض رسالة واضحة
+                    document.getElementById('mainContent').innerHTML = `
+                        <div id="syncStatus" class="sync-status hidden">
+                            <span>🔄 جاري المزامنة...</span>
+                            <span class="sync-count" id="syncCount">0</span>
+                            <span>عملية معلقة</span>
+                        </div>
+                        <div class="empty-state">
+                            <span class="empty-icon">📴</span>
+                            <span>لا توجد طلبات مخزنة محلياً. يرجى الاتصال بالإنترنت لتحميل الطلبات.</span>
+                            <br><br>
+                            <button class="btn btn-primary" onclick="loadDashboard()">🔄 إعادة المحاولة</button>
+                        </div>
+                    `;
+                    document.getElementById('pageTitle').textContent = '📦 طلباتي';
+                    updateSyncCounter();
+                    return;
+                }
+                currentOrders = driverOrders;
+                const savedBalance = parseFloat(localStorage.getItem('driverBalance')) || 0;
+                totalBalance = savedBalance;
+                const cachedAccount = (lastAccountData && Object.keys(lastAccountData).length > 0)
+                    ? lastAccountData
+                    : JSON.parse(localStorage.getItem('lastAccountData') || '{}');
+                const filteredFinal = filterOrdersByPeriod(currentOrders, currentPeriod)
+                    .filter(o => currentStatusFilter ? o.status === currentStatusFilter : true);
+                renderDashboard(cachedAccount, savedBalance, filteredFinal, filteredFinal.length);
+                showOfflineNotice();
+            });
         }
-        currentOrders = driverOrders;
-        const savedBalance = parseFloat(localStorage.getItem('driverBalance')) || 0;
-        totalBalance = savedBalance;
-        const filteredFinal = filterOrdersByPeriod(currentOrders, currentPeriod)
-            .filter(o => currentStatusFilter ? o.status === currentStatusFilter : true);
-        renderDashboard({}, savedBalance, filteredFinal, filteredFinal.length);
-        showOfflineNotice();
-    });
-}
         async function loadPeriodSummary(driverId, period) {
             try {
                 const data = await fetchDriverSummary(driverId, period === 'all' ? 'week' : period);
@@ -1707,14 +1922,45 @@ function useLocalOrdersForDashboard() {
             applyFilters();
         }
 
+        function updateNavSelection(page) {
+            document.querySelectorAll('.bottom-nav .nav-item').forEach(item => {
+                if (item.getAttribute('data-page') === page) {
+                    item.classList.add('active');
+                } else {
+                    item.classList.remove('active');
+                }
+            });
+        }
+
         function navigateTo(page, element) {
             currentView = page;
-            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-            if (element) element.classList.add('active');
+            localStorage.setItem('driverActiveView', page);
+            if (element) {
+                document.querySelectorAll('.bottom-nav .nav-item').forEach(item => item.classList.remove('active'));
+                element.classList.add('active');
+            } else {
+                updateNavSelection(page);
+            }
             switch (page) {
                 case 'orders':
-                    loadDashboard();
                     document.getElementById('pageTitle').textContent = '📦 طلباتي';
+                    if (document.getElementById('ordersList')) {
+                        applyFiltersAndRender();
+                        if (navigator.onLine) refreshOrders().catch(console.warn);
+                    } else {
+                        if (currentOrders && currentOrders.length > 0) {
+                            const savedBalance = parseFloat(localStorage.getItem('driverBalance')) || totalBalance;
+                            const cachedAccount = (lastAccountData && Object.keys(lastAccountData).length > 0)
+                                ? lastAccountData
+                                : JSON.parse(localStorage.getItem('lastAccountData') || '{}');
+                            const filteredFinal = filterOrdersByPeriod(currentOrders, currentPeriod)
+                                .filter(o => currentStatusFilter ? o.status === currentStatusFilter : true);
+                            renderDashboard(cachedAccount, savedBalance, filteredFinal, filteredFinal.length);
+                            if (navigator.onLine) refreshOrders().catch(console.warn);
+                        } else {
+                            loadDashboard();
+                        }
+                    }
                     break;
                 case 'returns':
                     loadReturnRequests();
@@ -1740,10 +1986,16 @@ function useLocalOrdersForDashboard() {
                     <span>عملية معلقة</span>
                 </div>
                 <div class="filter-section">
-                    <input type="text" id="globalSearch" placeholder="ابحث برقم الطلب أو اسم العميل..." style="width:100%; padding:12px; border:2px solid var(--border); border-radius:var(--radius-sm); font-size:0.9rem;" oninput="performGlobalSearch()">
+                    <input type="text" id="globalSearch" placeholder="ابحث برقم الطلب أو اسم العميل..." style="width:100%; padding:12px; border:2px solid var(--border); border-radius:var(--radius-sm); font-size:0.9rem;" oninput="debouncedGlobalSearch()">
                 </div>
                 <div id="searchResults"><div class="empty-state"><span class="empty-icon">🔍</span><span>اكتب للبحث...</span></div></div>`;
             updateSyncCounter();
+        }
+
+        let searchDebounceTimeout = null;
+        function debouncedGlobalSearch() {
+            clearTimeout(searchDebounceTimeout);
+            searchDebounceTimeout = setTimeout(performGlobalSearch, 250);
         }
 
         function performGlobalSearch() {
@@ -1958,18 +2210,27 @@ function useLocalOrdersForDashboard() {
         // 11. مودال تحديث التسليم
         // =============================================================
         function toggleModalPaymentSection() {
-            const status = document.getElementById('modalStatus').value;
+            const status = document.getElementById('modalStatus')?.value || 'تم التوصيل';
             const dueEl = document.getElementById('modalTotalDue');
             const infoEl = document.getElementById('modalPaymentInfo');
             const groupEl = document.getElementById('modalPaymentGroup');
+            const due = dueEl && dueEl.dataset.due !== undefined ? (parseFloat(dueEl.dataset.due) || 0) : 0;
             if (status === 'تم التوصيل') {
-                groupEl.style.display = 'block';
-                if (dueEl) dueEl.style.display = 'flex';
-                if (infoEl) infoEl.style.display = 'none';
-                toggleModalPaymentFields();
-                updateModalAmounts();
+                if (due > 0) {
+                    if (groupEl) groupEl.style.display = 'block';
+                    if (dueEl) dueEl.style.display = 'flex';
+                    if (infoEl) infoEl.style.display = 'none';
+                    toggleModalPaymentFields();
+                    updateModalAmounts(due);
+                } else {
+                    if (groupEl) groupEl.style.display = 'none';
+                    if (dueEl) dueEl.style.display = 'none';
+                    if (infoEl) infoEl.style.display = 'block';
+                }
             } else {
-                groupEl.style.display = 'none';
+                if (groupEl) groupEl.style.display = 'none';
+                if (dueEl) dueEl.style.display = 'none';
+                if (infoEl) infoEl.style.display = 'none';
             }
         }
 
@@ -1987,322 +2248,372 @@ function useLocalOrdersForDashboard() {
             updateModalAmounts();
         }
 
-        function updateModalAmounts() {
-    const dueEl = document.getElementById('modalTotalDue');
-    if (!dueEl) return;
-    const dueText = dueEl.innerText.match(/[\d.]+/);
-    if (!dueText) return;
-    const due = parseFloat(dueText[0]) || 0;
-    console.log('💰 due في updateModalAmounts:', due);
-    if (due <= 0) return;
+        let activeModalOrderId = null;
 
-    const method = document.getElementById('modalPaymentMethod')?.value || 'نقدي';
-    const cashInput = document.getElementById('modalCashCollected');
-    const walletInput = document.getElementById('modalWalletCollected');
-    if (!cashInput || !walletInput) return;
-
-    // ===== التعديل: الطلب المختلط - النقد هو المبلغ المستحق بالكامل =====
-    // (لأن المحفظة دفعت مسبقاً، والمندوب يتحصل على النقد فقط)
-    // بالنسبة للطلبات الأخرى، نوزع كالمعتاد
-    if (method === 'نقدي') {
-        cashInput.value = due.toFixed(2);
-        walletInput.value = '0';
-    } else if (method === 'محفظة') {
-        cashInput.value = '0';
-        walletInput.value = due.toFixed(2);
-    } else if (method === 'مختلط') {
-    // في المختلط، المحفظة قد دفعت مسبقاً، لذا نضع النقد كامل المبلغ المستحق
-    cashInput.value = due.toFixed(2);
-    walletInput.value = '0';
-
-        // تذكير للمندوب بأن المحفظة مدفوعة مسبقاً
-        const walletField = document.getElementById('modalWalletField');
-        if (walletField) {
-            const hint = walletField.querySelector('.currency-hint');
-            if (hint) hint.innerHTML = '💳 المبلغ المدفوع عبر المحفظة مسبقاً (0)';
-        }
-    }
-}
-
-        async function openDeliveryModal(orderId, status) {
-    const order = currentOrders.find(o => o.id === orderId);
-    if (!order) { showToast('الطلب غير موجود'); return; }
-
-    const finalStatuses = ['تم التسليم', 'فشل التسليم', 'مرتجع جزئي', 'مرتجع كلي', 'ملغي'];
-    if (finalStatuses.includes(order.status)) {
-        showToast('❌ هذا الطلب قد انتهى، لا يمكن تعديله');
-        return;
-    }
-
-    if (currencies.length === 0) { try { const data = await fetchCurrencies(); currencies = data.currencies || []; } catch (e) {} }
-    if (wallets.length === 0) { try { const data = await fetchWallets(); wallets = data.wallets || []; } catch (e) {} }
-
-    const isPrepaid = isPrepaidOrder(order);
-    const deliveryFeePayment = order.delivery_fee_payment || 'مع الطلب';
-    
-    const due = getOrderDueAmount(order);
-
-    document.querySelectorAll('.action-buttons .btn').forEach(btn => {
-        btn.disabled = true;
-        btn.style.opacity = '0.6';
-        btn.style.cursor = 'not-allowed';
-    });
-    let defaultMethod = 'نقدي';
-    if (order.payment_method && order.payment_method.includes('مختلط')) {
-        defaultMethod = 'مختلط';
-    } else if (order.payment_method && order.payment_method.includes('محفظة')) {
-        defaultMethod = 'محفظة';
-    }
-
-    let modalHtml = `
-    <h3>🔄 تحديث الطلب #${orderId}</h3>
-    <div style="background:var(--surface-secondary); border-radius:var(--radius-xs); padding:12px; margin-bottom:16px;">
-        <p style="margin:0; font-size:0.82rem;"><strong>👤 العميل:</strong> ${order.customer_name}</p>
-        <p style="margin:4px 0 0; font-size:0.82rem;"><strong>💰 الإجمالي:</strong> ${order.total_amount} ريال</p>
-        <p style="margin:4px 0 0; font-size:0.82rem;"><strong>💳 طريقة الدفع الأصلية:</strong> ${order.payment_method || 'غير محدد'}</p>
-        ${order.expected_cash !== undefined ? `<p style="margin:4px 0 0; font-size:0.82rem; color:var(--success);"><strong>💵 المبلغ النقدي المتبقي:</strong> ${order.expected_cash} ريال</p>` : ''}
-    </div>
-
-        <label>🏷️ حالة التوصيل</label>
-        <select id="modalStatus" onchange="toggleModalPaymentSection()">
-            <option value="قيد التوصيل" ${status==='قيد التوصيل'?'selected':''}>🚚 قيد التوصيل</option>
-            <option value="تم التوصيل" ${status==='تم التوصيل'?'selected':''}>✅ تم التوصيل</option>
-            <option value="فشل" ${status==='فشل'?'selected':''}>❌ فشل</option>
-        </select>
-
-        <div id="modalTotalDue" class="total-due-display ${due===0?'zero':''}" style="display:${due>0?'flex':'none'}">
-            <span>💵 المبلغ المستحق تحصيله:</span><span>${due.toFixed(2)} ريال</span>
-        </div>
-        <div id="modalPaymentInfo" class="info-msg" style="display:${due===0?'block':'none'}">✅ الطلب مدفوع مسبقاً بالكامل</div>
-
-        <div id="modalPaymentGroup" style="display:${status==='تم التوصيل'&&due>0?'block':'none'}">
-           <label>💳 طريقة الدفع</label>
-        <select id="modalPaymentMethod" onchange="toggleModalPaymentFields()">
-            <option value="نقدي" ${defaultMethod === 'نقدي' ? 'selected' : ''}>💵 نقدي</option>
-            <option value="محفظة" ${defaultMethod === 'محفظة' ? 'selected' : ''}>📱 محفظة</option>
-            <option value="مختلط" ${defaultMethod === 'مختلط' ? 'selected' : ''}>🔄 مختلط</option>
-        </select>
-            <div class="form-row" id="modalPaymentFields">
-                <div class="field" id="modalCashField">
-                    <label>المبلغ النقدي</label>
-                    <input type="number" id="modalCashCollected" step="0.01" min="0" value="0">
-                    <select id="modalCashCurrency" style="margin-top:4px;">${currencies.map(c => `<option value="${c.id}" ${c.is_base?'selected':''}>${c.code} - ${c.name}</option>`).join('')}</select>
-                    <div class="currency-hint" id="modalCashDueHint">💵 المستحق: <span class="highlight">${due.toFixed(2)}</span></div>
-                </div>
-                <div class="field" id="modalWalletField">
-                    <label>المبلغ عبر المحفظة</label>
-                    <input type="number" id="modalWalletCollected" step="0.01" min="0" value="0">
-                    <select id="modalWalletCurrency" style="margin-top:4px;">${currencies.map(c => `<option value="${c.id}" ${c.is_base?'selected':''}>${c.code} - ${c.name}</option>`).join('')}</select>
-                    <div class="currency-hint" id="modalWalletDueHint">💳 المستحق: <span class="highlight">${due.toFixed(2)}</span></div>
-                </div>
-            </div>
-            <div id="modalWalletSelectGroup" style="display:none;">
-                <label>🏦 المحفظة</label>
-                <select id="modalWalletSelect"><option value="">اختر المحفظة</option>${wallets.map(w => `<option value="${w.id}">${w.name}</option>`).join('')}</select>
-            </div>
-            <div class="error-msg" id="modalPaymentError"></div>
-        </div>
-
-        <label>📝 ملاحظات</label>
-        <input type="text" id="modalNotes" placeholder="أي ملاحظات إضافية">
-
-        <button class="submit-btn" onclick="submitDeliveryUpdate(${orderId})">✅ تأكيد التحديث</button>
-    `;
-    document.getElementById('modalContent').innerHTML = modalHtml;
-    document.getElementById('modalSheet').classList.add('active');
-    document.getElementById('modalOverlay').classList.add('active');
-    if (status === 'تم التوصيل') {
-        toggleModalPaymentFields();
-        updateModalAmounts();
-    }
-}
-
-        // =============================================================
-        // 12. تحديث التسليم (مع التحديث الفوري والنافذة المنبثقة)
-        // =============================================================
-        async function submitDeliveryUpdate(orderId) {
-    if (isSubmitting) {
-        showToast('⚠️ جاري معالجة طلب سابق، انتظر قليلاً');
-        return;
-    }
-    isSubmitting = true;
-
-    const status = document.getElementById('modalStatus').value;
-    const notes = document.getElementById('modalNotes').value.trim();
-    const order = currentOrders.find(o => o.id === orderId);
-    if (!order) {
-        isSubmitting = false;
-        return;
-    }
-
-    const finalStatuses = ['تم التسليم', 'فشل التسليم', 'مرتجع جزئي', 'مرتجع كلي', 'ملغي'];
-    const originalOrder = { ...order };
-    if (finalStatuses.includes(order.status)) {
-        showToast('❌ هذا الطلب قد انتهى، لا يمكن تعديله');
-        isSubmitting = false;
-        return;
-    }
-
-    const due = getOrderDueAmount(order);
-    console.log('💰 due (المبلغ النقدي المطلوب):', due);
-
-    let paymentData = null;
-    if (status === 'تم التوصيل') {
-        const baseCurrency = currencies.find(c => c.is_base);
-        const baseCurrencyId = baseCurrency ? baseCurrency.id : null;
-
-        if (due > 0) {
-            const method = document.getElementById('modalPaymentMethod').value;
-            let cashCollected = parseFloat(document.getElementById('modalCashCollected').value) || 0;
-            let walletCollected = parseFloat(document.getElementById('modalWalletCollected').value) || 0;
-            const walletSelect = document.getElementById('modalWalletSelect');
-            const cashCurrencyId = document.getElementById('modalCashCurrency').value;
-            const walletCurrencyId = document.getElementById('modalWalletCurrency').value;
-
-            // التحقق من تطابق المبلغ المحصل مع due (مع مراعاة العملات)
-            const cashCurrency = currencies.find(c => c.id == cashCurrencyId);
-            const walletCurrency = currencies.find(c => c.id == walletCurrencyId);
-            const cashRate = cashCurrency ? parseFloat(cashCurrency.rate_to_base) : 1;
-            const walletRate = walletCurrency ? parseFloat(walletCurrency.rate_to_base) : 1;
-            const baseRate = baseCurrency ? parseFloat(baseCurrency.rate_to_base) : 1;
-
-            const cashBase = cashCollected * cashRate;
-            const walletBase = walletCollected * walletRate;
-            const totalBaseCollected = cashBase + walletBase;
-            const dueBase = due * baseRate;
-
-            if (Math.abs(totalBaseCollected - dueBase) > 0.01) {
-                if (totalBaseCollected === 0) {
-                    showToast('⚠️ يجب إدخال مبلغ');
-                    isSubmitting = false;
-                    return;
+        function updateModalAmounts(dueParam) {
+            const dueEl = document.getElementById('modalTotalDue');
+            let due = dueParam;
+            if (due === undefined || due === null) {
+                due = dueEl && dueEl.dataset.due !== undefined ? parseFloat(dueEl.dataset.due) : 0;
+                if ((!due || isNaN(due)) && dueEl) {
+                    const dueMatch = dueEl.innerText.match(/[\d.]+/);
+                    if (dueMatch) due = parseFloat(dueMatch[0]) || 0;
                 }
-                const ratio = dueBase / totalBaseCollected;
-                cashCollected = cashCollected * ratio;
-                walletCollected = walletCollected * ratio;
-                showToast('⚠️ تم تعديل المبالغ تلقائياً');
             }
+            if (!due || isNaN(due) || due <= 0) return;
 
-            if ((method === 'محفظة' || method === 'مختلط') && walletCollected > 0 && !walletSelect.value) {
-                document.getElementById('modalPaymentError').textContent = 'يجب اختيار المحفظة';
-                isSubmitting = false;
+            const method = document.getElementById('modalPaymentMethod')?.value || 'نقدي';
+            const cashInput = document.getElementById('modalCashCollected');
+            const walletInput = document.getElementById('modalWalletCollected');
+            if (!cashInput || !walletInput) return;
+
+            if (method === 'نقدي') {
+                cashInput.value = due.toFixed(2);
+                walletInput.value = '0';
+            } else if (method === 'محفظة') {
+                cashInput.value = '0';
+                walletInput.value = due.toFixed(2);
+            } else if (method === 'مختلط') {
+                cashInput.value = due.toFixed(2);
+                walletInput.value = '0';
+
+                const walletField = document.getElementById('modalWalletField');
+                if (walletField) {
+                    const hint = walletField.querySelector('.currency-hint');
+                    if (hint) hint.innerHTML = '💳 المبلغ المدفوع عبر المحفظة مسبقاً (0)';
+                }
+            }
+        }
+
+        function openDeliveryModal(orderId, status) {
+            const order = currentOrders.find(o => String(o.id) === String(orderId));
+            if (!order) {
+                showToast('الطلب غير موجود');
                 return;
             }
 
-            paymentData = {
-                payment_method: method,
-                cash_collected: cashCollected,
-                wallet_collected: walletCollected,
-                wallet_id: walletSelect.value ? parseInt(walletSelect.value) : null,
-                cash_currency_id: cashCurrencyId ? parseInt(cashCurrencyId) : null,
-                wallet_currency_id: walletCurrencyId ? parseInt(walletCurrencyId) : null
-            };
-        } else {
-            // ✅ الحفاظ على طريقة الدفع الأصلية للطلب بدلاً من إجبارها لتكون "نقدي"
-            paymentData = {
-                payment_method: order.payment_method || 'نقدي',
-                cash_collected: 0,
-                wallet_collected: 0,
-                wallet_id: null,
-                cash_currency_id: baseCurrencyId,
-                wallet_currency_id: baseCurrencyId
-            };
-            // إن بقيت حقول المبلغ مليئة بالرغم من أن المبلغ صفر، نفرغها لكي لا يفشل تحقق الخادم
-            const cashInput = document.getElementById('modalCashCollected');
-            const walletInput = document.getElementById('modalWalletCollected');
-            if (cashInput) cashInput.value = 0;
-            if (walletInput) walletInput.value = 0;
+            const finalStatuses = ['تم التسليم', 'فشل التسليم', 'مرتجع جزئي', 'مرتجع كلي', 'ملغي'];
+            if (finalStatuses.includes(order.status)) {
+                showToast('❌ هذا الطلب قد انتهى، لا يمكن تعديله');
+                return;
+            }
+
+            activeModalOrderId = orderId;
+
+            // جلب العملات والمحافظ في الخلفية إن لم تكن محملة دون حظر المودال
+            if (!currencies || currencies.length === 0) {
+                fetchCurrencies().then(data => { if (data.currencies) currencies = data.currencies; }).catch(() => {});
+            }
+            if (!wallets || wallets.length === 0) {
+                fetchWallets().then(data => { if (data.wallets) wallets = data.wallets; }).catch(() => {});
+            }
+
+            const curList = (currencies && currencies.length > 0)
+                ? currencies
+                : [{ id: 1, code: 'YER', name: 'ريال يمني', is_base: 1, rate_to_base: 1 }];
+            const walList = wallets || [];
+
+            const isPrepaid = isPrepaidOrder(order);
+            const deliveryFeePayment = order.delivery_fee_payment || 'مع الطلب';
+            const due = getOrderDueAmount(order);
+
+            let defaultMethod = 'نقدي';
+            if (order.payment_method && order.payment_method.includes('مختلط')) {
+                defaultMethod = 'مختلط';
+            } else if (order.payment_method && order.payment_method.includes('محفظة')) {
+                defaultMethod = 'محفظة';
+            }
+
+            let modalHtml = `
+            <h3>🔄 تحديث الطلب #${orderId}</h3>
+            <div style="background:var(--surface-secondary); border-radius:var(--radius-xs); padding:12px; margin-bottom:16px;">
+                <p style="margin:0; font-size:0.82rem;"><strong>👤 العميل:</strong> ${order.customer_name || 'عميل'}</p>
+                <p style="margin:4px 0 0; font-size:0.82rem;"><strong>💰 الإجمالي:</strong> ${order.total_amount || 0} ريال</p>
+                <p style="margin:4px 0 0; font-size:0.82rem;"><strong>💳 طريقة الدفع الأصلية:</strong> ${order.payment_method || 'غير محدد'}</p>
+                ${order.expected_cash !== undefined ? `<p style="margin:4px 0 0; font-size:0.82rem; color:var(--success);"><strong>💵 المبلغ النقدي المتبقي:</strong> ${order.expected_cash} ريال</p>` : ''}
+            </div>
+
+                <label>🏷️ حالة التوصيل</label>
+                <select id="modalStatus" onchange="toggleModalPaymentSection()">
+                    <option value="قيد التوصيل" ${status==='قيد التوصيل'?'selected':''}>🚚 قيد التوصيل</option>
+                    <option value="تم التوصيل" ${status==='تم التوصيل'?'selected':''}>✅ تم التوصيل</option>
+                    <option value="فشل" ${status==='فشل'?'selected':''}>❌ فشل</option>
+                </select>
+
+                <div id="modalTotalDue" data-due="${due}" class="total-due-display ${due===0?'zero':''}" style="display:${status==='تم التوصيل'&&due>0?'flex':'none'}">
+                    <span>💵 المبلغ المستحق تحصيله:</span><span>${due.toFixed(2)} ريال</span>
+                </div>
+                <div id="modalPaymentInfo" class="info-msg" style="display:${status==='تم التوصيل'&&due===0?'block':'none'}">✅ الطلب مدفوع مسبقاً بالكامل</div>
+
+                <div id="modalPaymentGroup" style="display:${status==='تم التوصيل'&&due>0?'block':'none'}">
+                   <label>💳 طريقة الدفع</label>
+                <select id="modalPaymentMethod" onchange="toggleModalPaymentFields()">
+                    <option value="نقدي" ${defaultMethod === 'نقدي' ? 'selected' : ''}>💵 نقدي</option>
+                    <option value="محفظة" ${defaultMethod === 'محفظة' ? 'selected' : ''}>📱 محفظة</option>
+                    <option value="مختلط" ${defaultMethod === 'مختلط' ? 'selected' : ''}>🔄 مختلط</option>
+                </select>
+                    <div class="form-row" id="modalPaymentFields">
+                        <div class="field" id="modalCashField">
+                            <label>المبلغ النقدي</label>
+                            <input type="number" id="modalCashCollected" step="0.01" min="0" value="0">
+                            <select id="modalCashCurrency" style="margin-top:4px;">${curList.map(c => `<option value="${c.id}" ${c.is_base?'selected':''}>${c.code} - ${c.name}</option>`).join('')}</select>
+                            <div class="currency-hint" id="modalCashDueHint">💵 المستحق: <span class="highlight">${due.toFixed(2)}</span></div>
+                        </div>
+                        <div class="field" id="modalWalletField">
+                            <label>المبلغ عبر المحفظة</label>
+                            <input type="number" id="modalWalletCollected" step="0.01" min="0" value="0">
+                            <select id="modalWalletCurrency" style="margin-top:4px;">${curList.map(c => `<option value="${c.id}" ${c.is_base?'selected':''}>${c.code} - ${c.name}</option>`).join('')}</select>
+                            <div class="currency-hint" id="modalWalletDueHint">💳 المستحق: <span class="highlight">${due.toFixed(2)}</span></div>
+                        </div>
+                    </div>
+                    <div id="modalWalletSelectGroup" style="display:none;">
+                        <label>🏦 المحفظة</label>
+                        <select id="modalWalletSelect"><option value="">اختر المحفظة</option>${walList.map(w => `<option value="${w.id}">${w.name}</option>`).join('')}</select>
+                    </div>
+                    <div class="error-msg" id="modalPaymentError"></div>
+                </div>
+
+                <label>📝 ملاحظات</label>
+                <input type="text" id="modalNotes" placeholder="أي ملاحظات إضافية">
+
+                <button class="submit-btn" onclick="submitDeliveryUpdate('${orderId}')">✅ تأكيد التحديث</button>
+            `;
+            document.getElementById('modalContent').innerHTML = modalHtml;
+            document.getElementById('modalSheet').classList.add('active');
+            document.getElementById('modalOverlay').classList.add('active');
+            if (status === 'تم التوصيل') {
+                toggleModalPaymentFields();
+                updateModalAmounts(due);
+            }
         }
-    }
-            let newStatus = status;
-            if (status === 'فشل') newStatus = 'فشل التسليم';
-            else if (status === 'تم التوصيل') newStatus = 'تم التسليم';
 
-            // 1. تحديث محلي فوري
-            const updatedOrder = { ...order, status: newStatus, notes };
-            if (paymentData) {
-                updatedOrder.payment_method = paymentData.payment_method;
-                updatedOrder.cash_collected = paymentData.cash_collected;
-                updatedOrder.wallet_collected = paymentData.wallet_collected;
+        // =============================================================
+        // 12. تحديث التسليم (مع التحديث الفوري ودعم عدم الاتصال)
+        // =============================================================
+        async function submitDeliveryUpdate(orderId) {
+            if (isSubmitting) {
+                showToast('⚠️ جاري معالجة طلب سابق، انتظر قليلاً');
+                return;
             }
-            const index = currentOrders.findIndex(o => o.id === orderId);
-            if (index !== -1) {
-                currentOrders[index] = updatedOrder;
-            } else {
-                currentOrders.push(updatedOrder);
-            }
-            await updateOrderLocally(updatedOrder);
+            isSubmitting = true;
+            setOrderButtonsDisabled(orderId, true);
 
-            // عرض التحديث فوراً
-            renderOrders(currentOrders);
-            closeModalSheet();
-            showToast(`✅ تم تعديل الطلب #${orderId} محلياً`);
+            try {
+                const status = document.getElementById('modalStatus')?.value || 'تم التوصيل';
+                const notes = document.getElementById('modalNotes')?.value?.trim() || '';
+                const order = currentOrders.find(o => String(o.id) === String(orderId));
+                if (!order) {
+                    showToast('الطلب غير موجود');
+                    return;
+                }
 
-            // إظهار النافذة المنبثقة
-            showOrderUpdateDialog(orderId);
+                const finalStatuses = ['تم التسليم', 'فشل التسليم', 'مرتجع جزئي', 'مرتجع كلي', 'ملغي'];
+                const originalOrder = typeof structuredClone === 'function' ? structuredClone(order) : JSON.parse(JSON.stringify(order));
+                if (finalStatuses.includes(order.status)) {
+                    showToast('❌ هذا الطلب قد انتهى، لا يمكن تعديله');
+                    return;
+                }
 
-            // 2. المزامنة مع الخادم
-            const operationId = generateOperationId();
-   const operationData = {
-  operation_id: operationId,
-  order_id: orderId,
-  delivery_status: status, // ✅ تم التعديل
-  ...(paymentData || {}),
-  notes: notes || ''
-};
-// إضافة سجل للتصحيح
-console.log('📦 Payload المرسل للتوصيل:', JSON.stringify(operationData, null, 2));
+                const due = getOrderDueAmount(order);
 
-            if (navigator.onLine) {
-                try {
-                    const response = await apiCall('/driver/update-delivery', 'POST', operationData);
+                let paymentData = null;
+                if (status === 'تم التوصيل') {
+                    const curList = (currencies && currencies.length > 0)
+                        ? currencies
+                        : [{ id: 1, code: 'YER', name: 'ريال يمني', is_base: 1, rate_to_base: 1 }];
+                    const baseCurrency = curList.find(c => c.is_base) || curList[0];
+                    const baseCurrencyId = baseCurrency ? baseCurrency.id : 1;
 
-                    if (response.order) {
-                        const serverOrder = response.order;
-                        const idx = currentOrders.findIndex(o => o.id === orderId);
-                        const confirmedOrder = { ...serverOrder, _pendingSync: false };
-                        if (idx !== -1) currentOrders[idx] = confirmedOrder;
-                        else currentOrders.push(confirmedOrder);
-                        await updateOrderLocally(confirmedOrder);
+                    if (due > 0) {
+                        const method = document.getElementById('modalPaymentMethod')?.value || 'نقدي';
+                        let cashCollected = parseFloat(document.getElementById('modalCashCollected')?.value) || 0;
+                        let walletCollected = parseFloat(document.getElementById('modalWalletCollected')?.value) || 0;
+                        const walletSelect = document.getElementById('modalWalletSelect');
+                        const cashCurrencyId = document.getElementById('modalCashCurrency')?.value;
+                        const walletCurrencyId = document.getElementById('modalWalletCurrency')?.value;
+
+                        // التحقق من تطابق المبلغ المحصل مع due (مع مراعاة العملات)
+                        const cashCurrency = curList.find(c => String(c.id) === String(cashCurrencyId)) || baseCurrency;
+                        const walletCurrency = curList.find(c => String(c.id) === String(walletCurrencyId)) || baseCurrency;
+                        const cashRate = cashCurrency ? (parseFloat(cashCurrency.rate_to_base) || 1) : 1;
+                        const walletRate = walletCurrency ? (parseFloat(walletCurrency.rate_to_base) || 1) : 1;
+                        const baseRate = baseCurrency ? (parseFloat(baseCurrency.rate_to_base) || 1) : 1;
+
+                        const cashBase = cashCollected * cashRate;
+                        const walletBase = walletCollected * walletRate;
+                        const totalBaseCollected = cashBase + walletBase;
+                        const dueBase = due * baseRate;
+
+                        if (Math.abs(totalBaseCollected - dueBase) > 0.01) {
+                            if (totalBaseCollected === 0) {
+                                showToast('⚠️ يجب إدخال مبلغ');
+                                return;
+                            }
+                            const ratio = dueBase / totalBaseCollected;
+                            cashCollected = cashCollected * ratio;
+                            walletCollected = walletCollected * ratio;
+                            showToast('⚠️ تم تعديل المبالغ تلقائياً');
+                        }
+
+                        if ((method === 'محفظة' || method === 'مختلط') && walletCollected > 0 && !walletSelect?.value) {
+                            const errEl = document.getElementById('modalPaymentError');
+                            if (errEl) errEl.textContent = 'يجب اختيار المحفظة';
+                            return;
+                        }
+
+                        paymentData = {
+                            payment_method: method,
+                            cash_collected: cashCollected,
+                            wallet_collected: walletCollected,
+                            wallet_id: walletSelect?.value ? parseInt(walletSelect.value) : null,
+                            cash_currency_id: cashCurrencyId ? parseInt(cashCurrencyId) : baseCurrencyId,
+                            wallet_currency_id: walletCurrencyId ? parseInt(walletCurrencyId) : baseCurrencyId
+                        };
+                    } else {
+                        paymentData = {
+                            payment_method: order.payment_method || 'نقدي',
+                            cash_collected: 0,
+                            wallet_collected: 0,
+                            wallet_id: null,
+                            cash_currency_id: baseCurrencyId,
+                            wallet_currency_id: baseCurrencyId
+                        };
+                        const cashInput = document.getElementById('modalCashCollected');
+                        const walletInput = document.getElementById('modalWalletCollected');
+                        if (cashInput) cashInput.value = 0;
+                        if (walletInput) walletInput.value = 0;
                     }
-                    if (response.balance !== undefined) {
-                        totalBalance = response.balance;
+                }
+
+                let newStatus = status;
+                if (status === 'فشل') newStatus = 'فشل التسليم';
+                else if (status === 'تم التوصيل') newStatus = 'تم التسليم';
+
+                // 1. تحديث محلي فوري
+                const updatedOrder = { ...order, status: newStatus, notes };
+                if (paymentData) {
+                    updatedOrder.payment_method = paymentData.payment_method;
+                    updatedOrder.cash_collected = paymentData.cash_collected;
+                    updatedOrder.wallet_collected = paymentData.wallet_collected;
+                }
+                const index = currentOrders.findIndex(o => String(o.id) === String(orderId));
+                if (index !== -1) {
+                    currentOrders[index] = updatedOrder;
+                } else {
+                    currentOrders.push(updatedOrder);
+                }
+                await updateOrderLocally(updatedOrder);
+
+                // إغلاق المودال وعرض التحديث فوراً مع الحفاظ على الفلاتر
+                closeModalSheet();
+                applyFiltersAndRender();
+
+                // 2. المزامنة مع الخادم
+                const operationId = generateOperationId();
+                const operationData = {
+                    operation_id: operationId,
+                    order_id: orderId,
+                    delivery_status: status,
+                    ...(paymentData || {}),
+                    notes: notes || ''
+                };
+
+                if (navigator.onLine) {
+                    try {
+                        const response = await apiCall('/driver/update-delivery', 'POST', operationData);
+
+                        if (response.order) {
+                            const serverOrder = response.order;
+                            const idx = currentOrders.findIndex(o => String(o.id) === String(orderId));
+                            const confirmedOrder = { ...serverOrder, _pendingSync: false };
+                            if (idx !== -1) currentOrders[idx] = confirmedOrder;
+                            else currentOrders.push(confirmedOrder);
+                            await updateOrderLocally(confirmedOrder);
+                        }
+
+                        const serverBalance = response.account?.balance !== undefined ? response.account.balance : response.balance;
+                        if (serverBalance !== undefined) {
+                            totalBalance = serverBalance;
+                            localStorage.setItem('driverBalance', totalBalance.toString());
+                            updateBalanceDisplay();
+                        } else if (status === 'تم التوصيل' && paymentData && paymentData.cash_collected > 0) {
+                            totalBalance += paymentData.cash_collected;
+                            localStorage.setItem('driverBalance', totalBalance.toString());
+                            updateBalanceDisplay();
+                        }
+
+                        if (response.account) {
+                            lastAccountData = { ...lastAccountData, ...response.account };
+                            localStorage.setItem('lastAccountData', JSON.stringify(lastAccountData));
+                        }
+
+                        applyFiltersAndRender();
+                        showToast(`✅ تم تسجيل التحديث بنجاح للطلب #${orderId}`);
+                        refreshOrders().catch(console.warn);
+                    } catch (err) {
+                        const errMsg = (err.message || '').toLowerCase();
+                        const isClientError = errMsg.includes('400') || errMsg.includes('403') || errMsg.includes('422');
+                        if (isClientError) {
+                            await rollbackLocalOrderUpdate(orderId, originalOrder);
+                            let errorText = err.message || '';
+                            try {
+                                const errorObj = JSON.parse(err.message);
+                                if (errorObj && errorObj.error) errorText = errorObj.error;
+                            } catch (e) {}
+                            showToast('❌ تعذر إتمام التحديث: ' + (errorText || err.message));
+                        } else {
+                            await addOperation({
+                                store: STORES.ORDERS,
+                                type: 'update',
+                                operation_id: operationId,
+                                data: operationData
+                            });
+                            updatedOrder._pendingSync = true;
+                            markOrderAsPending(orderId);
+                            await updateSyncCounter();
+                            registerBackgroundSync();
+                            if (status === 'تم التوصيل' && paymentData && paymentData.cash_collected > 0) {
+                                totalBalance += paymentData.cash_collected;
+                                localStorage.setItem('driverBalance', totalBalance.toString());
+                                updateBalanceDisplay();
+                            }
+                            showToast('📴 تم حفظ التحديث محلياً، ستتم المزامنة تلقائياً عند عودة الاتصال');
+                        }
+                    }
+                } else {
+                    await addOperation({
+                        store: STORES.ORDERS,
+                        type: 'update',
+                        operation_id: operationId,
+                        data: operationData
+                    });
+                    updatedOrder._pendingSync = true;
+                    markOrderAsPending(orderId);
+                    await updateSyncCounter();
+                    registerBackgroundSync();
+                    if (status === 'تم التوصيل' && paymentData && paymentData.cash_collected > 0) {
+                        totalBalance += paymentData.cash_collected;
                         localStorage.setItem('driverBalance', totalBalance.toString());
                         updateBalanceDisplay();
                     }
-
-                    renderOrders(currentOrders);
-                    showToast(`✅ تمت المزامنة مع الخادم للطلب #${orderId}`);
-                } catch (err) {
-                    await rollbackLocalOrderUpdate(orderId, originalOrder);
-                    let errorText = err.message || '';
-                    try {
-                        const errorObj = JSON.parse(err.message);
-                        if (errorObj && errorObj.error) errorText = errorObj.error;
-                    } catch (e) {}
-                    showToast('⚠️ فشلت المزامنة، تم إلغاء التحديث وإرجاع أزرار الطلب' + (errorText ? ': ' + errorText : ''));
+                    showToast('📴 تم حفظ التحديث دون اتصال، ستتم المزامنة تلقائياً عند عودة الإنترنت');
                 }
-            } else {
-                await rollbackLocalOrderUpdate(orderId, originalOrder);
-                showToast('📴 تعذر الاتصال بالخادم، تم إلغاء التحديث وإرجاع أزرار الطلب');
+            } catch (err) {
+                console.error('خطأ غير متوقع في submitDeliveryUpdate:', err);
+                showToast('❌ حدث خطأ أثناء التحديث');
+            } finally {
+                setOrderButtonsDisabled(orderId, false);
+                isSubmitting = false;
             }
-
-            document.querySelectorAll('.action-buttons .btn').forEach(btn => {
-                btn.disabled = false;
-                btn.style.opacity = '1';
-                btn.style.cursor = 'pointer';
-            });
-            isSubmitting = false;
         }
 
         function closeModalSheet() {
-            document.getElementById('modalSheet').classList.remove('active');
-            document.getElementById('modalOverlay').classList.remove('active');
-            document.querySelectorAll('.action-buttons .btn').forEach(btn => {
-                btn.disabled = false;
-                btn.style.opacity = '1';
-                btn.style.cursor = 'pointer';
-            });
+            document.getElementById('modalSheet')?.classList.remove('active');
+            document.getElementById('modalOverlay')?.classList.remove('active');
+            if (activeModalOrderId) {
+                setOrderButtonsDisabled(activeModalOrderId, false);
+                activeModalOrderId = null;
+            }
             isSubmitting = false;
         }
 
@@ -2372,8 +2683,7 @@ console.log('📦 Payload المرسل للتوصيل:', JSON.stringify(operatio
             }
         }
 
-        function logout() {
-            // حذف استدعاء stopPolling نهائياً
+        async function logout() {
             clearToken();
             clearDriverId();
             clearDriverName();
@@ -2381,11 +2691,21 @@ console.log('📦 Payload المرسل للتوصيل:', JSON.stringify(operatio
             returnRequests = [];
             totalBalance = 0;
             localStorage.removeItem('driverBalance');
+            localStorage.removeItem('lastAccountData');
 
-            openDB().then(db => {
-                db.transaction(STORES.ORDERS, 'readwrite').objectStore(STORES.ORDERS).clear();
-                db.transaction(STORES.OPERATIONS, 'readwrite').objectStore(STORES.OPERATIONS).clear();
-            }).catch(console.warn);
+            try {
+                const db = await openDB();
+                await new Promise((resolve, reject) => {
+                    const tx = db.transaction([STORES.ORDERS, STORES.OPERATIONS], 'readwrite');
+                    tx.objectStore(STORES.ORDERS).clear();
+                    tx.objectStore(STORES.OPERATIONS).clear();
+                    tx.oncomplete = () => resolve();
+                    tx.onerror = () => reject(tx.error);
+                    tx.onabort = () => reject(tx.error);
+                });
+            } catch (err) {
+                console.warn('فشل مسح IndexedDB أثناء تسجيل الخروج:', err);
+            }
 
             showLoginScreen();
             showToast('👋 تم تسجيل الخروج');
@@ -2414,12 +2734,7 @@ console.log('📦 Payload المرسل للتوصيل:', JSON.stringify(operatio
         // 14. المزامنة التلقائية
         // =============================================================
         function updateConnectionStatus() {
-            const statusEl = document.getElementById('connectionStatus');
-            const labelEl = document.getElementById('connectionLabel');
-            if (!statusEl || !labelEl) return;
-            const online = navigator.onLine;
-            statusEl.className = 'online-status ' + (online ? 'online' : 'offline');
-            labelEl.textContent = online ? 'متصل' : 'غير متصل';
+            updateEnhancedConnectionStatus();
         }
 
         async function syncAllOperations() {
@@ -2448,87 +2763,184 @@ console.log('📦 Payload المرسل للتوصيل:', JSON.stringify(operatio
             let syncedCount = 0;
             let failedCount = 0;
             let cancelledCount = 0;
+            const MAX_ATTEMPTS = 3;
 
             for (const op of operations) {
-                const { store, type, data, id } = op;
+                const { store, type, data } = op;
+                const opKey = op.id !== undefined ? op.id : op.operation_id;
                 if (store === STORES.ORDERS && type === 'update') {
+                    op.attempts = (op.attempts || 0) + 1;
                     try {
                         const response = await fetch(`${API_BASE}/driver/update-delivery`, {
                             method: 'POST',
                             headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ ...data, operation_id: data.operation_id || op.operation_id })
+                            body: JSON.stringify({ ...data, operation_id: data?.operation_id || op.operation_id })
                         });
 
-                        // ✅ الحذف الفوري: بمجرد أن يرد الخادم (بنجاح أو بخطأ 400/500)
-                        // نحذف العملية من طابور المزامنة نهائياً لكي لا تتكرر
-                        await deleteOperation(op.id);
-
                         if (response.ok) {
+                            await deleteOperation(opKey);
                             syncedCount++;
                             const result = await response.json();
                             if (result.order) await updateOrderLocally(result.order);
-                        } else {
+                        } else if (response.status >= 400 && response.status < 500 && response.status !== 408) {
+                            await deleteOperation(opKey);
                             failedCount++;
-                            console.warn(`العملية ${op.id} اكتملت أو رُفضت من الخادم، وتم حذفها من المزامنة لمنع التكرار.`);
+                            console.warn(`العملية ${opKey} رُفضت من الخادم برمز ${response.status} وتم حذفها لمنع التكرار.`);
+                        } else {
+                            if (op.attempts >= MAX_ATTEMPTS) {
+                                await deleteOperation(opKey);
+                                cancelledCount++;
+                                console.warn(`تم إلغاء العملية ${opKey} بعد فشل ${MAX_ATTEMPTS} محاولات.`);
+                            } else {
+                                await put(STORES.OPERATIONS, op);
+                                failedCount++;
+                            }
                         }
                     } catch (err) {
-                        // هنا يحدث الخطأ فقط إذا لم يكن هناك إنترنت تماماً
-                        console.error(`انقطاع اتصال للعملية ${op.id}:`, err);
-                        failedCount++;
+                        console.error(`انقطاع اتصال للعملية ${opKey}:`, err);
+                        if (op.attempts >= MAX_ATTEMPTS) {
+                            await deleteOperation(opKey);
+                            cancelledCount++;
+                        } else {
+                            await put(STORES.OPERATIONS, op);
+                            failedCount++;
+                        }
                     }
                 }
 
-                const remaining = operations.length - syncedCount - failedCount;
-                if (document.getElementById('syncCount')) {
-                    document.getElementById('syncCount').textContent = Math.max(0, remaining);
+                const remaining = operations.length - syncedCount - failedCount - cancelledCount;
+                const syncCountEl = document.getElementById('syncCount');
+                if (syncCountEl) {
+                    syncCountEl.textContent = Math.max(0, remaining);
                 }
             }
 
             await updateSyncCounter();
 
-            // تحديث القائمة فقط بعد المزامنة
-            await refreshOrders();
-
             if (syncedCount > 0) {
+                await refreshOrders();
                 showToast(`✅ تمت مزامنة ${syncedCount} عملية`);
+            } else {
+                applyFiltersAndRender();
             }
+
             if (cancelledCount > 0) {
-                showToast(`⚠️ تم إلغاء ${cancelledCount} عملية بعد فشل محاولتين`);
+                showToast(`⚠️ تم إلغاء ${cancelledCount} عملية بعد تجاوز الحد الأقصى للمحاولات`);
             }
 
             isSyncing = false;
         }
 
         // =============================================================
-        // 15. تهيئة التطبيق
+        // 15. تهيئة وبدء التطبيق الفوري (Instant Bootstrap & Offline-First)
         // =============================================================
-        window.addEventListener('load', async () => {
-            updateConnectionStatus();
-
-            if ('serviceWorker' in navigator) {
-                await initializePushNotifications();
-
-                navigator.serviceWorker.addEventListener('message', event => {
-                    if (event.data && event.data.action === 'reload') {
-                        console.log('🔄 إعادة تحميل الصفحة بأمر من Service Worker');
-                        window.location.reload(true);
-                    }
-                });
+        async function instantRenderFromCache() {
+            const driverId = getDriverId();
+            if (!driverId) return false;
+            try {
+                const localOrders = await getAll(STORES.ORDERS);
+                const driverOrders = (localOrders || []).filter(o => o.driver_id == driverId);
+                if (driverOrders && driverOrders.length > 0) {
+                    currentOrders = driverOrders;
+                    const savedBalance = parseFloat(localStorage.getItem('driverBalance')) || totalBalance || 0;
+                    totalBalance = savedBalance;
+                    const cachedAccount = (lastAccountData && Object.keys(lastAccountData).length > 0)
+                        ? lastAccountData
+                        : JSON.parse(localStorage.getItem('lastAccountData') || '{}');
+                    const filteredFinal = filterOrdersByPeriod(currentOrders, currentPeriod)
+                        .filter(o => currentStatusFilter ? o.status === currentStatusFilter : true);
+                    renderDashboard(cachedAccount, savedBalance, filteredFinal, filteredFinal.length);
+                    const name = getDriverName();
+                    const driverNameEl = document.getElementById('driverNameDisplay');
+                    if (name && driverNameEl) driverNameEl.textContent = name;
+                    return true;
+                }
+            } catch (e) {
+                console.warn('تعذر العرض الفوري من الكاش المحلي:', e);
             }
+            return false;
+        }
 
-            installEnhancedSyncIntegration();
+        async function initApp() {
+            updateEnhancedConnectionStatus();
+            loadFilterSettings();
+
             const token = getToken();
             const driverId = getDriverId();
-            if (token && driverId) {
-                loadFilterSettings();
-                await prepareDatabaseUpgradeSafely();
-                await syncBeforeDashboardLoad();
-                await loadDashboard();
-            } else {
+            if (!token || !driverId) {
                 showLoginScreen();
+                return;
             }
-            await updateSyncCounter();
-        });
+
+            const name = getDriverName();
+            const driverNameEl = document.getElementById('driverNameDisplay');
+            if (name && driverNameEl) driverNameEl.textContent = name;
+
+            const savedView = localStorage.getItem('driverActiveView') || 'orders';
+            currentView = savedView;
+            updateNavSelection(currentView);
+
+            // 1. العرض الفوري دون أي شاشة بيضاء أو تأخير
+            if (currentView === 'orders') {
+                document.getElementById('pageTitle').textContent = '📦 طلباتي';
+                const hasCache = await instantRenderFromCache();
+                if (!hasCache) {
+                    renderDashboardSkeleton();
+                    loadDashboard().catch(console.warn);
+                } else {
+                    // تم العرض فورياً من الكاش! نقوم بتحديث البيانات بهدوء في الخلفية
+                    if (navigator.onLine) {
+                        refreshOrders().catch(console.warn);
+                    }
+                }
+            } else {
+                navigateTo(currentView);
+            }
+
+            // 2. تشغيل مهام الخلفية بشكل مستقل دون حظر الواجهة إطلاقاً
+            runBackgroundStartupTasks();
+        }
+
+        function runBackgroundStartupTasks() {
+            setTimeout(async () => {
+                try {
+                    installEnhancedSyncIntegration();
+                    updateSyncCounter().catch(console.warn);
+
+                    if ('serviceWorker' in navigator) {
+                        initializePushNotifications().catch(e => console.warn('Push init error:', e));
+                    }
+
+                    prepareDatabaseUpgradeSafely().catch(e => console.warn('DB upgrade error:', e));
+
+                    if (navigator.onLine && getToken()) {
+                        loadInitialData().catch(console.warn);
+                        sendTokenToServiceWorker().catch(console.warn);
+                        registerBackgroundSync().catch(console.warn);
+                        syncAllOperations().catch(console.warn);
+                    }
+                } catch (e) {
+                    console.warn('خطأ في مهام الخلفية:', e);
+                }
+            }, 60);
+        }
+
+        let appInitialized = false;
+        function bootstrapApp() {
+            if (appInitialized) return;
+            appInitialized = true;
+            initApp().catch(err => {
+                console.error('خطأ عند بدء التطبيق:', err);
+                loadDashboard().catch(console.error);
+            });
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', bootstrapApp);
+        } else {
+            bootstrapApp();
+        }
+        window.addEventListener('load', bootstrapApp);
 
         window.addEventListener('online', async () => {
             updateEnhancedConnectionStatus();
@@ -2551,6 +2963,7 @@ console.log('📦 Payload المرسل للتوصيل:', JSON.stringify(operatio
         window.loadDashboard = loadDashboard;
         window.applyFilters = applyFilters;
         window.resetFilters = resetFilters;
+        window.applyFiltersAndRender = applyFiltersAndRender;
         window.openDeliveryModal = openDeliveryModal;
         window.closeModalSheet = closeModalSheet;
         window.submitDeliveryUpdate = submitDeliveryUpdate;
@@ -2561,6 +2974,7 @@ console.log('📦 Payload المرسل للتوصيل:', JSON.stringify(operatio
         window.closeInvoiceModal = closeInvoiceModal;
         window.navigateTo = navigateTo;
         window.performGlobalSearch = performGlobalSearch;
+        window.debouncedGlobalSearch = debouncedGlobalSearch;
         window.handleLogin = handleLogin;
         window.logout = logout;
         window.toggleSideMenu = toggleSideMenu;
@@ -2568,10 +2982,17 @@ console.log('📦 Payload المرسل للتوصيل:', JSON.stringify(operatio
         window.loadReturnRequests = loadReturnRequests;
         window.confirmReturnAction = confirmReturnAction;
         window.updateSyncCounter = updateSyncCounter;
+        window.countPendingOperations = countPendingOperations;
         window.togglePushSubscription = togglePushSubscription;
         window.refreshOrders = refreshOrders;
         window.viewOrder = viewOrder;
         window.showOrderUpdateDialog = showOrderUpdateDialog;
+        window.bulkPutOrders = bulkPutOrders;
+        window.setOrderButtonsDisabled = setOrderButtonsDisabled;
+        window.renderDashboardSkeleton = renderDashboardSkeleton;
+        window.instantRenderFromCache = instantRenderFromCache;
+        window.updateNavSelection = updateNavSelection;
+        window.initApp = initApp;
 
         const styleEl = document.createElement('style');
         styleEl.textContent = `

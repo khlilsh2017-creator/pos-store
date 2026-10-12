@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#123b72">
-<link rel="manifest" href="manifest.json">
+<script>if(location.protocol==='http:'||location.protocol==='https:'){const m=document.createElement('link');m.rel='manifest';m.href='manifest.json';document.head.appendChild(m);}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -19,20 +19,35 @@
 .statement-summary .metric:last-child strong{color:var(--navy);font-size:1rem}.statement-summary .metric{text-align:center}.statement-list{display:grid;gap:7px}.statement-row{background:#fff;border:1px solid var(--line);border-radius:11px;padding:9px;display:flex;justify-content:space-between;gap:8px;font-size:.7rem}.statement-row small{display:block;color:var(--muted);font-size:.62rem;margin-top:3px}.return-status{font-size:.65rem;font-weight:800;padding:4px 8px;border-radius:999px;background:#fff6df;color:#946108}.return-status.completed{background:#eaf9ef;color:#14753a}.return-status.cancelled{background:#fff0f0;color:#a62323}.login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:linear-gradient(160deg,#edf5ff,#f8fbff)}.login-card{width:min(100%,430px);background:#fff;border:1px solid var(--line);border-radius:24px;padding:23px 18px;box-shadow:var(--shadow)}.login-logo{width:64px;height:64px;border-radius:20px;background:linear-gradient(135deg,var(--navy),var(--blue));color:#fff;display:grid;place-items:center;font-size:1.7rem;margin:0 auto 12px}.login-card h1{text-align:center;font-size:1.15rem;margin:0}.login-card p{text-align:center;color:var(--muted);font-size:.75rem;margin:5px 0 17px}.login-card label{display:block;font-size:.72rem;font-weight:700;margin:10px 0 5px}.login-submit{width:100%;margin-top:15px;background:var(--blue);color:#fff;min-height:48px;border-radius:13px;font-weight:800}.login-back{width:100%;margin-top:8px;background:#eef2f7;color:var(--text);min-height:43px;border-radius:13px;font-weight:700}.spinner{display:inline-block;width:16px;height:16px;border:2px solid currentColor;border-left-color:transparent;border-radius:50%;animation:spin .7s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}@media(min-width:600px){.content{padding:18px}.modal-backdrop{align-items:center;padding:15px}.modal{max-width:650px;border-radius:22px;padding-bottom:18px}.shell{max-width:760px}}
 /* نافذة تأكيد مخصصة */
 .confirm-overlay{position:fixed;inset:0;z-index:10050;background:rgba(0,0,0,.5);backdrop-filter:blur(3px);display:none;align-items:center;justify-content:center;padding:14px;animation:fadeInConfirm .18s ease-out}.confirm-overlay.active{display:flex}@keyframes fadeInConfirm{from{opacity:0;}to{opacity:1;}}.confirm-box{width:100%;max-width:420px;background:var(--card);border-radius:var(--radius);padding:22px 18px;box-shadow:0 14px 38px rgba(15,35,63,.2);animation:popInConfirm .22s cubic-bezier(.4,0,.2,1);text-align:center;border:1px solid var(--line)}@keyframes popInConfirm{from{transform:scale(.92) translateY(10px);opacity:0;}to{transform:scale(1) translateY(0);opacity:1;}}.confirm-icon{width:64px;height:64px;border-radius:50%;display:grid;place-items:center;font-size:1.7rem;margin:0 auto 12px;background:#fff6df;color:var(--amber)}.confirm-icon.danger{background:#fff0f0;color:var(--red)}.confirm-icon.success{background:#eaf9ef;color:var(--green)}.confirm-icon.info{background:#edf6ff;color:var(--blue)}.confirm-icon.warning{background:#fff6df;color:var(--amber)}.confirm-title{font-size:1rem;font-weight:800;color:var(--text);margin:0 0 8px}.confirm-message{font-size:.82rem;color:var(--muted);line-height:1.7;margin:0 0 18px;white-space:pre-line}.confirm-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.confirm-actions .btn{min-height:44px;font-size:.82rem}@media(max-width:480px){.confirm-overlay{align-items:flex-end;padding:0}.confirm-box{max-width:none;border-radius:22px 22px 0 0;padding:22px 16px calc(22px + var(--safe-bottom));animation:slideUpConfirm .25s cubic-bezier(.4,0,.2,1)}@keyframes slideUpConfirm{from{transform:translateY(30px);opacity:.6;}to{transform:translateY(0);opacity:1;}}}
+.btn-xs{min-height:30px;padding:3px 8px;border-radius:8px;font-size:.65rem}
+.btn-sm{min-height:36px;padding:5px 10px;border-radius:10px;font-size:.7rem}
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:12px;font-size:.65rem;font-weight:700}
+.badge-green{background:#dcfce7;color:#166534}
+.badge-red{background:#fee2e2;color:#991b1b}
+.badge-gray{background:#e2e8f0;color:#334155}
+.date-preset-btn.active-preset,.stmt-preset-btn.active-preset{background:var(--navy)!important;color:#fff!important;border-color:var(--navy)!important;font-weight:800}
+.top-loader{position:fixed;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#60a5fa,#1d63c6,#60a5fa);background-size:200% 100%;z-index:99999;animation:loaderShimmer 1.2s infinite linear;display:none}
+.top-loader.active{display:block}
+@keyframes loaderShimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.offline-banner{background:#fff6df;color:#946108;padding:7px 12px;font-size:.72rem;font-weight:700;text-align:center;border-bottom:1px solid #fed7aa;display:flex;align-items:center;justify-content:center;gap:6px}
+.spinning-icon{display:inline-block;animation:spin .8s linear infinite}
 </style>
 </head>
 <body>
 
+<div id="topLoader" class="top-loader"></div>
 <div id="app" hidden>
   <div class="shell">
     <header class="topbar">
       <div class="topbar-row">
-        <button class="icon-btn" onclick="goToCreateOrder()" aria-label="العودة"><span>‹</span></button>
+        <button class="icon-btn" onclick="goToCreateOrder()" aria-label="طلب جديد" title="إنشاء طلب جديد"><span>+</span></button>
         <div class="brand"><h1>إدارة طلبات الإنترنت</h1><p>متابعة الطلبات والتوصيل من الجوال</p></div>
-        <button class="icon-btn" onclick="loadOrders(1)" aria-label="تحديث">↻</button>
+        <button class="icon-btn" id="driverManagerHeaderBtn" onclick="openDriverManagerMobile()" title="إدارة المندوبين" aria-label="إدارة المندوبين" style="display:none;"><i class="fas fa-users"></i></button>
+        <button class="icon-btn" id="refreshBtn" onclick="refreshCurrentSection()" aria-label="تحديث" title="تحديث البيانات">↻</button>
       </div>
       <div class="user-pill"><span id="userLabel">مستخدم POS</span><button onclick="logout()">تسجيل الخروج</button></div>
     </header>
+    <div id="offlineBanner" class="offline-banner" style="display:none;"><i class="fas fa-wifi-slash"></i> <span>وضع عدم الاتصال — يتم عرض البيانات المحفوظة محلياً</span></div>
     <main class="content">
       <div id="globalLoading" class="global-loading" hidden><div class="loading-card"><span class="loading-ring"></span><strong id="loadingTitle">جاري التحميل...</strong><small id="loadingText">يرجى الانتظار</small></div></div>
       <div id="notice" class="notice"></div>
@@ -45,6 +60,15 @@
           <button class="search-btn" onclick="loadOrders(1)" aria-label="بحث">⌕</button>
         </div>
         <div id="ordersDateBox" class="orders-date-box" style="display:none;">
+          <div style="margin-bottom:8px;">
+            <label style="display:block;font-size:.62rem;color:var(--muted);font-weight:700;margin-bottom:4px;">فترة العرض السريعة</label>
+            <div style="display:flex;gap:4px;flex-wrap:wrap;">
+              <button type="button" class="btn btn-xs btn-soft date-preset-btn" onclick="applyOrdersPreset('today', this)">اليوم</button>
+              <button type="button" class="btn btn-xs btn-soft date-preset-btn" onclick="applyOrdersPreset('month', this)">من بداية الشهر</button>
+              <button type="button" class="btn btn-xs btn-soft date-preset-btn" onclick="applyOrdersPreset('year', this)">من بداية السنة</button>
+              <button type="button" class="btn btn-xs btn-soft date-preset-btn" onclick="applyOrdersPreset('all', this)">كل الفترات</button>
+            </div>
+          </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
             <div>
               <label for="orderDateFrom" style="display:block;font-size:.62rem;color:var(--muted);font-weight:700;margin-bottom:2px;">من تاريخ</label>
@@ -64,23 +88,64 @@
           <select class="select" id="statusFilter"><option value="">كل الحالات</option><option>جديد</option><option>قيد التجهيز</option><option>مُسند لمندوب</option><option>خرج للتوصيل</option><option>تم التسليم</option><option>فشل التسليم</option><option>ملغي</option><option>مرتجع جزئي</option><option>مرتجع كلي</option></select>
           <select class="select" id="driverFilter"><option value="">كل المندوبين</option></select>
         </div>
+        <div class="orders-quick-actions" style="display:flex;gap:6px;margin-top:8px;">
+          <button class="btn btn-soft btn-xs" style="flex:1;" type="button" onclick="exportOrdersCSV()" title="تصدير إلى CSV"><i class="fas fa-file-csv"></i> تصدير CSV</button>
+          <button class="btn btn-soft btn-xs" style="flex:1;" type="button" onclick="printOrdersList()" title="طباعة قائمة الطلبات"><i class="fas fa-print"></i> طباعة القائمة</button>
+          <button class="btn btn-green btn-xs" style="flex:1;" type="button" onclick="goToCreateOrder()" title="طلب جديد"><i class="fas fa-plus"></i> طلب جديد</button>
+        </div>
       </section>
       <section class="stats"><div class="stat"><strong id="statCount">0</strong><span>طلبات الصفحة</span></div><div class="stat"><strong id="statPending">0</strong><span>غير مكتملة</span></div><div class="stat"><strong id="statTotal">0</strong><span>إجمالي الصفحة</span></div></section>
       <div class="section-head"><h2>آخر الطلبات</h2><span class="muted" id="pageLabel"></span></div>
       <section id="ordersList" class="orders"><div class="empty"><i>⌛</i>جاري تحميل الطلبات...</div></section>
       <div id="pagination" class="pagination"></div>
       </div>
-      <section id="driversSection" class="mobile-section"><div class="section-head"><h2>حسابات المندوبين</h2><button class="btn btn-soft" onclick="loadDriverSummaryMobile()">تحديث</button></div><div id="driverSummary" class="driver-grid"><div class="empty">جاري تحميل حسابات المندوبين...</div></div></section>
-      <section id="returnsSection" class="mobile-section"><div class="section-head"><h2>طلبات الإرجاع</h2><button class="btn btn-soft" onclick="loadReturnsMobile(1)">تحديث</button></div><div class="filters"><select class="select" id="returnStatusFilter" onchange="loadReturnsMobile(1)"><option value="">كل الحالات</option><option value="pending">معلقة</option><option value="completed">تم التنفيذ</option><option value="cancelled">ملغاة</option></select><select class="select" id="returnDriverFilter" onchange="loadReturnsMobile(1)"><option value="">كل المندوبين</option></select></div><div id="returnsList" class="return-list" style="margin-top:10px"><div class="empty">جاري تحميل طلبات الإرجاع...</div></div><div id="returnsPagination" class="pagination"></div></section>
+      <section id="driversSection" class="mobile-section">
+        <div class="section-head">
+          <h2>حسابات المندوبين</h2>
+          <div style="display:flex;gap:6px;">
+            <button class="btn btn-primary btn-sm" id="driverManagerSectionBtn" onclick="openDriverManagerMobile()" style="display:none;"><i class="fas fa-user-plus"></i> إدارة المندوبين</button>
+            <button class="btn btn-soft btn-sm" onclick="loadDriverSummaryMobile()">تحديث</button>
+          </div>
+        </div>
+        <div id="driverSummary" class="driver-grid"><div class="empty">جاري تحميل حسابات المندوبين...</div></div>
+      </section>
+      <section id="returnsSection" class="mobile-section">
+        <div class="section-head">
+          <h2>طلبات الإرجاع</h2>
+          <button class="btn btn-soft" onclick="loadReturnsMobile(1)">تحديث</button>
+        </div>
+        <div class="filters">
+          <select class="select" id="returnStatusFilter" onchange="loadReturnsMobile(1)"><option value="">كل الحالات</option><option value="pending">معلقة</option><option value="completed">تم التنفيذ</option><option value="cancelled">ملغاة</option></select>
+          <select class="select" id="returnDriverFilter" onchange="loadReturnsMobile(1)"><option value="">كل المندوبين</option></select>
+        </div>
+        <div id="returnsList" class="return-list" style="margin-top:10px"><div class="empty">جاري تحميل طلبات الإرجاع...</div></div>
+        <div id="returnsPagination" class="pagination"></div>
+      </section>
       <section id="statementSection" class="mobile-section">
         <div class="section-head">
           <h2 id="statementTitle">كشف حركة المندوب</h2>
           <div style="display:flex;gap:6px">
-            <button class="btn btn-primary" onclick="printDriverStatement()">طباعة</button>
+            <button class="btn btn-primary" onclick="printDriverStatement()"><i class="fas fa-print"></i> طباعة</button>
+            <button class="btn btn-soft" onclick="exportDriverStatementPDFMobile()"><i class="fas fa-file-pdf"></i> PDF</button>
             <button class="btn btn-gray" onclick="showMobileSection('drivers')">رجوع</button>
           </div>
         </div>
         <div class="statement-toolbar">
+          <div style="margin-bottom:8px;">
+            <label for="statementDriverSelect" style="display:block;font-size:.62rem;color:var(--muted);font-weight:700;margin-bottom:2px;">اختيار المندوب</label>
+            <select class="select" id="statementDriverSelect" onchange="onStatementDriverChange(this.value)">
+              <option value="">اختر المندوب...</option>
+            </select>
+          </div>
+          <div style="margin-bottom:8px;">
+            <label style="display:block;font-size:.62rem;color:var(--muted);font-weight:700;margin-bottom:4px;">فترة كشف الحساب السريعة</label>
+            <div style="display:flex;gap:4px;flex-wrap:wrap;">
+              <button type="button" class="btn btn-xs btn-soft stmt-preset-btn" onclick="applyStatementPreset('today', this)">اليوم</button>
+              <button type="button" class="btn btn-xs btn-soft stmt-preset-btn" onclick="applyStatementPreset('month', this)">من بداية الشهر</button>
+              <button type="button" class="btn btn-xs btn-soft stmt-preset-btn" onclick="applyStatementPreset('year', this)">من بداية السنة</button>
+              <button type="button" class="btn btn-xs btn-soft stmt-preset-btn" onclick="applyStatementPreset('all', this)">كل الفترات</button>
+            </div>
+          </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
             <div>
               <label for="statementFrom" style="display:block;font-size:.62rem;color:var(--muted);font-weight:700;margin-bottom:2px;">من تاريخ</label>
@@ -107,42 +172,201 @@
 <div id="settlementBackdrop" class="modal-backdrop" onclick="backdropClose(event)">
   <section class="modal" role="dialog" aria-modal="true">
     <div class="modal-head">
-      <h2>تسوية حساب المندوب</h2>
+      <h2><i class="fas fa-handshake text-primary"></i> تسوية حساب المندوب</h2>
       <button class="close" onclick="closeSettlement()">×</button>
     </div>
-    <p class="muted" id="settlementHint"></p>
-    <label class="muted" for="settlementMethod">طريقة الدفع</label>
+    
+    <div id="settlementDriverCard" style="background:#f8fafc;border:1px solid var(--line);border-radius:14px;padding:11px;margin-bottom:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+        <strong id="settlementDriverName" style="font-size:.95rem;color:var(--navy);">اسم المندوب</strong>
+        <span id="settlementBalanceBadge" class="badge badge-gray" style="font-size:.72rem;">الرصيد: 0.00 ريال</span>
+      </div>
+      <div style="font-size:.73rem;color:var(--muted);margin-bottom:6px;" id="settlementBalanceExplanation"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:.68rem;border-top:1px dashed var(--line);padding-top:6px;margin-top:4px;">
+        <div><span>الطلبات المتبقية:</span> <strong id="settlementPendingOrders">0</strong></div>
+        <div><span>الطلبات الفاشلة:</span> <strong id="settlementFailedOrders">0</strong></div>
+      </div>
+    </div>
+
+    <label class="muted" for="settlementType" style="font-weight:700;">نوع التسوية</label>
+    <select class="select" id="settlementType" onchange="onSettlementTypeChange()">
+      <option value="driver_pays_shop">المندوب يدفع للمحل (سداد)</option>
+      <option value="shop_pays_driver">المحل يدفع للمندوب (صرف مستحقات)</option>
+      <option value="adjustment">تعديل رصيد يدوي</option>
+    </select>
+
+    <label class="muted" for="settlementMethod" style="font-weight:700;margin-top:8px;display:block;">طريقة الدفع</label>
     <select class="select" id="settlementMethod" onchange="toggleSettlementWallet()">
       <option value="cash">نقداً</option>
-      <option value="wallet">محفظة</option>
+      <option value="wallet">محفظة إلكترونية</option>
       <option value="mixed">مختلط (نقدي + محفظة)</option>
     </select>
-    <div id="settlementTotalWrap">
-      <label class="muted" id="settlementAmountLabel" for="settlementAmount">المبلغ المسدد (نقداً)</label>
-      <input class="input" id="settlementAmount" type="number" step="0.01" min="0.01" placeholder="أدخل المبلغ">
+
+    <div id="settlementTotalWrap" style="margin-top:8px;">
+      <label class="muted" id="settlementAmountLabel" for="settlementAmount" style="font-weight:700;">المبلغ المسدد</label>
+      <input class="input" id="settlementAmount" type="number" step="0.01" min="0.01" placeholder="أدخل المبلغ" oninput="updateSettlementSummaryMobile()">
     </div>
-    <div id="settlementCashWrap" hidden>
-      <label class="muted" for="settlementCash">المبلغ النقدي</label>
-      <input class="input" id="settlementCash" type="number" step="0.01" min="0" placeholder="0">
+
+    <div id="settlementMixedWrap" style="display:none;margin-top:8px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div>
+          <label class="muted" for="settlementCash" style="font-weight:700;">المبلغ النقدي</label>
+          <input class="input" id="settlementCash" type="number" step="0.01" min="0" placeholder="0.00" oninput="updateSettlementSummaryMobile()">
+        </div>
+        <div>
+          <label class="muted" for="settlementWallet" style="font-weight:700;">المبلغ عبر المحفظة</label>
+          <input class="input" id="settlementWallet" type="number" step="0.01" min="0" placeholder="0.00" oninput="updateSettlementSummaryMobile()">
+        </div>
+      </div>
     </div>
-    <div id="settlementWalletAmountWrap" hidden>
-      <label class="muted" for="settlementWallet">المبلغ عبر المحفظة</label>
-      <input class="input" id="settlementWallet" type="number" step="0.01" min="0" placeholder="0">
-    </div>
-    <div id="settlementWalletWrap" hidden>
-      <label class="muted" for="settlementWalletId">المحفظة المستلمة</label>
+
+    <div id="settlementWalletWrap" style="display:none;margin-top:8px;">
+      <label class="muted" for="settlementWalletId" style="font-weight:700;">اختر المحفظة المستلمة / المدفوع منها</label>
       <select class="select" id="settlementWalletId"><option value="">اختر المحفظة</option></select>
     </div>
-    <label class="muted" for="settlementNotes">ملاحظة</label>
-    <input class="input" id="settlementNotes" placeholder="اختياري">
-    <div class="modal-actions">
-      <button class="btn btn-primary wide" onclick="submitSettlementMobile()">تسجيل التسوية</button>
+
+    <label class="muted" for="settlementNotes" style="font-weight:700;margin-top:8px;display:block;">ملاحظات التسوية</label>
+    <input class="input" id="settlementNotes" placeholder="سبب التسوية (اختياري)">
+
+    <div style="background:#eaf3ff;border:1px solid #cfe2ff;border-radius:12px;padding:10px;margin-top:12px;font-size:.78rem;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+        <span class="muted">نوع العملية:</span>
+        <strong id="summaryTypeLabel">المندوب يدفع للمحل</strong>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+        <span class="muted">المبلغ الإجمالي:</span>
+        <strong id="summaryAmountVal" style="color:var(--navy);">0.00 ريال</strong>
+      </div>
+      <div style="display:flex;justify-content:space-between;border-top:1px dashed #b9d5fc;padding-top:4px;margin-top:4px;">
+        <span>الرصيد بعد التسوية:</span>
+        <strong id="summaryNewBalanceVal">0.00 ريال</strong>
+      </div>
+    </div>
+
+    <div class="modal-actions" style="margin-top:12px;">
+      <button class="btn btn-primary wide" onclick="submitSettlementMobile()"><i class="fas fa-check"></i> تأكيد وحفظ التسوية</button>
       <button class="btn btn-gray wide" onclick="closeSettlement()">إلغاء</button>
     </div>
   </section>
 </div>
 <div id="returnBackdrop" class="modal-backdrop" onclick="backdropClose(event)"><section class="modal" role="dialog" aria-modal="true"><div class="modal-head"><h2 id="returnTitle">تفاصيل الإرجاع</h2><button class="close" onclick="closeReturnDetail()">×</button></div><div id="returnDetailContent"></div><div id="returnDetailActions" class="modal-actions"></div></section></div>
 <div id="receiptBackdrop" class="modal-backdrop" onclick="backdropClose(event)"><section class="modal" role="dialog" aria-modal="true"><div class="modal-head"><h2 id="receiptTitle">تسوية استلام الطلبات</h2><button class="close" onclick="closeMobileReceipt()">×</button></div><div id="receiptSummary" class="detail-list"></div><div id="receiptOrders" class="items" style="margin-top:12px"><div class="empty">جاري تحميل الطلبات...</div></div><div class="modal-actions"><button class="btn btn-green wide" id="mobileReceiveAll" onclick="receiveAllMobileOrders()">تم استلام الكل</button><button class="btn btn-gray wide" onclick="closeMobileReceipt()">إغلاق</button></div></section></div>
+<!-- مودال إدارة المندوبين بالجوال -->
+<div id="driverManagerBackdrop" class="modal-backdrop" onclick="backdropClose(event)">
+  <section class="modal" role="dialog" aria-modal="true">
+    <div class="modal-head">
+      <h2><i class="fas fa-users text-primary"></i> إدارة المندوبين</h2>
+      <button class="close" onclick="closeDriverManagerMobile()">×</button>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:12px;">
+      <button class="btn btn-green" style="flex:1;" onclick="toggleAddDriverFormMobile()"><i class="fas fa-user-plus"></i> إضافة مندوب جديد</button>
+      <button class="btn btn-soft" onclick="loadDriversListMobile()"><i class="fas fa-sync-alt"></i> تحديث</button>
+    </div>
+    <div id="addDriverFormMobile" class="form-card" style="display:none;background:#f8fafc;border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:12px;">
+      <h3 style="margin-top:0;font-size:.9rem;"><i class="fas fa-plus-circle text-primary"></i> بيانات المندوب الجديد</h3>
+      <label class="muted">الاسم *</label>
+      <input class="input" id="newDriverName" placeholder="الاسم الكامل">
+      <label class="muted">رقم الهاتف</label>
+      <input class="input" id="newDriverPhone" placeholder="رقم الهاتف" type="tel">
+      <label class="muted">معلومات المركبة</label>
+      <input class="input" id="newDriverVehicle" placeholder="نوع المركبة / رقم اللوحة">
+      <label class="muted">اسم المستخدم للدخول *</label>
+      <input class="input" id="newDriverUsername" placeholder="اسم المستخدم">
+      <label class="muted">كلمة المرور *</label>
+      <input class="input" id="newDriverPassword" placeholder="كلمة المرور" type="password">
+      <label class="muted">رقم الواتساب</label>
+      <input class="input" id="newDriverWhatsappPhone" placeholder="رقم الواتساب مع الرمز">
+      <label class="muted">مفتاح API (CallMeBot)</label>
+      <input class="input" id="newDriverWhatsappApikey" placeholder="مفتاح API">
+      <div class="modal-actions" style="margin-top:10px;">
+        <button class="btn btn-green wide" onclick="saveNewDriverMobile()"><i class="fas fa-save"></i> حفظ المندوب</button>
+        <button class="btn btn-gray wide" onclick="toggleAddDriverFormMobile(false)">إلغاء</button>
+      </div>
+    </div>
+    <div id="driverListMobile" class="items" style="max-height:55vh;overflow-y:auto;"><div class="empty">جاري تحميل المندوبين...</div></div>
+    <div class="modal-actions" style="margin-top:12px;">
+      <button class="btn btn-gray wide" onclick="closeDriverManagerMobile()">إغلاق</button>
+    </div>
+  </section>
+</div>
+<!-- مودال تعديل بيانات المندوب بالجوال -->
+<div id="editDriverBackdrop" class="modal-backdrop" onclick="backdropClose(event)">
+  <section class="modal" role="dialog" aria-modal="true">
+    <div class="modal-head">
+      <h2><i class="fas fa-user-edit text-primary"></i> تعديل بيانات المندوب</h2>
+      <button class="close" onclick="closeEditDriverMobile()">×</button>
+    </div>
+    <input type="hidden" id="editDriverId">
+    <label class="muted">الاسم *</label>
+    <input class="input" id="editDriverName" placeholder="الاسم">
+    <label class="muted">رقم الهاتف</label>
+    <input class="input" id="editDriverPhone" placeholder="رقم الهاتف" type="tel">
+    <label class="muted">معلومات المركبة</label>
+    <input class="input" id="editDriverVehicle" placeholder="نوع المركبة">
+    <label class="muted">كلمة المرور (اتركها فارغة لعدم التغيير)</label>
+    <input class="input" id="editDriverPassword" placeholder="كلمة المرور الجديدة" type="password">
+    <label class="muted">رقم الواتساب</label>
+    <input class="input" id="editDriverWhatsappPhone" placeholder="رقم الواتساب">
+    <label class="muted">مفتاح API</label>
+    <input class="input" id="editDriverWhatsappApikey" placeholder="مفتاح API">
+    <div class="modal-actions" style="margin-top:12px;">
+      <button class="btn btn-green wide" onclick="submitEditDriverMobile()"><i class="fas fa-save"></i> حفظ التغييرات</button>
+      <button class="btn btn-gray wide" onclick="closeEditDriverMobile()">إلغاء</button>
+    </div>
+  </section>
+</div>
+<!-- مودال إنشاء طلب إرجاع لطلب بالجوال -->
+<div id="createReturnBackdrop" class="modal-backdrop" onclick="backdropClose(event)">
+  <section class="modal" role="dialog" aria-modal="true">
+    <div class="modal-head">
+      <h2><i class="fas fa-undo-alt text-warning"></i> طلب إرجاع: #<span id="createReturnOrderId"></span></h2>
+      <button class="close" onclick="closeCreateReturnMobile()">×</button>
+    </div>
+    <div id="createReturnOrderInfo" class="detail-list" style="margin-bottom:10px;"></div>
+    <h3 class="subheading">المنتجات المراد إرجاعها</h3>
+    <div id="createReturnItemsContainer" class="items" style="max-height:200px;overflow-y:auto;margin-bottom:10px;"></div>
+    <label class="muted" for="createReturnRefundMethod">طريقة الاسترداد</label>
+    <select class="select" id="createReturnRefundMethod" onchange="toggleCreateReturnRefundFields()">
+      <option value="cash">نقداً</option>
+      <option value="wallet">محفظة إلكترونية</option>
+      <option value="mixed">مختلط (نقد + محفظة)</option>
+    </select>
+    <div id="createReturnWalletField" style="display:none;margin-top:8px;">
+      <label class="muted" for="createReturnWalletId">المحفظة المستلمة / المخصوم منها</label>
+      <select class="select" id="createReturnWalletId"><option value="">اختر المحفظة</option></select>
+    </div>
+    <div id="createReturnCashField" style="display:none;margin-top:8px;">
+      <label class="muted" for="createReturnCashAmount">المبلغ النقدي</label>
+      <input class="input" id="createReturnCashAmount" type="number" step="0.01" min="0" placeholder="0.00" oninput="updateCreateReturnTotal()">
+    </div>
+    <div id="createReturnWalletAmountField" style="display:none;margin-top:8px;">
+      <label class="muted" for="createReturnWalletAmount">المبلغ عبر المحفظة</label>
+      <input class="input" id="createReturnWalletAmount" type="number" step="0.01" min="0" placeholder="0.00" oninput="updateCreateReturnTotal()">
+    </div>
+    <label class="muted" for="createReturnFeeType" style="margin-top:8px;display:block;">رسوم التوصيل للإرجاع</label>
+    <select class="select" id="createReturnFeeType" onchange="toggleCreateReturnFeeFields()">
+      <option value="shop">تخصم من المحل</option>
+      <option value="customer">تخصم من الزبون</option>
+      <option value="free">بدون رسوم (مجاني)</option>
+    </select>
+    <div id="createReturnFeeAmountWrap" style="display:none;margin-top:8px;">
+      <label class="muted" for="createReturnFeeAmount">مبلغ رسوم التوصيل للإرجاع</label>
+      <input class="input" id="createReturnFeeAmount" type="number" step="0.01" min="0" value="0" oninput="updateCreateReturnTotal()">
+    </div>
+    <label class="muted" for="createReturnDriverId" style="margin-top:8px;display:block;">المندوب المسؤول عن الإرجاع</label>
+    <select class="select" id="createReturnDriverId">
+      <option value="">-- نفس المندوب الأصلي --</option>
+    </select>
+    <div style="background:#eaf3ff;border:1px solid #cfe2ff;border-radius:12px;padding:11px;margin-top:12px;display:flex;justify-content:space-between;align-items:center;">
+      <strong style="font-size:.85rem;color:var(--navy);">إجمالي المسترد (شامل الرسوم):</strong>
+      <strong id="createReturnTotalDisplay" style="font-size:1.1rem;color:var(--blue);">0.00 ريال</strong>
+    </div>
+    <div class="modal-actions" style="margin-top:12px;">
+      <button class="btn btn-amber wide" onclick="submitCreateReturnMobile()"><i class="fas fa-check"></i> تأكيد إرسال طلب الإرجاع</button>
+      <button class="btn btn-gray wide" onclick="closeCreateReturnMobile()">إلغاء</button>
+    </div>
+  </section>
+</div>
 <div class="confirm-overlay" id="custom-confirm-modal" role="alertdialog" aria-modal="true">
   <div class="confirm-box">
     <div class="confirm-icon warning" id="custom-confirm-icon"><i class="fas fa-exclamation-triangle" id="custom-confirm-icon-inner"></i></div>
@@ -160,9 +384,29 @@ let token=localStorage.getItem('pos_token')||'';
 let currentUser=null, orders=[], currentPage=1, totalPages=1, detailOrder=null, assignOrderId=null, drivers=[];
 const $=id=>document.getElementById(id);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const num=v=>window.formatPosMoney?formatPosMoney(Number(v||0)):Number(v||0).toLocaleString('ar-SA');
-const date=v=>window.POSDate?.dateTime?POSDate.dateTime(v):String(v||'-');
+const num=v=>(window.formatPosMoney?window.formatPosMoney(Number(v||0)):Number(v||0).toLocaleString('ar-SA'));
+const date=v=>(window.POSDate?.dateTime?window.POSDate.dateTime(v):String(v||'-'));
 const jsArg=v=>`'${String(v??'').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/\r?\n/g,' ')}'`;
+function statusClass(status) {
+    const s = String(status || '').trim();
+    if (s === 'جديد' || s === 'قيد التجهيز' || s === 'new' || s === 'ready') return 'new';
+    if (s === 'مُسند لمندوب' || s === 'خرج للتوصيل' || s === 'قيد التوصيل' || s === 'assigned' || s === 'out') return 'assigned';
+    if (s === 'تم التسليم' || s === 'delivered') return 'delivered';
+    if (s === 'فشل التسليم' || s === 'ملغي' || s === 'مرتجع جزئي' || s === 'مرتجع كلي' || s === 'failed' || s === 'cancelled' || s === 'returned') return 'failed';
+    return 'new';
+}
+function canAssign(o) {
+    if (!o) return false;
+    const s = String(o.status || '').trim();
+    const isClosed = ['تم التسليم', 'ملغي', 'مرتجع كلي', 'فشل التسليم', 'فشل'].includes(s);
+    return userCan('delivery.drivers.manage') && !isClosed;
+}
+function canEdit(o) {
+    if (!o) return false;
+    const s = String(o.status || '').trim();
+    const isClosed = ['تم التسليم', 'ملغي', 'مرتجع كلي'].includes(s);
+    return userCan('online_orders.edit') && !isClosed;
+}
 let _customConfirmResolver = null;
 function showConfirmModal(message, opts = {}) {
     return new Promise((resolve) => {
@@ -215,17 +459,96 @@ let loadingDepth=0, loadingTimer=null;
 function showLoading(title='جاري التحميل...',text='يرجى الانتظار'){loadingDepth++;clearTimeout(loadingTimer);$('loadingTitle').textContent=title;$('loadingText').textContent=text;$('globalLoading').hidden=false;document.body.classList.add('is-loading');}
 function hideLoading(){loadingDepth=Math.max(0,loadingDepth-1);if(loadingDepth)return;loadingTimer=setTimeout(()=>{$('globalLoading').hidden=true;document.body.classList.remove('is-loading');},120);}
 
+function getPresetDates(preset){
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    const today = `${y}-${m}-${d}`;
+    if (preset === 'today') return { from: today, to: today };
+    if (preset === 'month') return { from: `${y}-${m}-01`, to: today };
+    if (preset === 'year') return { from: `${y}-01-01`, to: today };
+    if (preset === 'all') return { from: '', to: '' };
+    return { from: today, to: today };
+}
+
+function applyOrdersPreset(preset, btn){
+    const range = getPresetDates(preset);
+    if ($('orderDateFrom')) $('orderDateFrom').value = range.from;
+    if ($('orderDateTo')) $('orderDateTo').value = range.to;
+    document.querySelectorAll('.date-preset-btn').forEach(b => b.classList.remove('active-preset'));
+    if (btn) btn.classList.add('active-preset');
+    const toggleBtn = $('ordersDateToggleBtn');
+    if (toggleBtn) {
+        if (range.from || range.to) toggleBtn.classList.add('active-filter');
+        else toggleBtn.classList.remove('active-filter');
+    }
+    try {
+        if (preset && preset !== 'all') {
+            localStorage.setItem('pos_phone_orders_date_preset', preset);
+        } else {
+            localStorage.removeItem('pos_phone_orders_date_preset');
+        }
+    } catch (_) {}
+    loadOrders(1);
+}
+
+function restoreOrdersPreset(){
+    let saved = null;
+    try { saved = localStorage.getItem('pos_phone_orders_date_preset'); } catch (_) {}
+    if (!saved || saved === 'all') return;
+    const range = getPresetDates(saved);
+    if ($('orderDateFrom')) $('orderDateFrom').value = range.from;
+    if ($('orderDateTo')) $('orderDateTo').value = range.to;
+    document.querySelectorAll('.date-preset-btn').forEach(b => {
+        if (b.getAttribute('onclick')?.includes(`'${saved}'`)) b.classList.add('active-preset');
+    });
+    const toggleBtn = $('ordersDateToggleBtn');
+    if (toggleBtn && (range.from || range.to)) toggleBtn.classList.add('active-filter');
+}
+
+function applyStatementPreset(preset, btn){
+    const range = getPresetDates(preset);
+    if ($('statementFrom')) $('statementFrom').value = range.from;
+    if ($('statementTo')) $('statementTo').value = range.to;
+    document.querySelectorAll('.stmt-preset-btn').forEach(b => b.classList.remove('active-preset'));
+    if (btn) btn.classList.add('active-preset');
+    try {
+        if (preset && preset !== 'all') {
+            localStorage.setItem('pos_phone_statement_date_preset', preset);
+        } else {
+            localStorage.removeItem('pos_phone_statement_date_preset');
+        }
+    } catch (_) {}
+    applyStatementFilter();
+}
+
+function restoreStatementPreset(){
+    let saved = null;
+    try { saved = localStorage.getItem('pos_phone_statement_date_preset'); } catch (_) {}
+    if (!saved || saved === 'all') return;
+    const range = getPresetDates(saved);
+    if ($('statementFrom')) $('statementFrom').value = range.from;
+    if ($('statementTo')) $('statementTo').value = range.to;
+    document.querySelectorAll('.stmt-preset-btn').forEach(b => {
+        if (b.getAttribute('onclick')?.includes(`'${saved}'`)) b.classList.add('active-preset');
+    });
+}
+
 function toggleOrdersDateBox(){
     const box = $('ordersDateBox');
     if(!box) return;
     const isHidden = box.style.display === 'none';
     box.style.display = isHidden ? 'block' : 'none';
 }
+
 function clearOrdersDateFilter(){
     if($('orderDateFrom')) $('orderDateFrom').value = '';
     if($('orderDateTo')) $('orderDateTo').value = '';
+    document.querySelectorAll('.date-preset-btn').forEach(b => b.classList.remove('active-preset'));
     const btn = $('ordersDateToggleBtn');
     if(btn) btn.classList.remove('active-filter');
+    try { localStorage.removeItem('pos_phone_orders_date_preset'); } catch (_) {}
     loadOrders(1);
 }
 function userCan(permission){
@@ -244,17 +567,180 @@ function userCan(permission){
     return false;
 }
 function headers(){return {'Authorization':'Bearer '+token,'Content-Type':'application/json','X-Page-Name':'orders.html'};}
-function showNotice(message,type='info'){const box=$('notice');if(!box)return;box.className='notice show '+type;box.textContent=message;clearTimeout(box._timer);box._timer=setTimeout(()=>{box.className='notice';box.textContent=''},6000);}
+function showNotice(message,type='info'){
+    const box=$('notice');if(!box)return;
+    const app=$('app');if(app && app.hidden)app.hidden=false;
+    box.className='notice show '+type;box.textContent=message;
+    clearTimeout(box._timer);
+    box._timer=setTimeout(()=>{box.className='notice';box.textContent=''},6000);
+}
+function showFileProtocolWarning() {
+    if (document.getElementById('fileProtocolNotice')) return;
+    const banner = document.createElement('div');
+    banner.id = 'fileProtocolNotice';
+    banner.style.cssText = 'background:#b91c1c;color:#fff;padding:12px 14px;font-size:.8rem;font-weight:700;text-align:center;direction:rtl;box-shadow:0 4px 14px rgba(0,0,0,.25);line-height:1.6;position:sticky;top:0;z-index:99999;';
+    banner.innerHTML = '⚠️ <strong>تنبيه: تم فتح الصفحة كملف محلي (file:///)</strong><br><span style="font-weight:400;font-size:.74rem;">المتصفحات (Edge / Chrome) تمنع تشغيل Service Worker (العمل بدون إنترنت) والـ Manifest ومشاركة الجلسة للملفات المحلية.<br>👉 لتفعيل ميزات العمل بدون نت والمزامنة، يرجى تشغيل خادم محلي (مثل Live Server في VS Code على <code>http://localhost:5500</code>) أو فتح رابط الموقع الرسمي.</span>';
+    (document.body || document.documentElement).prepend(banner);
+}
 function showLogin(){ location.replace('index.html?next=orders.html'); }
 function showApp(){ const app=$('app'); if(app)app.hidden=false; const label=$('userLabel'); if(label)label.textContent=(currentUser?.name||currentUser?.username||'مستخدم POS')+' · '+(currentUser?.role==='admin'?'مدير':'مستخدم'); }
 function logout(){token='';currentUser=null;localStorage.removeItem('pos_token');localStorage.removeItem('pos_user');location.replace('index.html?next=orders.html');}
-function goToCreateOrder(){location.href='add_order_ph.html';}
-async function api(path,options={}){if(!token){showLogin();return null}showLoading(options.loadingTitle||'جاري التحميل...',options.loadingText||'يتم الاتصال بالخادم');try{const res=await fetch(API+path,{...options,headers:{...headers(),...(options.headers||{})}});const data=await res.json().catch(()=>({}));if(res.status===401){logout();throw Error('انتهت الجلسة، يرجى تسجيل الدخول مرة أخرى');}if(!res.ok)throw Error(data.error||'تعذر تنفيذ الطلب');return data;}catch(err){showNotice(err.message,'error');return null;}finally{hideLoading();}}
-function statusClass(status){const s=String(status||'').toLowerCase();if(s.includes('تسليم')&&!s.includes('فشل'))return 'delivered';if(s.includes('فشل'))return 'failed';if(s.includes('ملغ')||s.includes('مرتجع'))return 'cancelled';if(s.includes('مندوب')||s.includes('توصيل'))return 'assigned';if(s.includes('تجهيز'))return 'ready';return 'new';}
-function canEdit(o){return userCan('online_orders.update')&&!['تم التسليم','تم التوصيل','فشل التسليم','فشل','ملغي','مرتجع كلي','مرتجع جزئي'].includes(String(o.status||'').trim());}
-function canAssign(o){return userCan('delivery.orders.manage')&&!['تم التسليم','تم التوصيل','فشل التسليم','فشل','ملغي','مرتجع كلي','مرتجع جزئي'].includes(String(o.status||'').trim());}
-async function loadDrivers(){const data=await api('/drivers');if(!data)return;drivers=data.drivers||[];const options='<option value="">كل المندوبين</option>'+drivers.map(d=>`<option value="${esc(d.id)}">${esc(d.name||d.username||'مندوب')}</option>`).join('');$('driverFilter').innerHTML=options;$('driverSelect').innerHTML='<option value="">اختر المندوب</option>'+drivers.map(d=>`<option value="${esc(d.id)}">${esc(d.name||d.username||'مندوب')}</option>`).join('');}
-async function loadOrders(page=1){
+function setSilentLoading(loading){
+    const l = $('topLoader');
+    if(l){
+        if(loading) l.classList.add('active');
+        else l.classList.remove('active');
+    }
+}
+function updateOfflineUI(isOnline){
+    const banner = $('offlineBanner');
+    if(banner) banner.style.display = isOnline ? 'none' : 'flex';
+}
+function refreshCurrentSection(){
+    const btn = $('refreshBtn');
+    if(btn) btn.classList.add('spinning-icon');
+    let p = null;
+    if ($('statementSection')?.classList.contains('active') && window.statementDriver) {
+        p = loadStatementData(window.statementDriver.id, window.statementDriver.name, true);
+    } else if ($('driversSection')?.classList.contains('active')) {
+        p = loadDriverSummaryMobile(true);
+    } else if ($('returnsSection')?.classList.contains('active')) {
+        p = loadReturnsMobile(window.returnsPage || 1, true);
+    } else {
+        p = loadOrders(currentPage, { silent: true });
+    }
+    Promise.resolve(p).finally(() => {
+        setTimeout(() => {
+            if(btn) btn.classList.remove('spinning-icon');
+        }, 500);
+    });
+}
+async function api(path,options={}){
+    if(!token){showLogin();return null}
+    const showBlock = Boolean(options.loadingTitle && !options.silent);
+    if(showBlock){
+        showLoading(options.loadingTitle, options.loadingText || 'يتم الاتصال بالخادم');
+    }
+    const timeout = options.timeout || 8000;
+    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const timer = controller ? setTimeout(() => controller.abort(), timeout) : null;
+    try{
+        const fetchOpts = {
+            ...options,
+            headers: { ...headers(), ...(options.headers || {}) },
+            signal: controller ? controller.signal : undefined
+        };
+        const res = await fetch(API+path, fetchOpts);
+        if (timer) clearTimeout(timer);
+        const data = await res.json().catch(()=>({}));
+        if(res.status === 401){
+            logout();
+            throw Error('انتهت الجلسة، يرجى تسجيل الدخول مرة أخرى');
+        }
+        if(!res.ok) throw Error(data.error || 'تعذر تنفيذ الطلب');
+        if(data && data.offlineQueued){
+            showNotice(data.message || 'تم حفظ العملية محلياً وستتم المزامنة عند توفر النت', 'info');
+        }
+        return data;
+    }catch(err){
+        if (timer) clearTimeout(timer);
+        const isOffline = !navigator.onLine || err.name === 'AbortError' || err.message?.includes('fetch') || err.message?.includes('NetworkError') || err.message?.includes('aborted');
+        if(isOffline){
+            console.warn('[API Offline / Timeout]', path, err.message);
+            updateOfflineUI(false);
+        } else {
+            showNotice(err.message,'error');
+        }
+        return null;
+    }finally{
+        if(showBlock) hideLoading();
+    }
+}
+async function loadDrivers(silent=false){
+    if (!drivers.length) {
+        try {
+            const cached = localStorage.getItem('pos_phone_cache_drivers');
+            if (cached) {
+                drivers = JSON.parse(cached) || [];
+                renderDriverSelectOptions();
+            }
+        } catch(_) {}
+    }
+    const data = await api('/drivers', { silent });
+    if(data && data.drivers){
+        drivers = data.drivers || [];
+        try { localStorage.setItem('pos_phone_cache_drivers', JSON.stringify(drivers)); } catch(_) {}
+        renderDriverSelectOptions();
+    }
+}
+function renderDriverSelectOptions(){
+    const options = '<option value="">كل المندوبين</option>' + drivers.map(d=>`<option value="${esc(d.id)}">${esc(d.name||d.username||'مندوب')}</option>`).join('');
+    if($('driverFilter')) $('driverFilter').innerHTML = options;
+    if($('driverSelect')) $('driverSelect').innerHTML = '<option value="">اختر المندوب</option>' + drivers.map(d=>`<option value="${esc(d.id)}">${esc(d.name||d.username||'مندوب')}</option>`).join('');
+    populateStatementDrivers();
+    if(typeof populateReturnDrivers === 'function') populateReturnDrivers();
+}
+function exportOrdersCSV(){
+    if(!orders.length) return showNotice('لا توجد طلبات في الصفحة الحالية للتصدير','warning');
+    const rows=orders.map(o=>({
+        'رقم الطلب':o.id||o.order_number||'',
+        'التاريخ':date(o.order_date||o.created_at),
+        'العميل':o.customer_name||'',
+        'الهاتف':o.customer_phone||'',
+        'الإجمالي':Number(o.total_amount||0).toFixed(2),
+        'المحصل':Number(o.actual_collected||0).toFixed(2),
+        'الحالة':o.status||'',
+        'المندوب':o.driver_name||'',
+        'طريقة الدفع':o.payment_method||'',
+        'رسوم التوصيل':Number(o.delivery_fee||0).toFixed(2)
+    }));
+    const keys=Object.keys(rows[0]);
+    const csv='\ufeff'+[keys,...rows.map(r=>keys.map(k=>r[k]))].map(row=>row.map(v=>`"${String(v??'').replace(/"/g,'""')}"`).join(',')).join('\n');
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+    a.download=`طلبات-${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+    showNotice('تم تصدير طلبات الصفحة الحالية بنجاح','success');
+}
+async function printOrdersList(){
+    if(!orders.length) return showNotice('لا توجد طلبات للطباعة','warning');
+    if(!window.POSDocs) return showNotice('قالب الطباعة غير متاح','error');
+    const wrap=document.createElement('div');
+    wrap.innerHTML=`<table border="1" cellpadding="6" cellspacing="0" style="width:100%;border-collapse:collapse;text-align:right;font-size:12px;">
+        <thead>
+            <tr style="background:#f1f5f9;">
+                <th>رقم الطلب</th>
+                <th>التاريخ</th>
+                <th>العميل</th>
+                <th>الهاتف</th>
+                <th>الإجمالي</th>
+                <th>الحالة</th>
+                <th>المندوب</th>
+            </tr>
+        </thead>
+        <tbody>
+            ${orders.map(o=>`<tr>
+                <td>#${esc(o.id||o.order_number||'')}</td>
+                <td>${esc(date(o.order_date||o.created_at))}</td>
+                <td>${esc(o.customer_name||'غير محدد')}</td>
+                <td dir="ltr">${esc(o.customer_phone||'-')}</td>
+                <td>${num(o.total_amount)} ريال</td>
+                <td>${esc(o.status||'جديد')}</td>
+                <td>${esc(o.driver_name||'غير مسند')}</td>
+            </tr>`).join('')}
+        </tbody>
+    </table>`;
+    showLoading('جاري تجهيز التقرير...','يتم إعداد نسخة الطباعة');
+    try {
+        await POSDocs.printReport(wrap, { title: 'سجل الطلبات — ' + (new Date().toISOString().slice(0,10)) });
+    } catch(e) {
+        showNotice(e.message,'error');
+    } finally {
+        hideLoading();
+    }
+}
+async function loadOrders(page=1, options={}){
     currentPage=page;
     const params=new URLSearchParams({page,limit:'20'});
     const search=$('searchInput')?.value.trim()||'';
@@ -275,25 +761,86 @@ async function loadOrders(page=1){
         else btn.classList.remove('active-filter');
     }
 
-    const data=await api('/online-orders?'+params.toString());
-    if(!data)return;
-    orders=data.orders||[];
-    const p=data.pagination||{};
-    totalPages=Number(p.total_pages||p.pages||Math.ceil(Number(p.total||orders.length)/20)||1);
-    renderOrders();
+    setSilentLoading(true);
+    let data = null;
+    try {
+        data = await api('/online-orders?'+params.toString(), { silent: true, timeout: 8000 });
+    } catch(err) {
+        console.warn('loadOrders network fetch failed:', err);
+    }
+    setSilentLoading(false);
+
+    // 1. إذا توفرت البيانات من الإنترنت، نقوم بعرضها وتحديث التخزين المحلي فوراً
+    if(data && (Array.isArray(data.orders) || Array.isArray(data.data))){
+        orders = data.orders || data.data || [];
+        const p = data.pagination || {};
+        totalPages = Number(p.total_pages || p.pages || Math.ceil(Number(p.total || orders.length) / 20) || 1);
+        try{
+            if(!search && !status && !driver && page === 1){
+                localStorage.setItem('pos_phone_cache_orders', JSON.stringify({ orders, totalPages, timestamp: Date.now() }));
+            }
+        }catch(_){}
+        renderOrders();
+        return;
+    }
+
+    // 2. في حال انقطاع الإنترنت أو تعذر الوصول للخادم، ننتقل تلقائياً للبيانات المخزنة محلياً
+    try{
+        const cachedRaw = localStorage.getItem('pos_phone_cache_orders');
+        if(cachedRaw){
+            const cached = JSON.parse(cachedRaw);
+            const cachedList = cached.orders || (Array.isArray(cached) ? cached : null);
+            if(cachedList && Array.isArray(cachedList) && cachedList.length){
+                orders = cachedList;
+                totalPages = cached.totalPages || 1;
+                renderOrders();
+                showNotice('أنت في وضع عدم الاتصال؛ تم استرجاع الطلبات المحفوظة محلياً', 'info');
+                return;
+            }
+        }
+    }catch(_){}
+
+    // 3. في حال عدم وجود إنترنت وعدم وجود بيانات محفوظة مسبقاً
+    const list = $('ordersList');
+    if(list){
+        list.innerHTML = '<div class="empty"><i>⚡</i>تعذر جلب الطلبات من الخادم ولا توجد بيانات محفوظة محلياً<br><button class="btn btn-primary" style="margin-top:12px;" onclick="loadOrders('+page+')">إعادة المحاولة ↻</button></div>';
+    }
 }
-function renderOrders(){const list=$('ordersList');$('statCount').textContent=orders.length.toLocaleString('ar-SA');$('statPending').textContent=orders.filter(o=>!['تم التسليم','ملغي','مرتجع كلي','فشل التسليم','فشل'].includes(String(o.status||''))).length.toLocaleString('ar-SA');$('statTotal').textContent=num(orders.reduce((s,o)=>s+Number(o.total_amount||0),0));$('pageLabel').textContent=`صفحة ${currentPage} من ${totalPages}`;if(!orders.length){list.innerHTML='<div class="empty"><i>⌂</i>لا توجد طلبات مطابقة للبحث</div>';renderPagination();return;}list.innerHTML=orders.map(o=>{const canCancel=userCan('online_orders.cancel')&&!['ملغي','تم التسليم','مرتجع كلي','مرتجع جزئي','فشل التسليم','فشل'].includes(String(o.status||'').trim());return `<article class="order-card"><div class="order-head"><div class="order-title"><strong>طلب #${esc(o.id||o.order_number||'-')}</strong><small>${esc(date(o.order_date||o.created_at))}</small></div><span class="status ${statusClass(o.status)}">${esc(o.status||'جديد')}</span></div><div class="order-grid"><div class="data"><label>العميل</label><div>${esc(o.customer_name||'غير محدد')}</div></div><div class="data"><label>الهاتف</label><div dir="ltr">${esc(o.customer_phone||'-')}</div></div><div class="data"><label>الإجمالي</label><div class="total">${num(o.total_amount)} ريال</div></div><div class="data"><label>المندوب</label><div>${esc(o.driver_name||'غير مسند')}</div></div></div><div class="order-actions"><button class="btn btn-primary" onclick="openDetail(${Number(o.id)})">التفاصيل</button>${canAssign(o)?'<button class="btn btn-soft" onclick="openAssign('+Number(o.id)+')">إسناد</button>':'<span></span>'}${canCancel?'<button class="btn btn-red" onclick="cancelOrder('+Number(o.id)+')">إلغاء</button>':'<span></span>'}</div></article>`}).join('');renderPagination();}
+function renderOrders(){
+    try {
+        const list=$('ordersList');
+        if(!list) return;
+        if($('statCount')) $('statCount').textContent=orders.length.toLocaleString('ar-SA');
+        if($('statPending')) $('statPending').textContent=orders.filter(o=>!['تم التسليم','ملغي','مرتجع كلي','فشل التسليم','فشل'].includes(String(o?.status||''))).length.toLocaleString('ar-SA');
+        if($('statTotal')) $('statTotal').textContent=num(orders.reduce((s,o)=>s+Number(o?.total_amount||0),0));
+        if($('pageLabel')) $('pageLabel').textContent=`صفحة ${currentPage} من ${totalPages}`;
+        if(!orders.length){
+            list.innerHTML='<div class="empty"><i>⌂</i>لا توجد طلبات مطابقة للبحث</div>';
+            renderPagination();
+            return;
+        }
+        list.innerHTML=orders.map(o=>{
+            const canCancel=userCan('online_orders.cancel')&&!['ملغي','تم التسليم','مرتجع كلي','مرتجع جزئي','فشل التسليم','فشل'].includes(String(o?.status||'').trim());
+            return `<article class="order-card"><div class="order-head"><div class="order-title"><strong>طلب #${esc(o?.id||o?.order_number||'-')}</strong><small>${esc(date(o?.order_date||o?.created_at))}</small></div><span class="status ${statusClass(o?.status)}">${esc(o?.status||'جديد')}</span></div><div class="order-grid"><div class="data"><label>العميل</label><div>${esc(o?.customer_name||'غير محدد')}</div></div><div class="data"><label>الهاتف</label><div dir="ltr">${esc(o?.customer_phone||'-')}</div></div><div class="data"><label>الإجمالي</label><div class="total">${num(o?.total_amount)} ريال</div></div><div class="data"><label>المندوب</label><div>${esc(o?.driver_name||'غير مسند')}</div></div></div><div class="order-actions"><button class="btn btn-primary" onclick="openDetail(${Number(o?.id)})">التفاصيل</button>${canAssign(o)?'<button class="btn btn-soft" onclick="openAssign('+Number(o?.id)+')">إسناد</button>':'<span></span>'}${canCancel?'<button class="btn btn-red" onclick="cancelOrder('+Number(o?.id)+')">إلغاء</button>':'<span></span>'}</div></article>`
+        }).join('');
+        renderPagination();
+    } catch(err) {
+        console.error('Error in renderOrders:', err);
+        const list=$('ordersList');
+        if(list) list.innerHTML='<div class="empty text-danger"><i>⚠️</i>حدث خطأ أثناء عرض الطلبات: ' + esc(err.message) + '</div>';
+    }
+}
 function renderPagination(){$('pagination').innerHTML=totalPages>1?`<button ${currentPage<=1?'disabled':''} onclick="loadOrders(${currentPage-1})">السابق</button><span class="muted">${currentPage} / ${totalPages}</span><button ${currentPage>=totalPages?'disabled':''} onclick="loadOrders(${currentPage+1})">التالي</button>`:'';}
 async function openDetail(id){const data=await api('/online-orders/'+id);if(!data)return;detailOrder=data.order||data;renderDetail();$('detailBackdrop').classList.add('open');}
-function renderDetail(){const o=detailOrder;const items=o.items||[];$('detailTitle').textContent='تفاصيل طلب #'+(o.id||'');$('detailContent').innerHTML=`<div class="detail-list"><div class="detail"><label>العميل</label><strong>${esc(o.customer_name||'غير محدد')}</strong></div><div class="detail"><label>الهاتف</label><strong dir="ltr">${esc(o.customer_phone||'-')}</strong></div><div class="detail full"><label>العنوان</label><strong>${esc(o.customer_address||'-')}</strong></div><div class="detail"><label>المحافظة</label><strong>${esc(o.governorate||'-')}</strong></div><div class="detail"><label>نوع التوصيل</label><strong>${esc(o.delivery_type||'-')}</strong></div><div class="detail"><label>المندوب</label><strong>${esc(o.driver_name||'غير مسند')}</strong></div><div class="detail"><label>طريقة الدفع</label><strong>${esc(o.payment_method||'-')}</strong></div><div class="detail"><label>رسوم التوصيل</label><strong>${num(o.delivery_fee)} ريال — ${esc(o.delivery_fee_payment||'-')}</strong></div><div class="detail"><label>الإجمالي</label><strong>${num(o.total_amount)} ريال</strong></div><div class="detail"><label>المحصل</label><strong>${num(o.actual_collected)} ريال</strong></div><div class="detail full"><label>ملاحظات الطلب</label><strong>${esc(o.notes||'لا توجد')}</strong></div></div><h3 class="subheading">المنتجات (${items.length})</h3><div class="items">${items.length?items.map(i=>{const d=Number(i.discount||i.discount_amount||0);return `<div class="item"><div class="item-line"><span>${esc((i.variant_label&&!String(i.product_name||'').includes(String(i.variant_label)))?`${i.product_name||'منتج'} — ${i.variant_label}`:(i.product_name||'منتج'))}</span><span>${num(i.line_total??i.total_price??((Number(i.unit_price||0)-d)*Number(i.quantity||0)))} ريال</span></div><small>الكمية: ${esc(i.quantity||0)} · السعر: ${num(i.unit_price)} ريال${d>0?` · <span class="discount">خصم الوحدة: ${num(d)} ريال</span>`:''}</small>${i.note||i.notes?`<small>ملاحظة: ${esc(i.note||i.notes)}</small>`:''}</div>`}).join(''):'<div class="empty">لا توجد بنود</div>'}</div>${userCan('delivery.orders.manage')?`<div class="status-editor"><label>تحديث حالة الطلب</label><select class="select" id="detailStatus"><option>جديد</option><option>قيد التجهيز</option><option>مُسند لمندوب</option><option>خرج للتوصيل</option><option>تم التسليم</option><option>فشل التسليم</option><option>ملغي</option><option>مرتجع جزئي</option><option>مرتجع كلي</option></select><label>ملاحظة التغيير</label><input class="input" id="detailStatusNote" placeholder="اختياري"></div>`:''}`;if($('detailStatus'))$('detailStatus').value=o.status||'جديد';const actions=[];if(canEdit(o))actions.push(`<button class="btn btn-amber" onclick="editOrder()">تعديل الطلب</button>`);if(canAssign(o))actions.push(`<button class="btn btn-soft" onclick="closeDetail();openAssign(${Number(o.id)})">إسناد مندوب</button>`);actions.push(`<button class="btn btn-gray" onclick="printOrder()">طباعة الفاتورة</button>`);if(userCan('delivery.orders.manage'))actions.push(`<button class="btn btn-primary wide" onclick="updateStatus()">حفظ الحالة والملاحظة</button>`);if(userCan('online_orders.cancel')&&!['ملغي','تم التسليم','مرتجع كلي','مرتجع جزئي','فشل التسليم','فشل'].includes(String(o.status||'').trim()))actions.push(`<button class="btn btn-red wide" onclick="cancelOrder(${Number(o.id)})">إلغاء الطلب</button>`);actions.push('<button class="btn btn-gray wide" onclick="closeDetail()">إغلاق</button>');$('detailActions').innerHTML=actions.join('');}
+function renderDetail(){const o=detailOrder;const items=o.items||[];$('detailTitle').textContent='تفاصيل طلب #'+(o.id||'');let statusLogHtml='';if(o.status_log&&o.status_log.length){statusLogHtml=`<h3 class="subheading" style="margin-top:14px;"><i class="fas fa-history text-muted"></i> سجل الحالات</h3><div class="items">${o.status_log.map(log=>`<div class="item" style="padding:6px 9px;"><div class="item-line" style="font-size:.72rem;"><span>${esc(log.old_status||'جديد')} ← <strong>${esc(log.new_status)}</strong></span><span class="muted">${esc(date(log.change_date))}</span></div>${log.notes?`<small class="muted">ملاحظة: ${esc(log.notes)}</small>`:''}</div>`).join('')}</div>`;}$('detailContent').innerHTML=`<div class="detail-list"><div class="detail"><label>العميل</label><strong>${esc(o.customer_name||'غير محدد')}</strong></div><div class="detail"><label>الهاتف</label><strong dir="ltr">${esc(o.customer_phone||'-')}</strong></div><div class="detail full"><label>العنوان</label><strong>${esc(o.customer_address||'-')}</strong></div><div class="detail"><label>المحافظة</label><strong>${esc(o.governorate||'-')}</strong></div><div class="detail"><label>نوع التوصيل</label><strong>${esc(o.delivery_type||'-')}</strong></div><div class="detail"><label>المندوب</label><strong>${esc(o.driver_name||'غير مسند')}</strong></div><div class="detail"><label>طريقة الدفع</label><strong>${esc(o.payment_method||'-')}</strong></div><div class="detail"><label>رسوم التوصيل</label><strong>${num(o.delivery_fee)} ريال — ${esc(o.delivery_fee_payment||'-')}</strong></div><div class="detail"><label>الإجمالي</label><strong>${num(o.total_amount)} ريال</strong></div><div class="detail"><label>المحصل</label><strong>${num(o.actual_collected)} ريال</strong></div><div class="detail full"><label>ملاحظات الطلب</label><strong>${esc(o.notes||'لا توجد')}</strong></div></div><h3 class="subheading">المنتجات (${items.length})</h3><div class="items">${items.length?items.map(i=>{const d=Number(i.discount||i.discount_amount||0);return `<div class="item"><div class="item-line"><span>${esc((i.variant_label&&!String(i.product_name||'').includes(String(i.variant_label)))?`${i.product_name||'منتج'} — ${i.variant_label}`:(i.product_name||'منتج'))}</span><span>${num(i.line_total??i.total_price??((Number(i.unit_price||0)-d)*Number(i.quantity||0)))} ريال</span></div><small>الكمية: ${esc(i.quantity||0)} · السعر: ${num(i.unit_price)} ريال${d>0?` · <span class="discount">خصم الوحدة: ${num(d)} ريال</span>`:''}</small>${i.note||i.notes?`<small>ملاحظة: ${esc(i.note||i.notes)}</small>`:''}</div>`}).join(''):'<div class="empty">لا توجد بنود</div>'}</div>${statusLogHtml}${userCan('delivery.orders.manage')?`<div class="status-editor"><label>تحديث حالة الطلب</label><select class="select" id="detailStatus"><option>جديد</option><option>قيد التجهيز</option><option>مُسند لمندوب</option><option>خرج للتوصيل</option><option>تم التسليم</option><option>فشل التسليم</option><option>ملغي</option><option>مرتجع جزئي</option><option>مرتجع كلي</option></select><label>ملاحظة التغيير</label><input class="input" id="detailStatusNote" placeholder="اختياري"></div>`:''}`;if($('detailStatus'))$('detailStatus').value=o.status||'جديد';const actions=[];if(canEdit(o))actions.push(`<button class="btn btn-amber" onclick="editOrder()">تعديل الطلب</button>`);if(canAssign(o))actions.push(`<button class="btn btn-soft" onclick="closeDetail();openAssign(${Number(o.id)})">إسناد مندوب</button>`);const allowedReturnStatuses=['تم التسليم','مرتجع جزئي'];if(allowedReturnStatuses.includes(String(o.status||'').trim()))actions.push(`<button class="btn btn-warning" onclick="closeDetail();openCreateReturnMobile(${Number(o.id)})"><i class="fas fa-undo-alt"></i> طلب إرجاع</button>`);actions.push(`<button class="btn btn-gray" onclick="printOrder()">طباعة الفاتورة</button>`);if(userCan('delivery.orders.manage'))actions.push(`<button class="btn btn-primary wide" onclick="updateStatus()">حفظ الحالة والملاحظة</button>`);if(userCan('online_orders.cancel')&&!['ملغي','تم التسليم','مرتجع كلي','مرتجع جزئي','فشل التسليم','فشل'].includes(String(o.status||'').trim()))actions.push(`<button class="btn btn-red wide" onclick="cancelOrder(${Number(o.id)})">إلغاء الطلب</button>`);actions.push('<button class="btn btn-gray wide" onclick="closeDetail()">إغلاق</button>');$('detailActions').innerHTML=actions.join('');}
 function closeDetail(){$('detailBackdrop').classList.remove('open');}
 function backdropClose(e){if(e.target===e.currentTarget)e.currentTarget.classList.remove('open');}
 function editOrder(){if(!detailOrder)return;location.href='add_order_ph.html?order_id='+encodeURIComponent(detailOrder.id);}
 async function openAssign(id){assignOrderId=id;$('assignHint').textContent='طلب #'+id+' — اختر المندوب المسؤول عن التوصيل.';if(!drivers.length)await loadDrivers();$('assignBackdrop').classList.add('open');}
 function closeAssign(){$('assignBackdrop').classList.remove('open');}
-async function confirmAssign(){const id=$('driverSelect').value;if(!id)return showNotice('اختر مندوبًا أولاً','warning');const data=await api('/online-orders/assign-driver',{method:'POST',body:JSON.stringify({order_id:assignOrderId,driver_id:Number(id)})});if(data){showNotice('تم إسناد الطلب بنجاح','success');closeAssign();await loadOrders(currentPage);if(detailOrder?.id===assignOrderId){const fresh=await api('/online-orders/'+assignOrderId);if(fresh){detailOrder=fresh.order||fresh;renderDetail();$('detailBackdrop').classList.add('open');}}}}
-async function updateStatus(){if(!detailOrder||!$('detailStatus'))return;const status=$('detailStatus').value,note=$('detailStatusNote').value.trim();if(status===detailOrder.status&&!note)return showNotice('اختر حالة جديدة أو أضف ملاحظة','warning');const data=await api('/online-orders/update-status',{method:'POST',body:JSON.stringify({order_id:detailOrder.id,new_status:status,notes:note})});if(data){showNotice('تم تحديث الحالة وتسجيل العملية','success');await loadOrders(currentPage);const fresh=await api('/online-orders/'+detailOrder.id);if(fresh){detailOrder=fresh.order||fresh;renderDetail();}}}
-async function cancelOrder(id){if(!await showConfirmModal('هل أنت متأكد من إلغاء الطلب #'+id+'؟',{title:'إلغاء الطلب',type:'danger',okText:'إلغاء الطلب',cancelText:'تراجع'}))return;const data=await api('/online-orders/cancel',{method:'POST',body:JSON.stringify({order_id:id})});if(data){showNotice(data.message||'تم إلغاء الطلب بنجاح','success');closeDetail();await loadOrders(currentPage);}}
+async function confirmAssign(){const id=$('driverSelect').value;if(!id)return showNotice('اختر مندوبًا أولاً','warning');const data=await api('/online-orders/assign-driver',{method:'POST',loadingTitle:'جاري إسناد الطلب...',body:JSON.stringify({order_id:assignOrderId,driver_id:Number(id)})});if(data){showNotice('تم إسناد الطلب بنجاح','success');closeAssign();await loadOrders(currentPage, { silent: true });if(detailOrder?.id===assignOrderId){const fresh=await api('/online-orders/'+assignOrderId, { silent: true });if(fresh){detailOrder=fresh.order||fresh;renderDetail();$('detailBackdrop').classList.add('open');}}}}
+async function updateStatus(){if(!detailOrder||!$('detailStatus'))return;const status=$('detailStatus').value,note=$('detailStatusNote').value.trim();if(status===detailOrder.status&&!note)return showNotice('اختر حالة جديدة أو أضف ملاحظة','warning');const data=await api('/online-orders/update-status',{method:'POST',loadingTitle:'جاري تحديث الحالة...',body:JSON.stringify({order_id:detailOrder.id,new_status:status,notes:note})});if(data){showNotice('تم تحديث الحالة وتسجيل العملية','success');await loadOrders(currentPage, { silent: true });const fresh=await api('/online-orders/'+detailOrder.id, { silent: true });if(fresh){detailOrder=fresh.order||fresh;renderDetail();}}}
+async function cancelOrder(id){if(!await showConfirmModal('هل أنت متأكد من إلغاء الطلب #'+id+'؟',{title:'إلغاء الطلب',type:'danger',okText:'إلغاء الطلب',cancelText:'تراجع'}))return;const data=await api('/online-orders/cancel',{method:'POST',loadingTitle:'جاري إلغاء الطلب...',body:JSON.stringify({order_id:id})});if(data){showNotice(data.message||'تم إلغاء الطلب بنجاح','success');closeDetail();await loadOrders(currentPage, { silent: true });}}
 async function printOrder(){if(!detailOrder||!window.POSDocs)return showNotice('تعذر تحميل قالب الفاتورة','error');const o=detailOrder;const items=(o.items||[]).map(i=>{const d=Number(i.discount||i.discount_amount||0);const qty=Number(i.quantity||0);const price=Number(i.unit_price||0);const lineTotal=Number(i.line_total??i.total_price??((price-d)*qty));return {name:i.product_name||'منتج',product_code:i.product_code||'',quantity:qty,unit_price:price,discount:d,note:i.note||i.notes||'',line_total:lineTotal};});showLoading('جاري تجهيز الفاتورة...','يتم إعداد نسخة الطباعة');try{await POSDocs.printInvoiceData({type:'sale',is_online_order:true,online_order_id:o.id,order_number:o.id,number:o.invoice_number||o.id,date:o.order_date||o.created_at,party:o.customer_name||'',customer_name:o.customer_name||'',customer_phone:o.customer_phone||'',customer_address:o.customer_address||'',governorate:o.governorate||'',delivery_type:o.delivery_type||'',driver_name:o.driver_name||'',payment_method:o.payment_method||'',status:o.status||'',items,gross_subtotal:items.reduce((s,i)=>s+i.unit_price*i.quantity,0),total:Number(o.total_amount||0),additional:Number(o.delivery_fee||0),notes:o.notes||''},{title:'فاتورة طلب الإنترنت #'+o.id});}catch(e){showNotice(e.message,'error');}finally{hideLoading();}}
 function showMobileSection(section){
     const allowed=section==='orders'||(section==='drivers'&&userCan('delivery.drivers.view'))||(section==='statement'&&userCan('delivery.drivers.view'))||(section==='returns'&&currentUser?.role==='admin');
@@ -305,12 +852,238 @@ function showMobileSection(section){
     if(panel)panel.classList.add('active');
     if(tab)tab.classList.add('active');
     if(section==='statement'&&$('tab-drivers'))$('tab-drivers').classList.add('active');
-    if(section==='drivers')loadDriverSummaryMobile();
-    if(section==='returns')loadReturnsMobile(1);
+    if(section==='drivers')loadDriverSummaryMobile(true);
+    if(section==='returns')loadReturnsMobile(window.returnsPage||1, true);
+    if(section==='orders'&&(!orders||!orders.length))loadOrders(1, { silent: true });
 }
-function setupMobileSections(){const driverTab=$('tab-drivers'),returnTab=$('tab-returns');if(driverTab)driverTab.style.display=userCan('delivery.drivers.view')?'block':'none';if(returnTab)returnTab.style.display=currentUser?.role==='admin'?'block':'none';}
+function setupMobileSections(){
+    const driverTab=$('tab-drivers'),returnTab=$('tab-returns');
+    if(driverTab)driverTab.style.display=userCan('delivery.drivers.view')?'block':'none';
+    if(returnTab)returnTab.style.display=currentUser?.role==='admin'?'block':'none';
+    const dmHBtn=$('driverManagerHeaderBtn');
+    if(dmHBtn)dmHBtn.style.display=userCan('delivery.drivers.manage')?'inline-flex':'none';
+    const dmSBtn=$('driverManagerSectionBtn');
+    if(dmSBtn)dmSBtn.style.display=userCan('delivery.drivers.manage')?'inline-block':'none';
+}
 function driverName(id){const d=drivers.find(x=>String(x.id)===String(id));return d?.name||'مندوب';}
-async function loadDriverSummaryMobile(){if(!userCan('delivery.drivers.view'))return showNotice('لا تملك صلاحية عرض حسابات المندوبين','error');const box=$('driverSummary');box.innerHTML='<div class="empty">جاري تحميل حسابات المندوبين...</div>';const data=await api('/drivers/summary');if(!data)return;const rows=data.drivers||[];if(!rows.length){box.innerHTML='<div class="empty">لا يوجد مندوبون نشطون</div>';return;}box.innerHTML=rows.map(d=>`<article class="driver-card"><div class="driver-card-head"><div><h3>${esc(d.name||'مندوب')}</h3><small>${esc(d.phone||'لا يوجد هاتف')}</small></div><span class="status ${Number(d.balance||0)>0?'assigned':'delivered'}">${Number(d.balance||0)>0?'عليه للمحل':'متوازن'}</span></div><div class="driver-balance">الرصيد: ${num(d.balance)} ريال</div><div class="driver-metrics"><div class="metric"><label>طلبات لم تُستلم</label><strong>${esc(d.unreceived_order_count||0)} · ${num(d.unreceived_order_total)} ريال</strong></div><div class="metric"><label>فشل التوصيل</label><strong>${esc(d.failed_order_count||0)} طلب</strong></div></div><div class="driver-metrics"><div class="metric"><label>التوصيلات</label><strong>${esc(d.total_deliveries||0)}</strong></div><div class="metric"><label>المحصل</label><strong>${num(d.total_collected)} ريال</strong></div><div class="metric"><label>الرسوم</label><strong>${num(d.total_fees)} ريال</strong></div><div class="metric"><label>آخر تسوية</label><strong>${esc(d.last_settlement_date?date(d.last_settlement_date):'لا توجد')}</strong></div></div><div class="driver-actions"><button class="btn btn-primary" onclick="openSettlement(${Number(d.id)},${jsArg(d.name||'مندوب')},${Number(d.balance||0)},${Number(d.unreceived_order_count||0)},${Number(d.unreceived_order_total||0)},${Number(d.failed_order_count||0)})">تسوية مالية</button><button class="btn btn-warning" onclick="openMobileReceipt(${Number(d.id)},${jsArg(d.name||'مندوب')})">استلام الطلبات</button><button class="btn btn-soft" onclick="openStatement(${Number(d.id)},${jsArg(d.name||'مندوب')})">كشف الحركة</button></div></article>`).join('');}
+function populateStatementDrivers(){
+    const sel=$('statementDriverSelect');
+    if(!sel)return;
+    sel.innerHTML='<option value="">-- اختر المندوب مباشرة لعرض الكشف --</option>'+drivers.map(d=>`<option value="${esc(d.id)}">${esc(d.name||d.username||('مندوب '+d.id))}</option>`).join('');
+    if(window.statementDriver?.id){
+        sel.value=String(window.statementDriver.id);
+    }
+}
+function onStatementDriverChange(driverId){
+    if(!driverId)return;
+    const d=drivers.find(x=>String(x.id)===String(driverId));
+    if(d) openStatement(Number(d.id), d.name||'مندوب');
+}
+async function exportDriverStatementPDFMobile(){
+    const raw=$('statementSection').dataset.statement;
+    if(!raw)return showNotice('افتح كشف مندوب أولاً','warning');
+    if(!window.POSDocs)return showNotice('قالب التصدير غير متاح','error');
+    const d=JSON.parse(raw);
+    showLoading('جاري تصدير PDF...','يتم تجهيز المستند للتنزيل');
+    try{
+        await POSDocs.exportStatementPDF({
+            party:d.name,
+            party_type:'driver',
+            date_from:d.from||'—',
+            date_to:d.to||date(new Date().toISOString()),
+            items:d.items,
+            total_debit:d.total_debit,
+            total_credit:d.total_credit,
+            final_balance:d.final_balance,
+            orders_count:d.orders_count,
+            total_delivery_fees:d.total_delivery_fees,
+            notes:'كشف حركة مندوب من تطبيق الجوال'
+        },{title:'كشف حساب مندوب — '+d.name, filename:`كشف-مندوب-${d.name||d.id}-${new Date().toISOString().slice(0,10)}.pdf`});
+        showNotice('تم تصدير كشف المندوب بنجاح','success');
+    }catch(e){
+        showNotice(e.message,'error');
+    }finally{
+        hideLoading();
+    }
+}
+function openDriverManagerMobile(){
+    if(!userCan('delivery.drivers.manage')) return showNotice('لا تملك صلاحية إدارة المندوبين','error');
+    $('driverManagerBackdrop').classList.add('open');
+    loadDriversListMobile();
+}
+function closeDriverManagerMobile(){
+    $('driverManagerBackdrop').classList.remove('open');
+    toggleAddDriverFormMobile(false);
+}
+function toggleAddDriverFormMobile(force){
+    const form=$('addDriverFormMobile');
+    if(!form)return;
+    const show = (typeof force === 'boolean') ? force : (form.style.display==='none');
+    form.style.display = show ? 'block' : 'none';
+    if(!show){
+        ['newDriverName','newDriverPhone','newDriverVehicle','newDriverUsername','newDriverPassword','newDriverWhatsappPhone','newDriverWhatsappApikey'].forEach(id=>{
+            if($(id)) $(id).value='';
+        });
+    }
+}
+async function loadDriversListMobile(){
+    const list=$('driverListMobile');
+    if(!list)return;
+    list.innerHTML='<div class="empty">جاري تحميل المندوبين...</div>';
+    const data=await api('/drivers');
+    if(!data)return;
+    drivers=data.drivers||[];
+    if(!drivers.length){
+        list.innerHTML='<div class="empty">لا يوجد مندوبون مسجلون</div>';
+        return;
+    }
+    list.innerHTML=drivers.map(d=>`
+        <div class="item" style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+            <div>
+                <strong>${esc(d.name||'مندوب')}</strong>
+                <small>📞 ${esc(d.phone||'-')} · 🚗 ${esc(d.vehicle_info||'-')}</small>
+                <div style="margin-top:4px;display:flex;gap:4px;flex-wrap:wrap;">
+                    <span class="badge ${d.is_active!==false?'badge-green':'badge-red'}">${d.is_active!==false?'نشط':'غير نشط'}</span>
+                    <span class="badge badge-gray">ID: ${esc(d.username||d.id)}</span>
+                </div>
+            </div>
+            <div style="display:flex;gap:4px;flex-shrink:0;">
+                <button class="btn btn-sm btn-primary" onclick="openEditDriverMobile(${Number(d.id)})" title="تعديل"><i class="fas fa-edit"></i></button>
+                <button class="btn btn-sm btn-red" onclick="deleteDriverMobile(${Number(d.id)})" title="حذف"><i class="fas fa-trash"></i></button>
+            </div>
+        </div>
+    `).join('');
+}
+async function saveNewDriverMobile(){
+    if(!userCan('delivery.drivers.manage')) return showNotice('لا تملك صلاحية إضافة مندوب','error');
+    const name=$('newDriverName')?.value.trim();
+    const phone=$('newDriverPhone')?.value.trim();
+    const vehicle_info=$('newDriverVehicle')?.value.trim();
+    const username=$('newDriverUsername')?.value.trim();
+    const password=$('newDriverPassword')?.value.trim();
+    const whatsapp_phone=$('newDriverWhatsappPhone')?.value.trim();
+    const whatsapp_apikey=$('newDriverWhatsappApikey')?.value.trim();
+    if(!name||!username||!password){
+        return showNotice('الاسم واسم المستخدم وكلمة المرور مطلوبة','warning');
+    }
+    const res=await api('/drivers',{
+        method:'POST',
+        body:JSON.stringify({name,phone,vehicle_info,username,password,whatsapp_phone,whatsapp_apikey})
+    });
+    if(res&&(res.success||res.driver||res.id)){
+        showNotice('تمت إضافة المندوب بنجاح','success');
+        toggleAddDriverFormMobile(false);
+        await loadDrivers();
+        await loadDriversListMobile();
+        await loadDriverSummaryMobile();
+        populateStatementDrivers();
+    }
+}
+async function deleteDriverMobile(driverId){
+    if(!userCan('delivery.drivers.manage')) return showNotice('لا تملك صلاحية حذف مندوب','error');
+    if(!await showConfirmModal('هل أنت متأكد من حذف هذا المندوب؟',{title:'حذف مندوب',type:'danger',okText:'حذف',cancelText:'تراجع'}))return;
+    const res=await api(`/drivers/${driverId}`,{method:'DELETE'});
+    if(res&&(res.success!==false)){
+        showNotice('تم حذف المندوب بنجاح','success');
+        await loadDrivers();
+        await loadDriversListMobile();
+        await loadDriverSummaryMobile();
+        populateStatementDrivers();
+    }
+}
+async function openEditDriverMobile(driverId){
+    if(!userCan('delivery.drivers.manage')) return showNotice('لا تملك صلاحية تعديل مندوب','error');
+    const data=await api(`/drivers/${driverId}`);
+    if(!data||!data.driver) return showNotice('تعذر تحميل بيانات المندوب','error');
+    const d=data.driver;
+    $('editDriverId').value=d.id;
+    $('editDriverName').value=d.name||'';
+    $('editDriverPhone').value=d.phone||'';
+    $('editDriverVehicle').value=d.vehicle_info||'';
+    $('editDriverPassword').value='';
+    $('editDriverWhatsappPhone').value=d.whatsapp_phone||'';
+    $('editDriverWhatsappApikey').value=d.whatsapp_apikey||'';
+    $('editDriverBackdrop').classList.add('open');
+}
+function closeEditDriverMobile(){
+    $('editDriverBackdrop').classList.remove('open');
+}
+async function submitEditDriverMobile(){
+    if(!userCan('delivery.drivers.manage')) return showNotice('لا تملك صلاحية تعديل مندوب','error');
+    const id=parseInt($('editDriverId').value);
+    const name=$('editDriverName')?.value.trim();
+    const phone=$('editDriverPhone')?.value.trim();
+    const vehicle_info=$('editDriverVehicle')?.value.trim();
+    const password=$('editDriverPassword')?.value.trim();
+    const whatsapp_phone=$('editDriverWhatsappPhone')?.value.trim();
+    const whatsapp_apikey=$('editDriverWhatsappApikey')?.value.trim();
+    if(!name) return showNotice('الاسم مطلوب','warning');
+    const payload={name,phone,vehicle_info,whatsapp_phone,whatsapp_apikey};
+    if(password) payload.password=password;
+    const res=await api(`/drivers/${id}`,{
+        method:'PUT',
+        body:JSON.stringify(payload)
+    });
+    if(res&&(res.success||res.driver)){
+        showNotice('تم تحديث بيانات المندوب بنجاح','success');
+        closeEditDriverMobile();
+        await loadDrivers();
+        await loadDriversListMobile();
+        await loadDriverSummaryMobile();
+        populateStatementDrivers();
+    }
+}
+function openStatement(id,name){
+    if(!userCan('delivery.drivers.view'))return showNotice('لا تملك صلاحية عرض كشف المندوب','error');
+    window.statementDriver={id,name};
+    $('statementTitle').textContent='كشف حركة: '+name;
+    if($('statementDriverSelect'))$('statementDriverSelect').value=String(id);
+    showMobileSection('statement');
+    loadStatementData(id,name);
+}
+function renderDriverSummaryCards(rows){
+    const box = $('driverSummary');
+    if (!box) return;
+    if (!rows || !rows.length) {
+        box.innerHTML = '<div class="empty">لا يوجد مندوبون نشطون</div>';
+        return;
+    }
+    box.innerHTML = rows.map(d=>`<article class="driver-card"><div class="driver-card-head"><div><h3>${esc(d.name||'مندوب')}</h3><small>${esc(d.phone||'لا يوجد هاتف')}</small></div><span class="status ${Number(d.balance||0)>0?'assigned':'delivered'}">${Number(d.balance||0)>0?'عليه للمحل':'متوازن'}</span></div><div class="driver-balance">الرصيد: ${num(d.balance)} ريال</div><div class="driver-metrics"><div class="metric"><label>طلبات لم تُستلم</label><strong>${esc(d.unreceived_order_count||0)} · ${num(d.unreceived_order_total)} ريال</strong></div><div class="metric"><label>فشل التوصيل</label><strong>${esc(d.failed_order_count||0)} طلب</strong></div></div><div class="driver-metrics"><div class="metric"><label>التوصيلات</label><strong>${esc(d.total_deliveries||0)}</strong></div><div class="metric"><label>المحصل</label><strong>${num(d.total_collected)} ريال</strong></div><div class="metric"><label>الرسوم</label><strong>${num(d.total_fees)} ريال</strong></div><div class="metric"><label>آخر تسوية</label><strong>${esc(d.last_settlement_date?date(d.last_settlement_date):'لا توجد')}</strong></div></div><div class="driver-actions"><button class="btn btn-primary" onclick="openSettlement(${Number(d.id)},${jsArg(d.name||'مندوب')},${Number(d.balance||0)},${Number(d.unreceived_order_count||0)},${Number(d.unreceived_order_total||0)},${Number(d.failed_order_count||0)})">تسوية مالية</button><button class="btn btn-warning" onclick="openMobileReceipt(${Number(d.id)},${jsArg(d.name||'مندوب')})">استلام الطلبات</button><button class="btn btn-soft" onclick="openStatement(${Number(d.id)},${jsArg(d.name||'مندوب')})">كشف الحركة</button></div></article>`).join('');
+}
+async function loadDriverSummaryMobile(silent=false){
+    if(!userCan('delivery.drivers.view')) return showNotice('لا تملك صلاحية عرض حسابات المندوبين','error');
+    const box=$('driverSummary');
+    const hasCards = box && box.children.length > 0 && !box.querySelector('.empty');
+    if(!hasCards){
+        try{
+            const cached = localStorage.getItem('pos_phone_cache_driver_summary');
+            if(cached){
+                renderDriverSummaryCards(JSON.parse(cached));
+            } else {
+                box.innerHTML='<div class="empty">جاري تحميل حسابات المندوبين...</div>';
+            }
+        }catch(_){
+            box.innerHTML='<div class="empty">جاري تحميل حسابات المندوبين...</div>';
+        }
+    }
+    setSilentLoading(true);
+    const data=await api('/drivers/summary', { silent: true });
+    setSilentLoading(false);
+    if(data && data.drivers){
+        const rows=data.drivers||[];
+        renderDriverSummaryCards(rows);
+        try{ localStorage.setItem('pos_phone_cache_driver_summary', JSON.stringify(rows)); }catch(_){}
+    } else if(!box.querySelector('.driver-card')){
+        try{
+            const cached = localStorage.getItem('pos_phone_cache_driver_summary');
+            if(cached){
+                renderDriverSummaryCards(JSON.parse(cached));
+            } else {
+                box.innerHTML='<div class="empty"><i>⚡</i>أنت في وضع عدم الاتصال ولا توجد بيانات محفوظة</div>';
+            }
+        }catch(_){}
+    }
+}
 async function loadWalletsForSettlement(){const data=await api('/wallets');if(!data)return;const rows=data.wallets||data.data||[];$('settlementWalletId').innerHTML='<option value="">اختر المحفظة</option>'+rows.map(w=>`<option value="${esc(w.id)}">${esc(w.name||w.wallet_name||('محفظة '+w.id))}</option>`).join('');}
 let mobileReceiptState={driverId:null,driverName:'',orders:[]};
 async function openMobileReceipt(id,name){if(!userCan('delivery.drivers.manage'))return showNotice('لا تملك صلاحية استلام طلبات المندوب','error');mobileReceiptState={driverId:id,driverName:name,orders:[]};$('receiptTitle').textContent='استلام طلبات: '+name;$('receiptOrders').innerHTML='<div class="empty">جاري تحميل الطلبات...</div>';$('receiptBackdrop').classList.add('open');const data=await api('/drivers/unreceived-orders?driver_id='+encodeURIComponent(id),{loadingTitle:'جاري تحميل طلبات المندوب...',loadingText:'يتم جلب الطلبات المتبقية والفاشلة'});if(!data)return;mobileReceiptState.orders=data.orders||[];const summary=data.summary||{};$('receiptSummary').innerHTML=`<div class="detail"><label>الطلبات المتبقية</label><strong>${num(summary.count||0)} طلب</strong></div><div class="detail"><label>القيمة الإجمالية</label><strong>${num(summary.total_value||0)} ريال</strong></div><div class="detail"><label>الفاشلة</label><strong>${num(summary.failed_count||0)} طلب</strong></div>`;renderMobileReceiptOrders();}
@@ -318,81 +1091,215 @@ function renderMobileReceiptOrders(){const rows=mobileReceiptState.orders||[];$(
 async function receiveOneMobileOrder(id){if(!mobileReceiptState.driverId)return;const result=await api('/drivers/receive-orders',{method:'POST',body:JSON.stringify({driver_id:mobileReceiptState.driverId,order_ids:[Number(id)]})});if(result&&result.success){showNotice(result.message||'تم استلام الطلب','success');await openMobileReceipt(mobileReceiptState.driverId,mobileReceiptState.driverName);await loadDriverSummaryMobile();}}
 async function receiveAllMobileOrders(){if(!mobileReceiptState.driverId||!mobileReceiptState.orders.length)return;if(!await showConfirmModal(`تأكيد استلام ${mobileReceiptState.orders.length} طلب من المندوب؟`,{title:'استلام الطلبات',type:'success',okText:'تأكيد الاستلام',cancelText:'تراجع'}))return;const result=await api('/drivers/receive-orders',{method:'POST',body:JSON.stringify({driver_id:mobileReceiptState.driverId,order_ids:mobileReceiptState.orders.map(o=>Number(o.id))})});if(result&&result.success){showNotice(result.message||'تم استلام جميع الطلبات','success');await openMobileReceipt(mobileReceiptState.driverId,mobileReceiptState.driverName);await loadDriverSummaryMobile();}}
 function closeMobileReceipt(){$('receiptBackdrop').classList.remove('open');mobileReceiptState={driverId:null,driverName:'',orders:[]};}
-function openSettlement(id,name,balance,pendingCount=0,pendingTotal=0,failedCount=0){
-    assignOrderId=null;
-    window.settlementDriverId=id;
-    $('settlementHint').textContent=`المندوب: ${name} · الرصيد الحالي: ${num(balance)} ريال · الطلبات المتبقية: ${num(pendingCount)} (${num(pendingTotal)} ريال) · الفاشلة: ${num(failedCount)} طلب`;
-    const defaultAmt=Math.abs(Number(balance||0))||'';
-    $('settlementAmount').value=defaultAmt;
-    $('settlementMethod').value='cash';
-    $('settlementCash').value='';
-    $('settlementWallet').value='';
-    $('settlementNotes').value='';
+let settlementDriverData = null;
+
+function openSettlement(id, name, balance, pendingCount=0, pendingTotal=0, failedCount=0){
+    assignOrderId = null;
+    window.settlementDriverId = id;
+    const curBal = Number(balance || 0);
+    settlementDriverData = { id, name, balance: curBal, pendingCount, pendingTotal, failedCount };
+
+    if ($('settlementDriverName')) $('settlementDriverName').textContent = name;
+
+    const absBal = Math.abs(curBal);
+    const badge = $('settlementBalanceBadge');
+    const expl = $('settlementBalanceExplanation');
+    if (curBal > 0) {
+        if (badge) {
+            badge.className = 'badge badge-red';
+            badge.textContent = `عليه: ${num(absBal)} ريال`;
+        }
+        if (expl) expl.textContent = `مستحق على المندوب للشركة (يجب تحصيل ${num(absBal)} ريال)`;
+    } else if (curBal < 0) {
+        if (badge) {
+            badge.className = 'badge badge-green';
+            badge.textContent = `له: ${num(absBal)} ريال`;
+        }
+        if (expl) expl.textContent = `مستحق للمندوب من الشركة (يجب صرف ${num(absBal)} ريال للمندوب)`;
+    } else {
+        if (badge) {
+            badge.className = 'badge badge-gray';
+            badge.textContent = 'الرصيد: متوازن (0.00)';
+        }
+        if (expl) expl.textContent = 'الحساب متوازن بالكامل';
+    }
+
+    if ($('settlementPendingOrders')) $('settlementPendingOrders').textContent = `${num(pendingCount)} طلب (${num(pendingTotal)} ريال)`;
+    if ($('settlementFailedOrders')) $('settlementFailedOrders').textContent = `${num(failedCount)} طلب`;
+
+    if ($('settlementType')) {
+        if (curBal > 0) $('settlementType').value = 'driver_pays_shop';
+        else if (curBal < 0) $('settlementType').value = 'shop_pays_driver';
+        else $('settlementType').value = 'driver_pays_shop';
+    }
+
+    const defaultAmt = absBal > 0 ? absBal.toFixed(2) : '';
+    if ($('settlementAmount')) $('settlementAmount').value = defaultAmt;
+    if ($('settlementMethod')) $('settlementMethod').value = 'cash';
+    if ($('settlementCash')) $('settlementCash').value = '';
+    if ($('settlementWallet')) $('settlementWallet').value = '';
+    if ($('settlementNotes')) $('settlementNotes').value = '';
+
     toggleSettlementWallet();
     loadWalletsForSettlement();
+    updateSettlementSummaryMobile();
+
     $('settlementBackdrop').classList.add('open');
 }
-function closeSettlement(){$('settlementBackdrop').classList.remove('open');}
+
+function closeSettlement(){
+    $('settlementBackdrop').classList.remove('open');
+    settlementDriverData = null;
+}
+
+function onSettlementTypeChange(){
+    const type = $('settlementType')?.value || 'driver_pays_shop';
+    const label = $('settlementAmountLabel');
+    if (label) {
+        if (type === 'driver_pays_shop') label.textContent = 'المبلغ المستلم من المندوب (نقداً أو محفظة)';
+        else if (type === 'shop_pays_driver') label.textContent = 'المبلغ المدفوع للمندوب من المحل';
+        else label.textContent = 'مبلغ التعديل';
+    }
+    const walletLabel = $('settlementWalletLabel');
+    if (walletLabel) {
+        if (type === 'shop_pays_driver') walletLabel.textContent = 'المحفظة المدفوع منها للمندوب';
+        else walletLabel.textContent = 'المحفظة المستلمة في المحل';
+    }
+    updateSettlementSummaryMobile();
+}
+
 function toggleSettlementWallet(){
-    const method=$('settlementMethod').value;
-    if(method==='cash'){
-        $('settlementTotalWrap').hidden=false;
-        if($('settlementAmountLabel'))$('settlementAmountLabel').textContent='المبلغ المسدد (نقداً)';
-        $('settlementCashWrap').hidden=true;
-        $('settlementWalletAmountWrap').hidden=true;
-        $('settlementWalletWrap').hidden=true;
-    }else if(method==='wallet'){
-        $('settlementTotalWrap').hidden=false;
-        if($('settlementAmountLabel'))$('settlementAmountLabel').textContent='المبلغ المسدد (عبر المحفظة)';
-        $('settlementCashWrap').hidden=true;
-        $('settlementWalletAmountWrap').hidden=true;
-        $('settlementWalletWrap').hidden=false;
-    }else if(method==='mixed'){
-        $('settlementTotalWrap').hidden=true;
-        $('settlementCashWrap').hidden=false;
-        $('settlementWalletAmountWrap').hidden=false;
-        $('settlementWalletWrap').hidden=false;
-        const curAmt=parseFloat($('settlementAmount').value||0);
-        const curCash=parseFloat($('settlementCash').value||0);
-        const curWal=parseFloat($('settlementWallet').value||0);
-        if(curAmt>0&&curCash===0&&curWal===0){
-            $('settlementCash').value=curAmt;
-            $('settlementWallet').value=0;
+    const method = $('settlementMethod')?.value || 'cash';
+    const totalWrap = $('settlementTotalWrap');
+    const mixedWrap = $('settlementMixedWrap');
+    const walletWrap = $('settlementWalletWrap');
+
+    if (method === 'cash') {
+        if (totalWrap) totalWrap.style.display = 'block';
+        if (mixedWrap) mixedWrap.style.display = 'none';
+        if (walletWrap) walletWrap.style.display = 'none';
+    } else if (method === 'wallet') {
+        if (totalWrap) totalWrap.style.display = 'block';
+        if (mixedWrap) mixedWrap.style.display = 'none';
+        if (walletWrap) walletWrap.style.display = 'block';
+    } else if (method === 'mixed') {
+        if (totalWrap) totalWrap.style.display = 'none';
+        if (mixedWrap) mixedWrap.style.display = 'block';
+        if (walletWrap) walletWrap.style.display = 'block';
+        const curAmt = parseFloat($('settlementAmount')?.value || 0);
+        const curCash = parseFloat($('settlementCash')?.value || 0);
+        const curWal = parseFloat($('settlementWallet')?.value || 0);
+        if (curAmt > 0 && curCash === 0 && curWal === 0) {
+            if ($('settlementCash')) $('settlementCash').value = curAmt.toFixed(2);
+            if ($('settlementWallet')) $('settlementWallet').value = '0.00';
         }
     }
+    onSettlementTypeChange();
 }
-async function submitSettlementMobile(){
-    if(!userCan('delivery.drivers.manage'))return showNotice('لا تملك صلاحية تسجيل التسوية','error');
-    const method=$('settlementMethod').value;
-    let amount=0,cash=0,wallet=0;
-    if(method==='cash'){
-        amount=Number($('settlementAmount').value||0);
-        cash=amount;
-        wallet=0;
-    }else if(method==='wallet'){
-        amount=Number($('settlementAmount').value||0);
-        cash=0;
-        wallet=amount;
-    }else if(method==='mixed'){
-        cash=Number($('settlementCash').value||0);
-        wallet=Number($('settlementWallet').value||0);
-        amount=cash+wallet;
+
+function updateSettlementSummaryMobile(){
+    const type = $('settlementType')?.value || 'driver_pays_shop';
+    const method = $('settlementMethod')?.value || 'cash';
+    const typeLabels = {
+        'driver_pays_shop': 'المندوب يدفع للمحل (سداد)',
+        'shop_pays_driver': 'المحل يدفع للمندوب (صرف مستحقات)',
+        'adjustment': 'تعديل رصيد يدوي'
+    };
+    if ($('summaryTypeLabel')) $('summaryTypeLabel').textContent = typeLabels[type] || type;
+
+    let amount = 0;
+    if (method === 'cash' || method === 'wallet') {
+        amount = parseFloat($('settlementAmount')?.value || 0) || 0;
+    } else if (method === 'mixed') {
+        const cash = parseFloat($('settlementCash')?.value || 0) || 0;
+        const wallet = parseFloat($('settlementWallet')?.value || 0) || 0;
+        amount = cash + wallet;
     }
-    if(!window.settlementDriverId||amount<=0)return showNotice('أدخل مبلغًا صحيحًا للتسوية','error');
-    const walletId=$('settlementWalletId').value;
-    if((method==='wallet'||(method==='mixed'&&wallet>0))&&!walletId)return showNotice('اختر المحفظة المستلمة','warning');
-    const data=await api('/drivers/payment',{method:'POST',body:JSON.stringify({driver_id:window.settlementDriverId,amount,payment_method:method,wallet_id:walletId||null,cash_amount:cash,wallet_amount:wallet,notes:$('settlementNotes').value.trim()})});
-    if(data){
+    if ($('summaryAmountVal')) $('summaryAmountVal').textContent = num(amount) + ' ريال';
+
+    const currentBal = settlementDriverData ? settlementDriverData.balance : 0;
+    let newBal = currentBal;
+    if (type === 'driver_pays_shop') {
+        newBal = currentBal - amount;
+    } else if (type === 'shop_pays_driver') {
+        newBal = currentBal + amount;
+    }
+
+    const newBalEl = $('summaryNewBalanceVal');
+    if (newBalEl) {
+        newBalEl.textContent = num(newBal) + ' ريال';
+        if (newBal > 0) newBalEl.style.color = 'var(--red)';
+        else if (newBal < 0) newBalEl.style.color = 'var(--green)';
+        else newBalEl.style.color = 'var(--muted)';
+    }
+}
+
+async function submitSettlementMobile(){
+    if(!userCan('delivery.drivers.manage')) return showNotice('لا تملك صلاحية تسجيل التسوية','error');
+    const type = $('settlementType')?.value || 'driver_pays_shop';
+    const method = $('settlementMethod')?.value || 'cash';
+    let amount = 0, cash = 0, wallet = 0;
+
+    if (method === 'cash') {
+        amount = Number($('settlementAmount')?.value || 0);
+        cash = amount;
+        wallet = 0;
+    } else if (method === 'wallet') {
+        amount = Number($('settlementAmount')?.value || 0);
+        cash = 0;
+        wallet = amount;
+    } else if (method === 'mixed') {
+        cash = Number($('settlementCash')?.value || 0);
+        wallet = Number($('settlementWallet')?.value || 0);
+        amount = cash + wallet;
+    }
+
+    if (!window.settlementDriverId || amount <= 0) return showNotice('أدخل مبلغًا صحيحًا للتسوية أكبر من الصفر','error');
+    const walletId = $('settlementWalletId')?.value;
+    if ((method === 'wallet' || (method === 'mixed' && wallet > 0)) && !walletId) {
+        return showNotice('اختر المحفظة المستلمة أو المدفوع منها','warning');
+    }
+
+    let finalAmount = (type === 'driver_pays_shop') ? amount : -amount;
+    const typeNames = {
+        'driver_pays_shop': 'المندوب يدفع للمحل',
+        'shop_pays_driver': 'المحل يدفع للمندوب',
+        'adjustment': 'تعديل رصيد'
+    };
+    const userNotes = $('settlementNotes')?.value.trim();
+    const defaultNote = `تسوية (${typeNames[type] || type})`;
+
+    const payload = {
+        driver_id: window.settlementDriverId,
+        amount: finalAmount,
+        payment_method: method,
+        wallet_id: walletId || null,
+        cash_amount: cash,
+        wallet_amount: wallet,
+        notes: userNotes || defaultNote
+    };
+
+    const data = await api('/drivers/payment', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+    });
+
+    if (data && (data.success !== false)) {
         showNotice('تم تسجيل تسوية المندوب بنجاح','success');
         closeSettlement();
         await loadDriverSummaryMobile();
+        if ($('statementSection')?.classList.contains('active') && window.statementDriver?.id === window.settlementDriverId) {
+            loadStatementData(window.statementDriver.id, window.statementDriver.name);
+        }
     }
 }
 function openStatement(id,name){
     if(!userCan('delivery.drivers.view'))return showNotice('لا تملك صلاحية عرض كشف المندوب','error');
     window.statementDriver={id,name};
     $('statementTitle').textContent='كشف حركة: '+name;
+    if($('statementDriverSelect'))$('statementDriverSelect').value=String(id);
     showMobileSection('statement');
+    restoreStatementPreset();
     loadStatementData(id,name);
 }
 function applyStatementFilter(){
@@ -402,27 +1309,12 @@ function applyStatementFilter(){
 function clearStatementFilter(){
     if($('statementFrom'))$('statementFrom').value='';
     if($('statementTo'))$('statementTo').value='';
+    document.querySelectorAll('.stmt-preset-btn').forEach(b => b.classList.remove('active-preset'));
+    try { localStorage.removeItem('pos_phone_statement_date_preset'); } catch (_) {}
     if(!window.statementDriver)return;
     loadStatementData(window.statementDriver.id,window.statementDriver.name);
 }
-async function loadStatementData(id,name){
-    if(!userCan('delivery.drivers.view'))return showNotice('لا تملك صلاحية عرض كشف المندوب','error');
-    window.statementDriver={id,name};
-
-    const from=$('statementFrom')?.value||'';
-    const to=$('statementTo')?.value||'';
-
-    const params=new URLSearchParams({driver_id:id});
-    if(from)params.set('date_from',from);
-    if(to)params.set('date_to',to);
-
-    const data=await api('/drivers/transactions?'+params.toString(),{
-        loadingTitle:'جاري تحميل كشف الحساب...',
-        loadingText:'يتم تجهيز حركة المندوب للفترة المحددة'
-    });
-    if(!data)return;
-
-    // ✅ فلتر احتياطي محلي بصيغة ISO آمنة
+function renderStatementUI(data, id, name, from, to){
     const txs=(data.transactions||[]).filter(t=>{
         if(!from&&!to)return true;
         if(!t.created_at)return false;
@@ -445,20 +1337,17 @@ async function loadStatementData(id,name){
         const txType=String(t.type||'').toLowerCase();
         let debit=0, credit=0;
 
-        // ✅ تحديد الطرف حسب نوع الحركة وليس إشارة المبلغ
         if(txType==='collection'){
-            debit=amount;                          // تحصيل: المندوب مدين للشركة
+            debit=amount;
         } else if(txType==='delivery_fee'){
-            credit=amount;                         // رسوم توصيل: الشركة مدينة للمندوب
+            credit=amount;
             totalDeliveryFees+=amount;
         } else if(txType==='settlement'){
-            credit=amount;                         // تسوية: تخفض رصيد المندوب
+            credit=amount;
         } else {
-            // احتياطي: اعتمد على إشارة المبلغ
             if(Number(t.amount||0)>=0) debit=amount; else credit=amount;
         }
 
-        // ✅ الرصيد الجاري: يزيد بالمدين وينقص بالدائن
         balance += debit - credit;
         totalDebit += debit;
         totalCredit += credit;
@@ -477,9 +1366,7 @@ async function loadStatementData(id,name){
         };
     });
 
-    const summary=data.account||drivers.find(d=>String(d.id)===String(id))||{};
     $('statementTitle').textContent='كشف حركة: '+name;
-
     const ordersCount=orderIds.size;
     const finalBalance=totalDebit-totalCredit;
 
@@ -510,7 +1397,45 @@ async function loadStatementData(id,name){
         from:from,
         to:to
     });
-    showMobileSection('statement');
+}
+
+async function loadStatementData(id,name,silent=false){
+    if(!userCan('delivery.drivers.view'))return showNotice('لا تملك صلاحية عرض كشف المندوب','error');
+    window.statementDriver={id,name};
+
+    const from=$('statementFrom')?.value||'';
+    const to=$('statementTo')?.value||'';
+
+    const params=new URLSearchParams({driver_id:id});
+    if(from)params.set('date_from',from);
+    if(to)params.set('date_to',to);
+
+    const cacheKey = `pos_phone_cache_stmt_${id}`;
+    let cached = null;
+    try {
+        const raw = localStorage.getItem(cacheKey);
+        if (raw) {
+            cached = JSON.parse(raw);
+            renderStatementUI(cached, id, name, from, to);
+        }
+    } catch (_) {}
+
+    if (!cached && !$('statementList')?.children.length) {
+        $('statementList').innerHTML = '<div class="empty">جاري تحميل كشف الحساب...</div>';
+    }
+
+    setSilentLoading(true);
+    const data=await api('/drivers/transactions?'+params.toString(), { silent: true });
+    setSilentLoading(false);
+
+    if (data && data.transactions) {
+        try { localStorage.setItem(cacheKey, JSON.stringify(data)); } catch (_) {}
+        renderStatementUI(data, id, name, from, to);
+    } else if (cached) {
+        renderStatementUI(cached, id, name, from, to);
+    } else {
+        $('statementList').innerHTML = '<div class="empty"><i>⚡</i>أنت في وضع عدم الاتصال ولا توجد بيانات كشف محفوظة</div>';
+    }
 }
 async function printDriverStatement(){
     const raw=$('statementSection').dataset.statement;
@@ -539,20 +1464,349 @@ async function printDriverStatement(){
     }
 }
 function returnStatusLabel(s){return s==='pending'?'معلقة':s==='completed'?'تم التنفيذ':s==='cancelled'?'ملغاة':(s||'-');}
-async function loadReturnsMobile(page=1){if(currentUser?.role!=='admin')return showNotice('إدارة طلبات الإرجاع متاحة للمدير فقط','error');const params=new URLSearchParams({page,limit:'15'});const status=$('returnStatusFilter')?.value,driver=$('returnDriverFilter')?.value;if(status)params.set('status',status);if(driver)params.set('driver_id',driver);const data=await api('/returns?'+params.toString());if(!data)return;const rows=data.returns||[],p=data.pagination||{};window.returnsPage=page;window.returnsPages=Number(p.total_pages||1);$('returnsList').innerHTML=rows.length?rows.map(r=>`<article class="return-card"><div class="return-card-head"><div><h3>طلب إرجاع #${esc(r.id)} · الطلب #${esc(r.order_id)}</h3><small>${esc(r.customer_name||'غير محدد')} · ${esc(r.driver_name||'غير مسند')}</small></div><span class="return-status ${esc(r.status)}">${returnStatusLabel(r.status)}</span></div><div class="order-grid"><div class="data"><label>المبلغ المسترد</label><div class="total">${num(r.total_refund)} ريال</div></div><div class="data"><label>رسوم الإرجاع</label><div>${num(r.return_fee)} ريال</div></div><div class="data"><label>طريقة الاسترداد</label><div>${esc(r.refund_method||'-')}</div></div><div class="data"><label>تاريخ الطلب</label><div>${esc(date(r.created_at))}</div></div></div><div class="return-actions"><button class="btn btn-primary" onclick="openReturnDetail(${Number(r.id)})">التفاصيل</button>${r.status==='pending'?`<button class="btn btn-green" onclick="confirmReturnMobile(${Number(r.id)})">تأكيد</button><button class="btn btn-red" onclick="cancelReturnMobile(${Number(r.id)})">إلغاء</button>`:'<span></span>'}</div></article>`).join(''):'<div class="empty">لا توجد طلبات إرجاع</div>';const pages=window.returnsPages;$('returnsPagination').innerHTML=pages>1?`<button ${page<=1?'disabled':''} onclick="loadReturnsMobile(${page-1})">السابق</button><span class="muted">${page} / ${pages}</span><button ${page>=pages?'disabled':''} onclick="loadReturnsMobile(${page+1})">التالي</button>`:'';}
-async function populateReturnDrivers(){if(!drivers.length)await loadDrivers();$('returnDriverFilter').innerHTML='<option value="">كل المندوبين</option>'+drivers.map(d=>`<option value="${esc(d.id)}">${esc(d.name||'مندوب')}</option>`).join('');}
+function renderReturnsCards(rows, p, page){
+    window.returnsPage = page;
+    window.returnsPages = Number(p.total_pages || 1);
+    const list = $('returnsList');
+    if (!list) return;
+    list.innerHTML = rows.length ? rows.map(r=>`<article class="return-card"><div class="return-card-head"><div><h3>طلب إرجاع #${esc(r.id)} · الطلب #${esc(r.order_id)}</h3><small>${esc(r.customer_name||'غير محدد')} · ${esc(r.driver_name||'غير مسند')}</small></div><span class="return-status ${esc(r.status)}">${returnStatusLabel(r.status)}</span></div><div class="order-grid"><div class="data"><label>المبلغ المسترد</label><div class="total">${num(r.total_refund)} ريال</div></div><div class="data"><label>رسوم الإرجاع</label><div>${num(r.return_fee)} ريال</div></div><div class="data"><label>طريقة الاسترداد</label><div>${esc(r.refund_method||'-')}</div></div><div class="data"><label>تاريخ الطلب</label><div>${esc(date(r.created_at))}</div></div></div><div class="return-actions"><button class="btn btn-primary" onclick="openReturnDetail(${Number(r.id)})">التفاصيل</button>${r.status==='pending'?`<button class="btn btn-green" onclick="confirmReturnMobile(${Number(r.id)})">تأكيد</button><button class="btn btn-red" onclick="cancelReturnMobile(${Number(r.id)})">إلغاء</button>`:'<span></span>'}</div></article>`).join('') : '<div class="empty">لا توجد طلبات إرجاع</div>';
+    const pages = window.returnsPages;
+    if ($('returnsPagination')) {
+        $('returnsPagination').innerHTML = pages > 1 ? `<button ${page<=1?'disabled':''} onclick="loadReturnsMobile(${page-1})">السابق</button><span class="muted">${page} / ${pages}</span><button ${page>=pages?'disabled':''} onclick="loadReturnsMobile(${page+1})">التالي</button>` : '';
+    }
+}
+async function loadReturnsMobile(page=1, silent=false){
+    if(currentUser?.role!=='admin') return showNotice('إدارة طلبات الإرجاع متاحة للمدير فقط','error');
+    const params = new URLSearchParams({ page, limit: '15' });
+    const status = $('returnStatusFilter')?.value, driver = $('returnDriverFilter')?.value;
+    if (status) params.set('status', status);
+    if (driver) params.set('driver_id', driver);
+
+    const list = $('returnsList');
+    const hasCards = list && list.children.length > 0 && !list.querySelector('.empty');
+    if (!hasCards) {
+        try {
+            const cached = localStorage.getItem('pos_phone_cache_returns');
+            if (cached) {
+                const parsed = JSON.parse(cached);
+                renderReturnsCards(parsed.returns || [], parsed.pagination || {}, page);
+            } else {
+                list.innerHTML = '<div class="empty">جاري تحميل طلبات الإرجاع...</div>';
+            }
+        } catch (_) {
+            list.innerHTML = '<div class="empty">جاري تحميل طلبات الإرجاع...</div>';
+        }
+    }
+
+    setSilentLoading(true);
+    const data = await api('/returns?' + params.toString(), { silent: true });
+    setSilentLoading(false);
+
+    if (data && data.returns) {
+        const rows = data.returns || [], p = data.pagination || {};
+        renderReturnsCards(rows, p, page);
+        try { localStorage.setItem('pos_phone_cache_returns', JSON.stringify({ returns: rows, pagination: p })); } catch (_) {}
+    } else if (!list.querySelector('.return-card')) {
+        try {
+            const cached = localStorage.getItem('pos_phone_cache_returns');
+            if (cached) {
+                const parsed = JSON.parse(cached);
+                renderReturnsCards(parsed.returns || [], parsed.pagination || {}, page);
+            } else {
+                list.innerHTML = '<div class="empty"><i>⚡</i>أنت في وضع عدم الاتصال ولا توجد بيانات محفوظة</div>';
+            }
+        } catch (_) {}
+    }
+}
+async function populateReturnDrivers(){if(!drivers.length)await loadDrivers(true).catch(()=>{});const sel=$('returnDriverFilter');if(sel)sel.innerHTML='<option value="">كل المندوبين</option>'+drivers.map(d=>`<option value="${esc(d.id)}">${esc(d.name||'مندوب')}</option>`).join('');}
 async function openReturnDetail(id){const data=await api('/returns/'+id);if(!data)return;const r=data.return||data;$('returnTitle').textContent='تفاصيل إرجاع #'+r.id;$('returnDetailContent').innerHTML=`<div class="detail-list"><div class="detail"><label>الطلب الأصلي</label><strong>#${esc(r.order_id)}</strong></div><div class="detail"><label>العميل</label><strong>${esc(r.customer_name||'-')}</strong></div><div class="detail"><label>المندوب</label><strong>${esc(r.driver_name||'-')}</strong></div><div class="detail"><label>الحالة</label><strong>${returnStatusLabel(r.status)}</strong></div><div class="detail"><label>المبلغ المسترد</label><strong>${num(r.total_refund)} ريال</strong></div><div class="detail"><label>رسوم الإرجاع</label><strong>${num(r.return_fee)} ريال (${esc(r.return_fee_type||'-')})</strong></div></div><h3 class="subheading">المنتجات المرتجعة</h3><div class="items">${(r.items||[]).length?(r.items||[]).map(i=>`<div class="item"><div class="item-line"><span>${esc(i.product_name||('منتج #'+(i.product_id||'')))}</span><span>${num(i.quantity)} × ${num(i.unit_price)} ريال</span></div><small>${esc(i.reason||i.notes||'بدون ملاحظة')}</small></div>`).join(''):'<div class="empty">لا توجد بنود مسجلة</div>'}</div>`;$('returnDetailActions').innerHTML=r.status==='pending'?`<button class="btn btn-green" onclick="confirmReturnMobile(${Number(r.id)})">تأكيد الإرجاع</button><button class="btn btn-red" onclick="cancelReturnMobile(${Number(r.id)})">إلغاء الطلب</button><button class="btn btn-gray wide" onclick="closeReturnDetail()">إغلاق</button>`:'<button class="btn btn-gray wide" onclick="closeReturnDetail()">إغلاق</button>';$('returnBackdrop').classList.add('open');}
 function closeReturnDetail(){$('returnBackdrop').classList.remove('open');}
 async function confirmReturnMobile(id){if(!await showConfirmModal('تأكيد تنفيذ طلب الإرجاع؟',{title:'تنفيذ الإرجاع',type:'success',okText:'تأكيد',cancelText:'إلغاء'}))return;const data=await api('/returns/'+id+'/confirm',{method:'POST'});if(data){showNotice('تم تأكيد الإرجاع','success');closeReturnDetail();await loadReturnsMobile(window.returnsPage||1);}}
 async function cancelReturnMobile(id){if(!await showConfirmModal('إلغاء طلب الإرجاع؟',{title:'إلغاء الإرجاع',type:'danger',okText:'إلغاء الطلب',cancelText:'تراجع'}))return;const data=await api('/returns/'+id+'/cancel',{method:'POST'});if(data){showNotice('تم إلغاء طلب الإرجاع','success');closeReturnDetail();await loadReturnsMobile(window.returnsPage||1);}}
-async function initApp(){showApp();setupMobileSections();await loadDrivers();await populateReturnDrivers();await loadOrders(1);}
-async function bootstrap(){if(!token)return showLogin();try{const res=await fetch(API+'/auth/me',{headers:headers()});const data=await res.json().catch(()=>({}));if(res.status===401||res.status===403){token='';localStorage.removeItem('pos_token');localStorage.removeItem('pos_user');showLogin();return;}if(!res.ok||!data.user){const saved=localStorage.getItem('pos_user');if(!saved)return showNotice('تعذر التحقق من الجلسة ولا توجد بيانات محلية','error');currentUser=JSON.parse(saved);showNotice('أنت في وضع عدم الاتصال؛ الجلسة المحلية محفوظة','info');await initApp();return;}currentUser=data.user;localStorage.setItem('pos_user',JSON.stringify(currentUser));await initApp();}catch(_){const saved=localStorage.getItem('pos_user');if(!saved)return showNotice('تعذر الاتصال ولا توجد جلسة محلية','error');try{currentUser=JSON.parse(saved);showNotice('أنت في وضع عدم الاتصال؛ الجلسة المحلية محفوظة','info');await initApp();}catch(__){showNotice('تعذر فتح الجلسة المحلية','error');}}}
-if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw_phone.js', {scope:'/phone/'}).catch(()=>{});
+let returnOrderItemsMobile = [];
+let currentReturnOrderMobile = null;
+
+async function openCreateReturnMobile(orderId){
+    $('createReturnOrderId').textContent=orderId;
+    const data=await api(`/online-orders/${orderId}`);
+    if(!data)return;
+    const order=data.order||data;
+    currentReturnOrderMobile=order;
+    $('createReturnOrderInfo').innerHTML=`
+        <div class="detail"><label>العميل</label><strong>${esc(order.customer_name||'غير محدد')}</strong></div>
+        <div class="detail"><label>الهاتف</label><strong dir="ltr">${esc(order.customer_phone||'-')}</strong></div>
+        <div class="detail"><label>الحالة</label><strong>${esc(order.status||'-')}</strong></div>
+        <div class="detail"><label>إجمالي الطلب</label><strong>${num(order.total_amount)} ريال</strong></div>
+        <div class="detail full"><label>المندوب الأصلي</label><strong>${esc(order.driver_name||'غير مسند')}</strong></div>
+    `;
+    returnOrderItemsMobile=(order.items||[]).map(i=>({
+        order_item_id:i.id,
+        product_name:i.product_name||('منتج #'+i.product_id),
+        quantity_available:Number(i.quantity||0),
+        unit_price:Number(i.unit_price||0),
+        return_qty:0
+    }));
+    $('createReturnItemsContainer').innerHTML=returnOrderItemsMobile.length?returnOrderItemsMobile.map((item,idx)=>`
+        <div class="item" style="padding:8px 0;border-bottom:1px solid var(--line);">
+            <div class="item-line">
+                <span style="font-weight:700;">${esc(item.product_name)}</span>
+                <span style="font-size:.78rem;color:var(--muted);">المتبقي: ${esc(item.quantity_available)}</span>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px;gap:8px;">
+                <div style="display:flex;align-items:center;gap:6px;">
+                    <label style="font-size:.75rem;color:var(--muted);">كمية الإرجاع:</label>
+                    <input class="input" style="width:75px;padding:4px 6px;text-align:center;" type="number" id="create_return_qty_${idx}" min="0" max="${item.quantity_available}" value="0" step="1" oninput="updateCreateReturnTotal()">
+                </div>
+                <strong style="color:var(--primary);font-size:.85rem;" id="create_return_item_total_${idx}">0.00 ريال</strong>
+            </div>
+        </div>
+    `).join(''):'<div class="empty">لا توجد منتجات مسجلة في الطلب</div>';
+
+    await loadWalletsForReturnMobile();
+    await loadDriversForReturnMobile();
+
+    $('createReturnRefundMethod').value='cash';
+    $('createReturnCashAmount').value='';
+    $('createReturnWalletAmount').value='';
+    $('createReturnFeeType').value='shop';
+    $('createReturnFeeAmount').value='0';
+    $('createReturnDriverId').value='';
+
+    toggleCreateReturnRefundFields();
+    toggleCreateReturnFeeFields();
+    updateCreateReturnTotal();
+
+    $('createReturnBackdrop').classList.add('open');
+}
+function closeCreateReturnMobile(){
+    $('createReturnBackdrop').classList.remove('open');
+    returnOrderItemsMobile=[];
+    currentReturnOrderMobile=null;
+}
+async function loadWalletsForReturnMobile(){
+    const data=await api('/wallets');
+    if(!data)return;
+    const rows=data.wallets||data.data||[];
+    const sel=$('createReturnWalletId');
+    if(sel){
+        sel.innerHTML='<option value="">اختر المحفظة</option>'+rows.map(w=>`<option value="${esc(w.id)}">${esc(w.name||w.wallet_name||('محفظة '+w.id))}</option>`).join('');
+    }
+}
+async function loadDriversForReturnMobile(){
+    if(!drivers.length) await loadDrivers();
+    const sel=$('createReturnDriverId');
+    if(sel){
+        sel.innerHTML='<option value="">-- نفس المندوب الأصلي --</option>'+drivers.map(d=>`<option value="${esc(d.id)}">${esc(d.name||d.username||('مندوب '+d.id))}</option>`).join('');
+    }
+}
+function toggleCreateReturnRefundFields(){
+    const m=$('createReturnRefundMethod').value;
+    const wField=$('createReturnWalletField');
+    const cField=$('createReturnCashField');
+    const waField=$('createReturnWalletAmountField');
+    if(m==='cash'){
+        if(wField)wField.style.display='none';
+        if(cField)cField.style.display='none';
+        if(waField)waField.style.display='none';
+    } else if(m==='wallet'){
+        if(wField)wField.style.display='block';
+        if(cField)cField.style.display='none';
+        if(waField)waField.style.display='none';
+    } else if(m==='mixed'){
+        if(wField)wField.style.display='block';
+        if(cField)cField.style.display='block';
+        if(waField)waField.style.display='block';
+    }
+}
+function toggleCreateReturnFeeFields(){
+    const t=$('createReturnFeeType').value;
+    const wrap=$('createReturnFeeAmountWrap');
+    if(wrap){
+        wrap.style.display = (t==='free') ? 'none' : 'block';
+    }
+}
+function updateCreateReturnTotal(){
+    let totalRefund=0;
+    returnOrderItemsMobile.forEach((item,idx)=>{
+        const input=$(`create_return_qty_${idx}`);
+        if(!input)return;
+        let q=parseInt(input.value)||0;
+        if(q>item.quantity_available) q=item.quantity_available;
+        if(q<0) q=0;
+        input.value=q;
+        const itemTotal=q*item.unit_price;
+        const label=$(`create_return_item_total_${idx}`);
+        if(label) label.textContent=num(itemTotal)+' ريال';
+        totalRefund+=itemTotal;
+    });
+    const feeType=$('createReturnFeeType')?.value||'shop';
+    let deliveryFee=0;
+    if(feeType!=='free'){
+        deliveryFee=parseFloat($('createReturnFeeAmount')?.value||0)||0;
+    }
+    let totalWithFee=totalRefund;
+    if(feeType==='customer'){
+        totalWithFee=Math.max(0, totalRefund - deliveryFee);
+    }
+    const method=$('createReturnRefundMethod')?.value;
+    if(method==='mixed'){
+        const cIn=$('createReturnCashAmount');
+        const wIn=$('createReturnWalletAmount');
+        let cash=parseFloat(cIn?.value||0)||0;
+        let wallet=parseFloat(wIn?.value||0)||0;
+        const totalPaid=cash+wallet;
+        if(totalPaid>0 && Math.abs(totalPaid-totalWithFee)>0.01){
+            const ratio=totalWithFee/totalPaid;
+            if(cIn) cIn.value=(cash*ratio).toFixed(2);
+            if(wIn) wIn.value=(wallet*ratio).toFixed(2);
+        }
+    }
+    if($('createReturnTotalDisplay')){
+        $('createReturnTotalDisplay').textContent=num(totalWithFee)+' ريال';
+    }
+}
+async function submitCreateReturnMobile(){
+    const orderId=parseInt($('createReturnOrderId')?.textContent);
+    if(!orderId)return showNotice('معرف الطلب غير صحيح','error');
+    const items=[];
+    returnOrderItemsMobile.forEach((item,idx)=>{
+        const input=$(`create_return_qty_${idx}`);
+        const q=parseInt(input?.value||0)||0;
+        if(q>0){
+            items.push({order_item_id:item.order_item_id, quantity:q});
+        }
+    });
+    if(!items.length) return showNotice('يرجى تحديد كمية لمنتج واحد على الأقل','warning');
+    const method=$('createReturnRefundMethod').value;
+    const walletId=$('createReturnWalletId').value;
+    let cashRefund=0, walletRefund=0;
+    if(method==='wallet'){
+        if(!walletId) return showNotice('يرجى اختيار المحفظة','warning');
+    } else if(method==='mixed'){
+        cashRefund=parseFloat($('createReturnCashAmount')?.value||0)||0;
+        walletRefund=parseFloat($('createReturnWalletAmount')?.value||0)||0;
+        if(cashRefund<=0 && walletRefund<=0) return showNotice('يرجى تحديد مبالغ للدفع المختلط','warning');
+        if(!walletId) return showNotice('يرجى اختيار المحفظة للدفع المختلط','warning');
+    }
+    const feeType=$('createReturnFeeType').value;
+    let deliveryFee=0;
+    if(feeType!=='free'){
+        deliveryFee=parseFloat($('createReturnFeeAmount')?.value||0)||0;
+    }
+    const returnDriverId=$('createReturnDriverId')?.value||null;
+    const payload={
+        order_id:orderId,
+        items,
+        refund_method:method,
+        wallet_id:walletId||null,
+        cash_refund:cashRefund,
+        wallet_refund:walletRefund,
+        return_fee:deliveryFee,
+        return_fee_type:feeType,
+        return_driver_id:returnDriverId||null
+    };
+    const result=await api('/driver/return-items',{
+        method:'POST',
+        body:JSON.stringify(payload)
+    });
+    if(result&&(result.success!==false)){
+        showNotice('تم إنشاء طلب الإرجاع بنجاح؛ بانتظار التأكيد','success');
+        closeCreateReturnMobile();
+        closeDetail();
+        await loadOrders(currentPage);
+        if($('tab-returns')&&$('tab-returns').classList.contains('active')){
+            loadReturnsMobile(1);
+        }
+    }
+}
+async function initApp(){
+    showApp();
+    setupMobileSections();
+    restoreOrdersPreset();
+    restoreStatementPreset();
+    updateOfflineUI(navigator.onLine);
+    await loadDrivers(true).catch(()=>{});
+    populateStatementDrivers();
+    if(typeof populateReturnDrivers === 'function') await populateReturnDrivers().catch(()=>{});
+    await loadOrders(1, { silent: true }).catch(err=>console.error('loadOrders failed:', err));
+}
+async function bootstrap(){
+    if (location.protocol === 'file:') showFileProtocolWarning();
+    if(!token) return showLogin();
+    
+    const saved = localStorage.getItem('pos_user');
+    let appInitialized = false;
+    if (saved) {
+        try {
+            currentUser = JSON.parse(saved);
+            await initApp();
+            appInitialized = true;
+        } catch (_) {}
+    }
+    
+    updateOfflineUI(navigator.onLine);
+
+    try{
+        const res = await fetch(API+'/auth/me',{headers:headers()});
+        const data = await res.json().catch(()=>({}));
+        if(res.status===401||res.status===403){
+            token='';localStorage.removeItem('pos_token');localStorage.removeItem('pos_user');showLogin();return;
+        }
+        if(res.ok && data.user){
+            currentUser = data.user;
+            localStorage.setItem('pos_user',JSON.stringify(currentUser));
+            if(!appInitialized){
+                await initApp();
+            } else {
+                showApp();
+            }
+        }
+    }catch(_){
+        if(!appInitialized && saved){
+            try{
+                currentUser=JSON.parse(saved);
+                updateOfflineUI(false);
+                await initApp();
+            }catch(__){
+                showNotice('تعذر فتح الجلسة المحلية','error');
+            }
+        } else if(!appInitialized && !saved){
+            showNotice('تعذر الاتصال بالخادم ولا توجد جلسة سابقة','error');
+        } else {
+            updateOfflineUI(false);
+        }
+    }
+}
+window.addEventListener('online', () => {
+    updateOfflineUI(true);
+    showNotice('تم استعادة الاتصال بالإنترنت — جاري تحديث البيانات', 'success');
+    loadOrders(currentPage, { silent: true });
+    loadDrivers(true);
+    if ($('driversSection')?.classList.contains('active')) loadDriverSummaryMobile(true);
+    if ($('returnsSection')?.classList.contains('active')) loadReturnsMobile(window.returnsPage || 1, true);
+    if (window.POSOffline?.syncNow) window.POSOffline.syncNow();
+});
+window.addEventListener('offline', () => {
+    updateOfflineUI(false);
+    showNotice('أنت الآن في وضع عدم الاتصال؛ النظام يعمل من الذاكرة المحلية', 'info');
+});
+window.refreshAfterOfflineSync = function(){
+    loadOrders(currentPage, { silent: true });
+    loadDrivers(true);
+    if ($('driversSection')?.classList.contains('active')) loadDriverSummaryMobile(true);
+};
+if ('serviceWorker' in navigator && (location.protocol === 'http:' || location.protocol === 'https:')) {
+    navigator.serviceWorker.register('sw_phone.js').catch(()=>{});
+}
 $('statusFilter')?.addEventListener('change',()=>loadOrders(1));
 $('driverFilter')?.addEventListener('change',()=>loadOrders(1));
 $('searchInput')?.addEventListener('keydown',e=>{if(e.key==='Enter')loadOrders(1)});
-$('settlementCash')?.addEventListener('input',()=>{if($('settlementMethod').value==='mixed'){const c=parseFloat($('settlementCash').value||0),w=parseFloat($('settlementWallet').value||0);$('settlementAmount').value=(c+w).toFixed(2);}});
-$('settlementWallet')?.addEventListener('input',()=>{if($('settlementMethod').value==='mixed'){const c=parseFloat($('settlementCash').value||0),w=parseFloat($('settlementWallet').value||0);$('settlementAmount').value=(c+w).toFixed(2);}});
+$('orderDateFrom')?.addEventListener('change',()=>{document.querySelectorAll('.date-preset-btn').forEach(b=>b.classList.remove('active-preset'));try{localStorage.removeItem('pos_phone_orders_date_preset');}catch(_){}});
+$('orderDateTo')?.addEventListener('change',()=>{document.querySelectorAll('.date-preset-btn').forEach(b=>b.classList.remove('active-preset'));try{localStorage.removeItem('pos_phone_orders_date_preset');}catch(_){}});
+$('statementFrom')?.addEventListener('change',()=>{document.querySelectorAll('.stmt-preset-btn').forEach(b=>b.classList.remove('active-preset'));try{localStorage.removeItem('pos_phone_statement_date_preset');}catch(_){}});
+$('statementTo')?.addEventListener('change',()=>{document.querySelectorAll('.stmt-preset-btn').forEach(b=>b.classList.remove('active-preset'));try{localStorage.removeItem('pos_phone_statement_date_preset');}catch(_){}});
+$('settlementCash')?.addEventListener('input',()=>{if($('settlementMethod').value==='mixed'){const c=parseFloat($('settlementCash').value||0),w=parseFloat($('settlementWallet').value||0);$('settlementAmount').value=(c+w).toFixed(2);updateSettlementSummaryMobile();}});
+$('settlementWallet')?.addEventListener('input',()=>{if($('settlementMethod').value==='mixed'){const c=parseFloat($('settlementCash').value||0),w=parseFloat($('settlementWallet').value||0);$('settlementAmount').value=(c+w).toFixed(2);updateSettlementSummaryMobile();}});
 bootstrap();
 </script>
 </body>
