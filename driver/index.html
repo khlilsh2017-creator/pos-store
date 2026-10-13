@@ -1374,11 +1374,17 @@
         let realtimeOrdersInterval = null;
         function startRealtimeOrdersPolling() {
             if (realtimeOrdersInterval) clearInterval(realtimeOrdersInterval);
+            // ═══════════════════════════════════════════════════════════
+            // Polling احتياطي فقط — FCM هو المصدر الأساسي للإشعارات
+            // كل 5 دقائق + عند فتح التطبيق + عند العودة للتطبيق
+            // ═══════════════════════════════════════════════════════════
             realtimeOrdersInterval = setInterval(() => {
-                if (!document.hidden && navigator.onLine && getToken() && currentView === 'orders') {
-                    silentCheckForNewOrders();
-                }
-            }, 15000);
+                if (document.hidden) return;               // لا تفحص في الخلفية
+                if (!navigator.onLine) return;             // لا إنترنت
+                if (!getToken()) return;                   // لا جلسة
+                if (currentView !== 'orders') return;      // لست في صفحة الطلبات
+                silentCheckForNewOrders();
+            }, 300000);  // 5 دقائق بدلاً من 15 ثانية
         }
 
         async function silentCheckForNewOrders() {

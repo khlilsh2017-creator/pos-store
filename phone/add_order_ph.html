@@ -1829,7 +1829,17 @@
                 <div class="form-group">
                     <label>رقم الهاتف <span class="text-muted">*</span></label>
                     <div style="display:flex;gap:6px;align-items:center;">
-                        <input type="tel" id="modal-mainPhone" class="input-field" placeholder="مثال: 777123456" inputmode="numeric" style="flex:1;" />
+                        <input 
+                            type="tel" 
+                            id="modal-mainPhone" 
+                            name="customer_phone"
+                            class="input-field" 
+                            placeholder="رقم الهاتف (9 أرقام)" 
+                            maxlength="15"
+                            inputmode="numeric" 
+                            style="flex:1;" 
+                            oninput="debouncedCustomerSearch(this.value)" 
+                        />
                         <button type="button" class="btn btn-secondary btn-sm" onclick="triggerCustomerPhoneSearch(true)" title="بحث عن العميل" style="padding:0 12px;height:42px;white-space:nowrap;display:flex;align-items:center;gap:4px;">
                             <i class="fas fa-search"></i> بحث
                         </button>
@@ -2960,7 +2970,7 @@
             }
         }
 
-        async function searchCustomerByPhone(phone) {
+        async function legacySearchCustomerByPhone(phone) {
             if (!phone) return null;
             const target = normalizeYemeniPhone(phone);
             if (!target || target.length < 7) return null;
@@ -3184,74 +3194,23 @@
 
         document.getElementById('modal-addPhoneBtn')?.addEventListener('click', function() { addModalExtraPhone(''); });
 
-        let isSearchingCustomer = false;
-
         async function triggerCustomerPhoneSearch(immediate = false) {
-            const input = document.getElementById('modal-mainPhone');
+            const input = document.getElementById('modal-mainPhone') || document.getElementById('customer-phone');
             if (!input) return;
-            clearTimeout(phoneSearchTimeout);
-
-            const rawVal = input.value.trim();
-            const normalized = normalizeYemeniPhone(rawVal);
-            if (input.value !== normalized) {
-                input.value = normalized;
+            const cleaned = String(input.value || '').replace(/\D/g, '');
+            if (cleaned.length >= 9) {
+                await searchCustomerByPhone(cleaned);
+            } else if (cleaned.length > 0) {
+                showCustomerStatus(`📱 ${cleaned.length} من 9 أرقام...`, 'idle');
             }
-            const phone = normalized;
-            const msg = document.getElementById('customer-found-msg');
-
-            if (!phone || phone.length < 7) {
-                if (msg) msg.style.display = 'none';
-                return;
-            }
-
-            const doSearch = async () => {
-                if (isSearchingCustomer) return;
-                isSearchingCustomer = true;
-                if (msg) {
-                    msg.style.display = 'block';
-                    msg.style.background = 'var(--bg-card-hover, #f1f5f9)';
-                    msg.style.color = 'var(--text-muted, #64748b)';
-                    msg.textContent = '🔍 جاري البحث عن العميل...';
-                }
-                try {
-                    const customer = await searchCustomerByPhone(phone);
-                    const currentVal = normalizeYemeniPhone(document.getElementById('modal-mainPhone')?.value || '');
-                    if (currentVal === phone) {
-                        if (customer) {
-                            fillCustomerModalFields(customer, phone);
-                        } else {
-                            if (msg) {
-                                if (immediate) {
-                                    msg.style.display = 'block';
-                                    msg.style.background = 'var(--warning-light, #fef9c3)';
-                                    msg.style.color = 'var(--warning, #b45309)';
-                                    msg.textContent = 'ℹ️ لم يتم العثور على عميل مسجل بهذا الرقم، يمكنك إدخال بياناته الآن';
-                                    setTimeout(() => { if (msg) msg.style.display = 'none'; }, 4000);
-                                } else {
-                                    msg.style.display = 'none';
-                                }
-                            }
-                        }
-                    }
-                } catch (err) {
-                    console.warn('خطأ أثناء البحث عن العميل:', err);
-                    if (msg) msg.style.display = 'none';
-                } finally {
-                    isSearchingCustomer = false;
-                }
-            };
-
-            const delay = (immediate || phone.length >= 9) ? 200 : 600;
-            phoneSearchTimeout = setTimeout(doSearch, delay);
         }
 
         (function setupMainPhoneEvents() {
-            const mainInput = document.getElementById('modal-mainPhone');
+            const mainInput = document.getElementById('modal-mainPhone') || document.getElementById('customer-phone');
             if (!mainInput) return;
 
-            mainInput.addEventListener('input', () => triggerCustomerPhoneSearch(false));
-            mainInput.addEventListener('change', () => triggerCustomerPhoneSearch(true));
-            mainInput.addEventListener('paste', () => setTimeout(() => triggerCustomerPhoneSearch(true), 50));
+            mainInput.addEventListener('input', (e) => debouncedCustomerSearch(e.target.value));
+            mainInput.addEventListener('paste', () => setTimeout(() => debouncedCustomerSearch(mainInput.value), 50));
         })();
 
         function confirmCustomerData() {
@@ -4083,6 +4042,12 @@
             safeRemoveItem('pos_cart_online');
             setElementValue('cart-discount', 0);
             selectedCustomerData = null;
+            lastSearchedPhone = '';
+            foundCustomer = null;
+            if (document.getElementById('customer-phone')) document.getElementById('customer-phone').value = '';
+            if (document.getElementById('modal-mainPhone')) document.getElementById('modal-mainPhone').value = '';
+            if (typeof clearCustomerData === 'function') clearCustomerData();
+            if (typeof showCustomerStatus === 'function') showCustomerStatus('', 'idle');
             updateCustomerSummary();
             renderCart();
             setElementValue('cash-paid', 0);
@@ -4632,6 +4597,13 @@
             }
 
             resetOrderForm();
+            // بعد حفظ الطلب
+            lastSearchedPhone = '';
+            foundCustomer = null;
+            if (document.getElementById('customer-phone')) document.getElementById('customer-phone').value = '';
+            if (document.getElementById('modal-mainPhone')) document.getElementById('modal-mainPhone').value = '';
+            clearCustomerData();
+            showCustomerStatus('', 'idle');
             fetchProducts('', selectedCategoryId);
             setTimeout(() => openInvoiceChoiceModal(), 0);
 
@@ -5430,6 +5402,164 @@
                 console.warn('فشل تحميل المندوبين', e);
             }
         }
+
+        // ============================================================
+        // البحث الفوري عن العميل برقم الهاتف — يوفّر CPU ويمنع 503
+        // ============================================================
+        let customerSearchTimeout = null;
+        let lastSearchedPhone = '';
+        let foundCustomer = null;
+
+        function debouncedCustomerSearch(value) {
+            clearTimeout(customerSearchTimeout);
+            const cleaned = String(value || '').replace(/\D/g, '');
+            
+            // عرض عدد الأرقام المُدخلة
+            if (cleaned.length > 0 && cleaned.length < 9) {
+                showCustomerStatus(
+                    `📱 ${cleaned.length} من 9 أرقام...`,
+                    'idle'
+                );
+            } else if (cleaned.length === 0) {
+                foundCustomer = null;
+                lastSearchedPhone = '';
+                showCustomerStatus('', 'idle');
+            }
+            
+            if (cleaned.length >= 9) {
+                customerSearchTimeout = setTimeout(() => searchCustomerByPhone(cleaned), 400);
+            }
+        }
+
+        async function searchCustomerByPhone(phone) {
+            // 1. تحقق من الطول (9 أرقام لليمن)
+            if (!phone || phone.length < 9) {
+                foundCustomer = null;
+                showCustomerStatus('', 'idle');
+                return null;
+            }
+            
+            // 2. لا تعيد البحث عن نفس الرقم
+            if (phone === lastSearchedPhone && foundCustomer) {
+                return foundCustomer;
+            }
+            lastSearchedPhone = phone;
+            
+            showCustomerStatus('🔍 جاري البحث عن العميل...', 'loading');
+            
+            try {
+                const res = await fetch(
+                    `${API}/customers?search=${encodeURIComponent(phone)}&limit=1`,
+                    { headers: { 'Authorization': `Bearer ${token}` } }
+                );
+                
+                if (!res.ok) {
+                    throw new Error(`HTTP ${res.status}`);
+                }
+                
+                const data = await res.json();
+                const customers = data.customers || [];
+                
+                if (customers.length > 0) {
+                    foundCustomer = customers[0];
+                    fillCustomerData(foundCustomer);
+                    showCustomerStatus(
+                        `✅ تم العثور على: ${foundCustomer.name || 'عميل'}`,
+                        'found'
+                    );
+                } else {
+                    foundCustomer = null;
+                    clearCustomerData();
+                    showCustomerStatus(
+                        '🆕 عميل جديد — سيُسجَّل تلقائياً عند حفظ الطلب',
+                        'new'
+                    );
+                }
+            } catch (err) {
+                console.error('فشل البحث عن العميل:', err);
+                showCustomerStatus(
+                    '⚠️ تعذر البحث — تحقق من الاتصال',
+                    'error'
+                );
+            }
+            return foundCustomer;
+        }
+
+        function showCustomerStatus(message, type) {
+            let el = document.getElementById('customer-search-status');
+            if (!el) {
+                el = document.createElement('div');
+                el.id = 'customer-search-status';
+                el.style.cssText = `
+                    padding: 8px 12px;
+                    border-radius: 8px;
+                    font-size: 0.8rem;
+                    font-weight: 600;
+                    margin-top: 6px;
+                    transition: all 0.2s;
+                `;
+                const phoneInput = document.getElementById('customer-phone') || 
+                                  document.getElementById('modal-mainPhone') || 
+                                  document.querySelector('input[type="tel"]') ||
+                                  document.querySelector('input[name="phone"]');
+                if (phoneInput) {
+                    const container = phoneInput.closest('.form-group') || phoneInput.parentNode;
+                    if (container) {
+                        container.appendChild(el);
+                    }
+                }
+            }
+            
+            const styles = {
+                idle:    { bg: 'transparent',        color: '#64748b' },
+                loading: { bg: '#eff6ff',            color: '#1d4ed8' },
+                found:   { bg: '#dcfce7',            color: '#166534' },
+                new:     { bg: '#fef3c7',            color: '#92400e' },
+                error:   { bg: '#fee2e2',            color: '#991b1b' }
+            };
+            
+            const s = styles[type] || styles.idle;
+            el.style.background = s.bg;
+            el.style.color = s.color;
+            el.textContent = message;
+            el.style.display = message ? 'block' : 'none';
+        }
+
+        function fillCustomerData(customer) {
+            const nameField = document.getElementById('customer-name') || 
+                             document.getElementById('modal-customerName') || 
+                             document.querySelector('input[name="customer_name"]');
+            const addressField = document.getElementById('customer-address') || 
+                                document.getElementById('modal-address') || 
+                                document.querySelector('input[name="customer_address"]');
+            
+            if (nameField && customer.name) nameField.value = customer.name;
+            const addr = customer.address || customer.default_address || '';
+            if (addressField && addr) addressField.value = addr;
+
+            const govField = document.getElementById('modal-governorate');
+            if (govField && customer.governorate) govField.value = customer.governorate;
+
+            const delField = document.getElementById('modal-deliveryType');
+            if (delField && (customer.delivery_type || customer.deliveryType)) delField.value = customer.delivery_type || customer.deliveryType;
+
+            if (typeof fillCustomerModalFields === 'function') {
+                fillCustomerModalFields(customer, lastSearchedPhone);
+            }
+        }
+
+        function clearCustomerData() {
+            const nameField = document.getElementById('customer-name') || 
+                             document.getElementById('modal-customerName') || 
+                             document.querySelector('input[name="customer_name"]');
+            const addressField = document.getElementById('customer-address') || 
+                                document.getElementById('modal-address') || 
+                                document.querySelector('input[name="customer_address"]');
+            
+            if (nameField) nameField.value = '';
+            if (addressField) addressField.value = '';
+        }
+
         async function initializeApp() {
             if (appInitializationRunning) return;
             appInitializationRunning = true;
@@ -5454,7 +5584,7 @@
                 setProgress(20);
                 const tasks = await Promise.allSettled([
                     loadCurrencies(), loadWalletsFromServer(), loadAllCategories(),
-                    loadDrivers(), fetchCustomersList(), loadSettings()
+                    loadDrivers(), loadSettings()
                 ]);
                 const failures = tasks.filter(result => result.status === 'rejected');
                 if (failures.length) console.warn('بعض بيانات التهيئة لم تُحمّل:', failures.map(result => result.reason));
