@@ -1617,8 +1617,11 @@
         }
 
         // ===== حفظ المنتج (مع product_code) =====
+        let isSavingProduct = false;
+
         async function saveProduct(e) {
             e.preventDefault();
+            if (isSavingProduct) return;
             const editId = document.getElementById('editId').value;
             const name = document.getElementById('pName').value.trim();
             const barcode = document.getElementById('pBarcode').value.trim() || null;
@@ -1627,15 +1630,15 @@
             const categoryText = document.getElementById('pCategory').value || '';
             const price = parseFloat(document.getElementById('pPrice').value);
             const cost = parseFloat(document.getElementById('pCost').value) || 0;
-                const qty = parseFloat(document.getElementById('pQty').value) || 0;
-                const expiryDate = document.getElementById('pExpiryDate').value || null;
-                const unitType = document.getElementById('pUnitType').value || 'piece';
-                const unitSymbol = document.getElementById('pUnitSymbol').value.trim() || 'قطعة';
-                const decimalAllowed = document.getElementById('pDecimalAllowed').checked;
-                const weightGrams = parseFloat(document.getElementById('pWeightGrams').value) || null;
-                const isSet = document.getElementById('pIsSet').checked;
-                const setDetails = isSet ? collectSetDetails('p') : [];
-                const setPieceCount = isSet ? Math.max(1, setDetails.length) : 1;
+            const qty = parseFloat(document.getElementById('pQty').value) || 0;
+            const expiryDate = document.getElementById('pExpiryDate').value || null;
+            const unitType = document.getElementById('pUnitType').value || 'piece';
+            const unitSymbol = document.getElementById('pUnitSymbol').value.trim() || 'قطعة';
+            const decimalAllowed = document.getElementById('pDecimalAllowed').checked;
+            const weightGrams = parseFloat(document.getElementById('pWeightGrams').value) || null;
+            const isSet = document.getElementById('pIsSet').checked;
+            const setDetails = isSet ? collectSetDetails('p') : [];
+            const setPieceCount = isSet ? Math.max(1, setDetails.length) : 1;
 
             if (!name) return showToast('الاسم مطلوب', 'warning');
             if (isNaN(price) || price <= 0) return showToast('السعر يجب أن يكون أكبر من 0', 'warning');
@@ -1650,37 +1653,58 @@
             if (!decimalAllowed && !Number.isInteger(qty)) return showToast('فعّل السماح بالعشري لاستخدام كمية كسرية', 'warning');
             if (weightGrams !== null && weightGrams < 0) return showToast('الوزن لا يمكن أن يكون سالبًا', 'warning');
 
-            const existingProduct = editId ? allProducts.find(p => p.id == editId) : null;
-            const product = {
-                id: editId || Date.now(),
-                name,
-                barcode,
-                product_code: productCode,
-                category: categoryText,
-                category_id: categoryId ? parseInt(categoryId) : null,
-                price,
-                cost,
-                stock_quantity: isSet ? (editId && existingProduct ? Number(existingProduct.stock_quantity || 0) : 0) : (editId && existingProduct ? Number(existingProduct.stock_quantity || 0) : qty),
-                expiry_date: expiryDate,
-                unit_type: isSet ? 'set' : unitType,
-                unit_symbol: isSet ? 'طقم' : unitSymbol,
-                is_decimal_allowed: decimalAllowed ? 1 : 0,
-                weight_grams: weightGrams,
-                is_set: isSet ? 1 : 0,
-                set_piece_count: setPieceCount,
-                set_details_json: JSON.stringify(setDetails)
-            };
+            isSavingProduct = true;
+            const submitBtn = document.getElementById('btn-save-product');
+            const pendingBtn = document.getElementById('btn-pending-product');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري حفظ المنتج...';
+            }
+            if (pendingBtn) pendingBtn.disabled = true;
+            showToast('⏳ جاري حفظ المنتج...', 'info');
 
-            await saveLocalProduct(product);
-            const type = editId ? 'update' : 'add';
-            const operationData = { ...product };
-            if (editId) delete operationData.stock_quantity;
-            await addOperation({ store: 'products', type, data: operationData, id: product.id });
+            try {
+                const existingProduct = editId ? allProducts.find(p => p.id == editId) : null;
+                const product = {
+                    id: editId || Date.now(),
+                    name,
+                    barcode,
+                    product_code: productCode,
+                    category: categoryText,
+                    category_id: categoryId ? parseInt(categoryId) : null,
+                    price,
+                    cost,
+                    stock_quantity: isSet ? (editId && existingProduct ? Number(existingProduct.stock_quantity || 0) : 0) : (editId && existingProduct ? Number(existingProduct.stock_quantity || 0) : qty),
+                    expiry_date: expiryDate,
+                    unit_type: isSet ? 'set' : unitType,
+                    unit_symbol: isSet ? 'طقم' : unitSymbol,
+                    is_decimal_allowed: decimalAllowed ? 1 : 0,
+                    weight_grams: weightGrams,
+                    is_set: isSet ? 1 : 0,
+                    set_piece_count: setPieceCount,
+                    set_details_json: JSON.stringify(setDetails)
+                };
 
-            showToast(editId ? '✅ تم التحديث محلياً' : '✅ تمت الإضافة محلياً', 'success');
-            resetForm();
-            loadProductsList();
-            if (navigator.onLine) await syncAllOperations(API, token);
+                await saveLocalProduct(product);
+                const type = editId ? 'update' : 'add';
+                const operationData = { ...product };
+                if (editId) delete operationData.stock_quantity;
+                await addOperation({ store: 'products', type, data: operationData, id: product.id });
+
+                showToast(editId ? '✅ تم التحديث محلياً' : '✅ تمت الإضافة محلياً', 'success');
+                resetForm();
+                loadProductsList();
+                if (navigator.onLine) await syncAllOperations(API, token);
+            } catch (err) {
+                showToast(err.message || 'حدث خطأ أثناء الحفظ', 'error');
+            } finally {
+                isSavingProduct = false;
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fas fa-save"></i> حفظ';
+                }
+                if (pendingBtn) pendingBtn.disabled = false;
+            }
         }
 
         // ===== إضافة منتج كمعلق =====

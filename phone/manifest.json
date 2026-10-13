@@ -1,7 +1,7 @@
 {
   "id": "com.pos.ibnalmukhtar.cashier",
-  "name": "صندوق البيع - ابن المختار",
-  "short_name": "صندوق البيع",
+  "name": "انشاء طلب انترنت ابن المختار",
+  "short_name": "انشاء طلب انترنت",
   "description": "واجهة الكاشير السريعة لابن المختار: إتمام عمليات البيع، طباعة الفواتير، والبحث عن المنتجات بلمسة واحدة.",
   "start_url": "/phone/add_order_ph.html",
   "display": "standalone",
