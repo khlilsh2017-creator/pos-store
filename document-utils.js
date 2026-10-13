@@ -348,6 +348,8 @@
     
     const paymentDetails = data.payment_details_html ? `<br><span style="font-size:0.9em; color:var(--pos-brand-primary, #1d4ed8); font-weight:bold; display:inline-block; margin-top:4px;">${data.payment_details_html}</span>` : '';
 
+    const hasItemDiscount = items.some(item => Math.max(0, Number(item.discount ?? item.discount_amount ?? 0) || 0) > 0);
+
     const rows = items.map((item, index) => {
       const qty = Number(item.quantity || 0);
       const price = Number(item.unit_price ?? item.price ?? 0) || 0;
@@ -356,17 +358,46 @@
       const line = Number(item.line_total ?? item.total_price ?? (effectivePrice * qty)) || 0;
       const itemNote = item.note || item.notes || item.product_note || '';
       const codeHtml = item.product_code ? `<br><small class="pos-brand-primary" style="font-size:0.85em; font-weight:bold;">كود: ${esc(item.product_code)}</small>` : '';
-      const discountHtml = itemDiscount > 0 ? `<br><small class="pos-item-discount">خصم الوحدة: ${fmtMoney(itemDiscount, currency)} — إجمالي الخصم: ${fmtMoney(itemDiscount * qty, currency)}</small>` : '';
       const noteHtml = itemNote ? `<br><small class="pos-item-note">ملاحظة: ${esc(itemNote)}</small>` : '';
       
+      if (hasItemDiscount) {
+        return `<tr>
+                  <td style="text-align:center;">${index + 1}</td>
+                  <td>${esc(item.name || item.product_name || 'منتج')}${codeHtml}${noteHtml}</td>
+                  <td style="text-align:center;">${fmtQty(qty)}</td>
+                  <td dir="ltr" style="text-align:center;">${fmtMoney(price)}</td>
+                  <td dir="ltr" style="text-align:center; color:#dc2626;">${itemDiscount > 0 ? fmtMoney(itemDiscount) : '0'}</td>
+                  <td dir="ltr" style="text-align:center; font-weight:600;">${fmtMoney(effectivePrice)}</td>
+                  <td dir="ltr" style="text-align:center;">${fmtMoney(line)}</td>
+                </tr>`;
+      }
+
       return `<tr>
-                <td>${index + 1}</td>
-                <td>${esc(item.name || item.product_name || 'منتج')}${codeHtml}${discountHtml}${noteHtml}</td>
-                <td>${fmtQty(qty)}</td>
-                <td dir="ltr">${fmtMoney(effectivePrice)}</td>
-                <td dir="ltr">${fmtMoney(line)}</td>
+                <td style="text-align:center;">${index + 1}</td>
+                <td>${esc(item.name || item.product_name || 'منتج')}${codeHtml}${noteHtml}</td>
+                <td style="text-align:center;">${fmtQty(qty)}</td>
+                <td dir="ltr" style="text-align:center;">${fmtMoney(effectivePrice)}</td>
+                <td dir="ltr" style="text-align:center;">${fmtMoney(line)}</td>
               </tr>`;
     }).join('');
+
+    const theadHtml = hasItemDiscount ? `
+                <tr>
+                    <th style="width:5%;text-align:center;">#</th>
+                    <th>المنتج</th>
+                    <th style="width:10%;text-align:center;">الكمية</th>
+                    <th style="width:14%;text-align:center;">السعر قبل الخصم</th>
+                    <th style="width:12%;text-align:center;">الخصم</th>
+                    <th style="width:14%;text-align:center;">السعر بعد الخصم</th>
+                    <th style="width:15%;text-align:center;">الإجمالي (${currency})</th>
+                </tr>` : `
+                <tr>
+                    <th style="width:5%;text-align:center;">#</th>
+                    <th>المنتج</th>
+                    <th style="width:12%;text-align:center;">الكمية</th>
+                    <th style="width:18%;text-align:center;">السعر (${currency})</th>
+                    <th style="width:20%;text-align:center;">الإجمالي (${currency})</th>
+                </tr>`;
 
     return `<div class="pos-unified-invoice pos-doc">
         ${renderBrandHeader(identity, title, data, options)}
@@ -384,16 +415,10 @@
         </section>
         <table>
             <thead>
-                <tr>
-                    <th>#</th>
-                    <th>المنتج</th>
-                    <th>الكمية</th>
-                    <th>السعر (${currency})</th>
-                    <th>الإجمالي (${currency})</th>
-                </tr>
+                ${theadHtml}
             </thead>
             <tbody>
-                ${rows || '<tr><td colspan="5" style="text-align:center;">لا توجد بنود</td></tr>'}
+                ${rows || `<tr><td colspan="${hasItemDiscount ? 7 : 5}" style="text-align:center;">لا توجد بنود</td></tr>`}
             </tbody>
         </table>
         <section class="pos-invoice-totals">

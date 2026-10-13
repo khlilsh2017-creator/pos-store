@@ -4901,35 +4901,58 @@
                             </table>
                         </div>
 
-                        <table style="width:100%; border-collapse:collapse; font-size:1rem; margin-bottom:20px;">
-                            <thead>
-                                <tr style="border-bottom:2px solid #0f172a; background:#f0f4f9;">
-                                    <th style="padding:12px 5px; text-align:right; width:5%;">#</th>
-                                    <th style="padding:12px 5px; text-align:right; width:45%;">الصنف</th>
-                                    <th style="padding:12px 5px; text-align:center; width:15%;">الكمية</th>
-                                    <th style="padding:12px 5px; text-align:center; width:15%;">السعر (${currencyCode})</th>
-                                    <th style="padding:12px 5px; text-align:center; width:20%;">الإجمالي (${currencyCode})</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${cart.map((item, i) => {
-                                    const itemPrice = (item.price || 0) / rate;
-                                    const itemDiscount = (item.discount || 0) / rate;
-                                    const effectivePrice = itemPrice - itemDiscount;
-                                    const itemTotal = effectivePrice * item.quantity;
-                                    const discountHtml = itemDiscount > 0 ? `<br><span style="font-size:0.8rem; color:#dc2626;">(خصم: ${formatPosMoney(itemDiscount)})</span>` : '';
-                                    return `
-                                    <tr style="border-bottom:1px solid #e2e8f0;">
-                                        <td style="padding:12px 5px; text-align:right; vertical-align:top;">${formatPosNumber(i+1)}</td>
-                                        <td style="padding:12px 5px; text-align:right; vertical-align:top;">${escapeHTML(item.name)}${discountHtml}${item.notes ? `<br><span style="font-size:0.75rem;color:#64748b;">ملاحظة: ${escapeHTML(item.notes)}</span>` : ''}</td>
-                                        <td style="padding:12px 5px; text-align:center; vertical-align:top;">${formatPosQuantity(item.quantity)}</td>
-                                        <td style="padding:12px 5px; text-align:center; vertical-align:top;" dir="ltr">${formatPosMoney(effectivePrice)}</td>
-                                        <td style="padding:12px 5px; text-align:center; vertical-align:top;" dir="ltr">${formatPosMoney(itemTotal)}</td>
+                        ${(() => {
+                            const hasCartDiscount = cart.some(item => ((item.discount || 0) / rate) > 0);
+                            return `
+                            <table style="width:100%; border-collapse:collapse; font-size:1rem; margin-bottom:20px;">
+                                <thead>
+                                    <tr style="border-bottom:2px solid #0f172a; background:#f0f4f9;">
+                                        <th style="padding:10px 5px; text-align:center; width:5%;">#</th>
+                                        <th style="padding:10px 5px; text-align:right;">الصنف</th>
+                                        <th style="padding:10px 5px; text-align:center; width:10%;">الكمية</th>
+                                        ${hasCartDiscount ? `
+                                        <th style="padding:10px 5px; text-align:center; width:14%;">السعر قبل الخصم</th>
+                                        <th style="padding:10px 5px; text-align:center; width:12%;">الخصم</th>
+                                        <th style="padding:10px 5px; text-align:center; width:14%;">السعر بعد الخصم</th>
+                                        ` : `
+                                        <th style="padding:10px 5px; text-align:center; width:15%;">السعر (${currencyCode})</th>
+                                        `}
+                                        <th style="padding:10px 5px; text-align:center; width:15%;">الإجمالي (${currencyCode})</th>
                                     </tr>
-                                    `;
-                                }).join('')}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    ${cart.map((item, i) => {
+                                        const itemPrice = (item.price || 0) / rate;
+                                        const itemDiscount = (item.discount || 0) / rate;
+                                        const effectivePrice = Math.max(0, itemPrice - itemDiscount);
+                                        const itemTotal = effectivePrice * item.quantity;
+                                        if (hasCartDiscount) {
+                                            return `
+                                            <tr style="border-bottom:1px solid #e2e8f0;">
+                                                <td style="padding:10px 5px; text-align:center; vertical-align:top;">${formatPosNumber(i+1)}</td>
+                                                <td style="padding:10px 5px; text-align:right; vertical-align:top;">${escapeHTML(item.name)}${item.notes ? `<br><span style="font-size:0.75rem;color:#64748b;">ملاحظة: ${escapeHTML(item.notes)}</span>` : ''}</td>
+                                                <td style="padding:10px 5px; text-align:center; vertical-align:top;">${formatPosQuantity(item.quantity)}</td>
+                                                <td style="padding:10px 5px; text-align:center; vertical-align:top;" dir="ltr">${formatPosMoney(itemPrice)}</td>
+                                                <td style="padding:10px 5px; text-align:center; vertical-align:top; color:#dc2626;" dir="ltr">${itemDiscount > 0 ? formatPosMoney(itemDiscount) : '0'}</td>
+                                                <td style="padding:10px 5px; text-align:center; vertical-align:top; font-weight:600;" dir="ltr">${formatPosMoney(effectivePrice)}</td>
+                                                <td style="padding:10px 5px; text-align:center; vertical-align:top;" dir="ltr">${formatPosMoney(itemTotal)}</td>
+                                            </tr>
+                                            `;
+                                        }
+                                        return `
+                                        <tr style="border-bottom:1px solid #e2e8f0;">
+                                            <td style="padding:10px 5px; text-align:center; vertical-align:top;">${formatPosNumber(i+1)}</td>
+                                            <td style="padding:10px 5px; text-align:right; vertical-align:top;">${escapeHTML(item.name)}${item.notes ? `<br><span style="font-size:0.75rem;color:#64748b;">ملاحظة: ${escapeHTML(item.notes)}</span>` : ''}</td>
+                                            <td style="padding:10px 5px; text-align:center; vertical-align:top;">${formatPosQuantity(item.quantity)}</td>
+                                            <td style="padding:10px 5px; text-align:center; vertical-align:top;" dir="ltr">${formatPosMoney(effectivePrice)}</td>
+                                            <td style="padding:10px 5px; text-align:center; vertical-align:top;" dir="ltr">${formatPosMoney(itemTotal)}</td>
+                                        </tr>
+                                        `;
+                                    }).join('')}
+                                </tbody>
+                            </table>
+                            `;
+                        })()}
 
                         <table style="width:100%; border-collapse:collapse;">
                             <tr>
