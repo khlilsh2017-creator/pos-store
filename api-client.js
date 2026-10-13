@@ -1,40 +1,26 @@
 /* ============================================================
- * api-client.js — مكتبة Failover مركزية لكل التطبيقات
- * الإصدار: 1.0.0
- * 
- * الاستخدام: أضف في أي صفحة HTML:
- *   <script src="https://cdn.ibnalmukhtar.com/api-client.js"></script>
- *   (قبل أي سكريبت آخر)
- * 
- * بمجرد التحميل، كل طلبات fetch() إلى api.ibnalmukhtar.com
- * أو go3.ibnalmukhtar.com ستحصل على Failover تلقائي.
+ * api-client.js — نظام Failover مركزي
+ * الإصدار: 1.0.1
  * ============================================================ */
-
 (function () {
     'use strict';
 
     // ═══════════════════════════════════════════════════════════
-    // 1. الإعدادات (عدّل هنا فقط، والباقي يعمل تلقائياً)
+    // 1. الإعدادات
     // ═══════════════════════════════════════════════════════════
     const API_ENDPOINTS = [
-        'https://go3.ibnalmukhtar.com',   // الأساسي (عبر الوسيط)
-        'https://api.ibnalmukhtar.com'    // الاحتياطي (مباشر)
+        'https://api.ibnalmukhtar.com',   // الأساسي — مباشر
+        'https://go3.ibnalmukhtar.com'    // الاحتياطي — عبر الوسيط
     ];
 
-    // الدومينات التي ستُعترَض وتُبدَّل تلقائياً
     const PROTECTED_DOMAINS = [
         'api.ibnalmukhtar.com',
         'go3.ibnalmukhtar.com'
     ];
 
-    // مهلة الطلب (بالمللي ثانية) قبل التبديل
     const REQUEST_TIMEOUT_MS = 7000;
-
-    // فترة فحص رجوع النقطة الأساسية (بالمللي ثانية)
     const HEALTH_CHECK_INTERVAL_MS = 60000;
-
-    // مفتاح localStorage لحفظ النقطة النشطة
-    const STORAGE_KEY = '_apiEndpointIndex_v1';
+    const STORAGE_KEY = '_apiEndpointIndex_v3';  // ← مفتاح جديد
 
     // ═══════════════════════════════════════════════════════════
     // 2. الحالة الداخلية
@@ -42,31 +28,27 @@
     let activeIndex = 0;
     let isInitialized = false;
 
-    // استرجاع النقطة النشطة من جلسة سابقة
     try {
         const saved = parseInt(localStorage.getItem(STORAGE_KEY) || '0', 10);
         if (Number.isInteger(saved) && saved >= 0 && saved < API_ENDPOINTS.length) {
             activeIndex = saved;
         }
-    } catch (_) { /* localStorage قد لا يكون متاحاً */ }
+    } catch (_) {}
 
-    // حفظ مرجع fetch الأصلي
     const originalFetch = window.fetch ? window.fetch.bind(window) : null;
-
     if (!originalFetch) {
-        console.error('❌ api-client.js: fetch غير متاح في هذه البيئة');
+        console.error('❌ api-client.js: fetch غير متاح');
         return;
     }
 
     // ═══════════════════════════════════════════════════════════
-    // 3. دالة مساعدة: هل هذا الرابط يخص أحد الدومينات المحمية؟
+    // 3. استخراج المسار من رابط محمي
     // ═══════════════════════════════════════════════════════════
     function findProtectedPath(urlString) {
         for (const domain of PROTECTED_DOMAINS) {
             const idx = urlString.indexOf(domain);
             if (idx !== -1) {
                 const afterDomain = urlString.slice(idx + domain.length);
-                // نتحقق أنه ليس مجرد تشابه نصي
                 if (afterDomain === '' || afterDomain.startsWith('/') ||
                     afterDomain.startsWith('?') || afterDomain.startsWith('#')) {
                     return afterDomain || '/';
@@ -77,7 +59,7 @@
     }
 
     // ═══════════════════════════════════════════════════════════
-    // 4. دالة fetch المحسّنة (Failover)
+    // 4. fetch مع Failover
     // ═══════════════════════════════════════════════════════════
     async function fetchWithFailover(pathWithQuery, init = {}) {
         const errors = [];
@@ -90,23 +72,30 @@
 
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-
-            // إذا كان init.signal موجوداً، نربطه مع controller الخاص بنا
             const finalInit = Object.assign({}, init, { signal: controller.signal });
 
             try {
                 const res = await originalFetch(targetUrl, finalInit);
                 clearTimeout(timeoutId);
 
-                // نجاح — حدّث النقطة النشطة إن تغيّرت
+                // ═══ 5xx = فشل → المتابعة للتالي ═══
+                if (res.status >= 500 && res.status < 600) {
+                    errors.push(`${base}: HTTP ${res.status}`);
+                    console.warn(`❌ [api-client] ${base} → HTTP ${res.status} — المتابعة للتالي`);
+                    continue;
+                }
+
+                // نجاح (2xx, 3xx, 4xx)
                 if (activeIndex !== idx) {
                     const previousBase = API_ENDPOINTS[activeIndex];
                     activeIndex = idx;
                     try { localStorage.setItem(STORAGE_KEY, String(idx)); } catch (_) {}
                     console.log(`🔄 [api-client] التبديل من ${previousBase} إلى ${base}`);
-                    dispatchEvent(new CustomEvent('api-endpoint-changed', {
-                        detail: { from: previousBase, to: base, index: idx }
-                    }));
+                    try {
+                        dispatchEvent(new CustomEvent('api-endpoint-changed', {
+                            detail: { from: previousBase, to: base, index: idx }
+                        }));
+                    } catch (_) {}
                 }
 
                 return res;
@@ -118,7 +107,7 @@
             }
         }
 
-        const error = new Error(`فشلت جميع نقاط الاتصال (${errors.length}): ${errors.join(' | ')}`);
+        const error = new Error(`فشلت جميع نقاط الاتصال: ${errors.join(' | ')}`);
         error.name = 'AllEndpointsFailed';
         error.endpointErrors = errors;
         throw error;
@@ -128,7 +117,6 @@
     // 5. اعتراض fetch العالمي
     // ═══════════════════════════════════════════════════════════
     window.fetch = async function (input, init = {}) {
-        // استخرج الرابط كنص
         let urlString = '';
         if (typeof input === 'string') {
             urlString = input;
@@ -137,19 +125,14 @@
         } else if (input && typeof input.url === 'string') {
             urlString = input.url;
         } else if (input && typeof input === 'object') {
-            // لا يمكن تحليل هذا النوع، مرّره للأصل
             return originalFetch(input, init);
         }
 
-        // هل يخص أحد الدومينات المحمية؟
         const protectedPath = findProtectedPath(urlString);
-
         if (protectedPath === null) {
-            // ليس ضمن نطاقنا — مرّره للأصل
             return originalFetch(input, init);
         }
 
-        // إذا كان الطلب لـ Request object، نحتاج استخراج التفاصيل
         if (input instanceof Request && !init.method && !init.body) {
             try {
                 init = {
@@ -165,19 +148,19 @@
                     integrity: input.integrity,
                     keepalive: input.keepalive
                 };
-            } catch (_) { /* استخدم init كما هو */ }
+            } catch (_) {}
         }
 
         return fetchWithFailover(protectedPath, init);
     };
 
     // ═══════════════════════════════════════════════════════════
-    // 6. فحص دوري: إذا كنا على نقطة ثانوية، هل رجع الأساسي؟
+    // 6. فحص دوري لرجوع النقطة الأساسية
     // ═══════════════════════════════════════════════════════════
     let healthCheckTimer = null;
 
     async function checkPrimaryHealth() {
-        if (activeIndex === 0) return; // نحن على الأساسي أصلاً
+        if (activeIndex === 0) return;
 
         try {
             const controller = new AbortController();
@@ -189,9 +172,8 @@
             });
             clearTimeout(timeoutId);
 
-            // 401 يعني أن الخادم يستجيب (فقط يطلب توثيق)
-            if (res.ok || res.status === 401 || res.status === 403) {
-                console.log('✅ [api-client] النقطة الأساسية رجعت تعمل — العودة إليها');
+            if (res.ok || res.status === 401 || res.status === 403 || res.status === 405) {
+                console.log('✅ [api-client] الأساسي رجع يعمل — العودة إليه');
                 const previousBase = API_ENDPOINTS[activeIndex];
                 activeIndex = 0;
                 try { localStorage.setItem(STORAGE_KEY, '0'); } catch (_) {}
@@ -199,7 +181,7 @@
                     detail: { from: previousBase, to: API_ENDPOINTS[0] }
                 }));
             }
-        } catch (_) { /* الأساسي لا يزال معطلاً */ }
+        } catch (_) {}
     }
 
     function startHealthMonitor() {
@@ -208,7 +190,7 @@
     }
 
     // ═══════════════════════════════════════════════════════════
-    // 7. واجهة API عامة (يمكن استخدامها من أي صفحة)
+    // 7. واجهة API عامة
     // ═══════════════════════════════════════════════════════════
     window.ApiClient = {
         endpoints: API_ENDPOINTS.slice(),
@@ -219,15 +201,16 @@
             try { localStorage.setItem(STORAGE_KEY, '0'); } catch (_) {}
         },
         fetch: (path, init) => fetchWithFailover(path, init),
-        version: '1.0.0'
+        version: '1.0.1'
     };
 
     // ═══════════════════════════════════════════════════════════
-    // 8. بدء التشغيل
+    // 8. بدء
     // ═══════════════════════════════════════════════════════════
     if (!isInitialized) {
         isInitialized = true;
         startHealthMonitor();
-        console.log(`✅ [api-client v1.0.0] مُفعّل. النقطة النشطة: ${API_ENDPOINTS[activeIndex]}`);
+        console.log(`✅ [api-client v1.0.1] مُفعّل. النقطة النشطة: ${API_ENDPOINTS[activeIndex]}`);
+        console.log(`📋 الترتيب: ${API_ENDPOINTS.join(' → ')}`);
     }
 })();
