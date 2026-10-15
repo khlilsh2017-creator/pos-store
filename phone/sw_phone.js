@@ -10,7 +10,7 @@ try {
   }
 }
 
-const CACHE_NAME = 'pos-phone-shell-v14-offline-ready';
+const CACHE_NAME = 'pos-phone-shell-v15-discount-columns';
 
 // قائمة الملفات الثابتة لضمان العمل بدون اتصال (تشمل صفحات الجوال)
 const STATIC_FILES = [

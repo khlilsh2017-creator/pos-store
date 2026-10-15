@@ -3,10 +3,10 @@
 // ============================================================
 importScripts('/offline-sw-core.js');
 
-const CACHE_NAME = 'ibn-mukhtar-pos-v33';
-const STATIC_CACHE = 'ibn-mukhtar-static-v33';
-const DYNAMIC_CACHE = 'ibn-mukhtar-dynamic-v33';
-const VERSION = '2026-09-1-offline-sync-v5';
+const CACHE_NAME = 'ibn-mukhtar-pos-v34';
+const STATIC_CACHE = 'ibn-mukhtar-static-v34';
+const DYNAMIC_CACHE = 'ibn-mukhtar-dynamic-v34';
+const VERSION = '2026-10-15-invoice-discount-v6';
 
 const STATIC_ASSETS = [
     // ===== الصفحات الرئيسية =====
