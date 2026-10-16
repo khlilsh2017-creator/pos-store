@@ -1852,23 +1852,18 @@
                 <div class="form-group">
                     <label>المحافظة</label>
                     <select id="modal-governorate" class="input-field" onchange="onGovernorateChange()">
-                        <option value="صنعاء">صنعاء</option>
-                        <option value="عدن">عدن</option>
-                        <option value="تعز">تعز</option>
-                        <option value="حضرموت">حضرموت</option>
-                        <option value="إب">إب</option>
-                        <option value="محافظات أخرى">محافظات أخرى</option>
+                        <!-- يُملأ ديناميكياً عبر JS -->
                     </select>
                 </div>
                 <div class="form-group" id="custom-governorate-group" style="display:none;">
-                    <label>اسم المحافظة المخصصة</label>
+                    <label>اسم المحافظة الجديدة</label>
                     <div style="display:flex;gap:6px;">
                         <input type="text" id="modal-custom-governorate" class="input-field" placeholder="اكتب اسم المحافظة" style="flex:1;">
                         <button type="button" class="btn btn-sm btn-success" onclick="addCustomGovernorate()" style="min-height:48px;width:auto;padding:0 14px;">
                             <i class="fas fa-plus"></i> حفظ
                         </button>
                     </div>
-                    <small class="text-muted" style="font-size:0.7rem;">سيتم حفظها محلياً واستخدامها في الطلبات القادمة.</small>
+                    <small class="text-muted" style="font-size:0.7rem;">ستُحفظ محلياً وتظهر في القائمة للاستخدامات القادمة.</small>
                 </div>
                 <div class="form-group">
                     <label>العنوان <span class="text-muted">*</span></label>
@@ -1880,19 +1875,6 @@
                         <option value="داخل صنعاء">داخل صنعاء</option>
                         <option value="محافظات أخرى">محافظات أخرى</option>
                     </select>
-                </div>
-                <div class="form-group" id="delivery-governorate-group" style="display:none;">
-                    <label>المحافظة المُوصَّل إليها</label>
-                    <select id="modal-delivery-governorate" class="input-field">
-                        <!-- يُملأ تلقائياً عبر JS -->
-                    </select>
-                    <div style="display:flex;gap:6px;margin-top:6px;">
-                        <input type="text" id="modal-new-delivery-governorate" class="input-field" placeholder="أضف محافظة جديدة يدوياً" style="flex:1;">
-                        <button type="button" class="btn btn-sm btn-success" onclick="addNewDeliveryGovernorate()" style="min-height:48px;width:auto;padding:0 14px;">
-                            <i class="fas fa-plus"></i> حفظ
-                        </button>
-                    </div>
-                    <small class="text-muted" style="font-size:0.7rem;display:block;margin-top:4px;">تُحفظ المحافظات المضافة محلياً وتظهر في الطلبات القادمة.</small>
                 </div>
                 <div class="form-group">
                     <label>أرقام إضافية</label>
@@ -2164,97 +2146,159 @@
         };
 
         // ================================================================
-        //  قائمة محافظات اليمن + المحافظات المخصصة المحفوظة محلياً
+        //  محافظات اليمن الكاملة + المخصصات المحفوظة
         // ================================================================
-        const YEMEN_GOVERNORATES = [
+        const YEMEN_GOVERNORATES_FULL = [
             'صنعاء', 'عدن', 'تعز', 'حضرموت', 'إب',
             'الحديدة', 'حجة', 'صعدة', 'ذمار', 'المحويت',
             'ريمة', 'الضالع', 'لحج', 'أبين', 'شبوة',
             'البيضاء', 'الجوف', 'مأرب', 'المهرة', 'سقطرى'
         ];
 
-        const CUSTOM_DELIVERY_GOVS_KEY = 'pos_custom_delivery_governorates';
+        const CUSTOM_GOVERNORATES_STORAGE_KEY = 'pos_custom_governorates_list';
+        const NEW_GOVERNORATE_SENTINEL = '__add_new_governorate__';
 
-        function getCustomDeliveryGovernorates() {
+        function getSavedCustomGovernorates() {
             try {
-                const list = safeGetItem(CUSTOM_DELIVERY_GOVS_KEY, []);
+                const list = safeGetItem(CUSTOM_GOVERNORATES_STORAGE_KEY, []);
                 return Array.isArray(list) ? list.filter(g => g && typeof g === 'string') : [];
             } catch (_) {
                 return [];
             }
         }
 
-        function saveCustomDeliveryGovernorate(name) {
+        function addSavedCustomGovernorate(name) {
             const trimmed = String(name || '').trim();
             if (!trimmed) return false;
-            if (YEMEN_GOVERNORATES.includes(trimmed)) return false;
-            const list = getCustomDeliveryGovernorates();
+            if (YEMEN_GOVERNORATES_FULL.includes(trimmed)) return false;
+            const list = getSavedCustomGovernorates();
             if (list.includes(trimmed)) return false;
             list.push(trimmed);
-            safeSetItem(CUSTOM_DELIVERY_GOVS_KEY, list);
+            safeSetItem(CUSTOM_GOVERNORATES_STORAGE_KEY, list);
             return true;
         }
 
-        function populateDeliveryGovernorateSelect(selectedValue) {
-            const sel = document.getElementById('modal-delivery-governorate');
+        function populateGovernorateSelect(selectedValue) {
+            const sel = document.getElementById('modal-governorate');
             if (!sel) return;
-            const customs = getCustomDeliveryGovernorates();
-            let html = '';
-            YEMEN_GOVERNORATES.forEach(gov => {
+
+            const customs = getSavedCustomGovernorates();
+
+            let html = '<option value="">-- اختر المحافظة --</option>';
+
+            // محافظات اليمن الرسمية
+            YEMEN_GOVERNORATES_FULL.forEach(gov => {
                 html += `<option value="${escapeHTML(gov)}">${escapeHTML(gov)}</option>`;
             });
-            customs.forEach(gov => {
-                html += `<option value="${escapeHTML(gov)}">${escapeHTML(gov)} ★</option>`;
-            });
+
+            // المخصصات المحفوظة
+            if (customs.length > 0) {
+                html += '<optgroup label="محافظات مخصصة">';
+                customs.forEach(gov => {
+                    html += `<option value="${escapeHTML(gov)}">${escapeHTML(gov)} ★</option>`;
+                });
+                html += '</optgroup>';
+            }
+
+            // خيار إضافة محافظة جديدة
+            html += `<option value="${NEW_GOVERNORATE_SENTINEL}">➕ إضافة محافظة جديدة...</option>`;
+
             sel.innerHTML = html;
+
+            // استعادة القيمة المختارة
             if (selectedValue) {
                 const exists = Array.from(sel.options).some(o => o.value === selectedValue);
-                if (!exists && selectedValue !== 'محافظات أخرى' && selectedValue !== 'داخل صنعاء') {
+                if (exists) {
+                    sel.value = selectedValue;
+                } else if (selectedValue) {
+                    // محافظة غير موجودة في القائمة (نادرة) — نضيفها كخيار مؤقت
                     const opt = document.createElement('option');
                     opt.value = selectedValue;
                     opt.textContent = selectedValue + ' ★';
-                    sel.appendChild(opt);
+                    const addNewOpt = Array.from(sel.options).find(o => o.value === NEW_GOVERNORATE_SENTINEL);
+                    if (addNewOpt) sel.insertBefore(opt, addNewOpt);
+                    else sel.appendChild(opt);
+                    sel.value = selectedValue;
                 }
-                sel.value = selectedValue;
             }
         }
 
-        function onDeliveryTypeChange() {
-            const deliveryType = document.getElementById('modal-deliveryType')?.value;
-            const group = document.getElementById('delivery-governorate-group');
-            const govSelect = document.getElementById('modal-delivery-governorate');
+        // ================================================================
+        //  التفاعل: المحافظة ← نوع التوصيل
+        // ================================================================
+        let _syncingGovernorateDelivery = false;
 
-            if (deliveryType === 'محافظات أخرى') {
-                if (group) group.style.display = 'block';
-                populateDeliveryGovernorateSelect(govSelect?.value);
-                setTimeout(() => document.getElementById('modal-delivery-governorate')?.focus(), 100);
-            } else {
-                if (group) group.style.display = 'none';
-                const newGovInput = document.getElementById('modal-new-delivery-governorate');
-                if (newGovInput) newGovInput.value = '';
+        function onGovernorateChange() {
+            if (_syncingGovernorateDelivery) return;
+            _syncingGovernorateDelivery = true;
+
+            try {
+                const val = document.getElementById('modal-governorate')?.value;
+                const customGroup = document.getElementById('custom-governorate-group');
+                const deliveryTypeSelect = document.getElementById('modal-deliveryType');
+
+                // 1. خيار إضافة محافظة جديدة
+                if (val === NEW_GOVERNORATE_SENTINEL) {
+                    if (customGroup) customGroup.style.display = 'block';
+                    setTimeout(() => document.getElementById('modal-custom-governorate')?.focus(), 100);
+                    return;
+                }
+
+                // 2. محافظة عادية — نُخفي حقل الإضافة
+                if (customGroup) customGroup.style.display = 'none';
+                const customInput = document.getElementById('modal-custom-governorate');
+                if (customInput) customInput.value = '';
+
+                // 3. التبديل التلقائي لنوع التوصيل
+                if (!deliveryTypeSelect) return;
+
+                if (val === 'صنعاء') {
+                    deliveryTypeSelect.value = 'داخل صنعاء';
+                } else if (val) {
+                    deliveryTypeSelect.value = 'محافظات أخرى';
+                } else {
+                    deliveryTypeSelect.value = 'داخل صنعاء';
+                }
+            } finally {
+                _syncingGovernorateDelivery = false;
             }
         }
 
-        function addNewDeliveryGovernorate() {
-            const input = document.getElementById('modal-new-delivery-governorate');
+        function addCustomGovernorate() {
+            const input = document.getElementById('modal-custom-governorate');
             const name = input?.value.trim();
+
             if (!name) {
                 showToast('⚠️ اكتب اسم المحافظة أولاً', 'warning');
                 return;
             }
-            if (YEMEN_GOVERNORATES.includes(name)) {
-                showToast('هذه المحافظة موجودة في القائمة', 'info');
-                populateDeliveryGovernorateSelect(name);
+            if (YEMEN_GOVERNORATES_FULL.includes(name)) {
+                showToast('هذه المحافظة موجودة في القائمة الرسمية', 'info');
+                populateGovernorateSelect(name);
+                const sel = document.getElementById('modal-governorate');
+                if (sel) sel.value = name;
                 if (input) input.value = '';
+                onGovernorateChange();
                 return;
             }
-            if (saveCustomDeliveryGovernorate(name)) {
+
+            if (addSavedCustomGovernorate(name)) {
                 showToast(`✅ تم حفظ "${name}"`, 'success');
             } else {
                 showToast('المحافظة موجودة مسبقاً', 'info');
             }
-            populateDeliveryGovernorateSelect(name);
+
+            populateGovernorateSelect(name);
+            const sel = document.getElementById('modal-governorate');
+            if (sel) sel.value = name;
             if (input) input.value = '';
+            onGovernorateChange();
+        }
+
+        // تحديث بسيط: عند تغيير نوع التوصيل يدوياً، لا نلمس المحافظة
+        // (فقط نمنع السلوك القديم)
+        function onDeliveryTypeChange() {
+            // لا شيء — نوع التوصيل يُدار تلقائياً من المحافظة
         }
 
         let audioCtx = null;
@@ -3256,49 +3300,18 @@
             // 2. الاسم
             setElementValue('modal-customerName', customer.name || '');
 
-            // 3. المحافظة (مع دعم المحافظات المخصصة)
+            // 3. المحافظة
             const gov = customer.governorate || 'صنعاء';
-            const govSelect = document.getElementById('modal-governorate');
-            if (govSelect) {
-                // إذا كانت المحافظة غير موجودة في القائمة، أضفها كخيار مؤقت
-                const exists = Array.from(govSelect.options).some(o => o.value === gov);
-                if (!exists && gov !== 'محافظات أخرى') {
-                    const otherOption = Array.from(govSelect.options).find(o => o.value === 'محافظات أخرى');
-                    const newOpt = document.createElement('option');
-                    newOpt.value = gov;
-                    newOpt.textContent = gov;
-                    if (otherOption) govSelect.insertBefore(newOpt, otherOption);
-                    else govSelect.appendChild(newOpt);
-                }
-                govSelect.value = gov;
-                if (typeof onGovernorateChange === 'function') onGovernorateChange();
-            }
+            populateGovernorateSelect(gov);
+            onGovernorateChange();
 
-            // 4. العنوان: يدعم address أو default_address
+            // 4. العنوان (لا تغيير)
             const address = customer.address || customer.default_address || '';
             setElementValue('modal-address', address);
 
             // 5. نوع التوصيل
             const dtValue = customer.delivery_type || customer.deliveryType || 'داخل صنعاء';
             setElementValue('modal-deliveryType', dtValue);
-
-            // إذا كان نوع التوصيل "محافظات أخرى" أو المحافظة خارج القائمة القياسية، نعتبره محافظة مخصصة
-            const customerGov = customer.governorate || '';
-            const isStandardDelivery = dtValue === 'داخل صنعاء';
-            if (!isStandardDelivery || (customerGov && !['صنعاء','عدن','تعز','حضرموت','إب'].includes(customerGov))) {
-                // نعتبره "محافظات أخرى" إذا كانت المحافظة ليست ضمن القائمة القياسية
-                if (!['صنعاء','عدن','تعز','حضرموت','إب'].includes(customerGov) && customerGov) {
-                    setElementValue('modal-deliveryType', 'محافظات أخرى');
-                    setTimeout(() => {
-                        populateDeliveryGovernorateSelect(customerGov);
-                        onDeliveryTypeChange();
-                    }, 50);
-                } else {
-                    setTimeout(() => onDeliveryTypeChange(), 50);
-                }
-            } else {
-                setTimeout(() => onDeliveryTypeChange(), 50);
-            }
 
             // 6. الأرقام الإضافية (بدون تكرار الرقم الرئيسي)
             const container = document.getElementById('modal-extraPhonesContainer');
@@ -3335,21 +3348,20 @@
         function clearCustomerModalFields() {
             setElementValue('modal-mainPhone', '');
             setElementValue('modal-customerName', '');
-            setElementValue('modal-governorate', 'صنعاء');
             setElementValue('modal-address', '');
-            setElementValue('modal-deliveryType', 'داخل صنعاء');
+
             const container = document.getElementById('modal-extraPhonesContainer');
             if (container) { container.innerHTML = ''; addModalExtraPhone(''); }
+
             const msg = document.getElementById('customer-found-msg');
             if (msg) msg.style.display = 'none';
+
             const customGovInput = document.getElementById('modal-custom-governorate');
             if (customGovInput) customGovInput.value = '';
             const customGovGroup = document.getElementById('custom-governorate-group');
             if (customGovGroup) customGovGroup.style.display = 'none';
-            const deliveryGovGroup = document.getElementById('delivery-governorate-group');
-            if (deliveryGovGroup) deliveryGovGroup.style.display = 'none';
-            const newGovInput = document.getElementById('modal-new-delivery-governorate');
-            if (newGovInput) newGovInput.value = '';
+
+            populateGovernorateSelect('صنعاء');
             setElementValue('modal-deliveryType', 'داخل صنعاء');
         }
 
@@ -3380,93 +3392,29 @@
             return true;
         }
 
-        function populateGovernorateSelect() {
-            const sel = document.getElementById('modal-governorate');
-            if (!sel) return;
-            const currentValue = sel.value;
-            const customs = getCustomGovernorates();
-
-            let html = '';
-            BASE_GOVERNORATES.forEach(gov => {
-                html += `<option value="${escapeHTML(gov)}">${escapeHTML(gov)}</option>`;
-            });
-            customs.forEach(gov => {
-                html += `<option value="${escapeHTML(gov)}">${escapeHTML(gov)}</option>`;
-            });
-            html += `<option value="محافظات أخرى">محافظات أخرى</option>`;
-            sel.innerHTML = html;
-
-            if (currentValue) sel.value = currentValue;
-        }
-
-        function onGovernorateChange() {
-            const val = document.getElementById('modal-governorate')?.value;
-            const group = document.getElementById('custom-governorate-group');
-            const paymentSelect = document.getElementById('payment-method');
-
-            if (val === 'محافظات أخرى') {
-                if (group) group.style.display = 'block';
-                // تحويل تلقائي إلى "مدفوع مسبقاً (محفظة)"
-                if (paymentSelect && paymentSelect.value !== 'مدفوع مسبقاً (محفظة)') {
-                    paymentSelect.value = 'مدفوع مسبقاً (محفظة)';
-                    if (typeof handlePaymentMethodChange === 'function') handlePaymentMethodChange();
-                    if (typeof showToast === 'function') {
-                        showToast('💳 تم التحويل تلقائياً إلى الدفع المسبق', 'info');
-                    }
-                }
-                setTimeout(() => document.getElementById('modal-custom-governorate')?.focus(), 100);
-            } else {
-                if (group) group.style.display = 'none';
-                const custom = document.getElementById('modal-custom-governorate');
-                if (custom) custom.value = '';
-            }
-        }
-
-        function addCustomGovernorate() {
-            const input = document.getElementById('modal-custom-governorate');
-            const name = input?.value.trim();
-            if (!name) {
-                if (typeof showToast === 'function') showToast('اكتب اسم المحافظة أولاً', 'warning');
-                return;
-            }
-            if (BASE_GOVERNORATES.includes(name)) {
-                if (typeof showToast === 'function') showToast('هذه المحافظة موجودة في القائمة', 'info');
-                return;
-            }
-            if (saveCustomGovernorate(name)) {
-                if (typeof showToast === 'function') showToast(`✅ تم حفظ "${name}"`, 'success');
-            }
-            populateGovernorateSelect();
-            const sel = document.getElementById('modal-governorate');
-            if (sel) sel.value = name;
-            if (input) input.value = '';
-            onGovernorateChange();
-        }
-
         function openCustomerModal() {
             if (selectedCustomerData) {
                 setElementValue('modal-mainPhone', selectedCustomerData.mainPhone || '');
                 setElementValue('modal-customerName', selectedCustomerData.name || '');
-                setElementValue('modal-governorate', selectedCustomerData.governorate || 'صنعاء');
                 setElementValue('modal-address', selectedCustomerData.address || '');
-                const dt = selectedCustomerData.deliveryType || 'داخل صنعاء';
-                setElementValue('modal-deliveryType', dt);
-                setTimeout(() => {
-                    if (dt === 'محافظات أخرى') {
-                        // ملء قائمة المحافظات واختيار المحافظة المحفوظة
-                        populateDeliveryGovernorateSelect(selectedCustomerData.governorate);
-                        onDeliveryTypeChange();
-                    } else {
-                        onDeliveryTypeChange();
-                    }
-                }, 50);
+
+                // ضبط المحافظة بعد بناء القائمة
+                populateGovernorateSelect(selectedCustomerData.governorate || 'صنعاء');
+                onGovernorateChange();
+
+                // ضبط نوع التوصيل
+                setElementValue('modal-deliveryType', selectedCustomerData.deliveryType || 'داخل صنعاء');
+
                 const container = document.getElementById('modal-extraPhonesContainer');
                 if (container) {
                     container.innerHTML = '';
-                    if (selectedCustomerData.extraPhones) selectedCustomerData.extraPhones.forEach(p => addModalExtraPhone(p));
+                    if (selectedCustomerData.extraPhones) {
+                        selectedCustomerData.extraPhones.forEach(p => addModalExtraPhone(p));
+                    }
                 }
             } else {
                 clearCustomerModalFields();
+                populateGovernorateSelect('صنعاء');
             }
             openModal('customer-modal');
             const input = document.getElementById('modal-mainPhone');
@@ -3568,38 +3516,39 @@
                 extraPhones.push(normalized);
             }
 
-            const governorateVal = document.getElementById('modal-governorate')?.value || 'صنعاء';
+            const governorateVal = document.getElementById('modal-governorate')?.value || '';
             const customGovVal = document.getElementById('modal-custom-governorate')?.value.trim() || '';
-            let finalGovernorate = governorateVal;
 
-            if (governorateVal === 'محافظات أخرى') {
-                if (!customGovVal) {
-                    showToast('⚠️ اكتب اسم المحافظة المخصصة أولاً', 'warning');
+            if (!governorateVal || governorateVal === NEW_GOVERNORATE_SENTINEL) {
+                if (governorateVal === NEW_GOVERNORATE_SENTINEL && customGovVal) {
+                    // حفظ المحافظة الجديدة تلقائياً
+                    if (addSavedCustomGovernorate(customGovVal)) {
+                        populateGovernorateSelect(customGovVal);
+                    }
+                    // اختيارها في الحقل
+                    const sel = document.getElementById('modal-governorate');
+                    if (sel) sel.value = customGovVal;
+                } else {
+                    showToast('⚠️ اختر المحافظة أو أضف محافظة جديدة', 'warning');
                     return;
                 }
-                finalGovernorate = customGovVal;
-                // حفظها تلقائياً للاستخدام مستقبلاً
-                if (saveCustomGovernorate(customGovVal)) {
-                    populateGovernorateSelect();
-                }
+            }
+
+            const finalGovernorate = customGovVal && governorateVal === NEW_GOVERNORATE_SENTINEL
+                ? customGovVal
+                : governorateVal;
+
+            if (!finalGovernorate) {
+                showToast('⚠️ المحافظة مطلوبة', 'warning');
+                return;
             }
 
             const deliveryTypeVal = document.getElementById('modal-deliveryType')?.value || 'داخل صنعاء';
-            const deliveryGovVal = deliveryTypeVal === 'محافظات أخرى'
-                ? (document.getElementById('modal-delivery-governorate')?.value || '')
-                : '';
-
-            if (deliveryTypeVal === 'محافظات أخرى' && !deliveryGovVal) {
-                showToast('⚠️ اختر المحافظة المُوصَّل إليها', 'warning');
-                return;
-            }
 
             selectedCustomerData = {
                 mainPhone,
                 name: document.getElementById('modal-customerName')?.value.trim() || '',
-                governorate: deliveryTypeVal === 'محافظات أخرى'
-                    ? deliveryGovVal
-                    : (finalGovernorate || document.getElementById('modal-governorate')?.value || 'صنعاء'),
+                governorate: finalGovernorate,
                 address,
                 deliveryType: deliveryTypeVal,
                 extraPhones
@@ -6039,9 +5988,8 @@
                 if (failures.length) console.warn('بعض بيانات التهيئة لم تُحمّل:', failures.map(result => result.reason));
 
                 populateCurrencySelects();
-                populateDeliveryGovernorateSelect();
-                onDeliveryTypeChange();
-                populateGovernorateSelect();
+                populateGovernorateSelect('صنعاء');
+                onGovernorateChange();
                 _lastOrderCurrencyId = getOrderCurrencyId();
                 populateWalletSelects();
                 productRefreshRequested = true;
