@@ -1456,8 +1456,9 @@
     </style>
     <script src="date-utils.js"></script>
     <script src="number-utils.js"></script>
+    <script src="api-client.js"></script>
     <script src="permissions.js"></script>
-    <script src="/offline-sync.js"></script>
+    <script src="offline-sync.js"></script>
 <link rel="stylesheet" href="sidebar-v4.css" />
 </head>
 <body>
@@ -1472,13 +1473,13 @@
                     <h1><i class="fas fa-cash-register"></i> البيع <span class="subtitle" id="page-subtitle">إنشاء فاتورة جديدة</span></h1>
                 </div>
                 <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-                    <button class="btn btn-sm btn-outline" onclick="openRecentInvoicesModal()">
+                    <button id="btn-open-recent-invoices" class="btn btn-sm btn-outline" onclick="openRecentInvoicesModal()">
                         <i class="fas fa-edit"></i> تعديل فاتورة
                     </button>
-                    <button class="btn btn-sm btn-outline" onclick="saveSaleDraft()"><i class="fas fa-file-alt"></i> مسودة</button>
-                    <button class="btn btn-sm btn-outline" onclick="openSaleDrafts()"><i class="fas fa-folder-open"></i> المسودات</button>
-                    <button class="btn btn-sm btn-outline" onclick="printSaleReport()"><i class="fas fa-print"></i> طباعة</button>
-                    <button class="btn btn-sm btn-outline" onclick="fetchProducts()">
+                    <button id="btn-save-sale-draft" class="btn btn-sm btn-outline" onclick="saveSaleDraft()"><i class="fas fa-file-alt"></i> مسودة</button>
+                    <button id="btn-open-sale-drafts" class="btn btn-sm btn-outline" onclick="openSaleDrafts()"><i class="fas fa-folder-open"></i> المسودات</button>
+                    <button id="btn-print-sale-report" class="btn btn-sm btn-outline" onclick="printSaleReport()"><i class="fas fa-print"></i> طباعة</button>
+                    <button id="btn-refresh-sale-products" class="btn btn-sm btn-outline" onclick="fetchProducts()">
                         <i class="fas fa-sync-alt"></i> تحديث
                     </button>
                     <div class="user-info" id="user-info">
@@ -1607,11 +1608,11 @@
                             </div>
 
                             <div class="btn-group">
-                                <button class="btn btn-success" onclick="submitSale()" style="flex:1;">
+                                <button class="btn btn-success" id="submit-sale-btn" onclick="submitSale()" style="flex:1;">
                                     <i class="fas fa-save" id="submit-btn-icon"></i> <span id="submit-btn-text">حفظ وبيع</span>
                                 </button>
-                                <button class="btn btn-warning" onclick="quickSale()" style="flex:1;">
-                                    <i class="fas fa-bolt"></i> بيع سريع
+                                <button class="btn btn-warning" id="quick-sale-btn" onclick="quickSale()" style="flex:1;">
+                                    <i class="fas fa-bolt" id="quick-btn-icon"></i> <span id="quick-btn-text">بيع سريع</span>
                                 </button>
                                 <button class="btn btn-danger" id="cancel-edit-btn" onclick="cancelEditMode()" style="display:none; flex:1;">
                                     <i class="fas fa-times"></i> إلغاء التعديل
@@ -1627,7 +1628,7 @@
                         <span class="scanner-icon"><i class="fas fa-barcode"></i></span>
                         <input type="text" id="barcode-input" placeholder="امسح الباركود..." autofocus autocomplete="off" spellcheck="false" />
                         <span class="scan-hint"><i class="fas fa-arrow-left"></i> Enter</span>
-                        <button class="btn-scan" onclick="handleBarcodeScan()"><i class="fas fa-plus"></i> إضافة</button>
+                        <button id="btn-scan-barcode-add" class="btn-scan" onclick="handleBarcodeScan()"><i class="fas fa-plus"></i> إضافة</button>
                     </div>
 
                     <div class="flex-row" style="margin-bottom: 6px; gap: 8px;">
@@ -1648,8 +1649,8 @@
                             <option value="date">📅 تاريخ الإضافة</option>
                             <option value="supplier">🏢 المورد</option> <!-- جديد -->
                         </select>
-                        <button class="btn btn-sm btn-outline" onclick="fetchProducts()"><i class="fas fa-search"></i></button>
-                        <button class="btn btn-sm btn-outline" onclick="document.getElementById('search-input').value='';fetchProducts();"><i class="fas fa-times"></i></button>
+                        <button id="btn-search-sale-products" class="btn btn-sm btn-outline" onclick="fetchProducts()"><i class="fas fa-search"></i></button>
+                        <button id="btn-clear-sale-search" class="btn btn-sm btn-outline" onclick="document.getElementById('search-input').value='';fetchProducts();"><i class="fas fa-times"></i></button>
                     </div>
 
                     <div class="products-table-wrapper" id="products-table-wrapper">
@@ -1685,7 +1686,7 @@
         <div class="modal-box">
             <div class="modal-header">
                 <h3><i class="fas fa-info-circle text-primary"></i> تفاصيل المنتج</h3>
-                <button class="close-btn" onclick="closeModal('product-details-modal')">&times;</button>
+                <button class="close-btn" id="btn-close-product-details-modal-x" onclick="closeModal('product-details-modal')">&times;</button>
             </div>
             <div id="product-details-content"></div>
         </div>
@@ -1694,7 +1695,7 @@
         <div class="modal-box">
             <div class="modal-header">
                 <h3><i class="fas fa-cart-plus text-success"></i> إضافة إلى السلة</h3>
-                <button class="close-btn" onclick="closeModal('add-to-cart-modal')">&times;</button>
+                <button class="close-btn" id="btn-close-add-to-cart-modal-x" onclick="closeModal('add-to-cart-modal')">&times;</button>
             </div>
             <div id="add-to-cart-content"></div>
         </div>
@@ -1703,7 +1704,7 @@
         <div class="modal-box">
             <div class="modal-header">
                 <h3><i class="fas fa-edit text-primary"></i> تعديل المنتج</h3>
-                <button class="close-btn" onclick="closeModal('edit-cart-item-modal')">&times;</button>
+                <button class="close-btn" id="btn-close-edit-cart-item-modal-x" onclick="closeModal('edit-cart-item-modal')">&times;</button>
             </div>
             <div id="edit-cart-item-content"></div>
         </div>
@@ -1712,7 +1713,7 @@
         <div class="modal-box wide">
             <div class="modal-header">
                 <h3><i class="fas fa-user-circle text-primary"></i> اختيار العميل</h3>
-                <button class="close-btn" onclick="closeModal('customer-modal')">&times;</button>
+                <button class="close-btn" id="btn-close-customer-modal-x" onclick="closeModal('customer-modal')">&times;</button>
             </div>
             <div class="form-group">
                 <label>🔍 بحث عن عميل</label>
@@ -1724,8 +1725,8 @@
                 </div>
             </div>
             <div class="modal-actions" style="justify-content:space-between;flex-wrap:wrap;">
-                <button class="btn btn-outline btn-sm" onclick="closeModal('customer-modal')">إلغاء</button>
-                <button class="btn btn-sm btn-outline" onclick="clearCustomer();closeModal('customer-modal');" style="color:var(--danger);"><i class="fas fa-times"></i> بدون عميل</button>
+                <button class="btn btn-outline btn-sm" id="btn-cancel-customer-modal" onclick="closeModal('customer-modal')">إلغاء</button>
+                <button class="btn btn-sm btn-outline" id="btn-clear-customer-selection" onclick="clearCustomer();closeModal('customer-modal');" style="color:var(--danger);"><i class="fas fa-times"></i> بدون عميل</button>
                 <button class="btn btn-sm btn-primary" id="confirm-customer-btn" onclick="confirmCustomerSelection()" disabled>✅ تأكيد الاختيار</button>
             </div>
             <div style="border-top:2px solid var(--border);margin-top:14px;padding-top:14px;">
@@ -1736,7 +1737,7 @@
                 </div>
                 <div class="flex-row gap-8 mt-10">
                     <div class="flex-2"><input type="text" id="modal-customer-address" class="input-field input-field-sm" placeholder="العنوان (اختياري)" /></div>
-                    <div class="flex-1"><button class="btn btn-sm btn-success" onclick="quickAddCustomerFromModal()" style="width:100%;"><i class="fas fa-plus"></i> إضافة واختيار</button></div>
+                    <div class="flex-1"><button class="btn btn-sm btn-success" id="btn-quick-add-customer-from-modal" onclick="quickAddCustomerFromModal()" style="width:100%;"><i class="fas fa-plus"></i> إضافة واختيار</button></div>
                 </div>
             </div>
         </div>
@@ -1746,7 +1747,7 @@
         <div class="modal-box wide">
             <div class="modal-header">
                 <h3><i class="fas fa-file-invoice"></i> آخر 10 فواتير</h3>
-                <button class="close-btn" onclick="closeModal('recent-invoices-modal')">&times;</button>
+                <button class="close-btn" id="btn-close-recent-invoices-modal-x" onclick="closeModal('recent-invoices-modal')">&times;</button>
             </div>
             <div id="recent-invoices-list">
                 <div class="empty-state"><i class="fas fa-spinner fa-spin"></i>
@@ -1784,11 +1785,13 @@
         let saleRules = { allowBelowCost: false, allowNegativeStock: false, allowExpiredNegativeSales: true };
         let saleDraftTimer = null;
 
-        // ===== متغيرات لمنع الحلقات =====
+        // ===== متغيرات لمنع الحلقات والتكرار =====
         let updatingDiscountFromPaid = false;
         let updatingPaidFromDiscount = false;
         let updatingMixedFromCash = false;
         let updatingMixedFromWallet = false;
+        let isSubmittingSale = false;
+        let isQuickSelling = false;
 
         // ================================================================
         //  2. INDEXEDDB
@@ -1832,11 +1835,15 @@
             try {
                 const db = await openDB();
                 if (!storeExists(db, 'products')) return;
-                const tx = db.transaction('products', 'readwrite');
-                const store = tx.objectStore('products');
-                await store.clear();
-                products.forEach(p => store.put(p));
-                await tx.complete;
+                return new Promise((resolve, reject) => {
+                    const tx = db.transaction('products', 'readwrite');
+                    const store = tx.objectStore('products');
+                    tx.oncomplete = () => resolve();
+                    tx.onerror = () => reject(tx.error);
+                    tx.onabort = () => reject(tx.error);
+                    store.clear();
+                    products.forEach(p => store.put(p));
+                });
             } catch (e) { console.warn('saveProductsToLocal', e); }
         }
 
@@ -1858,11 +1865,15 @@
             try {
                 const db = await openDB();
                 if (!storeExists(db, 'customers')) return;
-                const tx = db.transaction('customers', 'readwrite');
-                const store = tx.objectStore('customers');
-                await store.clear();
-                customers.forEach(c => store.put(c));
-                await tx.complete;
+                return new Promise((resolve, reject) => {
+                    const tx = db.transaction('customers', 'readwrite');
+                    const store = tx.objectStore('customers');
+                    tx.oncomplete = () => resolve();
+                    tx.onerror = () => reject(tx.error);
+                    tx.onabort = () => reject(tx.error);
+                    store.clear();
+                    customers.forEach(c => store.put(c));
+                });
             } catch (e) { console.warn('saveCustomersToLocal', e); }
         }
 
@@ -1977,7 +1988,7 @@
         function isExpiredProduct(product) {
             if (!product?.expiry_date) return false;
             const value = String(product.expiry_date);
-            const date = new Date(value.length <= 10 ? `${formatPosMoney(value)}T23:59:59` : value);
+            const date = new Date(value.length <= 10 ? `${value}T23:59:59` : value);
             return !Number.isNaN(date.getTime()) && date.getTime() < Date.now();
         }
 
@@ -1997,7 +2008,7 @@
             try {
                 const res = await fetch(`${API}/settings`, { headers: { 'Authorization': `Bearer ${token}` } });
                 if (!res.ok) throw new Error('settings');
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 const s = data.settings || {};
                 saleRules.allowBelowCost = String(s.allow_below_cost) === '1';
                 saleRules.allowNegativeStock = String(s.allow_negative_stock) === '1';
@@ -2041,15 +2052,19 @@
             if (navigator.onLine) {
                 try {
                     const res = await fetch(`${API}/currencies`, { headers: { 'Authorization': `Bearer ${token}` } });
-                    const data = await res.json();
+                    const data = await res.json().catch(() => ({}));
                     currenciesCache = data.currencies || [];
                     const db = await openDB();
                     if (storeExists(db, 'currencies')) {
-                        const tx = db.transaction('currencies', 'readwrite');
-                        const store = tx.objectStore('currencies');
-                        await store.clear();
-                        currenciesCache.forEach(c => store.put(c));
-                        await tx.complete;
+                        await new Promise((resolve, reject) => {
+                            const tx = db.transaction('currencies', 'readwrite');
+                            const store = tx.objectStore('currencies');
+                            tx.oncomplete = () => resolve();
+                            tx.onerror = () => reject(tx.error);
+                            tx.onabort = () => reject(tx.error);
+                            store.clear();
+                            currenciesCache.forEach(c => store.put(c));
+                        });
                     }
                     return;
                 } catch (err) { console.warn('فشل تحميل العملات من الخادم', err); }
@@ -2087,15 +2102,19 @@
             }
             try {
                 const res = await fetch(`${API}/wallets`, { headers: { 'Authorization': `Bearer ${token}` } });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 walletsCache = data.wallets || [];
                 const db = await openDB();
                 if (storeExists(db, 'wallets')) {
-                    const tx = db.transaction('wallets', 'readwrite');
-                    const store = tx.objectStore('wallets');
-                    await store.clear();
-                    walletsCache.forEach(w => store.put(w));
-                    await tx.complete;
+                    await new Promise((resolve, reject) => {
+                        const tx = db.transaction('wallets', 'readwrite');
+                        const store = tx.objectStore('wallets');
+                        tx.oncomplete = () => resolve();
+                        tx.onerror = () => reject(tx.error);
+                        tx.onabort = () => reject(tx.error);
+                        store.clear();
+                        walletsCache.forEach(w => store.put(w));
+                    });
                 }
             } catch (err) {
                 console.warn('فشل تحميل المحافظ من الخادم', err);
@@ -2139,10 +2158,15 @@
             }
         }
 
-        function escapeHTML(str) { const d = document.createElement('div');
-            d.textContent = str; return d.innerHTML; }
+        function escapeHTML(str) { 
+            const d = document.createElement('div');
+            d.textContent = str ?? ''; 
+            return d.innerHTML; 
+        }
 
-        function escapeJS(str) { return str.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"'); }
+        function escapeJS(str) { 
+            return String(str ?? '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"'); 
+        }
 
         // ================================================================
         //  4. USER INFO
@@ -2259,7 +2283,7 @@
                 if (selectedCategoryId) url += `&category_id=${selectedCategoryId}`;
                 if (sort) url += `&sort=${encodeURIComponent(sort)}`;
                 const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 productsCache = data.products || [];
                 await saveProductsToLocal(productsCache);
                 renderProductsTable(productsCache);
@@ -2355,7 +2379,7 @@
             for (const setProduct of productsCache.filter(p => Number(p.is_set) === 1)) {
                 try {
                     const res = await fetch(`${API}/products/${setProduct.id}/variants`, { headers: { 'Authorization': `Bearer ${token}` } });
-                    const data = await res.json();
+                    const data = await res.json().catch(() => ({}));
                     const variant = (data.variants || []).find(v => String(v.barcode || '') === code && v.id);
                     if (variant) {
                         if (Number(variant.stock_quantity) <= 0 && !canSellBeyondStock(setProduct)) return showToast('⚠️ المقاس غير متوفر', 'warning');
@@ -2401,7 +2425,7 @@
             }
             try {
                 const res = await fetch(`${API}/customers?limit=2000`, { headers: { 'Authorization': `Bearer ${token}` } });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 customersCache = data.customers || [];
                 await saveCustomersToLocal(customersCache);
             } catch { /* ignore */ }
@@ -2435,7 +2459,7 @@
             container.innerHTML = list.map(c => {
                 const isSelected = selectedCustomerInModal === c.id;
                 return `
-                        <div class="cust-option ${formatPosNumber(isSelected ? 'selected' : '')}" onclick="selectCustomerInModal(${c.id}, '${escapeJS(c.name || 'بدون اسم')}')">
+                        <div class="cust-option ${isSelected ? 'selected' : ''}" onclick="selectCustomerInModal(${c.id}, '${escapeJS(c.name || 'بدون اسم')}')">
                             <span><i class="fas fa-user"></i> ${escapeHTML(c.name || 'بدون اسم')}</span>
                             <span class="cust-phone">${c.phone ? '📞 ' + escapeHTML(c.phone) : ''}</span>
                         </div>
@@ -2501,7 +2525,7 @@
                     headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify({ name, phone, address, initial_balance: 0 })
                 });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 const newId = data.customer?.id || data.id;
                 showToast('✅ تم إضافة العميل', 'success');
                 document.getElementById('modal-customer-name').value = '';
@@ -2547,14 +2571,14 @@
                 const productRes = await fetch(`${API}/products/${productId}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
-                const productData = await productRes.json();
+                const productData = await productRes.json().catch(() => ({}));
                 const p = productData.product || {};
 
                 // جلب الموردين
                 const supplierRes = await fetch(`${API}/products/suppliers?product_id=${productId}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
-                const supplierData = await supplierRes.json();
+                const supplierData = await supplierRes.json().catch(() => ({}));
                 const suppliers = supplierData.suppliers || [];
 
                 let suppliersHtml = '';
@@ -2583,8 +2607,8 @@
                         ${suppliersHtml}
                     </div>
                     <div class="modal-actions">
-                        <button class="btn btn-outline" onclick="closeModal('product-details-modal')">إغلاق</button>
-                        <button class="btn btn-success" onclick="closeModal('product-details-modal');openAddToCartModal(${p.id})">إضافة للسلة</button>
+                        <button class="btn btn-outline" id="btn-modal-close-product-details" onclick="closeModal('product-details-modal')">إغلاق</button>
+                        <button class="btn btn-success" id="btn-modal-add-product-to-cart" onclick="closeModal('product-details-modal');openAddToCartModal(${p.id})">إضافة للسلة</button>
                     </div>
                 `;
             } catch (err) {
@@ -2612,7 +2636,7 @@
             if (Number(product.is_set) === 1) {
                 try {
                     const res = await fetch(`${API}/products/${product.id}/variants`, { headers: { 'Authorization': `Bearer ${token}` } });
-                    const data = await res.json();
+                    const data = await res.json().catch(() => ({}));
                     variants = (data.variants || []).filter(v => v.id);
                 } catch (_) { return showToast('تعذر تحميل مقاسات الطقم', 'error'); }
                 if (!variants.length) return showToast('عرّف المقاسات ثم احفظ المنتج لتهيئة مخزون كل مقاس قبل البيع', 'warning');
@@ -2731,9 +2755,9 @@
                         <input type="text" id="edit-item-notes" class="input-field" value="${escapeHTML(item.notes || item.note || '')}" placeholder="ملاحظة تظهر في الفاتورة" />
                     </div>
                     <div class="modal-actions">
-                        <button class="btn btn-outline" onclick="closeModal('edit-cart-item-modal')">إلغاء</button>
-                        <button class="btn btn-primary" onclick="confirmEditCartItem()">تحديث</button>
-                        <button class="btn btn-danger" onclick="removeItem(${index});closeModal('edit-cart-item-modal')">حذف</button>
+                        <button class="btn btn-outline" id="btn-modal-cancel-edit-cart-item" onclick="closeModal('edit-cart-item-modal')">إلغاء</button>
+                        <button class="btn btn-primary" id="btn-modal-confirm-edit-cart-item" onclick="confirmEditCartItem()">تحديث</button>
+                        <button class="btn btn-danger" id="btn-modal-remove-cart-item" onclick="removeItem(${index});closeModal('edit-cart-item-modal')">حذف</button>
                     </div>
                 `;
             const priceInput = document.getElementById('edit-sale-price');
@@ -2837,7 +2861,7 @@
         async function exportSalesCSV() {
             try {
                 const res = await fetch(`${API}/sales?limit=1000&sort=desc`, { headers: { 'Authorization': `Bearer ${token}` } });
-                const data = await res.json(); const rows = data.sales || data.invoices || data;
+                const data = await res.json().catch(() => ({})); const rows = data.sales || data.invoices || data;
                 if (!Array.isArray(rows) || !rows.length) return showToast('لا توجد مبيعات للتصدير', 'warning');
                 const keys = ['id','invoice_number','created_at','total_amount','payment_method','status'];
                 const csv = '\ufeff' + [keys, ...rows.map(r => keys.map(k => r[k] ?? ''))].map(row => row.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\\n');
@@ -3006,7 +3030,10 @@
             if (newDiscount < 0) newDiscount = 0;
 
             updatingDiscountFromPaid = true;
-            document.getElementById('cart-discount').value = newDiscount.toFixed(2);
+            const discountType = document.getElementById('discount-type').value;
+            document.getElementById('cart-discount').value = discountType === 'percentage'
+                ? (subtotal > 0 ? Number(((newDiscount / subtotal) * 100).toFixed(2)) : 0)
+                : newDiscount.toFixed(2);
             updateTotals();
             updatingDiscountFromPaid = false;
             updatingPaidFromDiscount = false;
@@ -3052,7 +3079,9 @@
                 let newDiscount = subtotal - totalPaidInBase;
                 if (newDiscount < 0) newDiscount = 0;
                 updatingDiscountFromPaid = true;
-                document.getElementById('cart-discount').value = newDiscount.toFixed(2);
+                document.getElementById('cart-discount').value = discountType === 'percentage'
+                    ? (subtotal > 0 ? Number(((newDiscount / subtotal) * 100).toFixed(2)) : 0)
+                    : newDiscount.toFixed(2);
                 updateTotals();
                 updatingDiscountFromPaid = false;
                 return;
@@ -3114,7 +3143,9 @@
             let newDiscount = subtotal - totalPaidInBase;
             if (newDiscount < 0) newDiscount = 0;
             updatingDiscountFromPaid = true;
-            document.getElementById('cart-discount').value = newDiscount.toFixed(2);
+            document.getElementById('cart-discount').value = discountType === 'percentage'
+                ? (subtotal > 0 ? Number(((newDiscount / subtotal) * 100).toFixed(2)) : 0)
+                : newDiscount.toFixed(2);
             updateTotals();
             updatingDiscountFromPaid = false;
 
@@ -3202,7 +3233,7 @@
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (!res.ok) throw new Error('الفاتورة غير موجودة أو لا يمكن الوصول إليها');
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
 
                 editInvoiceId = invoiceId;
                 document.getElementById('cancel-edit-btn').style.display = 'inline-flex';
@@ -3232,8 +3263,17 @@
                     showToast('الفاتورة لا تحتوي على منتجات', 'warning');
                 }
 
-                document.getElementById('cart-discount').value = data.discount || 0;
-                document.getElementById('discount-type').value = data.discount_type || 'fixed';
+                const discountTypeVal = data.discount_type || 'fixed';
+                const discountAmountVal = parseFloat(data.discount) || parseFloat(data.discount_amount) || 0;
+                let discountDisplayValue = discountAmountVal;
+                if (discountTypeVal === 'percentage') {
+                    const subtotalForDiscount = cart.reduce((s, i) => s + ((i.price || 0) - (i.discount || 0)) * (i.quantity || 0), 0);
+                    discountDisplayValue = subtotalForDiscount > 0
+                        ? Number(((discountAmountVal / subtotalForDiscount) * 100).toFixed(2))
+                        : 0;
+                }
+                document.getElementById('discount-type').value = discountTypeVal;
+                document.getElementById('cart-discount').value = discountDisplayValue;
                 document.getElementById('payment-method').value = data.payment_method || 'cash';
                 handlePaymentMethodChange();
 
@@ -3326,12 +3366,16 @@
         //  18. QUICK SALE
         // ================================================================
         async function quickSale() {
+            if (isQuickSelling) return;
             if (cart.length === 0) return showToast('⚠️ السلة فارغة', 'warning');
 
-            const btn = document.querySelector('.btn-warning');
-            const originalText = btn.textContent;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري...';
-            btn.disabled = true;
+            const btn = document.getElementById('quick-sale-btn') || document.querySelector('.btn-warning');
+            const originalHTML = btn ? btn.innerHTML : '<i class="fas fa-bolt"></i> بيع سريع';
+            isQuickSelling = true;
+            if (btn) {
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري...';
+                btn.disabled = true;
+            }
 
             try {
                 const discount = parseFloat(document.getElementById('cart-discount').value) || 0;
@@ -3349,9 +3393,10 @@
                     cashPaid = parseFloat(document.getElementById('paid-amount').value) || 0;
                 } else if (payment === 'wallet') {
                     walletId = document.getElementById('wallet-select').value;
-                    if (!walletId) { showToast('يرجى اختيار محفظة', 'warning');
-                        btn.innerHTML = originalText;
-                        btn.disabled = false; return; }
+                    if (!walletId) { 
+                        showToast('يرجى اختيار محفظة', 'warning');
+                        return; 
+                    }
                     walletCurrencyId = parseInt(document.getElementById('wallet-currency-select').value);
                     walletPaid = parseFloat(document.getElementById('paid-amount').value) || 0;
                 } else if (payment === 'mixed') {
@@ -3360,12 +3405,14 @@
                     walletId = document.getElementById('mixed-wallet').value;
                     cashCurrencyId = parseInt(document.getElementById('mixed-cash-currency').value);
                     walletCurrencyId = parseInt(document.getElementById('mixed-wallet-currency').value);
-                    if (!walletId && walletPaid > 0) { showToast('اختر المحفظة', 'warning');
-                        btn.innerHTML = originalText;
-                        btn.disabled = false; return; }
-                    if (cashPaid + walletPaid <= 0) { showToast('أدخل مبلغاً مدفوعاً', 'warning');
-                        btn.innerHTML = originalText;
-                        btn.disabled = false; return; }
+                    if (!walletId && walletPaid > 0) { 
+                        showToast('اختر المحفظة', 'warning');
+                        return; 
+                    }
+                    if (cashPaid + walletPaid <= 0) { 
+                        showToast('أدخل مبلغاً مدفوعاً', 'warning');
+                        return; 
+                    }
                 }
 
                 const subtotal = cart.reduce((s, i) => s + (i.price || 0) * i.quantity, 0);
@@ -3380,8 +3427,6 @@
                     else totalPaidInBase += walletPaid;
                     if (totalPaidInBase < total) {
                         showToast(`⚠️ المبلغ المدفوع أقل من الإجمالي (${formatPosMoney(total)} ريال)`, 'warning');
-                        btn.innerHTML = originalText;
-                        btn.disabled = false;
                         return;
                     }
                 }
@@ -3415,12 +3460,12 @@
                     });
                 }
 
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 if (res.ok) {
                     const invoiceData = data.invoice || data;
                     const walletName = invoiceData.wallet_name || (data.wallet_name || '');
                     const msg =
-                        `✅ تم البيع السريع بنجاح (فاتورة ${invoiceData.invoice_number || 'غير معروف'})${walletName ? ` - المحفظة: ${formatPosMoney(walletName)}` : ''}`;
+                        `✅ تم البيع السريع بنجاح (فاتورة ${invoiceData.invoice_number || 'غير معروف'})${walletName ? ` - المحفظة: ${escapeHTML(walletName)}` : ''}`;
                     showToast(msg, 'success');
                     resetSaleForm();
                     fetchProducts(currentSearch, selectedCategoryId);
@@ -3432,8 +3477,11 @@
             } catch (err) {
                 showToast(err.message || '⚠️ خطأ في الاتصال', 'error');
             } finally {
-                btn.innerHTML = originalText;
-                btn.disabled = false;
+                isQuickSelling = false;
+                if (btn) {
+                    btn.innerHTML = originalHTML;
+                    btn.disabled = false;
+                }
             }
         }
 
@@ -3441,9 +3489,10 @@
         //  19. SUBMIT SALE
         // ================================================================
         async function submitSale() {
+            if (isSubmittingSale) return;
             if (cart.length === 0) return showToast('⚠️ السلة فارغة', 'warning');
 
-            const btn = document.querySelector('.btn-success');
+            const btn = document.getElementById('submit-sale-btn') || document.querySelector('.btn-success');
             const iconEl = document.getElementById('submit-btn-icon');
             const textEl = document.getElementById('submit-btn-text');
             if (!btn || !iconEl || !textEl) {
@@ -3455,7 +3504,8 @@
             const originalText = textEl.textContent || 'حفظ وبيع';
 
             function restoreButton() {
-                btn.innerHTML = `<i class="${originalIcon}"></i> ${originalText}`;
+                isSubmittingSale = false;
+                btn.innerHTML = `<i class="${originalIcon}" id="submit-btn-icon"></i> <span id="submit-btn-text">${originalText}</span>`;
                 btn.disabled = false;
             }
 
@@ -3520,12 +3570,16 @@
                     status: 'pending'
                 };
 
+                isSubmittingSale = true;
+                btn.disabled = true;
                 try {
                     await addPendingSale(saleData);
                     showToast('✅ تم حفظ الفاتورة محلياً، ستُزامن تلقائياً عند الاتصال', 'success');
                     resetSaleForm();
                 } catch (err) {
                     showToast('❌ فشل حفظ الفاتورة محلياً', 'error');
+                } finally {
+                    restoreButton();
                 }
                 return;
             }
@@ -3588,6 +3642,7 @@
                 note: ''
             };
 
+            isSubmittingSale = true;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...';
             btn.disabled = true;
 
@@ -3609,17 +3664,17 @@
                     });
                 }
 
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 if (res.ok) {
                     const invoiceData = data.invoice || data;
                     const actionMsg = isEditMode ? 'تعديل' : 'إنشاء';
                     const walletName = invoiceData.wallet_name || (data.wallet_name || '');
                     const cashCurrencyName = cashCurrencyId ? getCurrencyCode(cashCurrencyId) : '';
                     const walletCurrencyName = walletCurrencyId ? getCurrencyCode(walletCurrencyId) : '';
-                    const currencyInfo = cashCurrencyName ? ` (نقد: ${formatPosMoney(cashCurrencyName)})` : '';
-                    const walletInfo = walletCurrencyName ? ` (محفظة: ${formatPosMoney(walletCurrencyName)})` : '';
+                    const currencyInfo = cashCurrencyName ? ` (نقد: ${escapeHTML(cashCurrencyName)})` : '';
+                    const walletInfo = walletCurrencyName ? ` (محفظة: ${escapeHTML(walletCurrencyName)})` : '';
                     const msg =
-                        `✅ تم ${actionMsg} الفاتورة رقم ${invoiceData.invoice_number || 'غير معروف'} بنجاح${walletName ? ` - ${formatPosMoney(walletName)}` : ''}${currencyInfo}${walletInfo}`;
+                        `✅ تم ${actionMsg} الفاتورة رقم ${invoiceData.invoice_number || 'غير معروف'} بنجاح${walletName ? ` - ${escapeHTML(walletName)}` : ''}${currencyInfo}${walletInfo}`;
                     showToast(msg, 'success');
 
                     // طباعة الفاتورة مع product_code
@@ -3638,7 +3693,7 @@
                     const synced = await syncPendingSales();
                     if (synced > 0) showToast(`✅ تمت مزامنة ${synced} فاتورة معلقة`, 'success');
                 } else {
-                    showToast(data.error || `⚠️ فشل ${formatPosNumber(isEditMode ? 'تعديل' : 'إنشاء')} الفاتورة`, 'error');
+                    showToast(data.error || `⚠️ فشل ${isEditMode ? 'تعديل' : 'إنشاء'} الفاتورة`, 'error');
                 }
             } catch (err) {
                 showToast(err.message || '⚠️ خطأ في الاتصال بالخادم', 'error');
@@ -3696,41 +3751,41 @@
             }
             let paymentDisplay = invoice.payment_method || 'N/A';
             if (walletName && (invoice.payment_method === 'wallet' || invoice.payment_method === 'mixed')) {
-                paymentDisplay += ` (محفظة: ${formatPosMoney(walletName)})`;
+                paymentDisplay += ` (محفظة: ${walletName})`;
             }
             if (cashCurrency && invoice.payment_method !== 'wallet') {
-                paymentDisplay += ` (نقد: ${formatPosMoney(cashCurrency)})`;
+                paymentDisplay += ` (نقد: ${cashCurrency})`;
             }
             if (walletCurrency && invoice.payment_method === 'wallet') {
-                paymentDisplay += ` (عملة: ${formatPosMoney(walletCurrency)})`;
+                paymentDisplay += ` (عملة: ${walletCurrency})`;
             }
             if (invoice.payment_method === 'mixed' && cashCurrency && walletCurrency) {
-                paymentDisplay = `نقد: ${formatPosMoney(cashCurrency)} + محفظة: ${formatPosMoney(walletCurrency)} (${formatPosMoney(walletName || '')})`;
+                paymentDisplay = `نقد: ${cashCurrency} + محفظة: ${walletCurrency} (${walletName || ''})`;
             }
 
             let extraPaymentInfo = '';
             if (invoice.payment_method === 'mixed' || invoice.payment_method === 'cash' || invoice.payment_method ===
                 'wallet') {
-                let cashPaidDisplay = cashAmount > 0 ? `${formatPosMoney(cashAmount)} ${formatPosMoney(cashCurrency || 'ريال')}` : '0.00';
-                let walletPaidDisplay = walletAmount > 0 ? `${formatPosMoney(walletAmount)} ${formatPosMoney(walletCurrency || 'ريال')}` :
+                let cashPaidDisplay = cashAmount > 0 ? `${formatPosMoney(cashAmount)} ${cashCurrency || 'ريال'}` : '0.00';
+                let walletPaidDisplay = walletAmount > 0 ? `${formatPosMoney(walletAmount)} ${walletCurrency || 'ريال'}` :
                 '0.00';
                 if (invoice.payment_method === 'mixed') {
                     extraPaymentInfo = `
                             <div style="display:flex; justify-content:flex-end; gap:20px; padding:4px 0; font-size:0.9rem;">
-                                <span>💵 المدفوع نقداً: ${formatPosMoney(cashPaidDisplay)}</span>
-                                <span>💳 المدفوع بالمحفظة: ${formatPosMoney(walletPaidDisplay)}</span>
+                                <span>💵 المدفوع نقداً: ${cashPaidDisplay}</span>
+                                <span>💳 المدفوع بالمحفظة: ${walletPaidDisplay}</span>
                             </div>
                         `;
                 } else if (invoice.payment_method === 'cash') {
                     extraPaymentInfo = `
                             <div style="display:flex; justify-content:flex-end; gap:20px; padding:4px 0; font-size:0.9rem;">
-                                <span>💵 المدفوع نقداً: ${formatPosMoney(cashPaidDisplay)}</span>
+                                <span>💵 المدفوع نقداً: ${cashPaidDisplay}</span>
                             </div>
                         `;
                 } else if (invoice.payment_method === 'wallet') {
                     extraPaymentInfo = `
                             <div style="display:flex; justify-content:flex-end; gap:20px; padding:4px 0; font-size:0.9rem;">
-                                <span>💳 المدفوع بالمحفظة: ${formatPosMoney(walletPaidDisplay)}</span>
+                                <span>💳 المدفوع بالمحفظة: ${walletPaidDisplay}</span>
                             </div>
                         `;
                 }
@@ -3750,7 +3805,7 @@
                         </div>
                         <div class="info">
                             <div><strong>👤 العميل:</strong> ${invoice.customer_name || 'نقدي'}</div>
-                            <div><strong>💳 طريقة الدفع:</strong> ${formatPosMoney(paymentDisplay)}</div>
+                            <div><strong>💳 طريقة الدفع:</strong> ${escapeHTML(paymentDisplay)}</div>
                         </div>
                         ${extraPaymentInfo}
                         ${items.length === 0 ? '<p style="color:red;text-align:center;">⚠️ لا توجد منتجات في هذه الفاتورة</p>' : `
@@ -3762,7 +3817,7 @@
                                         <td>${formatPosNumber(idx+1)}</td>
                                         <td>${escapeHTML(item.product_name || 'بدون اسم')}${item.product_code ? ' (كود: '+escapeHTML(item.product_code)+')' : ''}</td>
                                         <td>${formatPosQuantity(item.quantity || 0)}</td>
-                                        <td>${(item.unit_price || 0)}</td>
+                                        <td>${formatPosMoney(item.unit_price || 0)}</td>
                                         <td>${formatPosMoney((item.total_price || 0))}</td>
                                     </tr>
                                 `).join('')}
@@ -3797,7 +3852,7 @@
                 const res = await fetch(`${API}/categories?flat=1`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 allCategories = data.categories || [];
                 populateMainCategories();
             } catch (err) {
@@ -3888,7 +3943,7 @@
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (!res.ok) throw new Error('فشل جلب الفواتير');
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 const invoices = data.sales || data.invoices || [];
 
                 if (invoices.length === 0) {

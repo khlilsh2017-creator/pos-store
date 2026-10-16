@@ -6,11 +6,17 @@
     <title>طلب إنترنت - النظام المحاسبي</title>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-    <script src="html2canvas.min.js"></script>
-    <script src="html2pdf.bundle.min.js"></script>
     <script src="date-utils.js"></script>
     <script src="number-utils.js"></script>
     <script src="document-utils.js"></script>
+    <script src="sidebar-config.js"></script>
+    <script src="api-client.js"></script>
+    <script src="permissions.js"></script>
+    <script src="filter-utils.js"></script>
+    <script src="offline-sync.js"></script>
+    <script src="notification-center-v3.js"></script>
+    <script src="html2canvas.min.js"></script>
+    <script src="html2pdf.bundle.min.js"></script>
     <style>
         /* جميع الأنماط كما هي (مستوحاة من sale.html) */
         :root {
@@ -333,7 +339,6 @@
         @media (max-width: 768px) { .sidebar { width: 55px; padding: 8px 0; } .sidebar .brand span, .sidebar .brand small { display: none; } .sidebar .brand i { font-size: 1.4rem; } .sidebar .nav-link span { display: none; } .sidebar .nav-link { justify-content: center; padding: 10px 0; border-radius: 0; border-right: none; border-bottom: 2px solid transparent; } .sidebar .nav-link.active { border-right: none; border-bottom-color: var(--primary); } .main-content { padding: 12px; } .cart-section { padding: 14px; min-width: 0; } .barcode-scanner { flex-wrap: wrap; padding: 8px 10px; } .barcode-scanner .scan-hint { display: none; } .page-header h1 { font-size: 1.1rem; } .summary-row.total .value { font-size: 1.2rem; } .modal-box { padding: 18px 14px; max-width: 95vw; } .products-table { font-size: 0.7rem; } .products-table thead th { padding: 6px 4px; font-size: 0.65rem; } .products-table tbody td { padding: 4px 3px; } .products-table .btn-add-row { font-size: 0.65rem; padding: 3px 7px; } .products-table .prod-name { font-size: 0.75rem; } .products-table .prod-price { font-size: 0.75rem; } }
         @media (max-width: 480px) { .cart-section { padding: 10px; } .cart-item { font-size: 0.75rem; padding: 5px 0; } .cart-item .item-total { font-size: 0.75rem; min-width: 45px; } .cart-item .qty-control button { width: 22px; height: 22px; font-size: 0.75rem; } .cart-item .qty-control .qty-num { min-width: 18px; font-size: 0.75rem; } .products-table-wrapper { max-height: 30vh; } .products-table { font-size: 0.65rem; } .products-table .btn-add-row { font-size: 0.6rem; padding: 2px 5px; } .products-table .prod-name { font-size: 0.7rem; } .products-table .prod-price { font-size: 0.7rem; } }
     </style>
-    <script src="/offline-sync.js"></script>
     <link rel="stylesheet" href="sidebar-v4.css" />
 </head>
 <body>
@@ -358,11 +363,11 @@
                     </h1>
                 </div>
                 <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-                    <button class="btn btn-sm btn-primary" onclick="openEditOrdersModal()"><i class="fas fa-edit"></i> تعديل فاتورة</button>
+                    <button class="btn btn-sm btn-primary" id="btn-open-edit-orders-modal" onclick="openEditOrdersModal()"><i class="fas fa-edit"></i> تعديل فاتورة</button>
                     <button class="btn btn-sm btn-danger" id="cancel-edit-btn" onclick="cancelEdit()"><i class="fas fa-times-circle"></i> إلغاء التعديل</button>
-                    <button class="btn btn-sm btn-outline" onclick="resetOrderForm()"><i class="fas fa-plus"></i> جديد</button>
-                    <button class="btn btn-sm btn-outline" onclick="fetchProducts()"><i class="fas fa-sync-alt"></i> تحديث</button>
-                    <button class="btn btn-sm btn-outline" onclick="window.location.href='orders.html'"><i class="fas fa-truck"></i> اداره المندوبين</button>
+                    <button class="btn btn-sm btn-outline" id="btn-reset-order-form" onclick="resetOrderForm()"><i class="fas fa-plus"></i> جديد</button>
+                    <button class="btn btn-sm btn-outline" id="btn-refresh-products-top" onclick="fetchProducts()"><i class="fas fa-sync-alt"></i> تحديث</button>
+                    <button class="btn btn-sm btn-outline" id="btn-nav-orders-list" onclick="window.location.href='orders.html'"><i class="fas fa-truck"></i> اداره المندوبين</button>
                     <div class="user-info" id="user-info">
                         <span class="avatar" id="user-avatar">م</span>
                         <span id="user-name">جاري التحميل...</span>
@@ -472,7 +477,7 @@
                                     <select id="wallet-currency-select" class="input-field input-field-sm" onchange="updateTotals()"></select>
                                     <span class="rate-display" id="wallet-rate-display">سعر الصرف: 1 = 1 ريال</span>
                                 </div>
-                                <button class="btn btn-sm btn-outline" onclick="refreshRates()" style="margin-top:4px;"><i class="fas fa-sync-alt"></i> تحديث أسعار الصرف</button>
+                                <button class="btn btn-sm btn-outline" id="btn-refresh-rates-wallet" onclick="refreshRates()" style="margin-top:4px;"><i class="fas fa-sync-alt"></i> تحديث أسعار الصرف</button>
                             </div>
 
                             <!-- الدفع المختلط -->
@@ -506,7 +511,7 @@
                                         <span style="font-size:0.6rem;color:var(--muted);" id="mixed-wallet-due-currency">ريال</span>
                                     </div>
                                 </div>
-                                <button class="btn btn-sm btn-outline" onclick="refreshRates()" style="margin-top:4px;"><i class="fas fa-sync-alt"></i> تحديث أسعار الصرف</button>
+                                <button class="btn btn-sm btn-outline" id="btn-refresh-rates-mixed" onclick="refreshRates()" style="margin-top:4px;"><i class="fas fa-sync-alt"></i> تحديث أسعار الصرف</button>
                             </div>
 
                             <!-- المندوب (تصفية النشطين) -->
@@ -542,25 +547,25 @@
 
                             <!-- أزرار الفاتورة -->
                             <div class="btn-group">
-                                <button class="btn btn-success" onclick="submitOrder()" style="flex:1;">
+                                <button id="btn-submit-order" class="btn btn-success" onclick="submitOrder()" style="flex:1;">
                                     <i class="fas fa-save"></i> <span id="submit-btn-text">حفظ الطلب</span>
                                 </button>
-                                <button class="btn btn-warning" onclick="quickOrder()" style="flex:1;">
+                                <button id="btn-quick-order" class="btn btn-warning" onclick="quickOrder()" style="flex:1;">
                                     <i class="fas fa-bolt"></i> طلب سريع
                                 </button>
-                                <button class="btn btn-warning" onclick="printOrderSummary(null, 'print')" style="flex:1;">
+                                <button class="btn btn-warning" id="btn-print-order-summary-print" onclick="printOrderSummary(null, 'print')" style="flex:1;">
                                     <i class="fas fa-print"></i> الفاتورة الموحدة
                                 </button>
-                                <button class="btn btn-outline" onclick="printOrderSummary(null, 'pdf')" style="flex:1;">
+                                <button class="btn btn-outline" id="btn-print-order-summary-pdf" onclick="printOrderSummary(null, 'pdf')" style="flex:1;">
                                     <i class="fas fa-file-pdf"></i> PDF
                                 </button>
-                                <button class="btn btn-outline" onclick="printOrderSummary(null, 'image')" style="flex:1;">
+                                <button class="btn btn-outline" id="btn-print-order-summary-image" onclick="printOrderSummary(null, 'image')" style="flex:1;">
                                     <i class="fas fa-image"></i> صورة
                                 </button>
-                                <button class="btn btn-outline" onclick="saveDraft()" style="flex:1;">
+                                <button class="btn btn-outline" id="btn-save-order-draft" onclick="saveDraft()" style="flex:1;">
                                     <i class="fas fa-download"></i> حفظ مسودة
                                 </button>
-                                <button class="btn btn-outline" onclick="openDraftsModal()" style="flex:1;">
+                                <button class="btn btn-outline" id="btn-open-order-drafts" onclick="openDraftsModal()" style="flex:1;">
                                     <i class="fas fa-folder-open"></i> المسودات
                                 </button>
                                 <button class="btn btn-danger" id="cancel-order-btn" style="display:none; flex:1;" onclick="cancelOrder()">
@@ -577,7 +582,7 @@
                         <span class="scanner-icon"><i class="fas fa-barcode"></i></span>
                         <input type="text" id="barcode-input" placeholder="امسح الباركود..." autofocus autocomplete="off" spellcheck="false" />
                         <span class="scan-hint"><i class="fas fa-arrow-left"></i> Enter</span>
-                        <button class="btn-scan" onclick="handleBarcodeScan()"><i class="fas fa-plus"></i> إضافة</button>
+                        <button class="btn-scan" id="btn-barcode-scan-add" onclick="handleBarcodeScan()"><i class="fas fa-plus"></i> إضافة</button>
                     </div>
 
                     <div class="flex-row" style="margin-bottom: 6px; gap: 8px;">
@@ -598,9 +603,9 @@
                             <option value="date">📅 تاريخ الإضافة</option>
                             <option value="supplier">🏢 المورد</option>
                         </select>
-                        <button class="btn btn-sm btn-outline" onclick="fetchProducts()"><i class="fas fa-search"></i></button>
-                        <button class="btn btn-sm btn-outline" onclick="document.getElementById('search-input').value='';fetchProducts();"><i class="fas fa-times"></i></button>
-                        <button class="btn btn-sm btn-success" onclick="openAddProductModal()"><i class="fas fa-plus"></i> منتج جديد</button>
+                        <button class="btn btn-sm btn-outline" id="btn-search-products-btn" onclick="fetchProducts()"><i class="fas fa-search"></i></button>
+                        <button class="btn btn-sm btn-outline" id="btn-clear-products-search" onclick="document.getElementById('search-input').value='';fetchProducts();"><i class="fas fa-times"></i></button>
+                        <button class="btn btn-sm btn-success" id="btn-open-add-product-modal" onclick="openAddProductModal()"><i class="fas fa-plus"></i> منتج جديد</button>
                     </div>
 
                     <!-- جدول المنتجات -->
@@ -618,16 +623,16 @@
     </div>
 
     <!-- ===== MODALS ===== -->
-    <div class="modal-overlay" id="product-details-modal"><div class="modal-box"><div class="modal-header"><h3><i class="fas fa-info-circle text-primary"></i> تفاصيل المنتج</h3><button class="close-btn" onclick="closeModal('product-details-modal')">&times;</button></div><div id="product-details-content"></div></div></div>
-    <div class="modal-overlay" id="add-to-cart-modal"><div class="modal-box"><div class="modal-header"><h3><i class="fas fa-cart-plus text-success"></i> إضافة إلى السلة</h3><button class="close-btn" onclick="closeModal('add-to-cart-modal')">&times;</button></div><div id="add-to-cart-content"></div></div></div>
-    <div class="modal-overlay" id="edit-cart-item-modal"><div class="modal-box"><div class="modal-header"><h3><i class="fas fa-edit text-primary"></i> تعديل المنتج</h3><button class="close-btn" onclick="closeModal('edit-cart-item-modal')">&times;</button></div><div id="edit-cart-item-content"></div></div></div>
+    <div class="modal-overlay" id="product-details-modal"><div class="modal-box"><div class="modal-header"><h3><i class="fas fa-info-circle text-primary"></i> تفاصيل المنتج</h3><button class="close-btn" id="btn-close-product-details-modal-x" onclick="closeModal('product-details-modal')">&times;</button></div><div id="product-details-content"></div></div></div>
+    <div class="modal-overlay" id="add-to-cart-modal"><div class="modal-box"><div class="modal-header"><h3><i class="fas fa-cart-plus text-success"></i> إضافة إلى السلة</h3><button class="close-btn" id="btn-close-add-to-cart-modal-x" onclick="closeModal('add-to-cart-modal')">&times;</button></div><div id="add-to-cart-content"></div></div></div>
+    <div class="modal-overlay" id="edit-cart-item-modal"><div class="modal-box"><div class="modal-header"><h3><i class="fas fa-edit text-primary"></i> تعديل المنتج</h3><button class="close-btn" id="btn-close-edit-cart-item-modal-x" onclick="closeModal('edit-cart-item-modal')">&times;</button></div><div id="edit-cart-item-content"></div></div></div>
 
     <!-- مودال العميل -->
     <div class="modal-overlay" id="customer-modal">
         <div class="modal-box wide">
             <div class="modal-header">
                 <h3><i class="fas fa-user-circle text-primary"></i> بيانات العميل</h3>
-                <button class="close-btn" onclick="closeModal('customer-modal')">&times;</button>
+                <button class="close-btn" id="btn-close-customer-modal-x" onclick="closeModal('customer-modal')">&times;</button>
             </div>
             <div id="customer-found-msg" style="display:none; background:var(--success-light); color:var(--success); padding:8px 12px; border-radius:var(--radius-sm); margin-bottom:10px; font-weight:600;">
                 ✅ تم العثور على العميل
@@ -635,7 +640,7 @@
             <div class="form-group">
                 <label>رقم الهاتف الأساسي <span class="text-muted">*</span></label>
                 <input type="text" id="modal-mainPhone" class="input-field" placeholder="مثال: 777123456" />
-                <button class="btn btn-sm btn-outline" onclick="clearCustomerModalFields()" style="margin-top:4px;"><i class="fas fa-undo"></i> مسح</button>
+                <button class="btn btn-sm btn-outline" id="btn-clear-customer-modal-fields" onclick="clearCustomerModalFields()" style="margin-top:4px;"><i class="fas fa-undo"></i> مسح</button>
             </div>
             <div class="form-group">
                 <label>اسم العميل (اختياري)</label>
@@ -669,8 +674,8 @@
                 <button type="button" class="btn btn-outline btn-sm" id="modal-addPhoneBtn" style="margin-top:4px;"><i class="fas fa-plus"></i> إضافة رقم</button>
             </div>
             <div class="modal-actions">
-                <button class="btn btn-outline" onclick="closeModal('customer-modal')">إلغاء</button>
-                <button class="btn btn-primary" onclick="confirmCustomerData()">✅ تأكيد</button>
+                <button class="btn btn-outline" id="btn-cancel-customer-modal" onclick="closeModal('customer-modal')">إلغاء</button>
+                <button class="btn btn-primary" id="btn-confirm-customer-data" onclick="confirmCustomerData()">✅ تأكيد</button>
             </div>
         </div>
     </div>
@@ -680,17 +685,17 @@
         <div class="modal-box wide">
             <div class="modal-header">
                 <h3><i class="fas fa-edit text-primary"></i> تعديل طلب إنترنت</h3>
-                <button class="close-btn" onclick="closeModal('edit-orders-modal')">&times;</button>
+                <button class="close-btn" id="btn-close-edit-orders-modal-x" onclick="closeModal('edit-orders-modal')">&times;</button>
             </div>
             <div style="margin-bottom:10px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
                 <span style="font-size:0.85rem; color:var(--text-secondary);">اختر أحدث 10 طلبات للتعديل:</span>
-                <button class="btn btn-sm btn-outline" onclick="fetchRecentOrders()"><i class="fas fa-sync-alt"></i> تحديث</button>
+                <button class="btn btn-sm btn-outline" id="btn-refresh-recent-orders" onclick="fetchRecentOrders()"><i class="fas fa-sync-alt"></i> تحديث</button>
             </div>
             <div id="orders-list-container">
                 <div class="text-center"><i class="fas fa-spinner fa-spin"></i> جاري التحميل...</div>
             </div>
             <div class="modal-actions">
-                <button class="btn btn-outline" onclick="closeModal('edit-orders-modal')">إلغاء</button>
+                <button class="btn btn-outline" id="btn-cancel-edit-orders-modal" onclick="closeModal('edit-orders-modal')">إلغاء</button>
             </div>
         </div>
     </div>
@@ -698,9 +703,9 @@
     <!-- مودال المسودات -->
     <div class="modal-overlay" id="drafts-modal">
         <div class="modal-box wide">
-            <div class="modal-header"><h3><i class="fas fa-folder-open text-primary"></i> المسودات المحفوظة</h3><button class="close-btn" onclick="closeModal('drafts-modal')">&times;</button></div>
+            <div class="modal-header"><h3><i class="fas fa-folder-open text-primary"></i> المسودات المحفوظة</h3><button class="close-btn" id="btn-close-drafts-modal-x" onclick="closeModal('drafts-modal')">&times;</button></div>
             <div id="drafts-list-container"><div class="empty-state">لا توجد مسودات</div></div>
-            <div class="modal-actions"><button class="btn btn-outline" onclick="closeModal('drafts-modal')">إغلاق</button></div>
+            <div class="modal-actions"><button class="btn btn-outline" id="btn-cancel-drafts-modal" onclick="closeModal('drafts-modal')">إغلاق</button></div>
         </div>
     </div>
 
@@ -709,7 +714,7 @@
         <div class="modal-box wide">
             <div class="modal-header">
                 <h3><i class="fas fa-plus-circle text-success"></i> إضافة منتج جديد</h3>
-                <button class="close-btn" onclick="closeModal('add-product-modal')">&times;</button>
+                <button class="close-btn" id="btn-close-add-product-modal-x" onclick="closeModal('add-product-modal')">&times;</button>
             </div>
             <div id="add-product-content">
                 <div class="form-group">
@@ -763,7 +768,7 @@
                 const res = await fetch(`${API}/settings`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 if (data.settings) {
                     allowNegativeStock = data.settings.allow_negative_stock === '1';
                     console.log('🔹 allow_negative_stock =', allowNegativeStock);
@@ -777,7 +782,10 @@
         // ================================================================
         //  1. CONFIG & HELPERS
         // ================================================================
-        const API = 'https://api.ibnalmukhtar.com';
+        const API = (window.API_BASE_URL || (window.apiClient && window.apiClient.baseUrl) || 'https://api.ibnalmukhtar.com').replace(/\/$/, '');
+        let isSubmittingOrder = false;
+        let isQuickOrdering = false;
+        let isCancelingOrder = false;
         let token = localStorage.getItem('pos_token') || '';
         if (!token) window.location.href = 'index.html';
 
@@ -922,7 +930,7 @@
             if (navigator.onLine) {
                 try {
                     const res = await fetch(`${API}/currencies`, { headers: { 'Authorization': `Bearer ${token}` } });
-                    const data = await res.json();
+                    const data = await res.json().catch(() => ({}));
                     currenciesCache = data.currencies || [];
                     const db = await openDB();
                     const tx = db.transaction('currencies', 'readwrite');
@@ -961,7 +969,7 @@
             }
             try {
                 const res = await fetch(`${API}/wallets`, { headers: { 'Authorization': `Bearer ${token}` } });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 walletsCache = data.wallets || [];
                 const db = await openDB();
                 const tx = db.transaction('wallets', 'readwrite');
@@ -1231,7 +1239,7 @@
                 if (selectedCategoryId) url += `&category_id=${selectedCategoryId}`;
                 if (currentSort) url += `&sort=${encodeURIComponent(currentSort)}`;
                 const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 productsCache = data.products || [];
                 await saveProductsToLocal(productsCache);
                 renderProductsTable(productsCache);
@@ -1389,7 +1397,7 @@
             }
             try {
                 const res = await fetch(`${API}/customers?limit=2000`, { headers: { 'Authorization': `Bearer ${token}` } });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 customersCache = data.customers || [];
                 await saveCustomersToLocal(customersCache);
             } catch (err) {
@@ -1597,11 +1605,11 @@
             openModal('product-details-modal');
             try {
                 const productRes = await fetch(`${API}/products/${productId}`, { headers: { 'Authorization': `Bearer ${token}` } });
-                const productData = await productRes.json();
+                const productData = await productRes.json().catch(() => ({}));
                 const p = productData.product || {};
 
                 const supplierRes = await fetch(`${API}/products/suppliers?product_id=${productId}`, { headers: { 'Authorization': `Bearer ${token}` } });
-                const supplierData = await supplierRes.json();
+                const supplierData = await supplierRes.json().catch(() => ({}));
                 const suppliers = supplierData.suppliers || [];
 
                 let suppliersHtml = '';
@@ -1639,7 +1647,7 @@
         async function loadProductVariants(productId) {
             try {
                 const res = await fetch(`${API}/products/${productId}/variants`, { headers: { 'Authorization': `Bearer ${token}` } });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 return Array.isArray(data.variants) ? data.variants : [];
             } catch (_) { return []; }
         }
@@ -1965,8 +1973,9 @@
             if (newDiscount < 0) newDiscount = 0;
 
             updatingDiscountFromPaid = true;
+            const discountType = document.getElementById('discount-type')?.value || 'fixed';
             const discountInput = document.getElementById('cart-discount');
-            if (discountInput) discountInput.value = newDiscount.toFixed(2);
+            if (discountInput) discountInput.value = discountType === 'percentage' ? (subtotal > 0 ? Number(((newDiscount / subtotal) * 100).toFixed(2)) : 0) : newDiscount.toFixed(2);
             updateTotals();
             updatingDiscountFromPaid = false;
             updatingPaidFromDiscount = false;
@@ -2015,7 +2024,7 @@
                 if (newDiscount < 0) newDiscount = 0;
                 updatingDiscountFromPaid = true;
                 const discountInput = document.getElementById('cart-discount');
-                if (discountInput) discountInput.value = newDiscount.toFixed(2);
+                if (discountInput) discountInput.value = discountType === 'percentage' ? (subtotal > 0 ? Number(((newDiscount / subtotal) * 100).toFixed(2)) : 0) : newDiscount.toFixed(2);
                 updateTotals();
                 updatingDiscountFromPaid = false;
                 return;
@@ -2079,7 +2088,7 @@
             if (newDiscount < 0) newDiscount = 0;
             updatingDiscountFromPaid = true;
             const discountInput = document.getElementById('cart-discount');
-            if (discountInput) discountInput.value = newDiscount.toFixed(2);
+            if (discountInput) discountInput.value = discountType === 'percentage' ? (subtotal > 0 ? Number(((newDiscount / subtotal) * 100).toFixed(2)) : 0) : newDiscount.toFixed(2);
             updateTotals();
             updatingDiscountFromPaid = false;
 
@@ -2229,7 +2238,7 @@
                 const res = await fetch(`${API}/online-orders?limit=10`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 if (data.orders && data.orders.length > 0) {
                     let html = `<table class="orders-list-table">
                         <thead>
@@ -2298,7 +2307,7 @@
                 const res = await fetch(`${API}/online-orders/${orderId}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 const order = data.order;
                 if (!order) {
                     showToast('الطلب غير موجود', 'error');
@@ -2362,8 +2371,6 @@
                         document.getElementById('order_date').value = `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}`;
                     }
                 }
-                document.getElementById('cart-discount').value = Number(order.discount ?? order.discount_amount ?? 0);
-                document.getElementById('discount-type').value = order.discount_type || 'fixed';
 
                 const paymentMethod = order.payment_method || 'عند الاستلام';
                 let normalizedPaymentMethod = 'عند الاستلام';
@@ -2404,6 +2411,21 @@
                             return item;
                         });
                     }
+                    const discountTypeVal = order.discount_type || 'fixed';
+                    let discountAmountVal = parseFloat(order.discount) || parseFloat(order.discount_amount) || 0;
+                    const subtotalForDiscount = cart.reduce((s, i) => s + ((i.price || 0) - (i.discount || 0)) * (i.quantity || 0), 0);
+                    if (!discountAmountVal && order.total_amount !== undefined && subtotalForDiscount > 0) {
+                        const feeInBase = parseFloat(order.delivery_fee) || 0;
+                        const feePaidWithOrder = (order.delivery_fee_payment || 'مع الطلب') === 'مع الطلب';
+                        const expectedBeforeDiscount = subtotalForDiscount + (feePaidWithOrder ? feeInBase : 0);
+                        const diff = expectedBeforeDiscount - (parseFloat(order.total_amount) || 0);
+                        if (diff > 0.01) discountAmountVal = diff;
+                    }
+                    const discountDisplayValue = discountTypeVal === 'percentage'
+                        ? (subtotalForDiscount > 0 ? Number(((discountAmountVal / subtotalForDiscount) * 100).toFixed(2)) : 0)
+                        : Number(discountAmountVal.toFixed(2));
+                    document.getElementById('discount-type').value = discountTypeVal;
+                    document.getElementById('cart-discount').value = discountDisplayValue;
                     saveCartToLocal();
                     renderCart();
                 }
@@ -2440,7 +2462,6 @@
                             ensureSelectOption('wallet-currency-select', details.currency_id, `عملة #${details.currency_id}`);
                             document.getElementById('paid-amount').value = details.wallet_amount || 0;
                             onWalletSelectChange();
-                            updateTotalsFromPaid();
                         } else if (details.prepaid_method === 'mixed') {
                             document.getElementById('cash-paid').value = details.cash_amount || 0;
                             document.getElementById('wallet-paid').value = details.wallet_amount || 0;
@@ -2448,7 +2469,7 @@
                             ensureSelectOption('mixed-wallet-currency', details.wallet_currency_id, `عملة #${details.wallet_currency_id}`);
                             ensureSelectOption('mixed-wallet', details.wallet_id, `محفظة #${details.wallet_id}`);
                             onMixedWalletChange();
-                            updateTotalsFromPaidMixed();
+                            updateMixedDueAmounts();
                         }
                     } catch (e) {
                         console.warn('فشل تحليل تفاصيل الدفع المسبق', e);
@@ -2468,6 +2489,8 @@
         //  22. إلغاء الطلب
         // ================================================================
         async function cancelOrder() {
+            if (isCancelingOrder) return;
+            isCancelingOrder = true;
             if (!editingOrderId) return showToast('لا يوجد طلب لإلغائه', 'warning');
             if (!confirm('هل أنت متأكد من إلغاء هذا الطلب؟ هذا الإجراء لا يمكن التراجع عنه.')) return;
             try {
@@ -2476,7 +2499,7 @@
                     headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify({ order_id: editingOrderId })
                 });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 if (res.ok && data.success) {
                     showToast('تم إلغاء الطلب بنجاح', 'success');
                     resetOrderForm();
@@ -2486,6 +2509,8 @@
                 }
             } catch (err) {
                 showToast(err.message || 'خطأ في الاتصال', 'error');
+            } finally {
+                isCancelingOrder = false;
             }
         }
 
@@ -2493,6 +2518,7 @@
         //  23. SUBMIT ORDER (مع عرض رقم الفاتورة)
         // ================================================================
         async function submitOrder() {
+            if (isSubmittingOrder) return;
             if (cart.length === 0) return showToast('⚠️ السلة فارغة', 'warning');
 
             if (!selectedCustomerData) {
@@ -2606,7 +2632,8 @@
                 total_amount: total
             };
 
-            const btn = document.querySelector('.btn-success');
+            const btn = document.getElementById('btn-submit-order') || document.querySelector('.btn-success');
+            isSubmittingOrder = true;
             if (!btn) return;
             const originalHTML = btn.innerHTML;
             btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...`;
@@ -2624,7 +2651,7 @@
                     headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 if (res.ok && data.success) {
                     const orderId = data.order_id || editingOrderId;
                     const invoiceNum = data.invoice_number || (data.order ? data.order.invoice_number : '');
@@ -2643,6 +2670,7 @@
             } finally {
                 btn.innerHTML = originalHTML;
                 btn.disabled = false;
+                isSubmittingOrder = false;
             }
         }
 
@@ -2650,6 +2678,7 @@
         //  24. QUICK ORDER (طلب سريع)
         // ================================================================
         async function quickOrder() {
+            if (isQuickOrdering) return;
             if (cart.length === 0) return showToast('⚠️ السلة فارغة', 'warning');
 
             if (!selectedCustomerData) {
@@ -2665,7 +2694,8 @@
                 return;
             }
 
-            const btn = document.querySelector('.btn-warning');
+            const btn = document.getElementById('btn-quick-order') || document.querySelector('.btn-warning');
+            isQuickOrdering = true;
             if (!btn) return;
             const originalHTML = btn.innerHTML;
             btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> جاري...`;
@@ -2719,7 +2749,7 @@
                     headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 if (res.ok && data.success) {
                     const orderId = data.order_id || (data.order ? data.order.id : '');
                     const invoiceNum = data.invoice_number || (data.order ? data.order.invoice_number : '');
@@ -2943,7 +2973,7 @@
                 const res = await fetch(`${API}/categories?flat=1`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 allCategories = data.categories || [];
                 populateMainCategories();
                 populateNewProductCategories();
@@ -3089,7 +3119,7 @@
                     headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify({ name, price, cost, barcode, stock_quantity: stock, category_id })
                 });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 if (res.ok && data.success) {
                     showToast(`✅ تم إضافة المنتج "${name}" بنجاح`, 'success');
                     closeModal('add-product-modal');
@@ -3126,7 +3156,7 @@
         async function loadDrivers() {
             try {
                 const res = await fetch(`${API}/drivers`, { headers: { 'Authorization': `Bearer ${token}` } });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 const sel = document.getElementById('driverSelect');
                 if (!sel) return;
                 sel.innerHTML = '<option value="">بدون مندوب</option>';

@@ -8,7 +8,7 @@ let dbInitPromise = null;
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Store-ID, X-Page-Name',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Sync-Token, X-Store-ID, X-Page-Name, X-Offline-Operation-Id',
 };
 // ==================== كاش توكن Firebase ======================
 let fcmTokenCache = {
@@ -151,6 +151,11 @@ async function initializeDatabase(env) {
     `CREATE INDEX IF NOT EXISTS idx_online_orders_driver ON online_orders(assigned_driver_id, status)`,
     `CREATE INDEX IF NOT EXISTS idx_online_orders_date ON online_orders(order_date)`,
     `CREATE INDEX IF NOT EXISTS idx_online_orders_date_status_driver ON online_orders(order_date, status, assigned_driver_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_products_category ON products(category_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_online_orders_phone ON online_orders(customer_phone)`,
+    `CREATE INDEX IF NOT EXISTS idx_sync_inbox_idempotency ON sync_inbox(idempotency_key)`,
+    `CREATE INDEX IF NOT EXISTS idx_fcm_tokens_driver ON fcm_tokens(driver_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_admin_fcm_tokens_token ON admin_fcm_tokens(token)`,
     `CREATE TABLE IF NOT EXISTS driver_order_receipts (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       order_id INTEGER NOT NULL UNIQUE,
@@ -262,10 +267,55 @@ async function initializeDatabase(env) {
     `INSERT OR IGNORE INTO settings (key, value) VALUES ('brand_primary', '#1d4ed8')`,
     `INSERT OR IGNORE INTO settings (key, value) VALUES ('brand_secondary', '#c9a227')`,
     `INSERT OR IGNORE INTO settings (key, value) VALUES ('brand_text', '#172033')`,
-    `INSERT OR IGNORE INTO settings (key, value) VALUES ('invoice_footer', 'شكرًا لتعاملكم معنا')`
+    `INSERT OR IGNORE INTO settings (key, value) VALUES ('invoice_footer', 'شكرًا لتعاملكم معنا')`,
+    `INSERT OR IGNORE INTO settings (key, value) VALUES ('sync_origin', 'local')`,
+    `CREATE TABLE IF NOT EXISTS sync_outbox (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      event_id TEXT NOT NULL UNIQUE,
+      entity_type TEXT NOT NULL,
+      cloud_id TEXT,
+      event_type TEXT NOT NULL,
+      payload_json TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      delivered_at DATETIME
+    )`,
+    `CREATE INDEX IF NOT EXISTS idx_sync_outbox_cursor ON sync_outbox(created_at, id)`,
+    `CREATE TABLE IF NOT EXISTS sync_inbox (
+      event_id TEXT PRIMARY KEY,
+      idempotency_key TEXT UNIQUE NOT NULL,
+      received_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`,
+    `DROP TRIGGER IF EXISTS trg_sync_orders_insert`,
+    `CREATE TRIGGER trg_sync_orders_insert AFTER INSERT ON online_orders WHEN COALESCE((SELECT value FROM settings WHERE key = 'sync_origin'), 'local') <> 'cloud' BEGIN
+      INSERT INTO sync_outbox(event_id, entity_type, cloud_id, event_type, payload_json)
+      VALUES ('cloud-order-' || NEW.id || '-' || strftime('%s','now'), 'online_order', CAST(NEW.id AS TEXT), 'upsert', json_object('id', NEW.id));
+    END`,
+    `DROP TRIGGER IF EXISTS trg_sync_orders_update`,
+    `CREATE TRIGGER trg_sync_orders_update AFTER UPDATE ON online_orders WHEN COALESCE((SELECT value FROM settings WHERE key = 'sync_origin'), 'local') <> 'cloud' BEGIN
+      INSERT INTO sync_outbox(event_id, entity_type, cloud_id, event_type, payload_json)
+      VALUES ('cloud-order-update-' || NEW.id || '-' || strftime('%s','now') || '-' || abs(random()), 'online_order', CAST(NEW.id AS TEXT), 'upsert', json_object('id', NEW.id));
+    END`,
+    `DROP TRIGGER IF EXISTS trg_sync_products_update`,
+    `CREATE TRIGGER trg_sync_products_update AFTER UPDATE ON products WHEN COALESCE((SELECT value FROM settings WHERE key = 'sync_origin'), 'local') <> 'cloud' BEGIN
+      INSERT INTO sync_outbox(event_id, entity_type, cloud_id, event_type, payload_json)
+      VALUES ('cloud-product-update-' || NEW.id || '-' || strftime('%s','now') || '-' || abs(random()), 'product', CAST(NEW.id AS TEXT), 'upsert', json_object('id', NEW.id));
+    END`,
+    `DROP TRIGGER IF EXISTS trg_sync_customers_update`,
+    `CREATE TRIGGER trg_sync_customers_update AFTER UPDATE ON online_customers WHEN COALESCE((SELECT value FROM settings WHERE key = 'sync_origin'), 'local') <> 'cloud' BEGIN
+      INSERT INTO sync_outbox(event_id, entity_type, cloud_id, event_type, payload_json)
+      VALUES ('cloud-customer-update-' || NEW.id || '-' || strftime('%s','now') || '-' || abs(random()), 'online_customer', CAST(NEW.id AS TEXT), 'upsert', json_object('id', NEW.id));
+    END`
   ];
 
   await client.batch(createBatch.map(sql => ({ sql, args: [] })), 'write');
+  const financeSyncTables = ['accounts', 'currencies', 'wallets', 'driver_accounts', 'driver_order_receipts', 'driver_transactions', 'delivery_assignments', 'wallet_balances', 'wallet_transactions', 'cash_register', 'cash_vouchers', 'journal_entries', 'journal_entry_details', 'sales', 'sale_items', 'purchase_invoices', 'purchase_invoice_items', 'expenses', 'customer_payments', 'supplier_payments'];
+  const financeTriggerSql = financeSyncTables.flatMap(table => [
+    `DROP TRIGGER IF EXISTS trg_sync_${table}_insert`,
+    `CREATE TRIGGER trg_sync_${table}_insert AFTER INSERT ON ${table} WHEN COALESCE((SELECT value FROM settings WHERE key = 'sync_origin'), 'local') <> 'cloud' BEGIN INSERT INTO sync_outbox(event_id, entity_type, cloud_id, event_type, payload_json) VALUES ('cloud-${table}-insert-' || NEW.id || '-' || strftime('%s','now') || '-' || abs(random()), '${table}', CAST(NEW.id AS TEXT), 'upsert', json_object('id', NEW.id)); END`,
+    `DROP TRIGGER IF EXISTS trg_sync_${table}_update`,
+    `CREATE TRIGGER trg_sync_${table}_update AFTER UPDATE ON ${table} WHEN COALESCE((SELECT value FROM settings WHERE key = 'sync_origin'), 'local') <> 'cloud' BEGIN INSERT INTO sync_outbox(event_id, entity_type, cloud_id, event_type, payload_json) VALUES ('cloud-${table}-update-' || NEW.id || '-' || strftime('%s','now') || '-' || abs(random()), '${table}', CAST(NEW.id AS TEXT), 'upsert', json_object('id', NEW.id)); END`
+  ]);
+  await client.batch(financeTriggerSql.map(sql => ({ sql, args: [] })), 'write');
   // ترحيل آمن: الكاشير يستخدم جلسة POS الحالية لعرض المندوبين دون دخول مستقل.
   await client.execute("INSERT OR IGNORE INTO user_permissions (user_id, permission) SELECT id, 'delivery.drivers.view' FROM users WHERE role = 'cashier'");
   invalidateSettingsCache();
@@ -303,6 +353,9 @@ async function initializeDatabase(env) {
     { table: 'audit_logs', col: 'ip_address', type: 'TEXT' },
     { table: 'audit_logs', col: 'user_agent', type: 'TEXT' },
     { table: 'audit_logs', col: 'created_at', type: 'DATETIME' },
+    { table: 'products', col: 'updated_at', type: 'DATETIME' },
+    { table: 'customers', col: 'updated_at', type: 'DATETIME' },
+    { table: 'categories', col: 'updated_at', type: 'DATETIME' },
     { table: 'products', col: 'product_code', type: 'TEXT' },
     { table: 'products', col: 'site_product_id', type: 'INTEGER' },
     { table: 'products', col: 'is_set', type: 'INTEGER DEFAULT 0' },
@@ -325,6 +378,7 @@ async function initializeDatabase(env) {
     { table: 'online_orders', col: 'actual_collected', type: 'REAL DEFAULT 0' },
     { table: 'online_orders', col: 'order_date', type: 'DATETIME' },
     { table: 'online_order_items', col: 'discount', type: 'REAL DEFAULT 0' },
+    { table: 'online_order_items', col: 'note', type: 'TEXT' },
     { table: 'online_order_items', col: 'variant_id', type: 'INTEGER' },
     { table: 'online_order_items', col: 'variant_label', type: 'TEXT' },
     { table: 'online_order_items', col: 'sale_mode', type: "TEXT DEFAULT 'size'" },
@@ -394,6 +448,13 @@ async function initializeDatabase(env) {
     }
   }
 
+  // تهيئة أوقات التعديل للسجلات القديمة كي تظهر في أول مزامنة تدريجية.
+  await client.batch([
+    { sql: "UPDATE products SET updated_at = COALESCE(updated_at, created_at, CURRENT_TIMESTAMP) WHERE updated_at IS NULL", args: [] },
+    { sql: "UPDATE customers SET updated_at = COALESCE(updated_at, created_at, CURRENT_TIMESTAMP) WHERE updated_at IS NULL", args: [] },
+    { sql: "UPDATE categories SET updated_at = COALESCE(updated_at, CURRENT_TIMESTAMP) WHERE updated_at IS NULL", args: [] }
+  ], 'write');
+
   // تهيئة باركود فريد للمقاسات القديمة التي أُنشئت قبل إضافة عمود barcode.
   const missingVariantBarcodes = await dbAll(client, "SELECT id FROM product_variants WHERE barcode IS NULL OR barcode = ''");
   for (const row of missingVariantBarcodes) {
@@ -454,8 +515,11 @@ async function getFirebaseAuthToken(env) {
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({ grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer', assertion: jwt })
   });
-  const data = await response.json();
+  const data = await response.json().catch(() => ({}));
   const accessToken = data.access_token;
+  if (!response.ok || !accessToken) {
+    throw new Error('فشل جلب تصريح Firebase: ' + (data.error_description || data.error || response.status));
+  }
 
   fcmTokenCache.token = accessToken;
   fcmTokenCache.expiry = Date.now() + 55 * 60 * 1000;
@@ -476,8 +540,8 @@ async function sendFCMNotification(env, title, body, imageUrl = null, link = "ht
     let query = "SELECT token FROM fcm_tokens";
     let params = [];
     if (targetDriverId) {
-      query += " WHERE driver_id = ?";
-      params.push(targetDriverId);
+      query += " WHERE (driver_id = ? OR driver_id = ?)";
+      params.push(Number(targetDriverId), String(targetDriverId));
     }
 
     const tokens = await dbAll(client, query, params);
@@ -748,11 +812,7 @@ async function sendDailySummary(env) {
         body: JSON.stringify({ chat_id: chatId, text: message, parse_mode: 'Markdown' })
       });
     }
-    const waRecipients = [
-      //{ phone: "967773266534", apikey: "9236591" },
-      { phone: "967772328326", apikey: "9582527" }
-    ];
-    for (const wa of waRecipients) {
+    for (const wa of getConfiguredWhatsAppRecipients(env)) {
       const waUrl = `https://api.callmebot.com/whatsapp.php?phone=${wa.phone}&text=${encodeURIComponent(message)}&apikey=${wa.apikey}`;
       await fetch(waUrl, { method: 'GET' }).catch(() => {});
     }
@@ -1302,6 +1362,7 @@ function routePermission(path, method) {
   if (path === '/import-data') return 'backup.restore';
   if (path === '/test-notification' || path === '/test-admin-notification') return 'notifications.test';
   if (path === '/fcm-tokens') return 'notifications.test';
+  if (path === '/sync') return 'dashboard.view';
   if (path === '/auth/me') return 'dashboard.view';
   if (path === '/users' || /^\/users\/\d+\/?$/.test(path)) return 'settings.users.manage';
   if (path === '/settings') return m === 'GET' ? 'settings.view' : 'settings.manage';
@@ -1699,6 +1760,48 @@ async function deleteUser(request, env, headers) {
   return jsonResponse({ success: true }, 200, headers);
 }
 
+// ==================== واجهة المزامنة الذكية (Delta Sync) ====================
+async function syncOfflineData(request, env, headers) {
+  const url = new URL(request.url);
+  const lastSync = url.searchParams.get('last_sync') || '1970-01-01 00:00:00';
+  const client = getTursoClient(env);
+
+  try {
+    const products = await dbAll(client, `
+      SELECT id, name, barcode, product_code, price, cost, stock_quantity,
+             category_id, unit_type, unit_symbol, is_decimal_allowed, is_set,
+             is_active, updated_at
+      FROM products
+      WHERE COALESCE(updated_at, created_at, '1970-01-01 00:00:00') > ?
+      ORDER BY updated_at, id
+    `, [lastSync]);
+
+    const customers = await dbAll(client, `
+      SELECT id, name, phone, address, balance, updated_at
+      FROM customers
+      WHERE COALESCE(updated_at, created_at, '1970-01-01 00:00:00') > ?
+      ORDER BY updated_at, id
+    `, [lastSync]);
+
+    const categories = await dbAll(client, `
+      SELECT id, name, parent_id, updated_at
+      FROM categories
+      WHERE COALESCE(updated_at, created_at, '1970-01-01 00:00:00') > ?
+      ORDER BY updated_at, id
+    `, [lastSync]);
+
+    const serverTimeRow = await dbFirst(client, 'SELECT CURRENT_TIMESTAMP AS now');
+    return jsonResponse({
+      success: true,
+      server_time: serverTimeRow?.now || new Date().toISOString(),
+      data: { products, customers, categories }
+    }, 200, headers);
+  } catch (error) {
+    console.error('فشل جلب بيانات المزامنة:', error);
+    return jsonResponse({ error: 'فشل جلب بيانات المزامنة: ' + error.message }, 500, headers);
+  }
+}
+
 // ---- التصنيفات ----
 async function getCategories(request, env, headers) {
   const client = getTursoClient(env);
@@ -1742,7 +1845,7 @@ async function updateCategory(request, env, headers) {
     const cycle = await dbFirst(client, `WITH RECURSIVE descendants(id) AS (SELECT id FROM categories WHERE parent_id = ? UNION ALL SELECT c.id FROM categories c JOIN descendants d ON c.parent_id = d.id) SELECT id FROM descendants WHERE id = ? LIMIT 1`, [id, nextParentId]);
     if (cycle) return jsonResponse({ error: 'لا يمكن نقل التصنيف تحت أحد تصنيفاته الفرعية' }, 400, headers);
   }
-  await dbRun(client, "UPDATE categories SET name = ?, parent_id = ? WHERE id = ?", [name || cat.name, nextParentId, id]);
+  await dbRun(client, "UPDATE categories SET name = ?, parent_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", [name || cat.name, nextParentId, id]);
   return jsonResponse({ success: true }, 200, headers);
 }
 async function deleteCategory(request, env, headers) {
@@ -2206,7 +2309,7 @@ async function createCustomer(request, env, headers) {
   const client = getTursoClient(env);
   try {
     const result = await dbRun(client,
-      "INSERT INTO customers (name, phone, address, notes, balance) VALUES (?, ?, ?, ?, ?)",
+      "INSERT INTO customers (name, phone, address, notes, balance, updated_at) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)",
       [data.name, data.phone || null, data.address || null, data.notes || null, data.initial_balance || 0]
     );
     return jsonResponse({ success: true, id: result.lastInsertRowid }, 200, headers);
@@ -2267,7 +2370,7 @@ async function addCustomerPayment(request, env, headers) {
     }
     if (!details.length) throw new Error('لا توجد قيمة دفع صالحة');
     await dbRun(tx, 'UPDATE customer_payments SET exchange_rate = ?, cash_exchange_rate = ?, wallet_exchange_rate = ? WHERE id = ?', [cashRateUsed && !walletRateUsed ? cashRateUsed : walletRateUsed && !cashRateUsed ? walletRateUsed : null, cashRateUsed, walletRateUsed, paymentId]);
-    await dbRun(tx, `UPDATE customers SET balance = balance ${isPayment ? '+' : '-'} ? WHERE id = ?`, [totalBase, customerId]);
+    await dbRun(tx, `UPDATE customers SET balance = balance ${isPayment ? '+' : '-'} ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`, [totalBase, customerId]);
     checkBalance(details); await createJournalEntry(tx, entryDate, desc, details, 'customer_payment', paymentId);
     await tx.commit(); committed = true;
     return jsonResponse({ success: true, payment_id: paymentId, type, total_base_amount: totalBase }, 200, headers);
@@ -3771,12 +3874,41 @@ async function adjustInventory(request, env, headers, userId = null) {
     }
     checkBalance(journalDetails);
     const entryId = await createJournalEntry(tx, adjustmentDate, note, journalDetails, 'inventory_adjust', null);
+
     const batchQueries = [];
     const stockCache = {};
     for (const change of changes) {
       stockCache[change.product_id] = change.old_qty;
-      await applyStockChange(tx, batchQueries, { productId: change.product_id, delta: change.diff, referenceType: 'inventory_adjust', referenceId: entryId, note, userId, stockCache });
+      await applyStockChange(tx, batchQueries, {
+        productId: change.product_id,
+        delta: change.diff,
+        referenceType: 'inventory_adjust',
+        referenceId: entryId,
+        note,
+        userId,
+        stockCache
+      });
+
+      // ===== إضافة تحديث product_supplier_stock =====
+      if (Math.abs(change.diff) > 0.000001) {
+        // اختيار المورد الذي لديه أكبر كمية حالية لهذا المنتج
+        const bestSupplier = await dbFirst(tx,
+          `SELECT supplier_id FROM product_supplier_stock
+           WHERE product_id = ? AND quantity > 0
+           ORDER BY quantity DESC LIMIT 1`,
+          [change.product_id]
+        );
+        const supplierId = bestSupplier?.supplier_id || null;
+        if (supplierId) {
+          await updateSupplierStock(tx, change.product_id, supplierId, change.diff, batchQueries);
+        } else {
+          // في حالة عدم وجود مورد، يمكن تجاهل التحديث أو إنشاء سجل لمورد افتراضي.
+          // لكن الأفضل أن نسجل تحذيراً فقط، لأن الجرد قد يتم دون ربط مورد.
+          console.warn(`لا يوجد مورد للمنتج ${change.product_id}، لن يتم تحديث product_supplier_stock`);
+        }
+      }
     }
+
     if (batchQueries.length) await tx.batch(batchQueries, 'write');
     await tx.commit();
     invalidateReportCache();
@@ -4457,7 +4589,7 @@ async function cancelPayment(request, env, headers) {
         if (cashAmount > 0) await reverseCash(cashAmount, cashCurrencyId, payment.cash_exchange_rate || await getCurrencyRate(tx, cashCurrencyId) || 1);
         if (walletAmount > 0) await reverseWallet(walletAmount, walletCurrencyId, payment.wallet_exchange_rate || await getCurrencyRate(tx, walletCurrencyId) || 1);
       } else reversedBase = amount * (payment.exchange_rate || await getCurrencyRate(tx, currencyId) || 1);
-      await dbRun(tx, `UPDATE customers SET balance = balance ${isOriginalPayment ? '-' : '+'} ? WHERE id = ?`, [reversedBase, payment.customer_id]);
+      await dbRun(tx, `UPDATE customers SET balance = balance ${isOriginalPayment ? '-' : '+'} ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`, [reversedBase, payment.customer_id]);
       const originalEntry = await dbFirst(tx, `SELECT je.id FROM journal_entries je WHERE je.reference_type = 'customer_payment' AND je.reference_id = ? ORDER BY je.id LIMIT 1`, [payment_id]);
       if (originalEntry) {
         const allDetails = await dbAll(tx, `SELECT account_id, debit, credit FROM journal_entry_details WHERE entry_id = ?`, [originalEntry.id]);
@@ -9943,7 +10075,8 @@ async function assignDriverToOrder(request, env, ctx, headers) {
     `تم تعيينك لتوصيل الطلب #${order_id}`,
     null,
     `https://pos.ibnalmukhtar.com/driver/?order=${order_id}`,
-    driver_id
+    driver_id,
+    order_id
 ));
 
   return jsonResponse({ success: true }, 200, headers);
@@ -10531,7 +10664,8 @@ async function createOnlineOrder(request, env, ctx, headers, userId) {
           `👤 العميل: ${customer_name}\n💰 المبلغ: ${total} ${currency}\n📦 عدد الأصناف: ${itemCount}\n💳 طريقة الدفع: ${normalizedPaymentMethod}\n📍 العنوان: ${customer_address.substring(0, 40)}...`,
           null,
           `https://pos.ibnalmukhtar.com/driver/?order=${orderId}`,
-          driver_id
+          driver_id,
+          orderId
         ));
       } else {
         ctx.waitUntil(sendAdminFCMNotification(
@@ -10587,8 +10721,8 @@ async function updateOnlineOrder(request, env, ctx, headers, orderId, userId) {
     currency_id,
     cash_currency_id,
     wallet_currency_id,
-    discount = 0,           // <--- أضف هذا
-    discount_amount = 0,    // <--- أضف هذا
+    discount = 0,
+    discount_amount = 0,
     discount_type = 'fixed',
     order_date
   } = await request.json();
@@ -10673,8 +10807,7 @@ async function updateOnlineOrder(request, env, ctx, headers, orderId, userId) {
     const allowNegativeStock = settings.allow_negative_stock === '1';
     const allowExpiredNegativeSales = settings.allow_expired_negative_sales !== '0';
 
-    // ===== إصلاح TDZ: تعريف المتغيرات في بداية النطاق قبل أي استخدام =====
-    // إعادة حساب الإجمالي من البيانات المطَبَّعة على الخادم؛ تجاهل total_amount القادم من العميل.
+    // ===== إعادة حساب الإجمالي =====
     const deliveryFeeValue = Number(delivery_fee) || 0;
     if (!Number.isFinite(deliveryFeeValue) || deliveryFeeValue < 0) throw new Error('رسوم التوصيل غير صالحة');
     const subtotal = items.reduce((sum, item) => sum + (Number(item.unit_price) - (Number(item.discount) || 0)) * Number(item.quantity), 0);
@@ -10685,11 +10818,11 @@ async function updateOnlineOrder(request, env, ctx, headers, orderId, userId) {
     delivery_fee = deliveryFeeValue;
     const normalizedPaymentMethod = normalizePaymentMethod(payment_method);
     const isPrepaid = normalizedPaymentMethod === 'مدفوع مسبقاً';
-    // تهيئة أولية لبقية المتغيرات حتى يمكن استخدامها في أي مكان لاحق داخل النطاق
     let walletPaid = 0, walletId = null, cashPaid = 0, paidAmount = 0;
     let saleStatus = isPrepaid ? 'completed' : 'pending';
     let salePaymentMethod = isPrepaid ? 'wallet' : 'pending';
 
+    // ===== تحضير المنتجات الجديدة =====
     const newProductIds = [...new Set(items.map(item => item.product_id).filter(id => Number.isInteger(id) && id > 0))];
     const newProductPlaceholders = newProductIds.map(() => '?').join(',');
     let productsMap = {};
@@ -10713,6 +10846,7 @@ async function updateOnlineOrder(request, env, ctx, headers, orderId, userId) {
       stockMap[stock.product_id].push(stock);
     }
 
+    // ===== التحقق من صلاحية المنتجات الجديدة =====
     for (const item of items) {
       if (item.product_id) {
         const product = productsMap[item.product_id];
@@ -10729,8 +10863,9 @@ async function updateOnlineOrder(request, env, ctx, headers, orderId, userId) {
       }
     }
 
-    // ===== عكس العمليات السابقة (استرجاع المخزون) =====
-    const oldItems = await dbAll(tx, "SELECT product_id, quantity FROM sale_items WHERE sale_id = ?", [sale.id]);
+    // ===== استرجاع المخزون القديم =====
+    const oldItems = await dbAll(tx, "SELECT product_id, quantity, supplier_id FROM sale_items WHERE sale_id = ?", [sale.id]);
+    
     // جلب كميات المخزون الحالية دفعة واحدة للاسترجاع
     const oldProductIds = oldItems.map(item => item.product_id).filter(id => id);
     const stockCacheRestore = {};
@@ -10746,9 +10881,10 @@ async function updateOnlineOrder(request, env, ctx, headers, orderId, userId) {
 
     const restoreQueries = [];
     for (const old of oldItems) {
+      // استرجاع المخزون العام
       await applyStockChange(tx, restoreQueries, {
         productId: old.product_id,
-        supplierId: null,
+        supplierId: old.supplier_id,        // تمرير المورد الأصلي
         delta: old.quantity,
         referenceType: 'update_online_order_revert',
         referenceId: orderId,
@@ -10756,12 +10892,16 @@ async function updateOnlineOrder(request, env, ctx, headers, orderId, userId) {
         userId,
         stockCache: stockCacheRestore
       });
+      // إعادة الكمية إلى مخزون المورد
+      if (old.supplier_id) {
+        await updateSupplierStock(tx, old.product_id, old.supplier_id, old.quantity, restoreQueries);
+      }
     }
     if (restoreQueries.length > 0) {
       await tx.batch(restoreQueries, 'write');
     }
 
-    // ===== إلغاء المدفوعات القديمة (نقدي/محفظة) =====
+    // ===== إلغاء المدفوعات القديمة =====
     const oldIsPrepaid = isPrepaidOrder(existingOrder);
     const oldIsMixed = isMixedOrder(existingOrder);
     const oldWalletId = sale.wallet_id;
@@ -10788,7 +10928,6 @@ async function updateOnlineOrder(request, env, ctx, headers, orderId, userId) {
       );
     }
 
-    // في الدفع المختلط، cash_paid هو مبلغ سيُحصّل عند التسليم وليس مبلغًا مدفوعًا سابقًا.
     if (oldCashPaid > 0.01 && !oldIsMixed) {
       const cashOld = await dbFirst(tx,
         "SELECT currency_id, exchange_rate FROM cash_register WHERE note LIKE ? ORDER BY created_at DESC LIMIT 1",
@@ -10809,7 +10948,7 @@ async function updateOnlineOrder(request, env, ctx, headers, orderId, userId) {
       );
     }
 
-    // لا نحذف القيود التاريخية عند تعديل الطلب؛ ننشئ قيودًا عكسية ثم نسجل القيود الجديدة.
+    // ===== عكس القيود المحاسبية القديمة =====
     const oldJournalEntries = await dbAll(tx,
       "SELECT id, reference_type FROM journal_entries WHERE (reference_type IN ('sale', 'sale_cogs') AND reference_id = ?) OR (reference_type = 'online_order' AND reference_id = ?) ORDER BY id",
       [sale.id, orderId]
@@ -10826,17 +10965,9 @@ async function updateOnlineOrder(request, env, ctx, headers, orderId, userId) {
       await createJournalEntry(tx, businessISODate(), `عكس قيد سابق لتعديل الطلب #${orderId}`, reversalDetails, 'update_online_order_reversal', orderId);
     }
 
-    // ===== إصلاح #9 (تعديل الطلب): حماية مستقبلية لمسار الدفع الآجل عند تعديل الطلب أونلاين =====
-    if (!isPrepaid && (normalizedPaymentMethod || '').toLowerCase().includes('credit')) {
-      salePaymentMethod = 'credit';
-    }
-
-    // ===== إصلاح #10 (تعديل الطلب): الدفع المختلط — المحفظة تُقضى أصلًا والباقي نقدي عند الاستلام =====
-    // ===== إصلاح #10 (تعديل الطلب): الدفع المختلط — المحفظة تُقضى أصلًا والباقي نقدي عند الاستلام =====
-// إصلاح: الشرط القديم كان يتحقق فقط من الكلمة الإنجليزية "mixed"، بينما normalizePaymentMethod
-// يُرجع دائمًا القيمة العربية "مختلط" — فكانت حالة التعديل إلى مختلط لا تُكتشف أبدًا.
-const isMixedUpdate = !isPrepaid && (normalizedPaymentMethod === 'مختلط' || (normalizedPaymentMethod || '').toLowerCase().includes('mixed'));
-if (isMixedUpdate) {
+    // ===== معالجة الدفع المختلط الجديد (إن وجد) =====
+    const isMixedUpdate = !isPrepaid && (normalizedPaymentMethod === 'مختلط' || (normalizedPaymentMethod || '').toLowerCase().includes('mixed'));
+    if (isMixedUpdate) {
       if (!prepaid_wallet_id) throw new Error('معرف المحفظة مطلوب للدفع المختلط');
       if (!prepaid_wallet_amount || parseFloat(prepaid_wallet_amount) <= 0) throw new Error('مبلغ الدفع بالمحفظة مطلوب وموجب في الدفع المختلط');
       const updWalletCurrencyId = wallet_currency_id || useCurrencyId;
@@ -10858,17 +10989,8 @@ if (isMixedUpdate) {
         [walletId, walletPaid, updWalletCurrencyId, `تحديث طلب #${orderId} (مختلط)`, sale.id]);
     }
 
-    // حذف عناصر الفاتورة القديمة
-    await dbRun(tx, "DELETE FROM sale_items WHERE sale_id = ?", [sale.id]);
-    await dbRun(tx, "DELETE FROM online_order_items WHERE order_id = ?", [orderId]);
-
-    // ===== حساب المبالغ النهائية ===== (لا نمسح إعدادات الدفع المختلط المحسوبة أعلاه)
-    if (!isMixedUpdate) {
-      saleStatus = isPrepaid ? 'completed' : 'pending';
-      salePaymentMethod = isPrepaid ? 'wallet' : 'pending';
-    }
-
-    if (isPrepaid) {
+    // ===== معالجة الدفع المسبق (إن وجد) =====
+    if (isPrepaid && !isMixedUpdate) {
       const walletRate = getCurrencyRateFast(useCurrencyId);
       walletPaid = convertFromBase(total, walletRate);
       walletId = prepaid_wallet_id;
@@ -10879,6 +11001,7 @@ if (isMixedUpdate) {
         [walletId, walletPaid, useCurrencyId, `تحديث طلب #${orderId}`, sale.id]);
     }
 
+    // ===== تحديث الفاتورة والطلب =====
     await dbRun(tx, `UPDATE sales SET 
       total_amount = ?, payment_method = ?, cash_paid = ?, wallet_paid = ?, wallet_id = ?, 
       paid_amount = ?, status = ?, note = ?, discount = ?, discount_type = ? WHERE id = ?`,
@@ -10889,7 +11012,11 @@ if (isMixedUpdate) {
       delivery_fee = ?, delivery_fee_payment = ?, order_date = COALESCE(?, order_date) WHERE id = ?`,
       [customer_name, mainPhone, customer_address, governorate, delivery_type, normalizedPaymentMethod, total, notes, delivery_fee, delivery_fee_payment, order_date || null, orderId]);
 
-    // ===== جلب كميات المخزون دفعة واحدة للخصم الجديد =====
+    // ===== حذف عناصر الطلب والفواتير القديمة =====
+    await dbRun(tx, "DELETE FROM sale_items WHERE sale_id = ?", [sale.id]);
+    await dbRun(tx, "DELETE FROM online_order_items WHERE order_id = ?", [orderId]);
+
+    // ===== خصم المخزون الجديد =====
     const stockCacheNew = {};
     if (newProductIds.length) {
       const stockRows = await dbAll(tx,
@@ -10905,7 +11032,6 @@ if (isMixedUpdate) {
     let totalCost = 0;
 
     // إدراج عناصر الطلب الجديدة
-   // إدراج عناصر الطلب الجديدة
     for (const item of items) {
       batchQueries.push({
         sql: "INSERT INTO online_order_items (order_id, product_id, product_name, quantity, unit_price, line_total, note, discount) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
@@ -10970,6 +11096,7 @@ if (isMixedUpdate) {
       args: [profit, totalCost, sale.id]
     });
 
+    // ===== القيود المحاسبية الجديدة =====
     const entryDate = businessISODate();
     if (isPrepaid && saleStatus === 'completed') {
       const desc = `فاتورة مبيعات ${sale.invoice_number} (طلب إنترنت #${orderId}) مدفوع مسبقاً`;
@@ -10993,7 +11120,6 @@ if (isMixedUpdate) {
         await createJournalEntry(tx, entryDate, `تكلفة طلب إنترنت #${orderId}`, cogsDetails, 'sale_cogs', sale.id);
       }
     } else if (isMixedUpdate) {
-      // ===== إصلاح #10 (تعديل الطلب): قيد كامل للدفع المختلط =====
       const customerReceivableId = getAccountIdFast('الذمم المدينة (عملاء)');
       const desc = `فاتورة مبيعات ${sale.invoice_number} (طلب إنترنت #${orderId}) مختلط`;
       const mWalletRate = getCurrencyRateFast(wallet_currency_id || useCurrencyId);
@@ -11030,7 +11156,6 @@ if (isMixedUpdate) {
         await createJournalEntry(tx, entryDate, desc, journalDetails, 'sale', sale.id);
       }
     } else if (!isPrepaid && salePaymentMethod === 'credit') {
-      // ===== إصلاح #9: قيد كامل للطلب الآجل أونلاين (حتى بلا رسوم توصيل) =====
       const customerReceivableId = getAccountIdFast('الذمم المدينة (عملاء)');
       const desc = `فاتورة مبيعات ${sale.invoice_number} (طلب إنترنت #${orderId}) آجل`;
       const rate = getCurrencyRateFast(useCurrencyId);
@@ -11046,7 +11171,7 @@ if (isMixedUpdate) {
           { account_id: cogsAccountId, debit: convertToBase(totalCost, rate), credit: 0 },
           { account_id: inventoryAccountId, debit: 0, credit: convertToBase(totalCost, rate) }
         ];
-        await createJournalEntry(tx, entryDate, `تكلفة طلب إنترنت #${orderId}`, cogsDetails, 'sale_cogs', saleId);
+        await createJournalEntry(tx, entryDate, `تكلفة طلب إنترنت #${orderId}`, cogsDetails, 'sale_cogs', sale.id);
       }
     }
 
@@ -11061,14 +11186,13 @@ if (isMixedUpdate) {
     committed = true;
 
     try {
-      // 1. إرسال إشعار للإدارة دائماً عند تعديل أي طلب
+      // إرسال إشعارات
       ctx.waitUntil(sendAdminFCMNotification(
         env,
         `✏️ تعديل الطلب #${orderId}`,
         `تم تعديل بيانات الطلب #${orderId}`
       ));
 
-      // 2. إرسال إشعار للمندوب المسند إليه الطلب (إن وجد)
       const targetDriverId = driver_id || existingOrder.assigned_driver_id;
       if (targetDriverId) {
         ctx.waitUntil(sendFCMNotification(
@@ -11077,7 +11201,8 @@ if (isMixedUpdate) {
           `تم تعديل بيانات الطلب #${orderId}، يرجى مراجعة التفاصيل`,
           null,
           `https://pos.ibnalmukhtar.com/driver/?order=${orderId}`,
-          targetDriverId
+          targetDriverId,
+          orderId
         ));
       }
 
@@ -11120,6 +11245,11 @@ async function handleRequest(request, env, ctx) {
     const url = new URL(request.url);
     const path = url.pathname;
     const method = request.method;
+
+    if (path === '/api/sync/pull' && method === 'GET') return await safeCloudSyncRoute(() => cloudSyncPull(request, env), 'pull');
+    if (path === '/api/sync/push' && method === 'POST') return await safeCloudSyncRoute(() => cloudSyncPush(request, env), 'push');
+    if (path === '/api/sync/summary' && method === 'GET') return await safeCloudSyncRoute(() => cloudSyncSummary(request, env), 'summary');
+    if (path === '/api/sync/snapshot' && method === 'GET') return await safeCloudSyncRoute(() => cloudSyncSnapshot(request, env), 'snapshot');
 
     // ---- نقاط عامة بدون مصادقة ----
     if (path === '/auth/login' && method === 'POST') return await handleLogin(request, env, corsHeaders);
@@ -11204,6 +11334,7 @@ async function handleRequest(request, env, ctx) {
     const isDriver = currentUser?.role === 'driver';
 
     try {
+      if (path === '/sync' && method === 'GET') return await syncOfflineData(request, env, corsHeaders);
       if (path === '/audit-logs/users' && method === 'GET') return await getAuditLogUsers(request, env, corsHeaders);
       if (path === '/audit-logs' && method === 'GET') return await getAuditLogs(request, env, corsHeaders);
       if (path === '/audit-logs/export' && method === 'GET') return await exportAuditLogs(request, env, corsHeaders);
@@ -11822,33 +11953,320 @@ function offlineStoredResponse(row) {
 
 export default {
   async fetch(request, env, ctx) {
-    const method = request.method.toUpperCase();
-    const operationId = !['GET','HEAD','OPTIONS'].includes(method) ? request.headers.get('X-Offline-Operation-Id') : null;
-    const requestPath = new URL(request.url).pathname;
-    if (operationId && !requestPath.startsWith('/auth/')) {
-      const stored = await getOfflineIdempotency(env, operationId);
-      if (stored) return offlineStoredResponse(stored);
+    try {
+      const method = request.method.toUpperCase();
+      const operationId = !['GET','HEAD','OPTIONS'].includes(method) ? request.headers.get('X-Offline-Operation-Id') : null;
+      const requestPath = new URL(request.url).pathname;
+      if (operationId && !requestPath.startsWith('/auth/')) {
+        try {
+          const stored = await getOfflineIdempotency(env, operationId);
+          if (stored) return offlineStoredResponse(stored);
+        } catch (e) {
+          console.error('فشل فحص idempotency:', e);
+        }
+      }
+      const bodyPromise = ['GET','HEAD','OPTIONS'].includes(method) ? Promise.resolve(null) : request.clone().json().catch(() => null);
+      const body = await bodyPromise;
+      const response = await handleRequest(request, env, ctx);
+      if (operationId && !requestPath.startsWith('/auth/')) {
+        try {
+          await saveOfflineIdempotency(env, operationId, request, response);
+        } catch (e) {
+          console.error('فشل حفظ idempotency:', e);
+        }
+      }
+      const url = new URL(request.url);
+      const event = auditEventFor(url.pathname, request.method, response.status);
+      if (event && url.pathname !== '/auth/login') {
+        try {
+          const user = await getCurrentUser(request, env);
+          const details = auditDetailsFromBody(body, url.pathname);
+          const entry = {
+            user_id: auditUserId(user), username: user?.username || null, role: user?.role || null,
+            action: event, resource: auditResource(url.pathname), resource_id: auditResourceId(url.pathname),
+            method: request.method, path: url.pathname, status_code: response.status, success: response.status < 400,
+            details: { ...details, page: request.headers.get('X-Page-Name') || null },
+            ip_address: request.headers.get('CF-Connecting-IP') || request.headers.get('X-Forwarded-For') || null,
+            user_agent: request.headers.get('User-Agent') || null
+          };
+          await writeAuditLog(env, entry);
+        } catch (auditErr) {
+          console.error('فشل كتابة سجل الرقابة:', auditErr);
+        }
+      }
+      return response;
+    } catch (fatalError) {
+      console.error('Fatal Uncaught Worker Exception:', fatalError);
+      return jsonResponse({
+        error: 'حدث خطأ غير متوقع في الخادم',
+        details: fatalError?.message || String(fatalError),
+        fatal: true
+      }, 500, corsHeaders);
     }
-    const bodyPromise = ['GET','HEAD','OPTIONS'].includes(method) ? Promise.resolve(null) : request.clone().json().catch(() => null);
-    const body = await bodyPromise;
-    const response = await handleRequest(request, env, ctx);
-    if (operationId && !requestPath.startsWith('/auth/')) await saveOfflineIdempotency(env, operationId, request, response);
-    const url = new URL(request.url);
-    const event = auditEventFor(url.pathname, request.method, response.status);
-    if (event && url.pathname !== '/auth/login') {
-      const user = await getCurrentUser(request, env);
-      const details = auditDetailsFromBody(body, url.pathname);
-      const entry = {
-        user_id: auditUserId(user), username: user?.username || null, role: user?.role || null,
-        action: event, resource: auditResource(url.pathname), resource_id: auditResourceId(url.pathname),
-        method: request.method, path: url.pathname, status_code: response.status, success: response.status < 400,
-        details: { ...details, page: request.headers.get('X-Page-Name') || null },
-        ip_address: request.headers.get('CF-Connecting-IP') || request.headers.get('X-Forwarded-For') || null,
-        user_agent: request.headers.get('User-Agent') || null
-      };
-      await writeAuditLog(env, entry);
-    }
-    return response;
   },
   scheduled
 };
+
+// ==================== API المزامنة الثنائية ====================
+async function sqliteHasColumn(client, table, column) {
+  const rows = await dbAll(client, `PRAGMA table_info(${table})`);
+  return rows.some(row => String(row.name) === column);
+}
+async function sqliteUniqueValue(client, table, column, preferred, excludeId = null) {
+  if (!preferred || !await sqliteHasColumn(client, table, column)) return preferred || null;
+  const base = String(preferred); let value = base; let suffix = 1;
+  while (await dbFirst(client, `SELECT 1 AS used FROM ${table} WHERE ${column} = ? ${excludeId ? 'AND rowid <> ?' : ''} LIMIT 1`, excludeId ? [value, excludeId] : [value])) value = `${base}-${suffix++}`;
+  return value;
+}
+function syncTokenValid(request, env) {
+  const expected = String(env.CLOUD_SYNC_TOKEN || env.SYNC_TOKEN || '').trim();
+  const bearer = String(request.headers.get('Authorization') || '').trim();
+  const received = String(request.headers.get('X-Sync-Token') || (bearer.toLowerCase().startsWith('bearer ') ? bearer.slice(7) : '') || '').trim();
+  return Boolean(expected && received && expected === received);
+}
+async function safeCloudSyncRoute(handler, routeName) {
+  try {
+    return await handler();
+  } catch (error) {
+    console.error(`فشل مسار المزامنة السحابية ${routeName}:`, error?.stack || error?.message || error);
+    return jsonResponse({ error: `فشل مسار المزامنة السحابية: ${error?.message || error}`, code: `CLOUD_SYNC_${String(routeName).toUpperCase()}_FAILED` }, 500, corsHeaders);
+  }
+}
+function normalizeCloudSyncSince(value) {
+  const fallback = '1970-01-01T00:00:00.000Z';
+  const raw = String(value || '').trim();
+  if (!raw) return fallback;
+  const date = new Date(raw);
+  return Number.isNaN(date.getTime()) ? fallback : date.toISOString();
+}
+async function cloudSyncPull(request, env) {
+  if (!syncTokenValid(request, env)) return jsonResponse({ error: 'رمز المزامنة غير صحيح' }, 401, corsHeaders);
+  const client = getTursoClient(env);
+  const url = new URL(request.url);
+  const since = normalizeCloudSyncSince(url.searchParams.get('since'));
+  const limit = Math.min(Math.max(Number(url.searchParams.get('limit') || 100), 1), 500);
+  const customersOnly = url.searchParams.get('include_customers') === '1';
+  if (customersOnly) {
+    const snapshotCustomers = await dbAll(client, `
+      SELECT c.*, (
+        SELECT GROUP_CONCAT(p.phone, '|||')
+        FROM online_customer_phones p
+        WHERE p.customer_id = c.id
+      ) AS phones_csv
+      FROM online_customers c
+      ORDER BY c.id
+      LIMIT ?
+    `, [limit]);
+    const events = snapshotCustomers.map(customer => {
+      const phones = String(customer.phones_csv || '').split('|||').map(phone => phone.trim()).filter(Boolean);
+      delete customer.phones_csv;
+      return {
+        event_id: `customer-snapshot-${customer.id}-${customer.updated_at || customer.created_at || '1'}`,
+        entity_type: 'online_customer',
+        cloud_id: String(customer.id),
+        event_type: 'upsert',
+        payload: { ...customer, ...(phones.length ? { phone: customer.phone || phones[0], phones } : {}) },
+        created_at: customer.updated_at || customer.created_at || since
+      };
+    });
+    return jsonResponse({ events, next_cursor: since }, 200, corsHeaders);
+  }
+  const sourceEvents = customersOnly ? [] : await dbAll(client, `SELECT event_id, entity_type, cloud_id, event_type, payload_json, created_at FROM sync_outbox WHERE datetime(created_at) > datetime(?) ORDER BY created_at ASC, id ASC LIMIT ?`, [since, limit]);
+  const events = [...sourceEvents];
+  if (url.searchParams.get('include_customers') === '1') {
+    const snapshotCustomers = await dbAll(client, 'SELECT * FROM online_customers ORDER BY id LIMIT 500');
+    for (const customer of snapshotCustomers) {
+      events.push({
+        event_id: `customer-snapshot-${customer.id}-${customer.updated_at || customer.created_at || '1'}`,
+        entity_type: 'online_customer',
+        cloud_id: String(customer.id),
+        event_type: 'upsert',
+        payload_json: JSON.stringify(customer),
+        created_at: customer.updated_at || customer.created_at || since
+      });
+    }
+  }
+  const idsFor = type => [...new Set(events.filter(event => event.entity_type === type && event.cloud_id !== null && event.cloud_id !== undefined).map(event => String(event.cloud_id)))];
+  const orderIds = idsFor('online_order');
+  const productIds = idsFor('product');
+  const customerIds = idsFor('online_customer');
+  const placeholders = ids => ids.map(() => '?').join(',');
+  const orders = orderIds.length ? await dbAll(client, `SELECT * FROM online_orders WHERE id IN (${placeholders(orderIds)})`, orderIds) : [];
+  const orderItems = orderIds.length ? await dbAll(client, `SELECT * FROM online_order_items WHERE order_id IN (${placeholders(orderIds)})`, orderIds) : [];
+  const products = productIds.length ? await dbAll(client, `SELECT * FROM products WHERE id IN (${placeholders(productIds)})`, productIds) : [];
+  const customers = customerIds.length ? await dbAll(client, `SELECT * FROM online_customers WHERE id IN (${placeholders(customerIds)})`, customerIds) : [];
+  const customerPhones = customerIds.length
+    ? await dbAll(client, `SELECT customer_id, phone FROM online_customer_phones WHERE customer_id IN (${placeholders(customerIds)}) ORDER BY id ASC`, customerIds)
+    : [];
+  const orderById = new Map(orders.map(row => [String(row.id), row]));
+  const productById = new Map(products.map(row => [String(row.id), row]));
+  const customerById = new Map(customers.map(row => [String(row.id), row]));
+  const phonesByCustomer = new Map();
+  for (const row of customerPhones) {
+    const key = String(row.customer_id);
+    if (!phonesByCustomer.has(key)) phonesByCustomer.set(key, []);
+    if (row.phone && !phonesByCustomer.get(key).includes(row.phone)) phonesByCustomer.get(key).push(row.phone);
+  }
+  const itemsByOrder = new Map();
+  for (const item of orderItems) {
+    const key = String(item.order_id);
+    if (!itemsByOrder.has(key)) itemsByOrder.set(key, []);
+    itemsByOrder.get(key).push(item);
+  }
+  const enriched = [];
+  for (const event of events) {
+    let payload = {};
+    try { payload = JSON.parse(event.payload_json || '{}'); } catch (_) { payload = {}; }
+    const cloudId = event.cloud_id === null || event.cloud_id === undefined ? null : String(event.cloud_id);
+    if (event.entity_type === 'online_order') {
+      payload = { ...(orderById.get(cloudId) || payload), items: itemsByOrder.get(cloudId) || [] };
+    } else if (event.entity_type === 'product') {
+      payload = productById.get(cloudId) || payload;
+    } else if (event.entity_type === 'online_customer') {
+      payload = { ...(customerById.get(cloudId) || payload) };
+      const phones = phonesByCustomer.get(cloudId) || [];
+      if (phones.length) {
+        payload.phones = phones;
+        payload.phone = payload.phone || phones[0];
+      }
+    } else if (SYNC_FINANCE_TABLES.has(event.entity_type) && cloudId !== null) {
+      const financeRows = await dbAll(client, `SELECT * FROM ${event.entity_type} WHERE id = ? LIMIT 1`, [cloudId]);
+      payload = financeRows[0] || payload;
+    }
+    enriched.push({ ...event, payload });
+  }
+  const last = sourceEvents[sourceEvents.length - 1];
+  return jsonResponse({ events: enriched, next_cursor: last?.created_at || since }, 200, corsHeaders);
+}
+async function cloudSyncPush(request, env) {
+  if (!syncTokenValid(request, env)) return jsonResponse({ error: 'رمز المزامنة غير صحيح' }, 401, corsHeaders);
+  const body = await request.json().catch(() => ({}));
+  const events = Array.isArray(body.events) ? body.events.slice(0, 500) : [];
+  const client = getTursoClient(env);
+  const tx = await client.transaction();
+  const acknowledged = [];
+  const mappings = [];
+  try {
+    await dbRun(tx, `INSERT INTO settings(key, value) VALUES ('sync_origin', 'cloud') ON CONFLICT(key) DO UPDATE SET value = excluded.value`);
+    for (const event of events) {
+      const idempotencyKey = String(event.idempotency_key || event.event_id || '').slice(0, 240);
+      if (!idempotencyKey) continue;
+      const inserted = await dbRun(tx, `INSERT OR IGNORE INTO sync_inbox(event_id, idempotency_key) VALUES (?, ?)`, [String(event.event_id || idempotencyKey), idempotencyKey]);
+      if (!inserted.changes) { acknowledged.push(idempotencyKey); continue; }
+      const payload = event.payload || {};
+      if (event.entity_type === 'online_orders' || event.entity_type === 'online_order') {
+        const cloudId = event.cloud_id || payload.cloud_order_id;
+        if (cloudId) {
+          const hasUpdatedAt = await sqliteHasColumn(tx, 'online_orders', 'updated_at');
+          await dbRun(tx, `UPDATE online_orders SET customer_name = COALESCE(?, customer_name), customer_phone = COALESCE(?, customer_phone), customer_address = COALESCE(?, customer_address), total_amount = COALESCE(?, total_amount), delivery_fee = COALESCE(?, delivery_fee), delivery_fee_payment = COALESCE(?, delivery_fee_payment), status = COALESCE(?, status), assigned_driver_id = COALESCE(?, assigned_driver_id), actual_payment_method = COALESCE(?, actual_payment_method), actual_collected = COALESCE(?, actual_collected)${hasUpdatedAt ? ', updated_at = CURRENT_TIMESTAMP' : ''} WHERE id = ?`, [payload.customer_name, payload.customer_phone, payload.customer_address, payload.total_amount, payload.delivery_fee, payload.delivery_fee_payment, payload.status, payload.assigned_driver_id, payload.actual_payment_method, payload.actual_collected, cloudId]);
+          if (Array.isArray(payload.items)) { await dbRun(tx, 'DELETE FROM online_order_items WHERE order_id = ?', [cloudId]); for (const item of payload.items) await dbRun(tx, `INSERT INTO online_order_items(order_id, product_id, product_name, quantity, unit_price, line_total, discount, note) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, [cloudId, item.product_id || null, item.product_name, item.quantity || 0, item.unit_price || 0, item.line_total || 0, item.discount || 0, item.note || null]); }
+        }
+        else if (!cloudId) {
+          const created = await dbRun(tx, `INSERT INTO online_orders(customer_name, customer_phone, customer_address, governorate, delivery_type, payment_method, total_amount, notes, delivery_fee, delivery_fee_payment, status, actual_payment_method, actual_collected) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [payload.customer_name, payload.customer_phone, payload.customer_address, payload.governorate, payload.delivery_type, payload.payment_method, payload.total_amount || 0, payload.notes, payload.delivery_fee || 0, payload.delivery_fee_payment || 'مع الطلب', payload.status || 'pending', payload.actual_payment_method, payload.actual_collected || 0]);
+          const newId = created.lastInsertRowid;
+          for (const item of (payload.items || [])) await dbRun(tx, `INSERT INTO online_order_items(order_id, product_id, product_name, quantity, unit_price, line_total, note, discount, variant_id, variant_label, sale_mode) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [newId, item.product_id || null, item.product_name, item.quantity || 0, item.unit_price || 0, item.line_total || 0, item.note || null, item.discount || 0, item.variant_id || null, item.variant_label || null, item.sale_mode || 'size']);
+          mappings.push({ idempotency_key: idempotencyKey, entity_type: 'order', local_id: payload.local_id, cloud_id: String(newId) });
+        }
+      } else if (event.entity_type === 'product' || event.entity_type === 'products') {
+        const cloudId = event.cloud_id || payload.site_product_id || `local-product-${payload.local_id || payload.id}`;
+        if (cloudId) {
+          const existingProduct = await dbFirst(tx, `SELECT id FROM products WHERE id = ? OR site_product_id = ? LIMIT 1`, [cloudId, String(cloudId)]);
+          const barcode = await sqliteUniqueValue(tx, 'products', 'barcode', payload.barcode, existingProduct?.id || null);
+          const productCode = await sqliteUniqueValue(tx, 'products', 'product_code', payload.product_code, existingProduct?.id || null);
+          const hasProductCode = await sqliteHasColumn(tx, 'products', 'product_code');
+          if (existingProduct) {
+            const codeSql = hasProductCode ? ', product_code = COALESCE(?, product_code)' : '';
+            await dbRun(tx, `UPDATE products SET name = COALESCE(?, name), barcode = COALESCE(?, barcode), price = COALESCE(?, price), cost = COALESCE(?, cost), stock_quantity = COALESCE(?, stock_quantity), is_active = COALESCE(?, is_active)${codeSql}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`, [payload.name, barcode, payload.price, payload.cost, payload.stock_quantity, payload.is_active, ...(hasProductCode ? [productCode] : []), existingProduct.id]);
+          } else {
+            const codeColumn = hasProductCode ? ', product_code' : ''; const codeValue = hasProductCode ? ', ?' : '';
+            await dbRun(tx, `INSERT INTO products(site_product_id, name, barcode${codeColumn}, price, cost, stock_quantity, is_active) VALUES (?, ?, ?${codeValue}, COALESCE(?,0), COALESCE(?,0), COALESCE(?,0), COALESCE(?,1))`, [String(cloudId), payload.name || 'منتج محلي', barcode || `SYNC-${String(cloudId).replace(/[^A-Za-z0-9_-]/g, '').slice(0, 24)}`, ...(hasProductCode ? [productCode || `SYNC-${String(cloudId).replace(/[^A-Za-z0-9_-]/g, '').slice(0, 24)}`] : []), payload.price, payload.cost, payload.stock_quantity, payload.is_active]);
+          }
+        }
+      } else if (event.entity_type === 'stock_movements' && payload.product_cloud_id && payload.quantity_change !== undefined) {
+        await dbRun(tx, `UPDATE products SET stock_quantity = stock_quantity + ?, updated_at = CURRENT_TIMESTAMP WHERE site_product_id = ?`, [payload.quantity_change, String(payload.product_cloud_id)]);
+      } else if (event.entity_type === 'sales' && payload.cloud_order_id) {
+        const hasUpdatedAt = await sqliteHasColumn(tx, 'online_orders', 'updated_at');
+        await dbRun(tx, `UPDATE online_orders SET actual_collected = COALESCE(?, actual_collected), actual_payment_method = COALESCE(?, actual_payment_method)${hasUpdatedAt ? ', updated_at = CURRENT_TIMESTAMP' : ''} WHERE id = ?`, [payload.paid_amount || payload.cash_paid || 0, payload.payment_method || null, String(payload.cloud_order_id)]);
+      } else if (event.entity_type === 'customers' || event.entity_type === 'online_customers') {
+        const hasPhone = await sqliteHasColumn(tx, 'online_customers', 'phone');
+        const hasAddress = await sqliteHasColumn(tx, 'online_customers', 'address');
+        const hasDefaultAddress = await sqliteHasColumn(tx, 'online_customers', 'default_address');
+        const hasUpdatedAt = await sqliteHasColumn(tx, 'online_customers', 'updated_at');
+        const phoneTable = await dbFirst(tx, "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'online_customer_phones'");
+        const existing = payload.id ? await dbFirst(tx, 'SELECT id FROM online_customers WHERE id = ? LIMIT 1', [payload.id]) : (hasPhone ? await dbFirst(tx, 'SELECT id FROM online_customers WHERE phone = ? LIMIT 1', [payload.phone || null]) : null);
+        if (existing) {
+          const sets = ['name = COALESCE(?, name)'];
+          const args = [payload.name];
+          if (hasPhone) { sets.push('phone = COALESCE(?, phone)'); args.push(payload.phone || null); }
+          if (hasAddress) { sets.push('address = COALESCE(?, address)'); args.push(payload.address || null); }
+          if (hasDefaultAddress) { sets.push('default_address = COALESCE(?, default_address)'); args.push(payload.address || null); }
+          if (hasUpdatedAt) sets.push('updated_at = CURRENT_TIMESTAMP');
+          args.push(existing.id);
+          await dbRun(tx, `UPDATE online_customers SET ${sets.join(', ')} WHERE id = ?`, args);
+          if (!hasPhone && phoneTable && payload.phone) await dbRun(tx, 'INSERT OR IGNORE INTO online_customer_phones(customer_id, phone) VALUES (?, ?)', [existing.id, payload.phone]);
+        } else {
+          const safeName = String(payload.name || 'عميل محلي').trim() || 'عميل محلي';
+          const safeAddress = payload.address ?? payload.default_address ?? '';
+          const safeDefaultAddress = payload.default_address ?? payload.address ?? '';
+          const columns = ['name']; const values = [safeName];
+          if (hasPhone) { columns.push('phone'); values.push(payload.phone || null); }
+          if (hasAddress) { columns.push('address'); values.push(safeAddress); }
+          if (hasDefaultAddress) { columns.push('default_address'); values.push(safeDefaultAddress); }
+          const result = await dbRun(tx, `INSERT INTO online_customers(${columns.join(', ')}) VALUES (${columns.map(() => '?').join(', ')})`, values);
+          if (!hasPhone && phoneTable && payload.phone) await dbRun(tx, 'INSERT OR IGNORE INTO online_customer_phones(customer_id, phone) VALUES (?, ?)', [result.lastInsertRowid, payload.phone]);
+        }
+      } else if (event.entity_type === 'drivers') {
+        const existing = await dbFirst(tx, 'SELECT id FROM drivers WHERE phone = ? LIMIT 1', [payload.phone || null]);
+        const username = await sqliteUniqueValue(tx, 'drivers', 'username', payload.username, existing?.id || null);
+        const hasUsername = await sqliteHasColumn(tx, 'drivers', 'username');
+        const hasUpdatedAt = await sqliteHasColumn(tx, 'drivers', 'updated_at');
+        if (existing) await dbRun(tx, `UPDATE drivers SET name = COALESCE(?, name), vehicle_info = COALESCE(?, vehicle_info), is_active = COALESCE(?, is_active)${hasUsername ? ', username = COALESCE(?, username)' : ''}${hasUpdatedAt ? ', updated_at = CURRENT_TIMESTAMP' : ''} WHERE id = ?`, [payload.name, payload.vehicle_info, payload.is_active, ...(hasUsername ? [username] : []), existing.id]);
+        else await dbRun(tx, `INSERT INTO drivers(name, phone, vehicle_info${hasUsername ? ', username' : ''}, is_active) VALUES (?, ?, ?${hasUsername ? ', ?' : ''}, COALESCE(?,1))`, [payload.name || 'مندوب محلي', payload.phone || null, payload.vehicle_info || null, ...(hasUsername ? [username] : []), payload.is_active]);
+      } else if (SYNC_FINANCE_TABLES.has(event.entity_type)) {
+        const table = event.entity_type;
+        const existingColumns = await dbAll(tx, `PRAGMA table_info(${table})`);
+        const allowed = new Set(existingColumns.map(column => String(column.name)));
+        const names = Object.keys(payload).filter(name => allowed.has(name));
+        if (!names.includes('id')) throw new Error(`السجل المالي ${table} لا يحتوي id صالحًا`);
+        const updates = names.filter(name => name !== 'id');
+        if (updates.length) {
+          await dbRun(tx, `INSERT INTO ${table} (${names.join(', ')}) VALUES (${names.map(() => '?').join(', ')}) ON CONFLICT(id) DO UPDATE SET ${updates.map(name => `${name} = excluded.${name}`).join(', ')}`, names.map(name => payload[name]));
+        }
+      }
+      acknowledged.push(idempotencyKey);
+    }
+    await dbRun(tx, `UPDATE settings SET value = 'local' WHERE key = 'sync_origin'`);
+    await tx.commit();
+    return jsonResponse({ success: true, acknowledged, mappings }, 200, corsHeaders);
+  } catch (error) { await tx.rollback(); return jsonResponse({ error: `فشل استقبال المزامنة: ${error.message}` }, 500, corsHeaders); }
+}
+
+async function cloudSyncSummary(request, env) {
+  if (!syncTokenValid(request, env)) return jsonResponse({ error: 'رمز المزامنة غير صحيح' }, 401, corsHeaders);
+  const client = getTursoClient(env);
+  const tables = { products: 'products', customers: 'online_customers', drivers: 'drivers', orders: 'online_orders', accounts: 'accounts', currencies: 'currencies', wallets: 'wallets', driver_accounts: 'driver_accounts', driver_order_receipts: 'driver_order_receipts', driver_transactions: 'driver_transactions', delivery_assignments: 'delivery_assignments', wallet_balances: 'wallet_balances', wallet_transactions: 'wallet_transactions', cash_register: 'cash_register', cash_vouchers: 'cash_vouchers', journal_entries: 'journal_entries', journal_entry_details: 'journal_entry_details', sales: 'sales', sale_items: 'sale_items', purchase_invoices: 'purchase_invoices', purchase_invoice_items: 'purchase_invoice_items', expenses: 'expenses', customer_payments: 'customer_payments', supplier_payments: 'supplier_payments' };
+  const counts = {};
+  for (const [key, table] of Object.entries(tables)) counts[key] = Number((await dbFirst(client, `SELECT COUNT(*) AS count FROM ${table}`))?.count || 0);
+  return jsonResponse({ counts, checked_at: new Date().toISOString() }, 200, corsHeaders);
+}
+const SYNC_FINANCE_TABLES = new Set(['accounts', 'currencies', 'wallets', 'driver_accounts', 'driver_order_receipts', 'driver_transactions', 'delivery_assignments', 'wallet_balances', 'wallet_transactions', 'cash_register', 'cash_vouchers', 'journal_entries', 'journal_entry_details', 'sales', 'sale_items', 'purchase_invoices', 'purchase_invoice_items', 'expenses', 'customer_payments', 'supplier_payments']);
+async function cloudSyncSnapshot(request, env) {
+  if (!syncTokenValid(request, env)) return jsonResponse({ error: 'رمز المزامنة غير صحيح' }, 401, corsHeaders);
+  const client = getTursoClient(env);
+  const params = new URL(request.url).searchParams;
+  const key = params.get('entity');
+  const limit = Math.min(Math.max(Number(params.get('limit') || 20), 1), 50);
+  const offset = Math.max(Number(params.get('offset') || 0), 0);
+  const tables = { products: 'products', customers: 'online_customers', drivers: 'drivers', orders: 'online_orders', accounts: 'accounts', currencies: 'currencies', wallets: 'wallets', driver_accounts: 'driver_accounts', driver_order_receipts: 'driver_order_receipts', driver_transactions: 'driver_transactions', delivery_assignments: 'delivery_assignments', wallet_balances: 'wallet_balances', wallet_transactions: 'wallet_transactions', cash_register: 'cash_register', cash_vouchers: 'cash_vouchers', journal_entries: 'journal_entries', journal_entry_details: 'journal_entry_details', sales: 'sales', sale_items: 'sale_items', purchase_invoices: 'purchase_invoices', purchase_invoice_items: 'purchase_invoice_items', expenses: 'expenses', customer_payments: 'customer_payments', supplier_payments: 'supplier_payments' };
+  const tableName = tables[key] || (SYNC_FINANCE_TABLES.has(key) ? key : null);
+  if (!tableName) return jsonResponse({ error: 'نوع غير مسموح' }, 400, corsHeaders);
+  const rows = await dbAll(client, `SELECT * FROM ${tableName} ORDER BY id LIMIT ? OFFSET ?`, [limit, offset]);
+  if (key === 'orders' && rows.length) {
+    const orderIds = rows.map(row => row.id);
+    const items = await dbAll(client, `SELECT * FROM online_order_items WHERE order_id IN (${orderIds.map(() => '?').join(',')})`, orderIds);
+    const itemsByOrder = new Map();
+    for (const item of items) { const id = String(item.order_id); if (!itemsByOrder.has(id)) itemsByOrder.set(id, []); itemsByOrder.get(id).push(item); }
+    for (const row of rows) row.items = itemsByOrder.get(String(row.id)) || [];
+  }
+  return jsonResponse({ entity: key, rows, count: rows.length, offset, next_offset: offset + rows.length, has_more: rows.length === limit }, 200, corsHeaders);
+}

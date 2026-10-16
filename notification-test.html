@@ -253,10 +253,16 @@
             min-width: 150px;
         }
     </style>
+    <script src="date-utils.js"></script>
     <script src="number-utils.js"></script>
+    <script src="document-utils.js"></script>
+    <script src="sidebar-config.js"></script>
+    <script src="api-client.js"></script>
     <script src="permissions.js"></script>
+    <script src="filter-utils.js"></script>
     <link rel="stylesheet" href="sidebar-v4.css" />
-    <script src="/offline-sync.js"></script>
+    <script src="offline-sync.js"></script>
+    <script src="notification-center-v3.js"></script>
 </head>
 <body>
     <div class="container">
@@ -311,7 +317,7 @@
             <button class="btn btn-primary" id="sendBtn" onclick="sendTestNotification()">
                 📨 إرسال الإشعار
             </button>
-            <button class="btn btn-outline" onclick="loadTokensStats()">
+            <button class="btn btn-outline" id="btn-refresh-token-stats" onclick="loadTokensStats()">
                 🔄 تحديث الإحصائيات
             </button>
         </div>
@@ -333,7 +339,9 @@
     </div>
 
     <script>
-        const API_BASE = 'https://api.ibnalmukhtar.com';
+        const API_BASE = (window.API_BASE_URL || (window.apiClient && window.apiClient.baseUrl) || localStorage.getItem('posApiBase') || 'https://api.ibnalmukhtar.com').replace(/\/$/, '');
+        let isSendingNotif = false;
+        let isLoadingTokens = false;
         let driverTokens = [];
         let adminTokens = [];
 
@@ -341,6 +349,8 @@
         // 1. جلب إحصائيات التوكنات
         // ============================================================
         async function loadTokensStats() {
+            if (isLoadingTokens) return;
+            isLoadingTokens = true;
             try {
                 const token = localStorage.getItem('pos_token') || localStorage.getItem('driverToken') || prompt('أدخل التوكن الخاص بك (Bearer Token):');
                 if (!token) {
@@ -357,7 +367,7 @@
                     throw new Error(`خطأ ${res.status}: ${error}`);
                 }
 
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 driverTokens = data.driver_tokens || [];
                 adminTokens = data.admin_tokens || [];
 
@@ -373,6 +383,8 @@
                 document.getElementById('fcmStatus').className = 'badge badge-danger';
                 console.error('❌ فشل جلب الإحصائيات:', err);
                 showResult(`❌ فشل جلب الإحصائيات: ${err.message}`, 'error');
+            } finally {
+                isLoadingTokens = false;
             }
         }
 
@@ -410,6 +422,8 @@
         // 2. إرسال إشعار اختبار
         // ============================================================
         async function sendTestNotification() {
+            if (isSendingNotif) return;
+            isSendingNotif = true;
             const btn = document.getElementById('sendBtn');
             const title = document.getElementById('notifTitle').value.trim() || '🧪 إشعار تجريبي';
             const body = document.getElementById('notifBody').value.trim() || 'هذا إشعار اختبار';
@@ -485,6 +499,7 @@
                 btn.disabled = false;
                 btn.textContent = '📨 إرسال الإشعار';
             }
+            isSendingNotif = false;
         }
 
         // ============================================================
@@ -521,8 +536,5 @@
         window.loadTokensStats = loadTokensStats;
     </script>
 <div id="sidebar-container"></div>
-    <script src="document-utils.js"></script>
-    <script src="sidebar-config.js"></script>
-    <script src="notification-center-v3.js"></script>
 </body>
 </html>

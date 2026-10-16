@@ -696,11 +696,15 @@
         }
     </style>
     <script src="number-utils.js"></script>
+    <script src="api-client.js"></script>
     <script src="permissions.js"></script>
     <script src="date-utils.js"></script>
+    <script src="document-utils.js"></script>
+    <script src="sidebar-config.js"></script>
     <script src="filter-utils.js"></script>
-    <script src="/offline-sync.js"></script>
-<link rel="stylesheet" href="sidebar-v4.css" />
+    <link rel="stylesheet" href="sidebar-v4.css" />
+    <script src="offline-sync.js"></script>
+    <script src="notification-center-v3.js"></script>
 </head>
 <body>
 
@@ -714,7 +718,7 @@
             <!-- Header -->
             <div class="flex-between mb-16">
                 <h2 style="display:flex;align-items:center;gap:10px;"><i class="fas fa-file-invoice text-primary"></i> الفواتير</h2>
-                <a href="sale.html" class="btn btn-success"><i class="fas fa-plus"></i> فاتورة جديدة</a>
+                <a id="btn-new-invoice" href="sale.html" class="btn btn-success"><i class="fas fa-plus"></i> فاتورة جديدة</a>
             </div>
 
             <!-- ===== Stats ===== -->
@@ -785,8 +789,8 @@
                 <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
                     <span><i class="fas fa-list"></i> قائمة الفواتير <span id="resultCount" class="text-muted" style="font-weight:400;">(0)</span></span>
                     <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                        <button class="btn btn-outline btn-sm" onclick="refreshInvoices()"><i class="fas fa-sync-alt"></i> تحديث</button>
-                        <button class="btn btn-outline btn-sm" onclick="printInvoicesList()"><i class="fas fa-print"></i> طباعة القائمة</button>
+                        <button id="btn-refresh-invoices" class="btn btn-outline btn-sm" onclick="refreshInvoices()"><i class="fas fa-sync-alt"></i> تحديث</button>
+                        <button id="btn-print-invoices-list" class="btn btn-outline btn-sm" onclick="printInvoicesList()"><i class="fas fa-print"></i> طباعة القائمة</button>
                     </div>
                 </div>
                 <div class="table-wrap" style="border:none;border-radius:0;">
@@ -819,7 +823,7 @@
         <div class="modal-box" style="max-width:460px;">
             <div class="modal-header">
                 <h3><i class="fas fa-truck"></i> إسناد طلب الإنترنت لمندوب</h3>
-                <button class="modal-close" onclick="closeAssignOnlineDriverModal()">&times;</button>
+                <button id="btn-close-assign-driver-modal" class="modal-close" onclick="closeAssignOnlineDriverModal()">&times;</button>
             </div>
             <div style="padding:16px;">
                 <input type="hidden" id="assignOnlineOrderId">
@@ -828,8 +832,8 @@
                     <option value="">جاري تحميل المندوبين...</option>
                 </select>
                 <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px;">
-                    <button class="btn btn-outline btn-sm" onclick="closeAssignOnlineDriverModal()">إلغاء</button>
-                    <button class="btn btn-primary btn-sm" onclick="submitAssignOnlineDriver()">إسناد الطلب</button>
+                    <button id="btn-cancel-assign-driver" class="btn btn-outline btn-sm" onclick="closeAssignOnlineDriverModal()">إلغاء</button>
+                    <button id="btn-submit-assign-driver" class="btn btn-primary btn-sm" onclick="submitAssignOnlineDriver()">إسناد الطلب</button>
                 </div>
             </div>
         </div>
@@ -843,7 +847,7 @@
         <div class="modal-box">
             <div class="modal-header">
                 <h3><i class="fas fa-file-invoice text-primary"></i> تفاصيل الفاتورة <span id="modalInvoiceNumber" style="font-weight:400;font-size:0.9rem;color:var(--muted);"></span></h3>
-                <button class="modal-close" onclick="closeModal()">&times;</button>
+                <button id="btn-close-invoice-modal" class="modal-close" onclick="closeModal()">&times;</button>
             </div>
             <div id="modalBody">
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
@@ -865,7 +869,7 @@
                 </div>
                 <div class="totals-box" id="modalTotals"></div>
                 <div style="display:flex;gap:10px;margin-top:18px;flex-wrap:wrap;justify-content:flex-end;border-top:1px solid var(--border);padding-top:16px;">
-                    <button class="btn btn-primary btn-sm" onclick="printInvoice()"><i class="fas fa-print"></i> طباعة</button>
+                    <button id="btn-modal-print-invoice" class="btn btn-primary btn-sm" onclick="printInvoice()"><i class="fas fa-print"></i> طباعة</button>
                     <button class="btn btn-danger btn-sm" id="modalCancelBtn" onclick="cancelInvoice()"><i class="fas fa-times"></i> إلغاء الفاتورة</button>
                     <button class="btn btn-warning btn-sm" id="modalReturnBtn" onclick="returnInvoice()"><i class="fas fa-undo"></i> إرجاع</button>
                     
@@ -879,7 +883,26 @@
         // ============================================================
         //  CONFIG
         // ============================================================
-        const API = 'https://api.ibnalmukhtar.com';
+        const API = window.API_BASE_URL || (window.apiClient ? window.apiClient.baseUrl : 'https://api.ibnalmukhtar.com');
+
+        // دالة الهروب الأمني لحماية النصوص من ثغرات XSS
+        function escapeHtml(str) {
+            if (str === null || str === undefined) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        // أقفال التزامن لمنع النقر المزدوج
+        let isCancelingSale = false;
+        let isReturningSale = false;
+        let isAssigningDriver = false;
+        let isLoadingInvoices = false;
+        let isPrintingInvoice = false;
+        let isPrintingList = false;
         const PAGE_SIZE = 15;
 
         let token = localStorage.getItem('pos_token') || '';
@@ -895,10 +918,6 @@
         // ============================================================
         //  TOAST
         // ============================================================
-        function escapeHtml(value) {
-            return String(value ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
-        }
-
         function showToast(msg, type = 'info') {
             const c = document.getElementById('toastContainer');
             const t = document.createElement('div');
@@ -937,7 +956,7 @@
                 const err = await res.json().catch(() => ({}));
                 throw new Error(err.error || err.message || `HTTP ${res.status}`);
             }
-            return res.json();
+            return res.json().catch(() => ({}));
         }
 
         // ============================================================
@@ -956,7 +975,11 @@
         //  LOAD INVOICES
         // ============================================================
         async function loadInvoices() {
+            if (isLoadingInvoices) return;
+            const refreshBtn = document.getElementById('btn-refresh-invoices');
             try {
+                isLoadingInvoices = true;
+                if (refreshBtn) refreshBtn.disabled = true;
                 const controller = window.__posFilterControllers?.invoices;
                 const state = controller?.getState() || POSFilters.load('invoices', { preset: 'today', limit: 20 });
                 const params = POSFilters.queryString({ ...state, page: currentPage });
@@ -971,6 +994,9 @@
                 showToast('فشل تحميل الفواتير: ' + err.message, 'error');
                 document.getElementById('invoiceBody').innerHTML =
                     `<tr><td colspan="7" class="text-center text-danger" style="padding:30px 0;"><i class="fas fa-exclamation-circle"></i> ${err.message}</td></tr>`;
+            } finally {
+                isLoadingInvoices = false;
+                if (refreshBtn) refreshBtn.disabled = false;
             }
         }
 
@@ -1040,7 +1066,7 @@
             modal?.classList.add('open');
             try {
                 const res = await fetch(`${API}/drivers`, { headers: { 'Authorization': `Bearer ${token}` } });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 if (!res.ok) throw new Error(data.error || 'فشل تحميل المندوبين');
                 const drivers = (data.drivers || []).filter(d => d.is_active === 1 || d.is_active === true);
                 select.innerHTML = '<option value="">-- اختر مندوبًا --</option>' + drivers.map(d => `<option value="${d.id}">${escapeHtml(d.name)}</option>`).join('');
@@ -1051,22 +1077,31 @@
         }
 
         async function submitAssignOnlineDriver() {
+            if (isAssigningDriver) return;
             if (!window.POSPermissions?.can('delivery.orders.manage')) return showToast('غير مصرح لك بهذه العملية', 'error');
             const orderId = Number(document.getElementById('assignOnlineOrderId').value);
             const driverId = Number(document.getElementById('assignOnlineDriverSelect').value);
             if (!orderId || !driverId) return showToast('اختر مندوبًا أولاً', 'warning');
+            const submitBtn = document.getElementById('btn-submit-assign-driver');
             try {
+                isAssigningDriver = true;
+                if (submitBtn) { submitBtn.disabled = true; submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الإسناد...'; }
                 const res = await fetch(`${API}/online-orders/assign-driver`, {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify({ order_id: orderId, driver_id: driverId })
                 });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 if (!res.ok) throw new Error(data.error || 'فشل إسناد الطلب');
                 closeAssignOnlineDriverModal();
                 showToast('تم إسناد الطلب للمندوب بنجاح', 'success');
                 await loadInvoices();
-            } catch (e) { showToast(e.message, 'error'); }
+            } catch (e) {
+                showToast(e.message, 'error');
+            } finally {
+                isAssigningDriver = false;
+                if (submitBtn) { submitBtn.disabled = false; submitBtn.innerHTML = 'إسناد الطلب'; }
+            }
         }
 
         // ============================================================
@@ -1308,9 +1343,13 @@
         //  CANCEL INVOICE
         // ============================================================
         async function cancelInvoice() {
+            if (isCancelingSale) return;
             if (!currentSaleId) return;
             if (!confirm('هل أنت متأكد من إلغاء هذه الفاتورة؟ سيتم إرجاع المنتجات للمخزون.')) return;
+            const btn = document.getElementById('modalCancelBtn');
             try {
+                isCancelingSale = true;
+                if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الإلغاء...'; }
                 const result = await fetchAPI('/sales/cancel', {
                     method: 'POST',
                     body: JSON.stringify({ sale_id: currentSaleId })
@@ -1320,12 +1359,17 @@
                 loadInvoices();
             } catch (err) {
                 showToast('فشل الإلغاء: ' + err.message, 'error');
+            } finally {
+                isCancelingSale = false;
+                if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-times"></i> إلغاء الفاتورة'; }
             }
         }
 
         async function quickCancel(id) {
+            if (isCancelingSale) return;
             if (!confirm('هل أنت متأكد من إلغاء هذه الفاتورة؟')) return;
             try {
+                isCancelingSale = true;
                 const res = await fetch(`${API}/sales/cancel`, {
                     method: 'POST',
                     headers: {
@@ -1334,7 +1378,7 @@
                     },
                     body: JSON.stringify({ sale_id: id })
                 });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 if (!res.ok) {
                     showToast(data.error || 'فشل الإلغاء', 'error');
                     return;
@@ -1343,6 +1387,8 @@
                 loadInvoices();
             } catch (err) {
                 showToast('حدث خطأ: ' + err.message, 'error');
+            } finally {
+                isCancelingSale = false;
             }
         }
 
@@ -1350,16 +1396,23 @@
         //  RETURN FULL INVOICE
         // ============================================================
         async function returnInvoice() {
+            if (isReturningSale) return;
             if (!currentSaleId) return;
             const reason = prompt('سبب إرجاع الفاتورة بالكامل:', 'إرجاع من العميل');
             if (reason === null) return;
+            const btn = document.getElementById('modalReturnBtn');
             try {
+                isReturningSale = true;
+                if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الإرجاع...'; }
                 await fetchAPI('/sales/full-return', { method: 'POST', body: JSON.stringify({ sale_id: currentSaleId, reason: reason.trim() }) });
                 showToast('تم إرجاع الفاتورة بالكامل وتحديث المخزون', 'success');
                 closeModal();
                 await loadInvoices();
             } catch (err) {
                 showToast('فشل الإرجاع: ' + err.message, 'error');
+            } finally {
+                isReturningSale = false;
+                if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-undo"></i> إرجاع'; }
             }
         }
 
@@ -1374,21 +1427,42 @@
             const e = document.getElementById('modalBody');
             if (window.POSDocs && e) POSDocs.exportExcel(e, {filename:`فاتورة-مبيعات-${formatPosNumber(currentSaleId||'مستند')}.xlsx`}).then(()=>showToast('تم تنزيل Excel','success')).catch(x=>showToast(x.message,'error'));
         }
-        function printInvoice() {
+        async function printInvoice() {
+            if (isPrintingInvoice) return;
             if (!window._salesInvoiceData) return showToast('لا توجد بيانات للطباعة', 'warning');
             if (!window.POSDocs) return showToast('تعذر تجهيز الفاتورة للطباعة', 'error');
-            POSDocs.printInvoiceData(window._salesInvoiceData, { title:'فاتورة مبيعات' })
-                .then(() => showToast('تم تجهيز الفاتورة للطباعة', 'success'))
-                .catch(e => showToast(e.message, 'error'));
+            const btn = document.getElementById('btn-modal-print-invoice');
+            try {
+                isPrintingInvoice = true;
+                if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الطباعة...'; }
+                await POSDocs.printInvoiceData(window._salesInvoiceData, { title:'فاتورة مبيعات' });
+                showToast('تم تجهيز الفاتورة للطباعة', 'success');
+            } catch (e) {
+                showToast(e.message, 'error');
+            } finally {
+                isPrintingInvoice = false;
+                if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-print"></i> طباعة'; }
+            }
         }
 
         // ============================================================
         //  EXPORT CSV
         // ============================================================
-        function printInvoicesList() {
+        async function printInvoicesList() {
+            if (isPrintingList) return;
             const table = document.getElementById('invoiceTable');
             if (!table || !window.POSDocs) return showToast('تعذر تجهيز قائمة الفواتير للطباعة', 'error');
-            POSDocs.printReport(table, { title: 'قائمة الفواتير' }).catch(e => showToast(e.message, 'error'));
+            const btn = document.getElementById('btn-print-invoices-list');
+            try {
+                isPrintingList = true;
+                if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; }
+                await POSDocs.printReport(table, { title: 'قائمة الفواتير' });
+            } catch (e) {
+                showToast(e.message, 'error');
+            } finally {
+                isPrintingList = false;
+                if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-print"></i> طباعة القائمة'; }
+            }
         }
 
         function exportCSV() {
@@ -1432,8 +1506,5 @@
         window.onload = init;
     </script>
 
-    <script src="document-utils.js"></script>
-    <script src="sidebar-config.js"></script>
-    <script src="notification-center-v3.js"></script>
 </body>
 </html>

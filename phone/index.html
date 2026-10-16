@@ -22,21 +22,22 @@
     <form id="loginForm">
       <div class="field"><label for="username">اسم المستخدم</label><input class="input" id="username" autocomplete="username" required placeholder="أدخل اسم المستخدم"></div>
       <div class="field"><label for="password">كلمة المرور</label><input class="input" id="password" type="password" autocomplete="current-password" required placeholder="أدخل كلمة المرور"></div>
-      <div class="actions"><button class="btn primary" id="loginBtn" type="submit">تسجيل الدخول</button><button class="btn ghost" type="button" onclick="goToMain()">العودة إلى النظام الرئيسي</button></div>
+      <div class="actions"><button class="btn primary" id="loginBtn" type="submit">تسجيل الدخول</button><button class="btn ghost" id="btn-goto-main-login" type="button" onclick="goToMain()">العودة إلى النظام الرئيسي</button></div>
     </form>
   </section>
   <section class="card" id="sessionCard" hidden>
-    <div class="session"><span id="userLabel">تم تسجيل الدخول</span><button onclick="logout()">تسجيل الخروج</button></div>
+    <div class="session"><span id="userLabel">تم تسجيل الدخول</span><button id="btn-phone-logout" onclick="logout()">تسجيل الخروج</button></div>
     <div class="apps">
-      <button class="app-btn" onclick="openApp('add_order_ph.html')"><span class="app-icon">＋</span><span><strong>إنشاء طلب إنترنت</strong><small>إضافة وتعديل الطلبات من الجوال</small></span></button>
-      <button class="app-btn" onclick="openApp('orders.html')"><span class="app-icon">☷</span><span><strong>إدارة طلبات الإنترنت</strong><small>المتابعة والحالات والمندوبون والطباعة</small></span></button>
+      <button class="app-btn" id="btn-open-add-order" onclick="openApp('add_order_ph.html')"><span class="app-icon">＋</span><span><strong>إنشاء طلب إنترنت</strong><small>إضافة وتعديل الطلبات من الجوال</small></span></button>
+      <button class="app-btn" id="btn-open-orders" onclick="openApp('orders.html')"><span class="app-icon">☷</span><span><strong>إدارة طلبات الإنترنت</strong><small>المتابعة والحالات والمندوبون والطباعة</small></span></button>
     </div>
-    <div class="actions"><button class="btn ghost" onclick="goToMain()">العودة إلى النظام الرئيسي</button></div>
+    <div class="actions"><button class="btn ghost" id="btn-goto-main-session" onclick="goToMain()">العودة إلى النظام الرئيسي</button></div>
   </section>
   <p class="footer">جلسة POS مستقلة عن جلسة تطبيق المندوب</p>
 </main>
 <script>
-const API='https://api.ibnalmukhtar.com';
+const API = (window.API_BASE_URL || (window.apiClient && window.apiClient.baseUrl) || localStorage.getItem('posApiBase') || 'https://api.ibnalmukhtar.com').replace(/\/$/, '');
+let isLoggingIn = false;
 let token=localStorage.getItem('pos_token')||'';
 const $=id=>document.getElementById(id);
 function showNotice(text,type='error'){const box=$('notice');box.textContent=text;box.className='notice show '+type;}
@@ -46,7 +47,35 @@ function goToMain(){location.href='../index.html';}
 function logout(){localStorage.removeItem('pos_token');localStorage.removeItem('pos_user');token='';$('sessionCard').hidden=true;$('loginCard').hidden=false;$('password').value='';showNotice('تم تسجيل الخروج','success');}
 function showSession(user){$('loginCard').hidden=true;$('sessionCard').hidden=false;$('userLabel').textContent=(user?.name||user?.username||'مستخدم POS')+' · جلسة POS نشطة';}
 async function validateSession(){if(!token)return;try{const res=await fetch(API+'/auth/me',{headers:{Authorization:'Bearer '+token,'Content-Type':'application/json','X-Page-Name':'phone/index.html'}});const data=await res.json().catch(()=>({}));if(res.status===401||res.status===403){localStorage.removeItem('pos_token');localStorage.removeItem('pos_user');token='';$('sessionCard').hidden=true;$('loginCard').hidden=false;showNotice('انتهت صلاحية الجلسة، يرجى تسجيل الدخول مرة أخرى','error');return;}if(!res.ok||!data.user){const saved=localStorage.getItem('pos_user');if(saved){try{showSession(JSON.parse(saved));}catch(_){}}return;}showSession(data.user);}catch(_){const saved=localStorage.getItem('pos_user');if(saved){try{showSession(JSON.parse(saved));showNotice('أنت في وضع عدم الاتصال؛ الجلسة المحلية محفوظة','info');}catch(__){}}}}
-$('loginForm').addEventListener('submit',async e=>{e.preventDefault();const btn=$('loginBtn');btn.disabled=true;btn.textContent='جارٍ التحقق...';try{const res=await fetch(API+'/auth/login',{method:'POST',headers:{'Content-Type':'application/json','X-Page-Name':'phone/index.html'},body:JSON.stringify({username:$('username').value.trim(),password:$('password').value})});const data=await res.json().catch(()=>({}));if(!res.ok||!data.token)throw Error(data.error||'بيانات الدخول غير صحيحة');token=data.token;localStorage.setItem('pos_token',token);localStorage.setItem('pos_user',JSON.stringify(data.user||{}));const target=nextPage();if(target)location.href=target;else showSession(data.user||{});}catch(err){showNotice(err.message||'فشل تسجيل الدخول','error');}finally{btn.disabled=false;btn.textContent='تسجيل الدخول';}});
+$('loginForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  if (isLoggingIn) return;
+  isLoggingIn = true;
+  const btn = $('loginBtn');
+  btn.disabled = true;
+  btn.textContent = 'جارٍ التحقق...';
+  try {
+    const res = await fetch(API + '/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Page-Name': 'phone/index.html' },
+      body: JSON.stringify({ username: $('username').value.trim(), password: $('password').value })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.token) throw Error(data.error || 'بيانات الدخول غير صحيحة');
+    token = data.token;
+    localStorage.setItem('pos_token', token);
+    localStorage.setItem('pos_user', JSON.stringify(data.user || {}));
+    const target = nextPage();
+    if (target) location.href = target;
+    else showSession(data.user || {});
+  } catch (err) {
+    showNotice(err.message || 'فشل تسجيل الدخول', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'تسجيل الدخول';
+    isLoggingIn = false;
+  }
+});
 if ('serviceWorker' in navigator && (location.protocol === 'http:' || location.protocol === 'https:')) navigator.serviceWorker.register('sw_phone.js').catch(()=>{});
 if (location.protocol === 'file:') {
     showNotice('⚠️ تنبيه: تم فتح الصفحة كملف محلي (file:///). ميزات العمل بدون إنترنت والـ PWA تتطلب تشغيل خادم محلي مثل Live Server (http://localhost) أو نطاق https.', 'error');

@@ -349,9 +349,12 @@
     .fade-in { animation: fadeIn 0.25s ease; }
     @keyframes fadeIn { from { opacity: 0.4; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
   </style>
+    <script src="api-client.js"></script>
     <script src="permissions.js"></script>
   <script src="number-utils.js"></script>
-    <script src="/offline-sync.js"></script>
+    <script src="sidebar-config.js"></script>
+    <script src="offline-sync.js"></script>
+    <script src="notification-center-v3.js"></script>
 <link rel="stylesheet" href="sidebar-v4.css" />
 </head>
 <body>
@@ -362,11 +365,11 @@
   <div class="header">
     <h1><i class="fas fa-boxes"></i> إدارة المخزون</h1>
     <div class="header-actions no-print">
-      <button class="btn-outline btn-sm" onclick="refreshData()"><i class="fas fa-sync-alt"></i> تحديث</button>
-      <button class="btn-outline btn-sm" onclick="markAllPending()"><i class="fas fa-flag"></i> تعيين غير مجرد</button>
-      <button class="btn-success btn-sm" onclick="saveAdjustment()"><i class="fas fa-save"></i> حفظ الجرد</button>
-      <button class="btn-primary btn-sm" onclick="window.POSDocs ? POSDocs.printReport(document.getElementById('inventoryApp'), {title:document.title}).catch(e => alert(e.message)) : window.print()"><i class="fas fa-print"></i> طباعة</button>
-      <button class="btn-outline btn-sm" onclick="printManualInventorySheet()"><i class="fas fa-clipboard-list"></i> طباعة ورقة جرد يدوي</button>
+      <button id="btn-refresh-inventory" class="btn-outline btn-sm" onclick="refreshData()"><i class="fas fa-sync-alt"></i> تحديث</button>
+      <button id="btn-mark-all-pending" class="btn-outline btn-sm" onclick="markAllPending()"><i class="fas fa-flag"></i> تعيين غير مجرد</button>
+      <button id="btn-save-inventory" class="btn-success btn-sm" onclick="saveAdjustment()"><i class="fas fa-save"></i> حفظ الجرد</button>
+      <button id="btn-print-inventory-report" class="btn-primary btn-sm" onclick="window.POSDocs ? POSDocs.printReport(document.getElementById('inventoryApp'), {title:document.title}).catch(e => alert(e.message)) : window.print()"><i class="fas fa-print"></i> طباعة</button>
+      <button id="btn-print-manual-sheet" class="btn-outline btn-sm" onclick="printManualInventorySheet()"><i class="fas fa-clipboard-list"></i> طباعة ورقة جرد يدوي</button>
     </div>
   </div>
 
@@ -383,8 +386,8 @@
   <div class="scan-bar no-print">
     <i class="fas fa-barcode barcode-icon"></i>
     <input type="text" id="barcodeInput" placeholder="امسح الباركود أو ابحث باسم المنتج..." />
-    <button onclick="searchProduct()"><i class="fas fa-search"></i> بحث</button>
-    <button onclick="clearSearch()" style="background:#e2e8f0;color:#1e293b;"><i class="fas fa-times"></i> إلغاء</button>
+    <button id="btn-search-inventory" onclick="searchProduct()"><i class="fas fa-search"></i> بحث</button>
+    <button id="btn-clear-inventory-search" onclick="clearSearch()" style="background:#e2e8f0;color:#1e293b;"><i class="fas fa-times"></i> إلغاء</button>
     <span class="search-hint"><i class="fas fa-info-circle"></i> المسح الضوئي يحدد المنتج ويركز على حقل الكمية</span>
   </div>
 
@@ -417,7 +420,7 @@
   <div id="movementDetails" class="card" style="display:none;">
     <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
       <h3 id="movementProductTitle"><i class="fas fa-history"></i> سجل حركة المنتج</h3>
-      <button class="btn btn-outline btn-sm" onclick="closeMovementDetails()"><i class="fas fa-times"></i> إغلاق</button>
+      <button id="btn-close-movement-details" class="btn btn-outline btn-sm" onclick="closeMovementDetails()"><i class="fas fa-times"></i> إغلاق</button>
     </div>
     <div id="movementList" class="mt-10"></div>
   </div>
@@ -430,7 +433,7 @@
       <div>💰 قيمة الفرق: <span id="netDiffValueSpan">0</span> ريال</div>
     </div>
     <div class="actions no-print">
-      <button class="btn-outline btn-sm" onclick="resetAllQuantities()" style="color:#b91c1c;border-color:#fca5a5;"><i class="fas fa-undo-alt"></i> إعادة تعيين</button>
+      <button id="btn-reset-inventory-quantities" class="btn-outline btn-sm" onclick="resetAllQuantities()" style="color:#b91c1c;border-color:#fca5a5;"><i class="fas fa-undo-alt"></i> إعادة تعيين</button>
     </div>
   </div>
 </div>
@@ -439,7 +442,23 @@
   (function() {
     'use strict';
 
-    const API_BASE = 'https://api.ibnalmukhtar.com'; // فارغ لاستخدام نفس الـ origin
+    const API_BASE = window.API_BASE_URL || (window.apiClient ? window.apiClient.baseUrl : 'https://api.ibnalmukhtar.com');
+
+    // دالة الهروب الأمني لحماية النصوص
+    function escapeHtml(str) {
+      if (str === null || str === undefined) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    // قفل التزامن لمنع النقر المزدوج
+    let isSavingInventory = false;
+    let isLoadingProducts = false;
+    let isPrintingManualSheet = false;
     let token = localStorage.getItem('pos_token') || '';
     if (!token) {
       // يمكن توجيه المستخدم لتسجيل الدخول
@@ -468,13 +487,13 @@
     const barcodeInput = document.getElementById('barcodeInput');
     const paginationControls = document.getElementById('paginationControls');
 
-    // دوال مساعدة
-    function escapeHtml(value) {
-      return String(value ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
-    }
-
     // جلب المنتجات مع الترقيم
     async function fetchProducts(page = 1) {
+      if (isLoadingProducts) return;
+      isLoadingProducts = true;
+      const refreshBtn = document.getElementById('btn-refresh-inventory');
+      if (refreshBtn) refreshBtn.disabled = true;
+
       const search = searchTerm.trim() || document.getElementById('barcodeInput').value.trim();
       const limit = pageSize;
       const offset = (page - 1) * limit;
@@ -486,7 +505,7 @@
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (!res.ok) throw new Error('فشل جلب المنتجات');
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
         products = data.products || [];
         productsTotal = Number(data.total || products.length);
 
@@ -506,6 +525,9 @@
       } catch (err) {
         tbody.innerHTML = `<tr><td colspan="9" class="text-center text-muted">خطأ في التحميل: ${err.message}</td></tr>`;
         console.error(err);
+      } finally {
+        isLoadingProducts = false;
+        if (refreshBtn) refreshBtn.disabled = false;
       }
     }
 
@@ -668,16 +690,24 @@
     };
 
     window.printManualInventorySheet = async function() {
+      if (isPrintingManualSheet) return;
+      const btn = document.getElementById('btn-print-manual-sheet');
+      const originalText = btn ? btn.innerHTML : '';
       const pageLimit = 100;
       const allProducts = [];
       let page = 1;
       let total = 0;
       try {
+        isPrintingManualSheet = true;
+        if (btn) {
+          btn.disabled = true;
+          btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التجهيز...';
+        }
         do {
           const url = `${API_BASE}/products?limit=${pageLimit}&page=${page}&sort=name`;
           const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
           if (!res.ok) throw new Error('فشل تحميل جميع المنتجات للطباعة');
-          const data = await res.json();
+          const data = await res.json().catch(() => ({}));
           const rows = Array.isArray(data.products) ? data.products : [];
           allProducts.push(...rows);
           total = Number(data.total || allProducts.length);
@@ -693,6 +723,12 @@
         setTimeout(() => sheet.remove(), 1200);
       } catch (error) {
         alert(error.message || 'تعذر تجهيز ورقة الجرد اليدوي');
+      } finally {
+        isPrintingManualSheet = false;
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = originalText;
+        }
       }
     };
 
@@ -752,7 +788,7 @@
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (!res.ok) throw new Error('فشل جلب الحركة');
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
         const movements = data.movements || [];
         if (movements.length === 0) {
           listDiv.innerHTML = '<div class="empty">لا توجد حركة مخزون لهذا المنتج</div>';
@@ -812,6 +848,9 @@
 
     // حفظ الجرد
     window.saveAdjustment = async function() {
+      if (isSavingInventory) return;
+      const saveBtn = document.getElementById('btn-save-inventory');
+
       const items = [];
       let hasChanges = false;
       products.forEach(p => {
@@ -838,6 +877,11 @@
       };
 
       try {
+        isSavingInventory = true;
+        if (saveBtn) {
+          saveBtn.disabled = true;
+          saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...';
+        }
         const res = await fetch(`${API_BASE}/inventory/adjust`, {
           method: 'POST',
           headers: {
@@ -846,11 +890,10 @@
           },
           body: JSON.stringify(payload)
         });
+        const result = await res.json().catch(() => ({}));
         if (!res.ok) {
-          const err = await res.json();
-          throw new Error(err.error || 'فشل الحفظ');
+          throw new Error(result.error || 'فشل الحفظ');
         }
-        const result = await res.json();
         alert('✅ تم حفظ الجرد بنجاح!\n' +
               `عدد المنتجات المعدلة: ${result.adjustments?.length || 0}\n` +
               `قيد اليومية: #${result.journal_entry_id || '—'}`);
@@ -858,6 +901,12 @@
       } catch (err) {
         alert('❌ خطأ في الحفظ: ' + err.message);
         console.error(err);
+      } finally {
+        isSavingInventory = false;
+        if (saveBtn) {
+          saveBtn.disabled = false;
+          saveBtn.innerHTML = '<i class="fas fa-save"></i> حفظ الجرد';
+        }
       }
     };
 

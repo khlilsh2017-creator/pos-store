@@ -195,11 +195,15 @@
       .search-box input, .search-box select { width: 100%; }
     }
   </style>
+    <script src="date-utils.js"></script>
     <script src="number-utils.js"></script>
+    <script src="document-utils.js"></script>
+    <script src="sidebar-config.js"></script>
+    <script src="api-client.js"></script>
     <script src="permissions.js"></script>
-    
-    <link rel="stylesheet" href="sidebar-v4.css" />
-    <script src="/offline-sync.js"></script>
+    <script src="filter-utils.js"></script>
+    <script src="offline-sync.js"></script>
+    <script src="notification-center-v3.js"></script>
 </head>
 <body>
 <div class="app-wrapper">
@@ -208,7 +212,7 @@
   <div class="container">
   <div class="header">
     <div><h1><i class="fas fa-boxes"></i> حركات المنتجات</h1><p style="color:var(--muted);margin-top:4px;">ابحث عن منتج واحد لعرض سجل حركاته ورصيده النهائي.</p></div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;"><a class="btn btn-outline" href="products.html"><i class="fas fa-boxes"></i> المنتجات</a><a class="btn btn-outline" href="index.html"><i class="fas fa-home"></i> الرئيسية</a><button class="btn btn-outline" id="printMovementBtn" onclick="printSelectedMovements()" disabled><i class="fas fa-print"></i> طباعة الحركة</button></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;"><a id="link-nav-products" class="btn btn-outline" href="products.html"><i class="fas fa-boxes"></i> المنتجات</a><a id="link-nav-home" class="btn btn-outline" href="index.html"><i class="fas fa-home"></i> الرئيسية</a><button class="btn btn-outline" id="printMovementBtn" onclick="printSelectedMovements()" disabled><i class="fas fa-print"></i> طباعة الحركة</button></div>
   </div>
 
   <div class="card no-print">
@@ -218,8 +222,8 @@
         <input type="search" id="productSearchInput" autocomplete="off" placeholder="اكتب اسم المنتج أو الباركود أو كود المنتج..." aria-label="بحث عن منتج" />
         <div id="productSuggestions" class="product-suggestions" hidden></div>
       </div>
-      <button class="btn" onclick="searchProducts()"><i class="fas fa-search"></i> بحث</button>
-      <button class="btn btn-outline" onclick="clearProductSelection()"><i class="fas fa-times"></i> مسح</button>
+      <button id="btn-search-product" class="btn" onclick="searchProducts()"><i class="fas fa-search"></i> بحث</button>
+      <button id="btn-clear-product" class="btn btn-outline" onclick="clearProductSelection()"><i class="fas fa-times"></i> مسح</button>
     </div>
     <div id="searchHint" class="text-muted" style="margin-top:9px;font-size:.85rem;">لن يتم عرض المنتجات أو الحركات حتى تحدد منتجًا.</div>
   </div>
@@ -242,7 +246,12 @@
 </div>
 
 <script>
-  const API_BASE = 'https://api.ibnalmukhtar.com';
+  const API_BASE = window.API_BASE_URL || (window.apiClient ? window.apiClient.baseUrl : 'https://api.ibnalmukhtar.com');
+
+  // أقفال التزامن لمنع النقر المتعدد
+  let isSearchingProduct = false;
+  let isLoadingMovements = false;
+  let isPrintingMovements = false;
   const token = localStorage.getItem('pos_token') || '';
   if (!token) {
     document.body.innerHTML = '<div style="text-align:center;padding:50px;"><h2>الرجاء تسجيل الدخول أولاً</h2><button class="btn" onclick="window.location.href=\'index.html\'">تسجيل الدخول</button></div>';
@@ -260,17 +269,21 @@
 
   function escapeHtml(value) { return String(value ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
   function qty(value) { return Number(value || 0).toLocaleString('ar-YE', { maximumFractionDigits: 2 }); }
-  function dateLabel(value) { const date = new Date(value); return Number.isNaN(date.getTime()) ? '-' : date.toLocaleString('ar-YE'); }
+  function dateLabel(value) { return window.posDateTime ? window.posDateTime(value) : (value || '-'); }
   function refLabel(value) { return ({ sale:'بيع', cancel_sale:'إلغاء بيع', return_sale:'إرجاع بيع', full_return_sale:'مرتجع كلي', undo_cancel_sale:'عكس إلغاء بيع', undo_return_sale:'عكس إرجاع', purchase:'شراء', cancel_purchase:'إلغاء شراء', return_purchase:'إرجاع شراء', undo_cancel_purchase:'عكس إلغاء شراء', online_order:'طلب إنترنت', update_online_order:'تحديث طلب إنترنت', update_online_order_revert:'عكس تحديث طلب', cancel_online_order:'إلغاء طلب إنترنت', delivery_failed:'فشل توصيل', online_order_return:'إرجاع طلب إنترنت', sale_update:'تحديث فاتورة', sale_update_revert:'عكس تحديث فاتورة', inventory_adjust:'تسوية جرد', initialization:'تأسيس النظام' }[value] || value || 'غير معروف'); }
   function setSearchMessage(message) { document.getElementById('searchHint').textContent = message; }
 
   async function searchProducts() {
+    if (isSearchingProduct) return;
     const term = searchInput.value.trim();
     if (term.length < 2) { suggestions.hidden = true; setSearchMessage('اكتب حرفين على الأقل للبحث عن منتج.'); return; }
     setSearchMessage('جاري البحث عن المنتج...');
+    const searchBtn = document.getElementById('btn-search-product');
     try {
+      isSearchingProduct = true;
+      if (searchBtn) { searchBtn.disabled = true; searchBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; }
       const res = await fetch(`${API_BASE}/products/search?term=${encodeURIComponent(term)}`, { headers: { Authorization: `Bearer ${token}` } });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'فشل البحث عن المنتج');
       searchResults = Array.isArray(data.results) ? data.results : [];
       suggestions.innerHTML = searchResults.length ? searchResults.map((p, index) => `<button type="button" class="product-suggestion" data-index="${index}"><span><strong>${escapeHtml(p.name)}</strong><small style="display:block;color:var(--muted)">${escapeHtml(p.barcode || p.product_code || 'بدون كود')}</small></span><span>الرصيد: ${qty(p.stock_quantity)}</span></button>`).join('') : '<div class="empty-state" style="padding:20px">لا يوجد منتج مطابق</div>';
@@ -278,6 +291,10 @@
       suggestions.querySelectorAll('.product-suggestion').forEach(button => button.addEventListener('click', () => selectProduct(searchResults[Number(button.dataset.index)])));
       setSearchMessage(searchResults.length ? `تم العثور على ${searchResults.length} منتج؛ اختر منتجًا واحدًا لعرض حركاته.` : 'لم يتم العثور على منتج مطابق.');
     } catch (error) { suggestions.hidden = true; setSearchMessage(error.message); }
+    finally {
+      isSearchingProduct = false;
+      if (searchBtn) { searchBtn.disabled = false; searchBtn.innerHTML = '<i class="fas fa-search"></i> بحث'; }
+    }
   }
 
   function selectProduct(product) {
@@ -295,13 +312,15 @@
 
   async function loadSelectedMovements(page = 1) {
     if (!selectedProduct) return;
+    if (isLoadingMovements) return;
     const card = document.getElementById('movementCard');
     const empty = document.getElementById('movementEmpty');
     card.hidden = false; empty.hidden = true;
     document.getElementById('movementTableBody').innerHTML = '<tr><td colspan="9" class="loading">جاري تحميل حركات المنتج...</td></tr>';
     try {
+      isLoadingMovements = true;
       const res = await fetch(`${API_BASE}/products/${selectedProduct.id}/stock-movements?limit=${movementLimit}&page=${page}`, { headers: { Authorization: `Bearer ${token}` } });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'فشل جلب حركات المنتج');
       lastMovementData = data; movementPage = page; movementMeta = data.pagination || { total: (data.movements || []).length };
       document.getElementById('closingBalance').textContent = qty(data.closing_balance ?? data.current_stock);
@@ -312,6 +331,8 @@
     } catch (error) {
       document.getElementById('movementTableBody').innerHTML = `<tr><td colspan="9" class="empty-state">${escapeHtml(error.message)}</td></tr>`;
       document.getElementById('movementPager').innerHTML = '';
+    } finally {
+      isLoadingMovements = false;
     }
   }
 
@@ -326,7 +347,7 @@
 
   function renderMovementPager() {
     const totalPages = Math.max(1, Math.ceil(Number(movementMeta.total || 0) / movementLimit));
-    document.getElementById('movementPager').innerHTML = `<button class="btn btn-outline btn-sm" ${movementPage <= 1 ? 'disabled' : ''} onclick="loadSelectedMovements(${movementPage - 1})">السابق</button><span style="padding:6px 10px">صفحة ${movementPage} من ${totalPages}</span><button class="btn btn-outline btn-sm" ${movementPage >= totalPages ? 'disabled' : ''} onclick="loadSelectedMovements(${movementPage + 1})">التالي</button>`;
+    document.getElementById('movementPager').innerHTML = `<button id="btn-prev-movements" class="btn btn-outline btn-sm" ${movementPage <= 1 ? 'disabled' : ''} onclick="loadSelectedMovements(${movementPage - 1})">السابق</button><span style="padding:6px 10px">صفحة ${movementPage} من ${totalPages}</span><button id="btn-next-movements" class="btn btn-outline btn-sm" ${movementPage >= totalPages ? 'disabled' : ''} onclick="loadSelectedMovements(${movementPage + 1})">التالي</button>`;
   }
 
   function clearProductSelection() {
@@ -336,18 +357,26 @@
   }
 
   async function printSelectedMovements() {
+    if (isPrintingMovements) return;
     if (!selectedProduct || !window.POSDocs) return alert('حدد منتجًا أولًا أو تحقق من محرك الطباعة');
+    const printBtn = document.getElementById('printMovementBtn');
     try {
+      isPrintingMovements = true;
+      if (printBtn) { printBtn.disabled = true; printBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التجهيز...'; }
       const all = []; let page = 1; let total = 0;
       do {
         const res = await fetch(`${API_BASE}/products/${selectedProduct.id}/stock-movements?limit=100&page=${page}`, { headers: { Authorization: `Bearer ${token}` } });
-        const data = await res.json(); if (!res.ok) throw new Error(data.error || 'فشل تحميل الحركات للطباعة');
+        const data = await res.json().catch(() => ({})); if (!res.ok) throw new Error(data.error || 'فشل تحميل الحركات للطباعة');
         all.push(...(data.movements || [])); total = Number(data.pagination?.total || all.length); if (!(data.movements || []).length) break; page += 1;
       } while (all.length < total);
       const sheet = document.createElement('section');
       sheet.innerHTML = `<h2>كشف حركة المنتج</h2><p><strong>المنتج:</strong> ${escapeHtml(selectedProduct.name)} | <strong>الرصيد النهائي:</strong> ${qty(lastMovementData?.closing_balance ?? selectedProduct.stock_quantity)}</p><table><thead><tr><th>#</th><th>التاريخ</th><th>النوع / المرجع</th><th>قبل</th><th>التغيير</th><th>بعد</th><th>المورد</th><th>المستخدم</th><th>الملاحظة</th></tr></thead><tbody>${all.map((m, i) => `<tr><td>${i + 1}</td><td>${dateLabel(m.created_at)}</td><td>${escapeHtml(refLabel(m.reference_type))} ${m.reference_id ? '#'+escapeHtml(m.reference_id) : ''}</td><td>${qty(m.old_quantity)}</td><td>${qty(m.quantity_change)}</td><td>${qty(m.new_quantity)}</td><td>${escapeHtml(m.supplier_name || '-')}</td><td>${escapeHtml(m.created_by_name || '-')}</td><td>${escapeHtml(m.note || '-')}</td></tr>`).join('')}</tbody></table>`;
       document.body.appendChild(sheet); await POSDocs.printReport(sheet, { title: `كشف حركة ${selectedProduct.name}` }); setTimeout(() => sheet.remove(), 1200);
     } catch (error) { alert(error.message); }
+    finally {
+      isPrintingMovements = false;
+      if (printBtn) { printBtn.disabled = false; printBtn.innerHTML = '<i class="fas fa-print"></i> طباعة الحركة'; }
+    }
   }
 
   searchInput.addEventListener('input', () => { clearTimeout(searchTimer); searchTimer = setTimeout(searchProducts, 350); });
@@ -360,9 +389,5 @@
   window.printSelectedMovements = printSelectedMovements;
   }
 </script>
-    <script src="document-utils.js"></script>
-    <script src="sidebar-config.js"></script>
-    <script src="notification-center-v3.js"></script>
-    <script src="filter-utils.js"></script>
 </body>
 </html>

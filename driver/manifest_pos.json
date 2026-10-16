@@ -28,8 +28,8 @@
   "categories": ["business", "finance"],
   "screenshots": [
     {
-      "src": "/driver/screenshots/pos-reports.png",
-      "sizes": "1920x1080",
+      "src": "/driver/icon-512x512.png",
+      "sizes": "512x512",
       "type": "image/png",
       "form_factor": "wide",
       "label": "لوحة التقارير المالية"

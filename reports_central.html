@@ -16,12 +16,16 @@
     @media(max-width:760px){.main-content{padding:14px}.page-toolbar{align-items:flex-start}.page-toolbar h2{font-size:1.08rem}.toolbar-actions{width:100%;margin-right:0}.toolbar-actions .btn{flex:1}.summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.section-card,.filter-shell{padding:12px}.data-table{min-width:720px}}
     @media(max-width:430px){.summary-grid{grid-template-columns:1fr}.summary-card{padding:12px}.report-picker button{flex:1}.toolbar-actions{display:grid;grid-template-columns:repeat(2,1fr)}}
   </style>
-  <script src="number-utils.js"></script>
-  <script src="permissions.js"></script>
-  <link rel="stylesheet" href="sidebar-v4.css">
-  <script src="/offline-sync.js"></script>
-
-
+  <script src="date-utils.js"></script>
+    <script src="number-utils.js"></script>
+    <script src="document-utils.js"></script>
+    <script src="sidebar-config.js"></script>
+    <script src="api-client.js"></script>
+    <script src="permissions.js"></script>
+    <script src="filter-utils.js"></script>
+    <script src="offline-sync.js"></script>
+    <script src="notification-center-v3.js"></script>
+    <link rel="stylesheet" href="sidebar-v4.css" />
 </head>
 <body>
   <div class="app-wrapper">
@@ -50,7 +54,11 @@
   </div>
   <div class="toast-container" id="toastContainer"></div>
   <script>
-    const API='https://api.ibnalmukhtar.com';
+    const API = (window.API_BASE_URL || (window.apiClient && window.apiClient.baseUrl) || 'https://api.ibnalmukhtar.com').replace(/\/$/, '');
+    let isLoadingDashboard = false;
+    let isLoadingReport = false;
+    let isPrintingReport = false;
+    let isExportingReport = false;
     const token=localStorage.getItem('pos_token')||'';
     if(!token) location.href='index.html';
     const auth=()=>({Authorization:`Bearer ${token}`});
@@ -97,19 +105,41 @@
     function renderOrders(data){const rows=data.orders||data.data||[];return table(rows,[{key:'id',label:'رقم الطلب',render:r=>`<strong>#${esc(r.id)}</strong>`},{key:'customer_name',label:'العميل'},{key:'total_amount',label:'المبلغ',render:r=>money(r.total_amount)},{key:'status',label:'الحالة'},{key:'driver_name',label:'المندوب'},{key:'order_date',label:'التاريخ',render:r=>esc(r.order_date||r.created_at||'-')}])}
     function renderCash(data){const rows=data.balances||data.data||[];return `<div class="metric-grid">${metric('الإجمالي الأساسي',money(data.total_base))}</div>`+table(rows,[{key:'code',label:'العملة'},{key:'balance',label:'الرصيد',render:r=>money(r.balance)},{key:'balance_base',label:'بالأساس',render:r=>money(r.balance_base)}])}
     function renderReport(data,report){if(report.kind==='daily')return renderDaily(data);if(report.kind==='products')return renderProducts(data);if(report.kind==='customers')return renderCustomers(data);if(report.kind==='payment')return renderPayment(data);if(report.kind==='orders-status')return renderOrdersStatus(data);if(report.kind==='stock')return renderStock(data);if(report.kind==='drivers'||report.kind==='drivers-summary')return renderDrivers(data);if(report.kind==='aging')return renderAging(data);if(report.kind==='orders')return renderOrders(data);if(report.kind==='cash')return renderCash(data);return genericTable(data)}
-    async function loadReport(key){const report=REPORTS.find(item=>item.key===key)||REPORTS[0];currentReport=report;currentRows=[];setActive(report.key);document.getElementById('reportStatus').textContent='جاري التحميل';document.getElementById('reportOutput').innerHTML='<div class="loading"><i class="fas fa-spinner fa-spin"></i>جاري تحميل التقرير...</div>';try{const data=await getJSON(report.endpoint);currentData=data;const html=renderReport(data,report);document.getElementById('reportOutput').innerHTML=html;document.getElementById('lastReportOutput').innerHTML=html;document.getElementById('lastReportDescription').textContent=`${report.title} — تم التحديث الآن`;document.getElementById('lastReportCount').textContent=currentRows.length?`${number(currentRows.length)} صف`:'ملخص';document.getElementById('reportStatus').textContent='تم التحديث';}catch(error){document.getElementById('reportOutput').innerHTML=`<div class="empty danger-text"><div><i class="fas fa-circle-exclamation"></i>${esc(error.message)}</div></div>`;document.getElementById('reportStatus').textContent='فشل التحميل';toast(error.message,'error')}}
+    async function loadReport(key){if(isLoadingReport)return;isLoadingReport=true;const report=REPORTS.find(item=>item.key===key)||REPORTS[0];currentReport=report;currentRows=[];setActive(report.key);document.getElementById('reportStatus').textContent='جاري التحميل';document.getElementById('reportOutput').innerHTML='<div class="loading"><i class="fas fa-spinner fa-spin"></i>جاري تحميل التقرير...</div>';try{const data=await getJSON(report.endpoint);currentData=data;const html=renderReport(data,report);document.getElementById('reportOutput').innerHTML=html;document.getElementById('lastReportOutput').innerHTML=html;document.getElementById('lastReportDescription').textContent=`${report.title} — تم التحديث الآن`;document.getElementById('lastReportCount').textContent=currentRows.length?`${number(currentRows.length)} صف`:'ملخص';document.getElementById('reportStatus').textContent='تم التحديث';}catch(error){document.getElementById('reportOutput').innerHTML=`<div class="empty danger-text"><div><i class="fas fa-circle-exclamation"></i>${esc(error.message)}</div></div>`;document.getElementById('reportStatus').textContent='فشل التحميل';toast(error.message,'error')}finally{isLoadingReport=false}}
     function updateSummary(data,dashboard){document.getElementById('summarySales').textContent=money(data?.total_sales);document.getElementById('summaryProfit').textContent=money(data?.gross_profit);document.getElementById('summaryInvoices').textContent=number(data?.invoices_count);document.getElementById('summaryPeriod').textContent=data?.from?`${data.from} إلى ${data.to}`:'الفترة الحالية';document.getElementById('summaryOrders').textContent=number(dashboard?.orders?.summary?.order_count);document.getElementById('summaryAlerts').textContent=number(dashboard?.stock?.summary?.total)}
     function renderInsights(dashboard){const payment=dashboard.payment?.rows||[],orders=dashboard.orders?.rows||[],stock=dashboard.stock?.summary||{};const top=payment[0];document.getElementById('quickInsights').innerHTML=`<div class="insight-row"><span><i class="fas fa-money-bill-wave"></i> طريقة الدفع الأعلى</span><strong>${esc(top?.payment_method||'لا توجد بيانات')}</strong></div><div class="insight-row"><span><i class="fas fa-truck"></i> أكثر حالة طلبات</span><strong>${esc(orders[0]?.status||'لا توجد بيانات')}</strong></div><div class="insight-row"><span><i class="fas fa-box-open"></i> مخزون يحتاج تدخلاً</span><strong class="${stock.total?'warning-text':'success-text'}">${stock.total?number(stock.total)+' منتج':'لا توجد تنبيهات'}</strong></div><div class="insight-row"><span><i class="fas fa-calendar-days"></i> نطاق العرض</span><strong>${esc(period().from||'كل الفترات')} ${period().to?'— '+esc(period().to):''}</strong></div>`}
-    async function loadDashboard(){const status=document.getElementById('reportStatus');status.textContent='جاري تحديث المؤشرات';const requests=[getJSON('/reports/daily'),getJSON('/reports/payment-mix'),getJSON('/reports/online-order-status'),getJSON('/reports/stock-alerts')];const [daily,payment,orders,stock]=await Promise.all(requests.map(request=>request.catch(error=>({error:error.message}))));if(daily.error)toast(daily.error,'error');updateSummary(daily,{payment,orders,stock});renderInsights({payment,orders,stock});status.textContent='المؤشرات محدثة';await loadReport(currentReport.key)}
+    async function loadDashboard() {
+        if (isLoadingDashboard) return;
+        const btn = document.getElementById('refreshDashboard');
+        const origText = btn ? btn.innerHTML : '';
+        try {
+            isLoadingDashboard = true;
+            if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التحديث...'; }
+            const status = document.getElementById('reportStatus');
+            status.textContent = 'جاري تحديث المؤشرات';
+            const requests = [getJSON('/reports/daily'), getJSON('/reports/payment-mix'), getJSON('/reports/online-order-status'), getJSON('/reports/stock-alerts')];
+            const [daily, payment, orders, stock] = await Promise.all(requests.map(request => request.catch(error => ({ error: error.message }))));
+            if (daily.error) toast(daily.error, 'error');
+            updateSummary(daily, { payment, orders, stock });
+            renderInsights({ payment, orders, stock });
+            status.textContent = 'المؤشرات محدثة';
+            await loadReport(currentReport.key);
+        } finally {
+            isLoadingDashboard = false;
+            if (btn) { btn.disabled = false; btn.innerHTML = origText; }
+        }
+    }
     function csvValue(value){return `"${String(value??'').replaceAll('"','""')}"`}
-    function exportCurrent(){if(!currentRows.length)return toast('لا توجد صفوف لتصديرها','warning');const keys=Object.keys(currentRows[0]);const csv='\\ufeff'+[keys,...currentRows.map(row=>keys.map(key=>row[key]))].map(row=>row.map(csvValue).join(',')).join('\\n');const link=document.createElement('a');link.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));link.download=`report-${currentReport.key}-${new Date().toISOString().slice(0,10)}.csv`;link.click();URL.revokeObjectURL(link.href);toast('تم تصدير التقرير بصيغة CSV','success')}
-    function printCurrent(){const target=document.getElementById('lastReportOutput');if(!target.textContent.trim())return toast('لا يوجد تقرير للطباعة','warning');if(window.POSDocs?.printReport)POSDocs.printReport(target,{title:reportTitle(currentReport)}).catch(error=>toast(error.message,'error'));else window.print()}
+    function exportCurrent() {
+        if (isExportingReport) return;
+        isExportingReport = true;
+        setTimeout(() => { isExportingReport = false; }, 1000);if(!currentRows.length)return toast('لا توجد صفوف لتصديرها','warning');const keys=Object.keys(currentRows[0]);const csv='\\ufeff'+[keys,...currentRows.map(row=>keys.map(key=>row[key]))].map(row=>row.map(csvValue).join(',')).join('\\n');const link=document.createElement('a');link.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));link.download=`report-${currentReport.key}-${new Date().toISOString().slice(0,10)}.csv`;link.click();URL.revokeObjectURL(link.href);toast('تم تصدير التقرير بصيغة CSV','success')}
+    function printCurrent() {
+        if (isPrintingReport) return;
+        isPrintingReport = true;
+        setTimeout(() => { isPrintingReport = false; }, 1000);const target=document.getElementById('lastReportOutput');if(!target.textContent.trim())return toast('لا يوجد تقرير للطباعة','warning');if(window.POSDocs?.printReport)POSDocs.printReport(target,{title:reportTitle(currentReport)}).catch(error=>toast(error.message,'error'));else window.print()}
     window.loadAll=loadDashboard;window.loadDailyReport=()=>loadReport('daily');window.loadAdvancedReport=loadReport;
     document.addEventListener('DOMContentLoaded',()=>{renderPicker();document.getElementById('refreshDashboard').addEventListener('click',loadDashboard);document.getElementById('printCurrent').addEventListener('click',printCurrent);document.getElementById('exportCurrent').addEventListener('click',exportCurrent);loadDashboard()});
   </script>
-  <script src="document-utils.js"></script>
-  <script src="sidebar-config.js"></script>
-  <script src="notification-center-v3.js"></script>
-  <script src="filter-utils.js"></script>
 </body>
 </html>

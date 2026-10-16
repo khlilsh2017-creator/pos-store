@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
 
     <!-- ===== مكتبات Firebase للإشعارات ===== -->
-     <script src="/api-client.js"></script>  <!-- ⬅️ أضف هذا -->
+     <script src="api-client.js"></script>  <!-- ⬅️ أضف هذا -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js">
     </script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging-compat.js">
@@ -594,7 +594,7 @@
     <script src="number-utils.js"></script>
     <script src="permissions.js"></script>
     <link rel="stylesheet" href="sidebar-v4.css" />
-    <script src="/offline-sync.js"></script>
+    <script src="offline-sync.js"></script>
 </head>
 <body>
 
@@ -606,7 +606,7 @@
             <div class="sub" id="login-shop-name">ابن المختار للأدوات المنزلية</div>
             <input type="text" id="login-username" class="input-field" placeholder="اسم المستخدم" autocomplete="username" />
             <input type="password" id="login-password" class="input-field" placeholder="كلمة المرور" autocomplete="current-password" />
-            <button class="btn" onclick="attemptLogin()"><i class="fas fa-sign-in-alt"></i> دخول</button>
+            <button id="login-btn" class="btn" onclick="attemptLogin()"><i class="fas fa-sign-in-alt"></i> دخول</button>
             <div id="login-error" class="error"></div>
         </div>
     </div>
@@ -693,7 +693,7 @@
                         <button class="btn btn-success" id="ai-send-btn" onclick="askAI()">
                             <i class="fas fa-paper-plane"></i> اسأل
                         </button>
-                        <button class="btn btn-outline" onclick="document.getElementById('ai-question').value=''; document.getElementById('ai-response').innerHTML='';">
+                        <button id="btn-clear-ai-question" class="btn btn-outline" onclick="document.getElementById('ai-question').value=''; document.getElementById('ai-response').innerHTML='';">
                             <i class="fas fa-eraser"></i> مسح
                         </button>
                     </div>
@@ -925,15 +925,15 @@
             if (!navigator.onLine) return;
             try {
                 const res = await fetch(`${API}/products`, { headers: { 'Authorization': `Bearer ${token}` } });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 if (data.products) await saveLocalProducts(data.products);
 
                 const custRes = await fetch(`${API}/customers`, { headers: { 'Authorization': `Bearer ${token}` } });
-                const custData = await custRes.json();
+                const custData = await custRes.json().catch(() => ({}));
                 if (custData.customers) await saveLocalCustomers(custData.customers);
 
                 const walletRes = await fetch(`${API}/wallets`, { headers: { 'Authorization': `Bearer ${token}` } });
-                const walletData = await walletRes.json();
+                const walletData = await walletRes.json().catch(() => ({}));
                 if (window.POSPermissions?.can('cash.view') && window.POSPermissions?.can('wallets.balance.view') && walletData.wallets) await saveLocalWallets(walletData.wallets);
 
             } catch (err) { console.warn('refreshDataFromServer error:', err); }
@@ -969,17 +969,18 @@
             const btn = document.getElementById('themeToggle');
             if (html.getAttribute('data-theme') === 'dark') {
                 html.removeAttribute('data-theme');
-                btn.innerHTML = '<i class="fas fa-moon"></i> <span>المظهر</span>';
+                if (btn) btn.innerHTML = '<i class="fas fa-moon"></i> <span>المظهر</span>';
                 localStorage.setItem('theme', 'light');
             } else {
                 html.setAttribute('data-theme', 'dark');
-                btn.innerHTML = '<i class="fas fa-sun"></i> <span>المظهر</span>';
+                if (btn) btn.innerHTML = '<i class="fas fa-sun"></i> <span>المظهر</span>';
                 localStorage.setItem('theme', 'dark');
             }
         }
         if (localStorage.getItem('theme') === 'dark') {
             document.documentElement.setAttribute('data-theme', 'dark');
-            document.getElementById('themeToggle').innerHTML = '<i class="fas fa-sun"></i> <span>المظهر</span>';
+            const themeBtn = document.getElementById('themeToggle');
+            if (themeBtn) themeBtn.innerHTML = '<i class="fas fa-sun"></i> <span>المظهر</span>';
         }
 
         // ================================================================
@@ -1115,7 +1116,7 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username, password })
                 });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
 
                 if (res.ok) {
                     token = data.token;
@@ -1205,10 +1206,12 @@
         async function loadShopSettings() {
             try {
                 const res = await fetch(`${API}/settings`, { headers: { 'Authorization': `Bearer ${token}` } });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 if (data.settings && data.settings.shop_name) {
-                    document.getElementById('shop-name-display').textContent = data.settings.shop_name;
-                    document.getElementById('login-shop-name').textContent = data.settings.shop_name;
+                    const shopNameDisplay = document.getElementById('shop-name-display');
+                    if (shopNameDisplay) shopNameDisplay.textContent = data.settings.shop_name;
+                    const loginShopName = document.getElementById('login-shop-name');
+                    if (loginShopName) loginShopName.textContent = data.settings.shop_name;
                 }
             } catch { /* ignore */ }
         }
@@ -1227,7 +1230,7 @@
 
                 if (navigator.onLine) {
                     const cashRes = await fetch(`${API}/cash`, { headers: { 'Authorization': `Bearer ${token}` } });
-                    const cashData = await cashRes.json();
+                    const cashData = await cashRes.json().catch(() => ({}));
                     let cashBalance = 0;
                     if (cashData.history) {
                         cashData.history.forEach(h => {
@@ -1238,7 +1241,7 @@
                     totalCashBase = cashBalance;
 
                     const walletsRes = await fetch(`${API}/wallets`, { headers: { 'Authorization': `Bearer ${token}` } });
-                    const walletsDataRes = await walletsRes.json();
+                    const walletsDataRes = await walletsRes.json().catch(() => ({}));
                     walletsData = walletsDataRes.wallets || [];
                     await saveLocalWallets(walletsData);
 
@@ -1316,7 +1319,7 @@
                 let walletsData = [];
                 if (navigator.onLine) {
                     const res = await fetch(`${API}/wallets`, { headers: { 'Authorization': `Bearer ${token}` } });
-                    const data = await res.json();
+                    const data = await res.json().catch(() => ({}));
                     walletsData = data.wallets || [];
                     await saveLocalWallets(walletsData);
                 } else {
@@ -1396,7 +1399,7 @@
                     body: JSON.stringify({ question })
                 });
 
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
 
                 if (!res.ok) {
                     throw new Error(data.error || 'فشل في الحصول على رد من الذكاء الاصطناعي');

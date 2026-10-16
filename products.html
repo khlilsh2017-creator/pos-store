@@ -523,10 +523,16 @@
         ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
     </style>
+    <script src="date-utils.js"></script>
     <script src="number-utils.js"></script>
+    <script src="document-utils.js"></script>
+    <script src="sidebar-config.js"></script>
+    <script src="api-client.js"></script>
     <script src="permissions.js"></script>
+    <script src="filter-utils.js"></script>
+    <script src="offline-sync.js"></script>
+    <script src="notification-center-v3.js"></script>
     <link rel="stylesheet" href="sidebar-v4.css" />
-    <script src="/offline-sync.js"></script>
 </head>
 <body>
 
@@ -552,13 +558,13 @@
                 <input type="text" id="searchInput" placeholder="ابحث بالاسم، الباركود، رقم الصنف..." oninput="applyFilters()">
             </div>
             <div class="btn-group">
-                <button class="btn btn-primary" onclick="openImportModal()"><i class="fas fa-file-import"></i> استيراد CSV</button>
-                <button class="btn btn-danger" onclick="openShortageModal()"><i class="fas fa-exclamation-triangle"></i> نواقص المحل</button>
-                <button class="btn btn-success" onclick="printProductsReport()"><i class="fas fa-print"></i> طباعة القائمة</button>
-                <button class="btn btn-warning" onclick="generateMissingSKU()"><i class="fas fa-sync-alt"></i> توليد SKU للقديم</button>
-                <button class="btn btn-outline" onclick="loadProductsList()"><i class="fas fa-sync"></i> تحديث</button>
-                <button class="btn btn-outline" onclick="window.location.href='site-integration.html'"><i class="fas fa-link"></i> ربط الموقع</button>
-                <button class="btn btn-danger" onclick="resetIndexedDB()" style="background: #dc3545; color: white;">
+                <button id="btn-open-import" class="btn btn-primary" onclick="openImportModal()"><i class="fas fa-file-import"></i> استيراد CSV</button>
+                <button id="btn-open-shortage" class="btn btn-danger" onclick="openShortageModal()"><i class="fas fa-exclamation-triangle"></i> نواقص المحل</button>
+                <button id="btn-print-products" class="btn btn-success" onclick="printProductsReport()"><i class="fas fa-print"></i> طباعة القائمة</button>
+                <button id="btn-generate-sku" class="btn btn-warning" onclick="generateMissingSKU()"><i class="fas fa-sync-alt"></i> توليد SKU للقديم</button>
+                <button id="btn-refresh-products" class="btn btn-outline" onclick="loadProductsList()"><i class="fas fa-sync"></i> تحديث</button>
+                <button class="btn btn-outline" id="btn-nav-site-integration" onclick="window.location.href='site-integration.html'"><i class="fas fa-link"></i> ربط الموقع</button>
+                <button class="btn btn-danger" id="btn-reset-indexeddb" onclick="resetIndexedDB()" style="background: #dc3545; color: white;">
                     <i class="fas fa-database"></i> إعادة ضبط (جلب من السيرفر)
                 </button>
             </div>
@@ -575,11 +581,11 @@
                     <option value="">-- اختر مورد --</option>
                 </select>
             </div>
-            <button class="btn btn-primary" onclick="assignProductsToSupplier()">
+            <button class="btn btn-primary" id="btn-assign-products-supplier" onclick="assignProductsToSupplier()">
                 <i class="fas fa-link"></i> إسناد للمورد
             </button>
             <span class="selected-count" id="selectedCount">0</span> منتج محدد
-            <button class="btn btn-outline btn-sm" onclick="loadSupplierData()"><i class="fas fa-refresh"></i> تحديث الموردين</button>
+            <button class="btn btn-outline btn-sm" id="btn-refresh-supplier-data" onclick="loadSupplierData()"><i class="fas fa-refresh"></i> تحديث الموردين</button>
         </div>
 
         <!-- نموذج الإضافة + الجدول -->
@@ -611,7 +617,7 @@
                             <select id="pCategoryId" class="input-field" style="flex:1;">
                                 <option value="">-- بدون تصنيف --</option>
                             </select>
-                            <button type="button" class="btn btn-sm btn-outline" onclick="openCategoryManager()">
+                            <button type="button" class="btn btn-sm btn-outline" id="btn-open-category-manager" onclick="openCategoryManager()">
                                 <i class="fas fa-cogs"></i> إدارة
                             </button>
                         </div>
@@ -641,7 +647,7 @@
                     <div class="form-group toggle-group"><span class="toggle-label">المنتج طقم / مجموعة</span><label class="toggle-switch"><input type="checkbox" id="pIsSet" onchange="toggleSetFields('p')" /><span class="toggle-slider"></span></label></div>
                     <div id="pSetFields" style="display:none;border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:10px;">
                         <label>عدد المقاسات</label><input type="number" id="pSetPieceCount" class="input-field" min="1" step="1" value="1" onchange="syncSetRows('p')" />
-                        <div id="pSetDetailsRows"></div><button type="button" class="btn btn-sm btn-outline" onclick="addSetDetailRow('p')">+ إضافة مقاس</button>
+                        <div id="pSetDetailsRows"></div><button type="button" class="btn btn-sm btn-outline" id="btn-add-set-detail-row" onclick="addSetDetailRow('p')">+ إضافة مقاس</button>
                         <small style="display:block;color:var(--text-muted);margin-top:5px;">اكتب اسم كل مقاس فقط. سعر المقاس اختياري؛ اتركه فارغًا ليستخدم السعر الأساسي تلقائيًا. يتم تسجيل مخزون كل مقاس من خلال المشتريات.</small>
                     </div>
                     <div class="form-group">
@@ -663,7 +669,7 @@
                     <table>
                         <thead>
                             <tr>
-                                <th style="width:30px;"><input type="checkbox" id="selectAllCheckbox" onchange="toggleAllCheckboxes()"></th>
+                                <th style="width:30px;"><input type="checkbox" id="selectAllTableHeaderCheckbox" onchange="toggleAllCheckboxes(this)"></th>
                                 <th onclick="sortTable('id')">#</th>
                                 <th onclick="sortTable('name')">الاسم</th>
                                 <th onclick="sortTable('product_code')">رقم الصنف</th>
@@ -692,7 +698,7 @@
             </div>
         </div>
     <div style="margin:12px 0;"><a class="btn btn-outline btn-sm" href="stock-movements.html"><i class="fas fa-history"></i> فتح حركة المخزون</a></div>
-    <div style="margin:12px 0;"><button class="btn btn-danger btn-sm" onclick="printNegativeStockReport()"><i class="fas fa-print"></i> عرض وطباعة المنتجات السالبة</button></div>
+    <div style="margin:12px 0;"><button class="btn btn-danger btn-sm" id="btn-print-negative-stock" onclick="printNegativeStockReport()"><i class="fas fa-print"></i> عرض وطباعة المنتجات السالبة</button></div>
         </main>
 
     <!-- ========== المودالات ========== -->
@@ -700,7 +706,7 @@
     <!-- تفاصيل المنتج -->
     <div class="modal-overlay" id="detailModal">
         <div class="modal-box">
-            <button class="close-btn" onclick="closeDetail()">&times;</button>
+            <button class="close-btn" id="btn-close-detail-modal-x" onclick="closeDetail()">&times;</button>
             <h4 style="margin-bottom:18px;"><i class="fas fa-info-circle" style="color:var(--primary);"></i> تفاصيل المنتج</h4>
             <div id="detailContent"></div>
         </div>
@@ -709,12 +715,12 @@
     <!-- باركود مكرر -->
     <div class="modal-overlay duplicate-modal" id="duplicateModal">
         <div class="modal-box">
-            <button class="close-btn" onclick="closeDuplicateModal()">&times;</button>
+            <button class="close-btn" id="btn-close-duplicate-modal-x" onclick="closeDuplicateModal()">&times;</button>
             <h4 style="margin-bottom:12px;"><i class="fas fa-exclamation-triangle" style="color:var(--warning);"></i> باركود مكرر</h4>
             <p id="duplicateMessage" style="margin-bottom:16px;"></p>
             <div class="modal-actions">
-                <button class="btn btn-success" onclick="confirmAddStock()"><i class="fas fa-plus-circle"></i> إضافة مخزون</button>
-                <button class="btn btn-danger" onclick="closeDuplicateModal()"><i class="fas fa-times"></i> إلغاء</button>
+                <button class="btn btn-success" id="btn-confirm-add-stock" onclick="confirmAddStock()"><i class="fas fa-plus-circle"></i> إضافة مخزون</button>
+                <button class="btn btn-danger" id="btn-cancel-duplicate-modal" onclick="closeDuplicateModal()"><i class="fas fa-times"></i> إلغاء</button>
             </div>
         </div>
     </div>
@@ -722,7 +728,7 @@
     <!-- نواقص المحل -->
     <div class="modal-overlay shortage-modal" id="shortageModal">
         <div class="modal-box">
-            <button class="close-btn" onclick="closeShortageModal()">&times;</button>
+            <button class="close-btn" id="btn-close-shortage-modal-x" onclick="closeShortageModal()">&times;</button>
             <h4 style="margin-bottom:16px;"><i class="fas fa-exclamation-triangle" style="color:var(--danger);"></i> نواقص المحل</h4>
             <div class="shortage-controls">
                 <div class="control-group">
@@ -736,9 +742,8 @@
             </div>
             <div class="shortage-table-wrap" id="shortageTableWrap"></div>
             <div class="shortage-actions">
-                
-                <button class="btn btn-warning" onclick="resetExemptions()"><i class="fas fa-undo"></i> إعادة تعيين الاستثناءات</button>
-                <button class="btn btn-outline" onclick="closeShortageModal()">إغلاق</button>
+                <button class="btn btn-warning" id="btn-reset-exemptions" onclick="resetExemptions()"><i class="fas fa-undo"></i> إعادة تعيين الاستثناءات</button>
+                <button class="btn btn-outline" id="btn-close-shortage-modal" onclick="closeShortageModal()">إغلاق</button>
             </div>
         </div>
     </div>
@@ -746,7 +751,7 @@
     <!-- استيراد CSV -->
     <div class="modal-overlay" id="importModal">
         <div class="modal-box">
-            <button class="close-btn" onclick="closeImportModal()">&times;</button>
+            <button class="close-btn" id="btn-close-import-modal-x" onclick="closeImportModal()">&times;</button>
             <h4 style="margin-bottom:16px;"><i class="fas fa-file-import" style="color:var(--primary);"></i> استيراد منتجات من CSV</h4>
             <div class="drop-zone" id="dropZone" onclick="document.getElementById('csvFileInput').click();">
                 <i class="fas fa-cloud-upload-alt"></i>
@@ -757,7 +762,7 @@
             <div id="importPreviewArea" style="display:none; margin-top:12px;">
                 <div class="file-info-bar">
                     <span class="info" id="importFileInfo">📄 الملف: ...</span>
-                    <button class="remove-btn" onclick="clearImportFile()"><i class="fas fa-times"></i> إزالة</button>
+                    <button class="remove-btn" id="btn-clear-import-file" onclick="clearImportFile()"><i class="fas fa-times"></i> إزالة</button>
                 </div>
                 <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-bottom:6px;">
                     <span style="font-weight:600;">معاينة البيانات (<span id="previewRowCount">0</span> صف)</span>
@@ -787,13 +792,13 @@
             <div id="importResultArea" style="display:none; margin-top:12px;">
                 <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
                     <span id="resultSummary" style="font-weight:600;"></span>
-                    <button class="btn btn-sm btn-success" onclick="closeImportModal(); loadProductsList();"><i class="fas fa-check"></i> إنهاء</button>
+                    <button class="btn btn-sm btn-success" id="btn-finish-import-modal" onclick="closeImportModal(); loadProductsList();"><i class="fas fa-check"></i> إنهاء</button>
                 </div>
                 <div class="import-result" id="importResultList"></div>
             </div>
             <div id="importActions" style="display:none; margin-top:16px; display:flex; gap:10px; flex-wrap:wrap;">
                 <button class="btn btn-primary" id="startImportBtn" onclick="startImport()"><i class="fas fa-play"></i> بدء الاستيراد</button>
-                <button class="btn btn-outline" onclick="closeImportModal()">إلغاء</button>
+                <button class="btn btn-outline" id="btn-cancel-import-modal" onclick="closeImportModal()">إلغاء</button>
             </div>
         </div>
     </div>
@@ -801,14 +806,14 @@
     <!-- إدارة التصنيفات -->
     <div class="modal-overlay" id="categoryManagerModal">
         <div class="modal-box" style="max-width:750px;">
-            <button class="close-btn" onclick="closeCategoryManager()">&times;</button>
+            <button class="close-btn" id="btn-close-category-manager-x" onclick="closeCategoryManager()">&times;</button>
             <h4 style="margin-bottom:16px;"><i class="fas fa-cogs" style="color:var(--primary);"></i> إدارة التصنيفات (قسم / تصنيف فرعي)</h4>
             <div style="display:flex; gap:10px; margin-bottom:20px; flex-wrap:wrap; align-items:center; background:var(--bg); padding:12px 16px; border-radius:var(--radius);">
                 <input type="text" id="newCatName" class="input-field" placeholder="اسم التصنيف الجديد" style="flex:2; min-width:150px;">
                 <select id="parentCatId" class="input-field" style="flex:1; min-width:130px;">
                     <option value="">-- قسم رئيسي (بدون قسم أب) --</option>
                 </select>
-                <button class="btn btn-primary" onclick="addCategory()" style="white-space:nowrap;"><i class="fas fa-plus"></i> إضافة</button>
+                <button class="btn btn-primary" id="btn-add-new-category" onclick="addCategory()" style="white-space:nowrap;"><i class="fas fa-plus"></i> إضافة</button>
             </div>
             <div style="border:1px solid var(--border); border-radius:var(--radius); padding:8px; max-height:450px; overflow-y:auto;" id="categoryTree">
                 <div class="loader"><i class="fas fa-spinner fa-spin"></i> جاري التحميل...</div>
@@ -819,15 +824,15 @@
     <!-- تغيير تصنيف منتج -->
     <div class="modal-overlay" id="changeCategoryModal">
         <div class="modal-box" style="max-width:450px;">
-            <button class="close-btn" onclick="closeChangeCategoryModal()">&times;</button>
+            <button class="close-btn" id="btn-close-change-category-modal-x" onclick="closeChangeCategoryModal()">&times;</button>
             <h4 style="margin-bottom:12px;"><i class="fas fa-tag" style="color:var(--warning);"></i> تغيير التصنيف</h4>
             <div class="form-group">
                 <label>اختر التصنيف الجديد:</label>
                 <select id="changeCatSelect" class="input-field"></select>
             </div>
             <div class="form-actions">
-                <button class="btn btn-primary" onclick="applyCategoryChange()">حفظ</button>
-                <button class="btn btn-outline" onclick="closeChangeCategoryModal()">إلغاء</button>
+                <button class="btn btn-primary" id="btn-apply-category-change" onclick="applyCategoryChange()">حفظ</button>
+                <button class="btn btn-outline" id="btn-cancel-change-category-modal" onclick="closeChangeCategoryModal()">إلغاء</button>
             </div>
         </div>
     </div>
@@ -840,7 +845,7 @@
 
     <div class="modal-overlay" id="pendingProductsModal">
         <div class="modal-box wide">
-            <button class="close-btn" onclick="closePendingProductsModal()">&times;</button>
+            <button class="close-btn" id="btn-close-pending-products-modal-x" onclick="closePendingProductsModal()">&times;</button>
             <h4 style="margin-bottom:14px;"><i class="fas fa-clock" style="color:var(--primary);"></i> المنتجات المعلقة في Worker</h4>
             <div id="pendingProductsContent"><div class="loader"><i class="fas fa-spinner fa-spin"></i> جاري التحميل...</div></div>
         </div>
@@ -851,6 +856,18 @@
         //                       الكود البرمجي الموحد
         // ========================================================================
 
+        // ===== إعدادات الـ API والتحويل التلقائي وأقفال التزامن =====
+        const API = window.API_BASE_URL || (window.apiClient ? window.apiClient.baseUrl : 'https://api.ibnalmukhtar.com');
+        let token = localStorage.getItem('pos_token') || '';
+
+        // أقفال التزامن لمنع النقر المزدوج
+        // isSavingProduct declared at top of script
+        let isDeletingProduct = false;
+        let isAssigningSupplier = false;
+        // isImporting declared at top of script
+        let isExporting = false;
+        let isGeneratingSKU = false;
+
         // ===== المنتجات المعلقة =====
         async function openPendingProductsModal() {
             const modal = document.getElementById('pendingProductsModal');
@@ -859,7 +876,7 @@
             content.innerHTML = '<div class="loader"><i class="fas fa-spinner fa-spin"></i> جاري التحميل...</div>';
             try {
                 const res = await fetch(`${API}/api/pending-products`, { headers: { 'Authorization': `Bearer ${token}` } });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 if (!res.ok) throw new Error(data.error || 'فشل تحميل المنتجات المعلقة');
                 const rows = data.products || data.pending_products || data.results || [];
                 if (!rows.length) { content.innerHTML = '<div class="loader">لا توجد منتجات معلقة حاليًا</div>'; return; }
@@ -873,14 +890,13 @@
             if (!pendingId || !confirm('هل تريد تجاهل هذا المنتج المعلق؟')) return;
             try {
                 const res = await fetch(`${API}/api/skip-pending-product`, { method:'POST', headers:{'Authorization': `Bearer ${token}`, 'Content-Type':'application/json'}, body:JSON.stringify({ pending_id: pendingId }) });
-                const data = await res.json(); if (!res.ok) throw new Error(data.error || 'فشل التحديث');
+                const data = await res.json().catch(() => ({})); if (!res.ok) throw new Error(data.error || 'فشل التحديث');
                 showToast('تم تحديث حالة المنتج المعلق', 'success'); openPendingProductsModal();
             } catch (e) { showToast(e.message, 'error'); }
         }
 
         // ===== متغيرات عامة =====
-        const API = 'https://api.ibnalmukhtar.com';
-        let token = localStorage.getItem('pos_token') || '';
+        // API and token declared at top of script
         let allProducts = [];
         let currentPage = 1;
         let totalPages = 1;
@@ -1071,17 +1087,18 @@
             const btn = document.getElementById('themeToggle');
             if (html.getAttribute('data-theme') === 'dark') {
                 html.removeAttribute('data-theme');
-                btn.innerHTML = '<i class="fas fa-moon"></i> <span>المظهر</span>';
+                if (btn) btn.innerHTML = '<i class="fas fa-moon"></i> <span>المظهر</span>';
                 localStorage.setItem('theme', 'light');
             } else {
                 html.setAttribute('data-theme', 'dark');
-                btn.innerHTML = '<i class="fas fa-sun"></i> <span>المظهر</span>';
+                if (btn) btn.innerHTML = '<i class="fas fa-sun"></i> <span>المظهر</span>';
                 localStorage.setItem('theme', 'dark');
             }
         }
         if (localStorage.getItem('theme') === 'dark') {
             document.documentElement.setAttribute('data-theme', 'dark');
-            document.getElementById('themeToggle').innerHTML = '<i class="fas fa-sun"></i> <span>المظهر</span>';
+            const themeBtn = document.getElementById('themeToggle');
+            if (themeBtn) themeBtn.innerHTML = '<i class="fas fa-sun"></i> <span>المظهر</span>';
         }
 
         function formatNumber(num) {
@@ -1105,7 +1122,7 @@
         async function loadCategoriesDropdown() {
             try {
                 const res = await apiFetch(`${API}/categories?flat=1`);
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 const select = document.getElementById('pCategoryId');
                 const currentVal = select.value;
                 select.innerHTML = '<option value="">-- بدون تصنيف --</option>';
@@ -1129,7 +1146,7 @@
             try {
                 // 1. جلب الموردين
                 const supRes = await apiFetch(`${API}/suppliers?limit=1000`);
-                const supData = await supRes.json();
+                const supData = await supRes.json().catch(() => ({}));
                 suppliersList = supData.suppliers || [];
                 const select = document.getElementById('supplierAssignSelect');
                 select.innerHTML = '<option value="">-- اختر مورد --</option>';
@@ -1144,7 +1161,7 @@
                 let stockRelations = [];
                 try {
                     const stockRes = await apiFetch(`${API}/product-supplier-stock?limit=10000`);
-                    const stockData = await stockRes.json();
+                    const stockData = await stockRes.json().catch(() => ({}));
                     stockRelations = stockData.records || stockData.stock || [];
                 } catch (e) {
                     console.warn('تعذر جلب علاقات المنتجات بالموردين من endpoint مخصص، سنستخدم طريقة بديلة', e);
@@ -1175,15 +1192,27 @@
         }
 
         // ===== دوال تحديد المنتجات (للإسناد الجماعي) =====
-        function toggleAllCheckboxes() {
-            const checked = document.getElementById('selectAllCheckbox').checked;
-            document.querySelectorAll('.product-checkbox').forEach(cb => cb.checked = checked);
+        function toggleAllCheckboxes(source) {
+            const checked = source ? source.checked : (document.getElementById('selectAllCheckbox')?.checked || document.getElementById('selectAllTableHeaderCheckbox')?.checked);
+            const barCb = document.getElementById('selectAllCheckbox');
+            const tableCb = document.getElementById('selectAllTableHeaderCheckbox');
+            if (barCb) barCb.checked = Boolean(checked);
+            if (tableCb) tableCb.checked = Boolean(checked);
+            document.querySelectorAll('.product-checkbox').forEach(cb => cb.checked = Boolean(checked));
             updateSelectedCount();
         }
 
         function updateSelectedCount() {
-            const count = document.querySelectorAll('.product-checkbox:checked').length;
-            document.getElementById('selectedCount').textContent = count;
+            const all = document.querySelectorAll('.product-checkbox');
+            const checked = document.querySelectorAll('.product-checkbox:checked');
+            const count = checked.length;
+            const el = document.getElementById('selectedCount');
+            if (el) el.textContent = count;
+            const isAll = all.length > 0 && checked.length === all.length;
+            const barCb = document.getElementById('selectAllCheckbox');
+            const tableCb = document.getElementById('selectAllTableHeaderCheckbox');
+            if (barCb) barCb.checked = isAll;
+            if (tableCb) tableCb.checked = isAll;
         }
 
         function getSelectedProductIds() {
@@ -1233,7 +1262,7 @@
             body: JSON.stringify(payload)
         });
 
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
         if (res.ok) {
             showToast(`✅ ${data.message} (مضاف: ${formatPosNumber(data.inserted || 0)}, محدث: ${formatPosNumber(data.updated || 0)})`, 'success');
             await loadSupplierData();
@@ -1265,7 +1294,7 @@
                     let allServer = [];
                     let url = `${API}/products?limit=2000`;
                     let res = await apiFetch(url);
-                    let data = await res.json();
+                    let data = await res.json().catch(() => ({}));
                     let serverProducts = data.products || [];
 
                     if (serverProducts.length === 0 || (data.total && data.total > serverProducts.length)) {
@@ -1274,7 +1303,7 @@
                         let hasMore = true;
                         while (hasMore) {
                             const pRes = await apiFetch(`${API}/products?page=${page}&limit=${limit}`);
-                            const pData = await pRes.json();
+                            const pData = await pRes.json().catch(() => ({}));
                             const pageProducts = pData.products || [];
                             allServer = allServer.concat(pageProducts);
                             if (pageProducts.length < limit) hasMore = false;
@@ -1546,7 +1575,7 @@
             }
             try {
                 const res = await apiFetch(`${API}/products/${duplicateProductId}`);
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 const product = data.product;
                 const newQty = Number(product.stock_quantity || 0) + additionalQty;
                 const updateRes = await apiFetch(`${API}/inventory/adjust`, {
@@ -1769,7 +1798,7 @@
                     body: JSON.stringify(productPayload)
                 });
 
-                const createData = await createRes.json();
+                const createData = await createRes.json().catch(() => ({}));
                 if (!createRes.ok) {
                     throw new Error(createData.error || 'فشل إنشاء المنتج');
                 }
@@ -1783,7 +1812,7 @@
                     body: JSON.stringify({ product_id: productId })
                 });
 
-                const pendingData = await pendingRes.json();
+                const pendingData = await pendingRes.json().catch(() => ({}));
                 if (!pendingRes.ok) {
                     throw new Error(pendingData.error || 'فشل إضافة المنتج إلى قائمة الانتظار');
                 }
@@ -1805,7 +1834,7 @@
                 let p = allProducts.find(pr => pr.id == id);
                 if (!p) {
                     const res = await apiFetch(`${API}/products/${id}`);
-                    const data = await res.json();
+                    const data = await res.json().catch(() => ({}));
                     p = data.product;
                 }
                 document.getElementById('editId').value = p.id;
@@ -1828,7 +1857,7 @@
                 if (Number(p.is_set) === 1) {
                     try {
                         const variantsRes = await apiFetch(`${API}/products/${p.id}/variants`);
-                        const variantsData = await variantsRes.json();
+                        const variantsData = await variantsRes.json().catch(() => ({}));
                         if (Array.isArray(variantsData.variants) && variantsData.variants.some(v => v.id)) setDetails = variantsData.variants.filter(v => v.id);
                     } catch (_) { /* نستخدم البيانات القديمة إن تعذر الاتصال */ }
                 }
@@ -1854,7 +1883,7 @@
             select.innerHTML = '<option value="">-- بدون تصنيف --</option>';
             try {
                 const res = await apiFetch(`${API}/categories?flat=1`);
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 data.categories.forEach(cat => {
                     const opt = document.createElement('option');
                     opt.value = cat.id;
@@ -1887,7 +1916,7 @@
                     closeChangeCategoryModal();
                     loadProductsList();
                 } else {
-                    const err = await res.json();
+                    const err = await res.json().catch(() => ({}));
                     showToast(err.error || 'فشل', 'error');
                 }
             } catch {
@@ -1897,12 +1926,18 @@
 
         // ===== حذف المنتج =====
         async function deleteProduct(id) {
+            if (isDeletingProduct) return;
             if (!confirm('⚠️ هل أنت متأكد من حذف هذا المنتج نهائياً؟')) return;
-            await deleteLocalProduct(id);
-            await addOperation({ store: 'products', type: 'delete', data: null, id });
-            showToast('🗑️ تم الحذف محلياً', 'success');
-            loadProductsList();
-            if (navigator.onLine) await syncAllOperations(API, token);
+            try {
+                isDeletingProduct = true;
+                await deleteLocalProduct(id);
+                await addOperation({ store: 'products', type: 'delete', data: null, id });
+                showToast('🗑️ تم الحذف محلياً', 'success');
+                loadProductsList();
+                if (navigator.onLine) await syncAllOperations(API, token);
+            } finally {
+                isDeletingProduct = false;
+            }
         }
 
         // ===== عرض التفاصيل =====
@@ -1976,7 +2011,7 @@
                 const res = await apiFetch(`${API}/products/generate-sku`, {
                     method: 'POST',
                 });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 if (res.ok) {
                     showToast(data.message || 'تم توليد الأرقام بنجاح', 'success');
                     loadProductsList();
@@ -2121,7 +2156,7 @@
         async function printNegativeStockReport() {
             try {
                 const response = await apiFetch(`${API}/products?negative=1&limit=999&sort=quantity`);
-                const data = await response.json();
+                const data = await response.json().catch(() => ({}));
                 if (!response.ok) throw new Error(data.error || 'تعذر جلب المنتجات السالبة');
                 const products = data.products || [];
                 if (!products.length) return showToast('لا توجد منتجات ذات رصيد سالب', 'warning');
@@ -2536,7 +2571,7 @@
                                 body: JSON.stringify(productPayload)
                             });
                             if (createRes.ok) {
-                                const createData = await createRes.json();
+                                const createData = await createRes.json().catch(() => ({}));
                                 const createdId = createData.id || createData.product?.id;
                                 if (!createdId) throw new Error('لم يتم استلام معرف المنتج الجديد');
                                 if (p.has_stock_quantity) {
@@ -2554,7 +2589,7 @@
                                 importResults.push({ index: idx, name: p.name, status: 'success', message: 'تمت الإضافة' });
                             } else {
                                 errorCount++;
-                                const errData = await createRes.json();
+                                const errData = await createRes.json().catch(() => ({}));
                                 importResults.push({ index: idx, name: p.name, status: 'error', message: errData.error || 'فشل الإضافة' });
                             }
                         }
@@ -2569,7 +2604,7 @@
                             importResults.push({ index: idx, name: p.name, status: 'success', message: 'تمت الإضافة' });
                         } else {
                             errorCount++;
-                            const errData = await createRes.json();
+                            const errData = await createRes.json().catch(() => ({}));
                             importResults.push({ index: idx, name: p.name, status: 'error', message: errData.error || 'فشل الإضافة' });
                         }
                     }
@@ -2584,7 +2619,7 @@
                     try {
                         const refreshRes = await apiFetch(`${API}/products`);
                         if (refreshRes.ok) {
-                            const data = await refreshRes.json();
+                            const data = await refreshRes.json().catch(() => ({}));
                             allProducts = data.products || [];
                         }
                     } catch (e) { /* تجاهل */ }
@@ -2656,7 +2691,7 @@
             parentSelect.innerHTML = '<option value="">-- قسم رئيسي (بدون قسم أب) --</option>';
             try {
                 const res = await apiFetch(`${API}/categories?flat=1`);
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 data.categories.forEach(cat => {
                     const opt = document.createElement('option');
                     opt.value = cat.id;
@@ -2671,7 +2706,7 @@
             container.innerHTML = '<div class="loader"><i class="fas fa-spinner fa-spin"></i> جاري التحميل...</div>';
             try {
                 const res = await apiFetch(`${API}/categories?flat=1`);
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 const categories = data.categories || [];
 
                 const tree = {};
@@ -2765,7 +2800,7 @@
                     await loadParentOptionsForManager();
                     await loadCategoriesDropdown();
                 } else {
-                    const err = await res.json();
+                    const err = await res.json().catch(() => ({}));
                     showToast(err.error || 'فشل الإضافة', 'error');
                 }
             } catch {
@@ -2800,7 +2835,7 @@
                     await loadParentOptionsForManager();
                     await loadCategoriesDropdown();
                 } else {
-                    const err = await res.json();
+                    const err = await res.json().catch(() => ({}));
                     showToast(err.error || 'فشل التعديل', 'error');
                 }
             } catch {
@@ -2833,7 +2868,7 @@
                     await loadCategoriesDropdown();
                     await loadProductsList();
                 } else {
-                    const err = await res.json();
+                    const err = await res.json().catch(() => ({}));
                     let msg = err.error || 'فشل الحذف';
                     if (res.status === 400) {
                         msg = '⚠️ لا يمكن حذف تصنيف رئيسي يحتوي على تصنيفات فرعية أو منتجات. استخدم الحذف القسري.';
@@ -2854,8 +2889,5 @@
             document.getElementById('pBarcode').focus();
         };
     </script>
-    <script src="document-utils.js"></script>
-    <script src="sidebar-config.js"></script>
-    <script src="notification-center-v3.js"></script>
 </body>
 </html>

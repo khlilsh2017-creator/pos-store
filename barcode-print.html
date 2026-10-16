@@ -266,10 +266,16 @@
         }
         .modal h3 { margin-bottom: 20px; font-weight: 800; }
     </style>
+    <script src="date-utils.js"></script>
     <script src="number-utils.js"></script>
+    <script src="document-utils.js"></script>
+    <script src="sidebar-config.js"></script>
+    <script src="api-client.js"></script>
     <script src="permissions.js"></script>
+    <script src="filter-utils.js"></script>
+    <script src="offline-sync.js"></script>
+    <script src="notification-center-v3.js"></script>
     <link rel="stylesheet" href="sidebar-v4.css" />
-    <script src="/offline-sync.js"></script>
 </head>
 <body>
     <div class="app-wrapper">
@@ -298,9 +304,9 @@
                         </select>
                     </div>
                     <div>
-                        <button class="btn btn-outline btn-sm" onclick="selectAll()">تحديد الكل</button>
-                        <button class="btn btn-outline btn-sm" onclick="deselectAll()">إلغاء الكل</button>
-                        <button class="btn btn-primary btn-sm" onclick="updatePreview()"><i class="fas fa-eye"></i> معاينة</button>
+                        <button id="btn-select-all-products" class="btn btn-outline btn-sm" onclick="selectAll()">تحديد الكل</button>
+                        <button id="btn-deselect-all-products" class="btn btn-outline btn-sm" onclick="deselectAll()">إلغاء الكل</button>
+                        <button id="btn-preview-barcodes" class="btn btn-primary btn-sm" onclick="updatePreview()"><i class="fas fa-eye"></i> معاينة</button>
                     </div>
                 </div>
                 <div style="overflow-x:auto; max-height:400px; overflow-y:auto;">
@@ -377,7 +383,7 @@
                             <input type="number" id="auto-rows" class="input-field" value="8" min="2" max="12" step="1">
                         </div>
                         <div class="flex-1" style="align-self:flex-end;">
-                            <button class="btn btn-success" onclick="printBarcodes()"><i class="fas fa-print"></i> طباعة للأجهزة</button>
+                            <button id="btn-print-barcodes" class="btn btn-success" onclick="printBarcodes()"><i class="fas fa-print"></i> طباعة للأجهزة</button>
                         </div>
                     </div>
                 </div>
@@ -390,7 +396,7 @@
                         <h4><i class="fas fa-file-invoice"></i> طباعة باركود من فواتير المشتريات</h4>
                         <p class="text-muted">اختر فاتورة لعرض منتجاتها وطباعة باركودها بالكميات المسجلة.</p>
                     </div>
-                    <button class="btn btn-primary" onclick="openInvoicesModal()"><i class="fas fa-list"></i> عرض الفواتير</button>
+                    <button id="btn-open-invoices-modal" class="btn btn-primary" onclick="openInvoicesModal()"><i class="fas fa-list"></i> عرض الفواتير</button>
                 </div>
             </div>
 
@@ -398,13 +404,13 @@
             <div id="preview-area" class="preview-container hidden">
                 <div class="preview-header">
                     <h4><i class="fas fa-file-image"></i> معاينة الصفحة (A4)</h4>
-                    <button class="btn btn-danger btn-sm" onclick="closePreview()"><i class="fas fa-times"></i> إغلاق</button>
+                    <button id="btn-close-preview" class="btn btn-danger btn-sm" onclick="closePreview()"><i class="fas fa-times"></i> إغلاق</button>
                 </div>
                 <div id="preview-content" class="a4-page" style="direction:rtl;">
                     <!-- سيتم توليد الملصقات هنا -->
                 </div>
                 <div class="text-center mt-10 no-print">
-                    <button class="btn btn-success" onclick="printBarcodesFromPreview()"><i class="fas fa-print"></i> طباعة</button>
+                    <button id="btn-print-from-preview" class="btn btn-success" onclick="printBarcodesFromPreview()"><i class="fas fa-print"></i> طباعة</button>
                 </div>
             </div>
         </main>
@@ -418,7 +424,7 @@
                 <div class="flex-1">
                     <input type="text" id="invoice-search" class="input-field" placeholder="بحث برقم الفاتورة أو المورد..." oninput="filterInvoices()">
                 </div>
-                <button class="btn btn-outline btn-sm" onclick="closeModal('invoices-modal')">إغلاق</button>
+                <button id="btn-close-invoices-modal" class="btn btn-outline btn-sm" onclick="closeModal('invoices-modal')">إغلاق</button>
             </div>
             <div style="overflow-x:auto; max-height:400px; overflow-y:auto;">
                 <table class="invoice-table" id="invoice-table">
@@ -442,7 +448,10 @@
     <div class="toast-container" id="toast-container"></div>
 
     <script>
-        const API = 'https://api.ibnalmukhtar.com';
+        const API = (window.API_BASE_URL || (window.apiClient && window.apiClient.baseUrl) || 'https://api.ibnalmukhtar.com').replace(/\/$/, '');
+    let isLoadingProducts = false;
+    let isPrintingBarcodes = false;
+    let isLoadingInvoices = false;
         const TOKEN_KEY = 'pos_token';
         let token = localStorage.getItem(TOKEN_KEY) || '';
         if (!token) {
@@ -487,14 +496,14 @@
         async function loadProducts() {
             try {
                 const res = await fetch(`${API}/products?limit=10000&positive_only=1`, { headers: { 'Authorization': `Bearer ${token}` } });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 allProducts = data.products || [];
                 allBarcodeItems = [];
                 for (const product of allProducts) {
                     if (Number(product.is_set) === 1) {
                         try {
                             const variantRes = await fetch(`${API}/products/${product.id}/variants`, { headers: { 'Authorization': `Bearer ${token}` } });
-                            const variantData = await variantRes.json();
+                            const variantData = await variantRes.json().catch(() => ({}));
                             const allVariants = (variantData.variants || []).filter(v => v.id);
                             const variants = allVariants.filter(v => v.barcode && Number(v.stock_quantity || 0) > 0);
                             for (const variant of variants) allBarcodeItems.push({ ...product, selectionKey: `variant-${variant.id}`, variant_id: variant.id, variant_label: variant.label, barcode: variant.barcode, price: Number(variant.selling_price ?? product.price) || 0, stock_quantity: Number(variant.stock_quantity) || 0 });
@@ -516,7 +525,7 @@
         async function loadCategories() {
             try {
                 const res = await fetch(`${API}/categories?flat=1`, { headers: { 'Authorization': `Bearer ${token}` } });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 allCategories = data.categories || data || [];
                 populateCategoryFilter();
             } catch (e) { console.error(e); }
@@ -525,7 +534,7 @@
         async function loadInvoices() {
             try {
                 const res = await fetch(`${API}/purchases?limit=100`, { headers: { 'Authorization': `Bearer ${token}` } });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 allInvoices = data.purchases || [];
                 renderInvoices(allInvoices);
             } catch (e) {
@@ -801,7 +810,7 @@
                 msg.style.padding = '10px';
                 msg.style.background = '#fef9c3';
                 msg.style.borderRadius = '8px';
-                msg.textContent = `⚠️ عدد الصفحات الكلي: ${formatPosMoney(totalPages)} صفحة. يتم عرض الصفحة الأولى فقط.`;
+                msg.textContent = `⚠️ عدد الصفحات الكلي: ${formatPosNumber(totalPages, 0)} صفحة. يتم عرض الصفحة الأولى فقط.`;
                 previewContent.appendChild(msg);
             }
 
@@ -826,6 +835,9 @@
 
         // ============ دالة الطباعة الأساسية (معدلة لقبول items اختياري) ============
         function printBarcodes(items) {
+            if (isPrintingBarcodes) return;
+            isPrintingBarcodes = true;
+            setTimeout(() => { isPrintingBarcodes = false; }, 1200);
             // إذا لم يتم تمرير items، نستخدم المنتجات المحددة من الجدول
             if (!items) {
                 items = getSelectedProductsData();
@@ -996,14 +1008,18 @@
             renderInvoices(filtered);
         }
 
+        let isHandlingInvoiceBarcode = false;
+
         // معاينة باركود من فاتورة محددة
         async function previewInvoiceBarcodes(invoiceId) {
+            if (isHandlingInvoiceBarcode) return;
+            isHandlingInvoiceBarcode = true;
             try {
                 const res = await fetch(`${API}/purchases/${invoiceId}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (!res.ok) throw new Error('فشل تحميل الفاتورة');
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 const invoice = data.purchase || data;
                 if (!invoice || !invoice.items || invoice.items.length === 0) {
                     showToast('لا توجد منتجات في هذه الفاتورة', 'warning');
@@ -1073,7 +1089,7 @@
                     msg.style.padding = '10px';
                     msg.style.background = '#fef9c3';
                     msg.style.borderRadius = '8px';
-                    msg.textContent = `⚠️ عدد الصفحات الكلي: ${formatPosMoney(totalPages)} صفحة. يتم عرض الصفحة الأولى فقط.`;
+                    msg.textContent = `⚠️ عدد الصفحات الكلي: ${formatPosNumber(totalPages, 0)} صفحة. يتم عرض الصفحة الأولى فقط.`;
                     previewContent.appendChild(msg);
                 }
 
@@ -1083,17 +1099,21 @@
                 showToast('✅ تم تحميل معاينة الفاتورة', 'success');
             } catch (e) {
                 showToast('❌ ' + (e.message || 'حدث خطأ'), 'error');
+            } finally {
+                isHandlingInvoiceBarcode = false;
             }
         }
 
         // طباعة باركود من فاتورة محددة (تستخدم نفس دالة printBarcodes مع تمرير العناصر)
         async function printBarcodesFromInvoice(invoiceId) {
+            if (isHandlingInvoiceBarcode) return;
+            isHandlingInvoiceBarcode = true;
             try {
                 const res = await fetch(`${API}/purchases/${invoiceId}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (!res.ok) throw new Error('فشل تحميل الفاتورة');
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 const invoice = data.purchase || data;
                 if (!invoice || !invoice.items || invoice.items.length === 0) {
                     showToast('لا توجد منتجات في هذه الفاتورة', 'warning');
@@ -1123,6 +1143,8 @@
                 printBarcodes(flatItems);
             } catch (e) {
                 showToast('❌ ' + (e.message || 'حدث خطأ'), 'error');
+            } finally {
+                isHandlingInvoiceBarcode = false;
             }
         }
 
@@ -1163,8 +1185,5 @@
             }
         };
     </script>
-    <script src="document-utils.js"></script>
-    <script src="sidebar-config.js"></script>
-    <script src="notification-center-v3.js"></script>
 </body>
 </html>

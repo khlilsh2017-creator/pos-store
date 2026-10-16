@@ -500,6 +500,162 @@
         .return-actions .btn { flex:1; min-width:80px; }
         .return-status-badge { background:#fef3c7; color:#b45309; padding:3px 12px; border-radius:20px; font-size:0.7rem; font-weight:600; }
         .notification-status-text { font-size:0.7rem; color:var(--text-secondary); margin-right:4px; }
+
+        /* ============================================================ */
+        /* ميزة تعليم الأصناف من نافذة الفاتورة                          */
+        /* ============================================================ */
+
+        /* زر/شارة التجهيز التفاعلية في البطاقات */
+        .prepared-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 11px;
+            border-radius: 14px;
+            font-size: 0.72rem;
+            font-weight: 800;
+            white-space: nowrap;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            outline: none;
+        }
+        .prepared-badge:active {
+            transform: scale(0.93);
+        }
+        .prepared-badge.badge-full {
+            background: linear-gradient(135deg, #dcfce7, #bbf7d0);
+            color: #166534;
+            border: 1px solid #86efac;
+            box-shadow: 0 2px 8px rgba(34,197,94,0.22);
+            animation: badgePop 0.35s ease;
+        }
+        .prepared-badge.badge-partial {
+            background: #fef3c7;
+            color: #92400e;
+            border: 1px solid #fcd34d;
+        }
+        .prepared-badge.badge-none {
+            background: #f1f5f9;
+            color: #475569;
+            border: 1px dashed #cbd5e1;
+        }
+        .prepared-badge.badge-none:hover {
+            background: #e2e8f0;
+            border-color: #94a3b8;
+        }
+        @keyframes badgePop {
+            0% { transform: scale(0.7); opacity: 0; }
+            60% { transform: scale(1.08); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* تمييز بطاقة الطلب المُجهز كاملاً */
+        .order-card.is-fully-prepared {
+            background: linear-gradient(to left, rgba(34,197,94,0.09), var(--surface) 32%);
+            box-shadow: 0 0 0 2px #86efac, 0 4px 16px rgba(34,197,94,0.18);
+        }
+        .order-card.is-fully-prepared .order-id { color: #15803d; }
+
+        /* تمييز بطاقة السوايب المُجهزة كاملاً */
+        .swipe-card-slide.is-fully-prepared {
+            border-color: #22c55e;
+            box-shadow: 0 6px 20px rgba(34,197,94,0.2);
+            background: linear-gradient(to bottom, rgba(34,197,94,0.07), var(--surface) 22%);
+        }
+
+        /* صف الصنف داخل جدول الفاتورة (بدون شطب على الاسم) */
+        .invoice-item-row {
+            transition: background 0.2s ease;
+        }
+        .invoice-item-row.is-prepared {
+            background: #f0fdf4;
+        }
+        .invoice-item-row.is-prepared td {
+            color: #166534;
+        }
+        .invoice-item-row.is-prepared .item-name-cell {
+            text-decoration: none;
+            font-weight: 700;
+        }
+
+        /* زر checkbox الصنف */
+        .item-prep-check {
+            width: 28px;
+            height: 28px;
+            border-radius: 9px;
+            border: 2px solid #cbd5e1;
+            background: white;
+            color: #94a3b8;
+            font-size: 1rem;
+            font-weight: 900;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.18s ease;
+            padding: 0;
+            line-height: 1;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .item-prep-check:hover { border-color: #94a3b8; }
+        .item-prep-check:active { transform: scale(0.85); }
+        .item-prep-check.is-prepared {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            border-color: #15803d;
+            color: white;
+            box-shadow: 0 2px 8px rgba(34,197,94,0.35);
+            animation: checkPop 0.28s ease;
+        }
+        @keyframes checkPop {
+            0% { transform: scale(0.7); }
+            60% { transform: scale(1.15); }
+            100% { transform: scale(1); }
+        }
+
+        /* شريط تقدّم التجهيز داخل الفاتورة */
+        .invoice-prep-progress {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 11px 14px;
+            background: var(--surface-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+            transition: all 0.25s ease;
+        }
+        .invoice-prep-progress.all-done {
+            background: linear-gradient(135deg, #dcfce7, #bbf7d0);
+            border-color: #86efac;
+        }
+        .invoice-prep-progress .progress-text {
+            font-size: 0.84rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+        .invoice-prep-progress.all-done .progress-text {
+            color: #166534;
+        }
+        .invoice-prep-progress .progress-bar-wrap {
+            flex: 1;
+            min-width: 110px;
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        .invoice-prep-progress .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #22c55e, #16a34a);
+            border-radius: 6px;
+            transition: width 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
         @media (max-width:380px) { .balance-amount { font-size:1.6rem; } .stat-value { font-size:1rem; } .btn { font-size:0.7rem; padding:7px 8px; } }
     
 .connection-panel{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 12px;margin:8px 12px;border-radius:12px;font-size:.78rem;transition:.25s ease}.connection-panel.online{background:#ecfdf5;color:#166534;border:1px solid #bbf7d0}.connection-panel.offline{background:#fff7ed;color:#9a3412;border:1px solid #fed7aa}.sync-status.sync-running{background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe}.sync-status.sync-success{background:#ecfdf5;color:#166534;border:1px solid #bbf7d0}.sync-status.sync-error{background:#fff7ed;color:#9a3412;border:1px solid #fed7aa}.sync-spinner{display:inline-block;width:14px;height:14px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:syncSpin .8s linear infinite}@keyframes syncSpin{to{transform:rotate(360deg)}}
@@ -544,7 +700,7 @@
                 <div class="driver-info">
                     <span class="connection-label" id="headerConnectionLabel">متصل</span>
                     <span class="driver-badge" id="driverNameDisplay">مندوب</span>
-                    <button class="logout-btn" onclick="logout()">خروج</button>
+                    <button class="logout-btn" id="btn-driver-logout" onclick="logout()">خروج</button>
                 </div>
             </div>
         </div>
@@ -602,7 +758,9 @@
         // =============================================================
         // 1. إعدادات API والتخزين المحلي
         // =============================================================
-        const API_BASE = 'https://api.ibnalmukhtar.com';
+        const API_BASE = (window.API_BASE_URL || (window.apiClient && window.apiClient.baseUrl) || localStorage.getItem('posApiBase') || 'https://api.ibnalmukhtar.com').replace(/\/$/, '');
+        let isDriverLoggingIn = false;
+        let isUpdatingDeliveryStatus = false;
         let currentOrders = [];
         let totalBalance = 0;
         let currentStatusFilter = '';
@@ -740,6 +898,31 @@
             const operationId = operation.operation_id || generateOperationId();
             const existing = await getOperationByOperationId(operationId);
             if (existing) return existing;
+
+            // منع تكرار عمليات تحديث نفس الطلب في طابور عدم الاتصال
+            if (operation.store === STORES.ORDERS && operation.type === 'update' && operation.data?.order_id !== undefined) {
+                const targetOrderId = String(operation.data.order_id);
+                const pendingOps = await getPendingOperations();
+                const existingOrderOp = pendingOps.find(op =>
+                    op.store === STORES.ORDERS &&
+                    op.type === 'update' &&
+                    String(op.data?.order_id) === targetOrderId
+                );
+                if (existingOrderOp) {
+                    const keepOpId = existingOrderOp.operation_id || operationId;
+                    const updatedEntry = {
+                        ...existingOrderOp,
+                        ...operation,
+                        id: existingOrderOp.id,
+                        operation_id: keepOpId,
+                        data: { ...(operation.data || {}), operation_id: keepOpId },
+                        synced: false,
+                        updated_at: new Date().toISOString()
+                    };
+                    await put(STORES.OPERATIONS, updatedEntry);
+                    return updatedEntry;
+                }
+            }
 
             const db = await openDB();
             return new Promise((resolve, reject) => {
@@ -1039,6 +1222,11 @@
                     return;
                 }
 
+                if (data.type === 'TRIGGER_CLIENT_SYNC') {
+                    syncAllOperations();
+                    return;
+                }
+
                 if (data.type === 'SYNC_STATUS') {
                     updateEnhancedSyncIndicator(data.status, data.pending || 0, data.synced || 0);
                     if (data.status === 'completed') {
@@ -1217,7 +1405,7 @@
                     console.error('❌ فشل التسجيل في الخادم:', res.status, errorText);
                     return false;
                 }
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 return data.success === true;
             } catch (err) {
                 console.error('خطأ في الاتصال بالخادم:', err);
@@ -1506,13 +1694,16 @@
             const token = getToken();
             const headers = { 'Content-Type': 'application/json' };
             if (token) headers['Authorization'] = `Bearer ${token}`;
+            if (body && body.operation_id && method && !['GET','HEAD','OPTIONS'].includes(method.toUpperCase())) {
+                headers['X-Offline-Operation-Id'] = String(body.operation_id);
+            }
             const options = { method, headers };
             if (body) options.body = JSON.stringify(body);
             try {
                 const res = await fetch(`${API_BASE}${endpoint}`, options);
                 if (res.status === 401) { logout(); throw new Error('انتهت صلاحية الجلسة'); }
                 if (!res.ok) { const txt = await res.text(); throw new Error(txt || 'خطأ'); }
-                return res.json();
+                return res.json().catch(() => ({}));
             } catch (err) {
                 if (err.message === 'Failed to fetch') throw new Error('تعذر الاتصال بالخادم');
                 throw err;
@@ -1525,7 +1716,7 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username, password })
             });
-            const data = await res.json();
+            const data = await res.json().catch(() => ({}));
             if (!res.ok) throw new Error(data.error || 'فشل تسجيل الدخول');
             return data;
         }
@@ -1550,7 +1741,8 @@
             return apiCall(`/driver/return-requests?driver_id=${driverId}`);
         }
         async function confirmReturn(returnId) {
-            return apiCall('/driver/confirm-return', 'POST', { return_id: returnId });
+            const operationId = generateOperationId();
+            return apiCall('/driver/confirm-return', 'POST', { return_id: returnId, operation_id: operationId });
         }
 
         // =============================================================
@@ -1860,6 +2052,251 @@
             return Math.max(0, parseFloat(rawDue) || 0);
         }
 
+        // =============================================================
+        // نظام تعليم الأصناف كمُجهزة — حفظ محلي لكل مندوب
+        // =============================================================
+        const PREPARED_STORAGE_PREFIX = 'driverPreparedItems_v2_';
+
+        function getPreparedStorageKey() {
+            const driverId = getDriverId();
+            return PREPARED_STORAGE_PREFIX + (driverId || 'guest');
+        }
+
+        function getPreparedMap() {
+            try {
+                const raw = localStorage.getItem(getPreparedStorageKey());
+                const parsed = raw ? JSON.parse(raw) : {};
+                return (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) ? parsed : {};
+            } catch (e) {
+                console.warn('تعذر قراءة حالة التجهيز:', e);
+                return {};
+            }
+        }
+
+        function savePreparedMap(map) {
+            try {
+                localStorage.setItem(getPreparedStorageKey(), JSON.stringify(map || {}));
+            } catch (e) {
+                console.warn('تعذر حفظ حالة التجهيز:', e);
+            }
+        }
+
+        function getOrderPreparedItems(orderId) {
+            if (orderId === undefined || orderId === null) return [];
+            const map = getPreparedMap();
+            const entry = map[String(orderId)];
+            return (entry && Array.isArray(entry.items)) ? entry.items : [];
+        }
+
+        function getPreparedCount(orderId) {
+            return getOrderPreparedItems(orderId).length;
+        }
+
+        function isItemPrepared(orderId, itemId) {
+            if (itemId === undefined || itemId === null) return false;
+            return getOrderPreparedItems(orderId).includes(String(itemId));
+        }
+
+        function toggleItemPrepared(orderId, itemId) {
+            const key = String(orderId);
+            const itemKey = String(itemId);
+            const map = getPreparedMap();
+            if (!map[key]) map[key] = { items: [], at: new Date().toISOString() };
+            if (!Array.isArray(map[key].items)) map[key].items = [];
+
+            const idx = map[key].items.indexOf(itemKey);
+            let isNowPrepared;
+            if (idx !== -1) {
+                map[key].items.splice(idx, 1);
+                isNowPrepared = false;
+            } else {
+                map[key].items.push(itemKey);
+                isNowPrepared = true;
+            }
+            map[key].at = new Date().toISOString();
+
+            // لو ما فيه أصناف مُجهزة، احذف المفتاح كاملاً لتنظيف التخزين
+            if (map[key].items.length === 0) delete map[key];
+
+            savePreparedMap(map);
+            return isNowPrepared;
+        }
+
+        function getOrderItemIds(order) {
+            if (!order) return ['__order_all__'];
+            const items = order.items || [];
+            if (items.length === 0) return ['__order_all__'];
+            const sortedItems = [...items].sort((a, b) => (b.id || 0) - (a.id || 0));
+            return sortedItems.map(item => String(item.id ?? item.item_id ?? `row_${item.product_id || 'x'}`));
+        }
+
+        /**
+         * هل الطلب مُجهز كاملاً؟ (كل الأصناف محددة)
+         */
+        function isOrderFullyPrepared(order) {
+            if (!order) return false;
+            const items = order.items || [];
+            if (items.length === 0) return getPreparedCount(order.id) > 0;
+            return getPreparedCount(order.id) >= items.length;
+        }
+
+        function clearAllPreparedItems() {
+            try { localStorage.removeItem(getPreparedStorageKey()); } catch (e) {}
+        }
+
+        /**
+         * زر التجهيز السريع فوق البطاقة:
+         * عند الضغط على "غير مُجهز" (أو جزئي) -> يحدد الكل ويحوله إلى "جاهز"
+         * وعند الضغط على "جاهز" -> يلغي تحديد الكل ويحوله إلى "غير مُجهز"
+         */
+        function toggleAllOrderPrepared(orderId, evt) {
+            if (evt && typeof evt.stopPropagation === 'function') {
+                evt.stopPropagation();
+            }
+            const key = String(orderId);
+            const order = currentOrders.find(o => String(o.id) === key);
+            const currentlyFull = checkOrderFullyPrepared(key);
+            const map = getPreparedMap();
+
+            let isNowFull;
+            if (currentlyFull) {
+                delete map[key];
+                isNowFull = false;
+            } else {
+                const allItemIds = getOrderItemIds(order);
+                map[key] = {
+                    items: allItemIds,
+                    at: new Date().toISOString()
+                };
+                isNowFull = true;
+            }
+
+            savePreparedMap(map);
+
+            // مزامنة البطاقات (القائمة + السوايب)
+            syncOrderPreparedState(key, isNowFull);
+
+            // إذا كانت نافذة الفاتورة مفتوحة لهذا الطلب، حدّث الأزرار والصفوف وشريط التقدم
+            const invoiceSheet = document.getElementById('invoiceSheet');
+            if (invoiceSheet && invoiceSheet.classList.contains('active')) {
+                invoiceSheet.querySelectorAll(`.item-prep-check[data-order-id="${key}"]`).forEach(btn => {
+                    btn.classList.toggle('is-prepared', isNowFull);
+                    btn.textContent = isNowFull ? '✓' : '';
+                    btn.setAttribute('aria-pressed', isNowFull ? 'true' : 'false');
+                    const row = btn.closest('tr');
+                    if (row) row.classList.toggle('is-prepared', isNowFull);
+                });
+                updateInvoicePrepProgress(key);
+            }
+
+            if ('vibrate' in navigator) {
+                try { navigator.vibrate(isNowFull ? 35 : 15); } catch (e) {}
+            }
+            showToast(isNowFull ? `🎉 تم تحديد كل أصناف الطلب #${key} كـ جاهز` : `↩️ تم إلغاء تجهيز الطلب #${key}`);
+        }
+
+        /**
+         * الدالة التفاعلية عند الضغط على checkbox الصنف داخل الفاتورة
+         */
+        function togglePreparedItem(orderId, itemId, btnEl) {
+            const isNowPrepared = toggleItemPrepared(orderId, itemId);
+
+            // 1. الزر نفسه
+            if (btnEl) {
+                btnEl.classList.toggle('is-prepared', isNowPrepared);
+                btnEl.textContent = isNowPrepared ? '✓' : '';
+                btnEl.setAttribute('aria-pressed', isNowPrepared ? 'true' : 'false');
+            }
+
+            // 2. صف الجدول
+            const row = btnEl?.closest('tr');
+            if (row) row.classList.toggle('is-prepared', isNowPrepared);
+
+            // 3. تحديث شريط التقدّم داخل الفاتورة
+            updateInvoicePrepProgress(orderId);
+
+            // 4. مزامنة البطاقات (القائمة + السوايب)
+            const fullyPrepared = checkOrderFullyPrepared(orderId);
+            syncOrderPreparedState(orderId, fullyPrepared);
+
+            // 5. اهتزاز + إشعار
+            if ('vibrate' in navigator) {
+                try { navigator.vibrate(isNowPrepared ? 30 : 12); } catch (e) {}
+            }
+            if (fullyPrepared && isNowPrepared) {
+                showToast(`🎉 تم تجهيز الطلب #${orderId} بالكامل`);
+            } else {
+                showToast(isNowPrepared ? '✅ تم تعليم الصنف كمُجهز' : '↩️ تم إلغاء تعليم الصنف');
+            }
+        }
+
+        function checkOrderFullyPrepared(orderId) {
+            const order = currentOrders.find(o => String(o.id) === String(orderId));
+            return isOrderFullyPrepared(order);
+        }
+
+        /**
+         * تحديث شريط التقدّم داخل الفاتورة
+         */
+        function updateInvoicePrepProgress(orderId) {
+            const order = currentOrders.find(o => String(o.id) === String(orderId));
+            if (!order || !order.items) return;
+            const total = order.items.length;
+            const preparedCount = Math.min(total, getPreparedCount(orderId));
+            const percent = total > 0 ? Math.round((preparedCount / total) * 100) : 0;
+
+            const bar = document.getElementById('invoiceProgressBar');
+            const text = document.getElementById('invoiceProgressText');
+            const wrap = document.getElementById('invoicePrepProgress');
+
+            if (bar) bar.style.width = percent + '%';
+            if (text) {
+                text.textContent = (preparedCount === total && total > 0)
+                    ? `🎉 تم تجهيز كل الأصناف (${total}/${total})`
+                    : `تم تجهيز ${preparedCount} من ${total} صنف`;
+            }
+            if (wrap) wrap.classList.toggle('all-done', preparedCount === total && total > 0);
+        }
+
+        /**
+         * مزامنة حالة التجهيز مع البطاقات (القائمة + السوايب) بدون إعادة رسم
+         */
+        function syncOrderPreparedState(orderId, isFullyPrepared) {
+            const order = currentOrders.find(o => String(o.id) === String(orderId));
+            const total = order?.items?.length || 0;
+            const preparedCount = getPreparedCount(orderId);
+
+            const updateCardBadges = (containerEl) => {
+                if (!containerEl) return;
+                containerEl.classList.toggle('is-fully-prepared', isFullyPrepared);
+                const badgeFull = containerEl.querySelector('.prepared-badge.badge-full');
+                const badgePartial = containerEl.querySelector('.prepared-badge.badge-partial');
+                const badgeNone = containerEl.querySelector('.prepared-badge.badge-none');
+
+                if (badgeFull) badgeFull.style.display = isFullyPrepared ? 'inline-flex' : 'none';
+                if (badgePartial) {
+                    if (!isFullyPrepared && preparedCount > 0 && total > 0) {
+                        badgePartial.style.display = 'inline-flex';
+                        const c = badgePartial.querySelector('.partial-count');
+                        const t = badgePartial.querySelector('.partial-total');
+                        if (c) c.textContent = preparedCount;
+                        if (t) t.textContent = total;
+                    } else {
+                        badgePartial.style.display = 'none';
+                    }
+                }
+                if (badgeNone) {
+                    badgeNone.style.display = (!isFullyPrepared && (preparedCount === 0 || total === 0)) ? 'inline-flex' : 'none';
+                }
+            };
+
+            // بطاقة الطلب في القائمة
+            document.querySelectorAll(`.order-card[data-order-id="${orderId}"]`).forEach(updateCardBadges);
+
+            // بطاقة السوايب
+            document.querySelectorAll(`.swipe-card-slide[data-order-id="${orderId}"]`).forEach(updateCardBadges);
+        }
+
         function setOrderButtonsDisabled(orderId, disabled) {
             const card = document.querySelector(`.order-card[data-order-id="${orderId}"]`);
             if (!card) return;
@@ -2101,6 +2538,9 @@ function renderOrders(orders) {
         const hasManyItems = items.length > 3;
         const remainingCount = Math.max(0, items.length - 3);
         const finalCardClass = [cardClass, hasManyItems ? 'has-many-items' : ''].filter(Boolean).join(' ');
+        const isFullyPrepared = isOrderFullyPrepared(order);
+        const preparedCount = getPreparedCount(order.id);
+        const finalCardClassWithPrepared = [finalCardClass, isFullyPrepared ? 'is-fully-prepared' : ''].filter(Boolean).join(' ');
 
         let itemsBadgeHtml = '';
         if (items.length > 0) {
@@ -2181,7 +2621,7 @@ function renderOrders(orders) {
         }
 
         html += `
-            <div class="order-card ${finalCardClass}" data-order-id="${order.id}">
+            <div class="order-card ${finalCardClassWithPrepared}" data-order-id="${order.id}">
                 <div style="font-size: 0.75rem; color: var(--primary); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; font-weight: 600; background: var(--surface-secondary); padding: 4px 10px; border-radius: 8px; width: fit-content;">
                     <span>🕒</span> <span>${formattedDate}</span>
                 </div>
@@ -2190,6 +2630,15 @@ function renderOrders(orders) {
                     <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
                         <span class="order-id">📦 طلب #${order.id}</span>
                         ${itemsBadgeHtml}
+                        <button type="button" class="prepared-badge badge-full" onclick="toggleAllOrderPrepared('${order.id}', event)" title="اضغط لإلغاء التجهيز" style="display:${isFullyPrepared?'inline-flex':'none'};">
+                            <span>✅</span> جاهز
+                        </button>
+                        <button type="button" class="prepared-badge badge-partial" onclick="toggleAllOrderPrepared('${order.id}', event)" title="اضغط لتحديد الكل كـ جاهز" style="display:${(!isFullyPrepared && preparedCount>0 && items.length>0)?'inline-flex':'none'};">
+                            <span>⏳</span> <span class="partial-count">${preparedCount}</span>/<span class="partial-total">${items.length}</span> مُجهز
+                        </button>
+                        <button type="button" class="prepared-badge badge-none" onclick="toggleAllOrderPrepared('${order.id}', event)" title="اضغط لتحديد الكل كـ جاهز" style="display:${(!isFullyPrepared && (preparedCount===0 || items.length===0))?'inline-flex':'none'};">
+                            <span>⬜</span> غير مُجهز
+                        </button>
                     </div>
                     <span class="order-status-badge ${statusBadgeClass}">${statusText}</span>
                 </div>
@@ -2317,11 +2766,42 @@ function renderOrders(orders) {
             });
 
             let tableHtml = '';
+            const preparedCountInv = getPreparedCount(order.id);
+            const totalItemsInv = sortedItems.length;
+            const isFullyPreparedInv = totalItemsInv > 0 && preparedCountInv >= totalItemsInv;
+            const progressPercent = totalItemsInv > 0 ? Math.round((preparedCountInv / totalItemsInv) * 100) : 0;
+
             if (sortedItems.length > 0) {
+                const rowsHtml = sortedItems.map(item => {
+                    const itemId = item.id ?? item.item_id ?? `row_${item.product_id || 'x'}`;
+                    const isPrep = isItemPrepared(order.id, itemId);
+                    return `
+                        <tr class="invoice-item-row ${isPrep ? 'is-prepared' : ''}">
+                            <td style="padding:8px; text-align:center; border-bottom:1px solid var(--border); width:44px;">
+                                <button type="button"
+                                        class="item-prep-check ${isPrep ? 'is-prepared' : ''}"
+                                        data-order-id="${order.id}"
+                                        onclick="togglePreparedItem('${order.id}', '${itemId}', this);"
+                                        title="${isPrep ? 'إلغاء تعليم الصنف' : 'تعليم الصنف كمُجهز'}"
+                                        aria-label="تعليم الصنف كمُجهز"
+                                        aria-pressed="${isPrep ? 'true' : 'false'}">
+                                    ${isPrep ? '✓' : ''}
+                                </button>
+                            </td>
+                            <td class="item-name-cell" style="padding:8px; border-bottom:1px solid var(--border); font-weight:600;">${item.product_name || item.product_id}</td>
+                            <td style="padding:8px; text-align:center; border-bottom:1px solid var(--border);">${item.quantity}</td>
+                            <td style="padding:8px; text-align:center; border-bottom:1px solid var(--border);">${parseFloat(item.unit_price || 0).toFixed(2)}</td>
+                            <td style="padding:8px; text-align:center; border-bottom:1px solid var(--border); font-weight:700;">${parseFloat(item.line_total || 0).toFixed(2)}</td>
+                            <td style="padding:8px; border-bottom:1px solid var(--border); color:var(--text-muted); font-size:0.75rem;">${item.note || item.notes || item.product_note || '-'}</td>
+                        </tr>
+                    `;
+                }).join('');
+
                 tableHtml = `
                     <table class="invoice-items-table" style="width:100%; margin:10px 0;">
                         <thead>
                             <tr style="background:var(--surface-secondary);">
+                                <th style="padding:8px; text-align:center; width:44px;">✓</th>
                                 <th style="padding:8px; text-align:right;">المنتج</th>
                                 <th style="padding:8px; text-align:center;">الكمية</th>
                                 <th style="padding:8px; text-align:center;">السعر</th>
@@ -2329,17 +2809,7 @@ function renderOrders(orders) {
                                 <th style="padding:8px; text-align:right;">ملاحظة</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            ${sortedItems.map(item => `
-                                <tr>
-                                    <td style="padding:8px; border-bottom:1px solid var(--border); font-weight:600;">${item.product_name || item.product_id}</td>
-                                    <td style="padding:8px; text-align:center; border-bottom:1px solid var(--border);">${item.quantity}</td>
-                                    <td style="padding:8px; text-align:center; border-bottom:1px solid var(--border);">${parseFloat(item.unit_price || 0).toFixed(2)}</td>
-                                    <td style="padding:8px; text-align:center; border-bottom:1px solid var(--border); font-weight:700;">${parseFloat(item.line_total || 0).toFixed(2)}</td>
-                                    <td style="padding:8px; border-bottom:1px solid var(--border); color:var(--text-muted); font-size:0.75rem;">${item.note || item.notes || item.product_note || '-'}</td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
+                        <tbody>${rowsHtml}</tbody>
                     </table>
                 `;
             } else {
@@ -2379,13 +2849,33 @@ function renderOrders(orders) {
                     ` : ''}
                 </div>
 
-                <!-- جدول الأصناف -->
+                <!-- جدول الأصناف + شريط التقدّم -->
                 <div style="margin-bottom:14px;">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:6px;">
                         <div style="font-weight:700; font-size:0.9rem; color:var(--text-primary);">📦 أصناف الفاتورة (${sortedItems.length}):</div>
                         ${sortedItems.length > 3 ? `<span class="badge-items-count badge-items-many" style="font-size:0.75rem;">🔥 طلب متعدد (${sortedItems.length} صنف)</span>` : ''}
                     </div>
+
+                    ${sortedItems.length > 0 ? `
+                    <div class="invoice-prep-progress ${isFullyPreparedInv ? 'all-done' : ''}" id="invoicePrepProgress">
+                        <span class="progress-text" id="invoiceProgressText">
+                            ${isFullyPreparedInv
+                                ? `🎉 تم تجهيز كل الأصناف (${totalItemsInv}/${totalItemsInv})`
+                                : `تم تجهيز ${preparedCountInv} من ${totalItemsInv} صنف`}
+                        </span>
+                        <div class="progress-bar-wrap">
+                            <div class="progress-bar-fill" id="invoiceProgressBar" style="width:${progressPercent}%"></div>
+                        </div>
+                    </div>
+                    ` : ''}
+
                     ${tableHtml}
+
+                    ${sortedItems.length > 0 ? `
+                    <div style="font-size:0.72rem; color:var(--text-muted); text-align:center; margin-top:6px;">
+                        ☑️ اضغط على المربع بجانب كل صنف لتعليمه كمُجهز — عند اكتمال الكل سيظهر الطلب كـ «جاهز» في البطاقات
+                    </div>
+                    ` : ''}
                 </div>
 
                 <!-- الصندوق المالي -->
@@ -3048,7 +3538,7 @@ function renderOrders(orders) {
                     </div>
                 </div>
                 <div style="margin-top:20px; display:flex; gap:10px;">
-                    <button class="btn btn-primary" style="flex:1;" onclick="loadDashboard()">🔄 تحديث</button>
+                    <button class="btn btn-primary" id="btn-driver-refresh-dashboard" style="flex:1;" onclick="loadDashboard()">🔄 تحديث</button>
                     <button class="btn btn-danger" style="flex:1;" onclick="logout()">🚪 تسجيل خروج</button>
                 </div>
             `;
@@ -3229,7 +3719,7 @@ function renderOrders(orders) {
                 <label>📝 ملاحظات</label>
                 <input type="text" id="modalNotes" placeholder="أي ملاحظات إضافية">
 
-                <button class="submit-btn" onclick="submitDeliveryUpdate('${orderId}')">✅ تأكيد التحديث</button>
+                <button class="submit-btn" id="btn-driver-submit-delivery" onclick="submitDeliveryUpdate('${orderId}')">✅ تأكيد التحديث</button>
             `;
             document.getElementById('modalContent').innerHTML = modalHtml;
             document.getElementById('modalSheet').classList.add('active');
@@ -3244,8 +3734,11 @@ function renderOrders(orders) {
         // 12. تحديث التسليم (مع التحديث الفوري ودعم عدم الاتصال)
         // =============================================================
         async function submitDeliveryUpdate(orderId) {
+            if (isUpdatingDeliveryStatus) return;
+            isUpdatingDeliveryStatus = true;
             if (isSubmitting) {
                 showToast('⚠️ جاري معالجة طلب سابق، انتظر قليلاً');
+                isUpdatingDeliveryStatus = false;
                 return;
             }
             isSubmitting = true;
@@ -3457,6 +3950,7 @@ function renderOrders(orders) {
             } finally {
                 setOrderButtonsDisabled(orderId, false);
                 isSubmitting = false;
+                isUpdatingDeliveryStatus = false;
             }
         }
 
@@ -3494,56 +3988,66 @@ function renderOrders(orders) {
                         <label style="font-weight:600;">🔒 كلمة المرور</label>
                         <input id="loginPassword" type="password" placeholder="كلمة المرور" style="width:100%; padding:14px; border:2px solid var(--border); border-radius:var(--radius-sm); margin:8px 0; background:var(--surface-secondary);">
                         <div id="loginError" style="color:var(--danger); font-size:0.8rem; margin:8px 0; display:none;"></div>
-                        <button class="btn btn-primary" onclick="handleLogin()" style="width:100%; padding:15px; font-size:1rem;">🔑 دخول</button>
+                        <button class="btn btn-primary" id="btn-driver-handle-login" onclick="handleLogin()" style="width:100%; padding:15px; font-size:1rem;">🔑 دخول</button>
                     </div>
                 </div>`;
             updateSyncCounter();
         }
 
         async function handleLogin() {
-            const username = document.getElementById('loginUsername').value.trim();
-            const password = document.getElementById('loginPassword').value.trim();
-            const errorDiv = document.getElementById('loginError');
-            if (!username || !password) { errorDiv.textContent = 'يرجى إدخال البيانات';
-                errorDiv.style.display = 'block'; return; }
-            errorDiv.style.display = 'none';
+            if (isDriverLoggingIn) return;
+            isDriverLoggingIn = true;
             try {
-                const data = await login(username, password);
-                if (data.token && data.user) {
-                    setToken(data.token);
-                    setDriverId(data.user.id);
-                    const driverRealName = data.user.name || data.user.driver_name || data.user.full_name;
-                    setDriverName(data.user.username, driverRealName);
-                    loadFilterSettings();
-                    await loadDashboard();
-                    if (navigator.onLine) await syncAllOperations();
+                const username = document.getElementById('loginUsername').value.trim();
+                const password = document.getElementById('loginPassword').value.trim();
+                const errorDiv = document.getElementById('loginError');
+                if (!username || !password) {
+                    errorDiv.textContent = 'يرجى إدخال البيانات';
+                    errorDiv.style.display = 'block';
+                    return;
+                }
+                errorDiv.style.display = 'none';
+                try {
+                    const data = await login(username, password);
+                    if (data.token && data.user) {
+                        setToken(data.token);
+                        setDriverId(data.user.id);
+                        const driverRealName = data.user.name || data.user.driver_name || data.user.full_name;
+                        setDriverName(data.user.username, driverRealName);
+                        loadFilterSettings();
+                        await loadDashboard();
+                        if (navigator.onLine) await syncAllOperations();
 
-                    const pushEnabled = localStorage.getItem('pushEnabled') === 'true';
-                    if ('Notification' in window && Notification.permission === 'granted') {
-                        if (pushEnabled) {
-                            await registerForPushNotifications();
+                        const pushEnabled = localStorage.getItem('pushEnabled') === 'true';
+                        if ('Notification' in window && Notification.permission === 'granted') {
+                            if (pushEnabled) {
+                                await registerForPushNotifications();
+                            } else {
+                                updateNotificationUI(false);
+                            }
                         } else {
                             updateNotificationUI(false);
+                            await registerForPushNotifications();
                         }
-                    } else {
-                        updateNotificationUI(false);
-                        await registerForPushNotifications();
-                    }
 
-                    showToast('✅ تم الدخول بنجاح');
-                    sessionStorage.removeItem('driverWelcomeShown');
-                    checkAndShowWelcomePrompt();
-                } else {
-                    errorDiv.textContent = 'بيانات غير صالحة';
+                        showToast('✅ تم الدخول بنجاح');
+                        sessionStorage.removeItem('driverWelcomeShown');
+                        checkAndShowWelcomePrompt();
+                    } else {
+                        errorDiv.textContent = 'بيانات غير صالحة';
+                        errorDiv.style.display = 'block';
+                    }
+                } catch (err) {
+                    errorDiv.textContent = err.message;
                     errorDiv.style.display = 'block';
                 }
-            } catch (err) {
-                errorDiv.textContent = err.message;
-                errorDiv.style.display = 'block';
+            } finally {
+                isDriverLoggingIn = false;
             }
         }
 
         async function logout() {
+            clearAllPreparedItems();
             clearToken();
             clearDriverId();
             clearDriverName();
@@ -3553,6 +4057,8 @@ function renderOrders(orders) {
             localStorage.removeItem('driverBalance');
             localStorage.removeItem('lastAccountData');
             sessionStorage.removeItem('driverWelcomeShown');
+            // مسح سجل الأصناف المُجهزة لهذا المندوب
+            clearAllPreparedItems();
 
             try {
                 const db = await openDB();
@@ -3630,18 +4136,29 @@ function renderOrders(orders) {
                 const { store, type, data } = op;
                 const opKey = op.id !== undefined ? op.id : op.operation_id;
                 if (store === STORES.ORDERS && type === 'update') {
+                    // منع المحاولات المتتالية السريعة لنفس العملية في حال ضعف الإنترنت (فاصل زمني 15 ثانية)
+                    const nowMs = Date.now();
+                    if (op.last_attempt_at && (nowMs - op.last_attempt_at) < 15000) {
+                        continue;
+                    }
                     op.attempts = (op.attempts || 0) + 1;
+                    op.last_attempt_at = nowMs;
+                    const opId = String(data?.operation_id || op.operation_id || opKey);
                     try {
                         const response = await fetch(`${API_BASE}/driver/update-delivery`, {
                             method: 'POST',
-                            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ ...data, operation_id: data?.operation_id || op.operation_id })
+                            headers: {
+                                'Authorization': `Bearer ${token}`,
+                                'Content-Type': 'application/json',
+                                'X-Offline-Operation-Id': opId
+                            },
+                            body: JSON.stringify({ ...data, operation_id: opId })
                         });
 
                         if (response.ok) {
                             await deleteOperation(opKey);
                             syncedCount++;
-                            const result = await response.json();
+                            const result = await response.json().catch(() => ({}));
                             if (result.order) await updateOrderLocally(result.order);
                         } else if (response.status >= 400 && response.status < 500 && response.status !== 408) {
                             await deleteOperation(opKey);
@@ -4108,14 +4625,18 @@ function renderOrders(orders) {
                 } else {
                     actionsHtml = `
                         <div class="action-buttons" style="margin-top:8px;">
-                            <button class="btn btn-success" onclick="closeSwipeableCardsModal(false); openDeliveryModal('${order.id}', 'تم التوصيل')">✅ تم</button>
-                            <button class="btn btn-danger" onclick="closeSwipeableCardsModal(false); openDeliveryModal('${order.id}', 'فشل')">❌ فشل</button>
+                            <button type="button" class="btn btn-success" onclick="quickSubmitSwipeDelivery('${order.id}', 'تم التوصيل', this)">✅ تم</button>
+                            <button type="button" class="btn btn-danger" onclick="quickSubmitSwipeDelivery('${order.id}', 'فشل', this)">❌ فشل</button>
                         </div>
                     `;
                 }
 
+                const isFullyPreparedSwipe = isOrderFullyPrepared(order);
+                const preparedCountSwipe = getPreparedCount(order.id);
+                const totalItemsSwipe = items.length;
+
                 slidesHtml += `
-                    <div class="swipe-card-slide ${hasManyItems ? 'has-many-items' : ''}" data-index="${idx}" data-order-id="${order.id}">
+                    <div class="swipe-card-slide ${hasManyItems ? 'has-many-items' : ''} ${isFullyPreparedSwipe ? 'is-fully-prepared' : ''}" data-index="${idx}" data-order-id="${order.id}">
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
                             <div style="font-size:0.72rem; color:var(--primary); font-weight:600; background:var(--surface-secondary); padding:3px 8px; border-radius:6px;">
                                 🕒 ${formattedDate}
@@ -4127,6 +4648,15 @@ function renderOrders(orders) {
                             <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
                                 <span class="order-id" style="font-size:1.05rem;">📦 طلب #${order.id}</span>
                                 ${itemsBadge}
+                                <button type="button" class="prepared-badge badge-full" onclick="toggleAllOrderPrepared('${order.id}', event)" title="اضغط لإلغاء التجهيز" style="display:${isFullyPreparedSwipe?'inline-flex':'none'};">
+                                    <span>✅</span> جاهز
+                                </button>
+                                <button type="button" class="prepared-badge badge-partial" onclick="toggleAllOrderPrepared('${order.id}', event)" title="اضغط لتحديد الكل كـ جاهز" style="display:${(!isFullyPreparedSwipe && preparedCountSwipe>0 && totalItemsSwipe>0)?'inline-flex':'none'};">
+                                    <span>⏳</span> <span class="partial-count">${preparedCountSwipe}</span>/<span class="partial-total">${totalItemsSwipe}</span> مُجهز
+                                </button>
+                                <button type="button" class="prepared-badge badge-none" onclick="toggleAllOrderPrepared('${order.id}', event)" title="اضغط لتحديد الكل كـ جاهز" style="display:${(!isFullyPreparedSwipe && (preparedCountSwipe===0 || totalItemsSwipe===0))?'inline-flex':'none'};">
+                                    <span>⬜</span> غير مُجهز
+                                </button>
                             </div>
                             <span class="order-status-badge ${statusBadgeClass}">${statusText}</span>
                         </div>
@@ -4210,6 +4740,228 @@ function renderOrders(orders) {
                     history.pushState({ modal: 'swipeCards' }, '');
                 }
             } catch (e) {}
+        }
+
+        async function quickSubmitSwipeDelivery(orderId, status, btnEl) {
+            if (isUpdatingDeliveryStatus || isSubmitting) {
+                showToast('⚠️ جاري معالجة طلب سابق، انتظر قليلاً');
+                return;
+            }
+            const order = currentOrders.find(o => String(o.id) === String(orderId));
+            if (!order) {
+                showToast('❌ الطلب غير موجود');
+                return;
+            }
+
+            const finalStatuses = ['تم التسليم', 'فشل التسليم', 'مرتجع جزئي', 'مرتجع كلي', 'ملغي'];
+            if (finalStatuses.includes(order.status)) {
+                showToast('❌ هذا الطلب قد انتهى، لا يمكن تعديله');
+                return;
+            }
+
+            isUpdatingDeliveryStatus = true;
+            isSubmitting = true;
+            setOrderButtonsDisabled(orderId, true);
+
+            const slideEl = document.querySelector(`.swipe-card-slide[data-order-id="${orderId}"]`);
+            const actionsContainer = slideEl ? slideEl.querySelector('.action-buttons') : null;
+            const originalActionsHtml = actionsContainer ? actionsContainer.innerHTML : '';
+            if (actionsContainer) {
+                actionsContainer.querySelectorAll('.btn').forEach(b => {
+                    b.disabled = true;
+                    b.style.opacity = '0.6';
+                });
+            }
+
+            try {
+                const originalOrder = typeof structuredClone === 'function' ? structuredClone(order) : JSON.parse(JSON.stringify(order));
+                const due = getOrderDueAmount(order);
+
+                let paymentData = null;
+                if (status === 'تم التوصيل') {
+                    const curList = (currencies && currencies.length > 0)
+                        ? currencies
+                        : [{ id: 1, code: 'YER', name: 'ريال يمني', is_base: 1, rate_to_base: 1 }];
+                    const baseCurrency = curList.find(c => c.is_base) || curList[0];
+                    const baseCurrencyId = baseCurrency ? baseCurrency.id : 1;
+
+                    if (due > 0) {
+                        let method = 'نقدي';
+                        if (order.payment_method && order.payment_method.includes('مختلط')) {
+                            method = 'مختلط';
+                        }
+                        paymentData = {
+                            payment_method: method,
+                            cash_collected: due,
+                            wallet_collected: 0,
+                            wallet_id: order.wallet_id ? parseInt(order.wallet_id) : null,
+                            cash_currency_id: baseCurrencyId,
+                            wallet_currency_id: baseCurrencyId
+                        };
+                    } else {
+                        paymentData = {
+                            payment_method: order.payment_method || 'نقدي',
+                            cash_collected: 0,
+                            wallet_collected: 0,
+                            wallet_id: null,
+                            cash_currency_id: baseCurrencyId,
+                            wallet_currency_id: baseCurrencyId
+                        };
+                    }
+                }
+
+                let newStatus = status;
+                if (status === 'فشل') newStatus = 'فشل التسليم';
+                else if (status === 'تم التوصيل') newStatus = 'تم التسليم';
+
+                // 1. تحديث محلي فوري
+                const updatedOrder = { ...order, status: newStatus };
+                if (paymentData) {
+                    updatedOrder.payment_method = paymentData.payment_method;
+                    updatedOrder.cash_collected = paymentData.cash_collected;
+                    updatedOrder.wallet_collected = paymentData.wallet_collected;
+                }
+                const index = currentOrders.findIndex(o => String(o.id) === String(orderId));
+                if (index !== -1) currentOrders[index] = updatedOrder;
+                else currentOrders.push(updatedOrder);
+
+                const swipeIdx = swipeCardsList.findIndex(o => String(o.id) === String(orderId));
+                if (swipeIdx !== -1) swipeCardsList[swipeIdx] = updatedOrder;
+
+                await updateOrderLocally(updatedOrder);
+                applyFiltersAndRender();
+
+                // تحديث بطاقة السوايب فوراً بدون إغلاقها
+                if (slideEl) {
+                    const badgeEl = slideEl.querySelector('.order-status-badge');
+                    if (badgeEl) {
+                        badgeEl.className = `order-status-badge ${newStatus === 'تم التسليم' ? 'badge-delivered' : 'badge-failed'}`;
+                        badgeEl.textContent = newStatus;
+                    }
+                    if (actionsContainer) {
+                        actionsContainer.outerHTML = `<div class="swipe-done-msg" style="text-align:center; color:${newStatus === 'تم التسليم' ? '#15803d' : '#991b1b'}; background:${newStatus === 'تم التسليم' ? '#dcfce7' : '#fee2e2'}; font-size:0.8rem; font-weight:700; padding:9px; border-radius:12px; margin-top:8px;">${newStatus === 'تم التسليم' ? '✅ تم تسليم الطلب بنجاح' : '❌ تم تسجيل فشل التسليم'}</div>`;
+                    }
+                }
+
+                if ('vibrate' in navigator) {
+                    try { navigator.vibrate(40); } catch (e) {}
+                }
+
+                // الانتقال التلقائي السلس للبطاقة التالية إن وجدت
+                if (currentSwipeIndex < swipeCardsList.length - 1) {
+                    setTimeout(() => {
+                        swipeNextCard();
+                    }, 350);
+                }
+
+                // 2. المزامنة مع الخادم
+                const operationId = generateOperationId();
+                const operationData = {
+                    operation_id: operationId,
+                    order_id: orderId,
+                    delivery_status: status,
+                    ...(paymentData || {}),
+                    notes: order.notes || order.note || ''
+                };
+
+                if (navigator.onLine) {
+                    try {
+                        const response = await apiCall('/driver/update-delivery', 'POST', operationData);
+                        if (response.order) {
+                            const serverOrder = response.order;
+                            const idx = currentOrders.findIndex(o => String(o.id) === String(orderId));
+                            const confirmedOrder = { ...serverOrder, _pendingSync: false };
+                            if (idx !== -1) currentOrders[idx] = confirmedOrder;
+                            else currentOrders.push(confirmedOrder);
+                            await updateOrderLocally(confirmedOrder);
+                        }
+
+                        const serverBalance = response.account?.balance !== undefined ? response.account.balance : response.balance;
+                        if (serverBalance !== undefined) {
+                            totalBalance = serverBalance;
+                            localStorage.setItem('driverBalance', totalBalance.toString());
+                            updateBalanceDisplay();
+                        } else if (status === 'تم التوصيل' && paymentData && paymentData.cash_collected > 0) {
+                            totalBalance += paymentData.cash_collected;
+                            localStorage.setItem('driverBalance', totalBalance.toString());
+                            updateBalanceDisplay();
+                        }
+
+                        if (response.account) {
+                            lastAccountData = { ...lastAccountData, ...response.account };
+                            localStorage.setItem('lastAccountData', JSON.stringify(lastAccountData));
+                        }
+
+                        applyFiltersAndRender();
+                        showToast(`✅ تم تحديث الطلب #${orderId} (${newStatus})`);
+                        refreshOrders().catch(console.warn);
+                    } catch (err) {
+                        const errMsg = (err.message || '').toLowerCase();
+                        const isClientError = errMsg.includes('400') || errMsg.includes('403') || errMsg.includes('422');
+                        if (isClientError) {
+                            await rollbackLocalOrderUpdate(orderId, originalOrder);
+                            if (slideEl) {
+                                const badgeEl = slideEl.querySelector('.order-status-badge');
+                                if (badgeEl) {
+                                    badgeEl.className = 'order-status-badge badge-progress';
+                                    badgeEl.textContent = originalOrder.status || 'جديد';
+                                }
+                                const doneMsgEl = slideEl.querySelector('.swipe-done-msg');
+                                if (doneMsgEl && originalActionsHtml) {
+                                    doneMsgEl.outerHTML = `<div class="action-buttons" style="margin-top:8px;">${originalActionsHtml}</div>`;
+                                }
+                            }
+                            let errorText = err.message || '';
+                            try {
+                                const errorObj = JSON.parse(err.message);
+                                if (errorObj && errorObj.error) errorText = errorObj.error;
+                            } catch (e) {}
+                            showToast('❌ تعذر إتمام التحديث: ' + (errorText || err.message));
+                        } else {
+                            await addOperation({
+                                store: STORES.ORDERS,
+                                type: 'update',
+                                operation_id: operationId,
+                                data: operationData
+                            });
+                            updatedOrder._pendingSync = true;
+                            markOrderAsPending(orderId);
+                            await updateSyncCounter();
+                            registerBackgroundSync();
+                            if (status === 'تم التوصيل' && paymentData && paymentData.cash_collected > 0) {
+                                totalBalance += paymentData.cash_collected;
+                                localStorage.setItem('driverBalance', totalBalance.toString());
+                                updateBalanceDisplay();
+                            }
+                            showToast('📴 تم حفظ التحديث محلياً، ستتم المزامنة تلقائياً');
+                        }
+                    }
+                } else {
+                    await addOperation({
+                        store: STORES.ORDERS,
+                        type: 'update',
+                        operation_id: operationId,
+                        data: operationData
+                    });
+                    updatedOrder._pendingSync = true;
+                    markOrderAsPending(orderId);
+                    await updateSyncCounter();
+                    registerBackgroundSync();
+                    if (status === 'تم التوصيل' && paymentData && paymentData.cash_collected > 0) {
+                        totalBalance += paymentData.cash_collected;
+                        localStorage.setItem('driverBalance', totalBalance.toString());
+                        updateBalanceDisplay();
+                    }
+                    showToast('📴 تم حفظ التحديث دون اتصال، ستتم المزامنة تلقائياً');
+                }
+            } catch (err) {
+                console.error('خطأ غير متوقع في quickSubmitSwipeDelivery:', err);
+                showToast('❌ حدث خطأ أثناء التحديث السريع');
+            } finally {
+                setOrderButtonsDisabled(orderId, false);
+                isSubmitting = false;
+                isUpdatingDeliveryStatus = false;
+            }
         }
 
         function updateSwipeUI() {
@@ -4464,10 +5216,19 @@ function renderOrders(orders) {
         window.closeWelcomeModal = closeWelcomeModal;
         window.openSwipeableCardsModal = openSwipeableCardsModal;
         window.closeSwipeableCardsModal = closeSwipeableCardsModal;
+        window.quickSubmitSwipeDelivery = quickSubmitSwipeDelivery;
         window.swipeNextCard = swipeNextCard;
         window.swipePrevCard = swipePrevCard;
         window.goToSwipeCard = goToSwipeCard;
         window.updateWelcomeModalIfOpen = updateWelcomeModalIfOpen;
+        window.togglePreparedItem = togglePreparedItem;
+        window.toggleAllOrderPrepared = toggleAllOrderPrepared;
+        window.isItemPrepared = isItemPrepared;
+        window.isOrderFullyPrepared = isOrderFullyPrepared;
+        window.getPreparedCount = getPreparedCount;
+        window.clearAllPreparedItems = clearAllPreparedItems;
+        window.updateInvoicePrepProgress = updateInvoicePrepProgress;
+        window.syncOrderPreparedState = syncOrderPreparedState;
 
         const styleEl = document.createElement('style');
         styleEl.textContent = `

@@ -81,7 +81,7 @@
   }
 
   function getApiUrl() {
-    return global.POS_API || document.querySelector('meta[name="pos-api"]')?.content || localStorage.getItem('pos_api') || DEFAULT_API;
+    return window.API_BASE_URL || (window.apiClient && window.apiClient.baseUrl) || global.POS_API || document.querySelector('meta[name="pos-api"]')?.content || localStorage.getItem('posApiBase') || localStorage.getItem('pos_api') || DEFAULT_API;
   }
 
   async function loadIdentity(options = {}) {
@@ -91,7 +91,7 @@
     try {
       const response = await fetch(`${options.api || getApiUrl()}/settings`, { headers: { Authorization: `Bearer ${token}` } });
       if (!response.ok) return getIdentity();
-      const body = await response.json();
+      const body = await response.json().catch(() => ({}));
       const settings = body.settings || {};
       state.identity = { ...settings, __loaded: true };
       return setIdentity(settings);

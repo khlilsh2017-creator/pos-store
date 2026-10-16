@@ -1504,8 +1504,8 @@
             <p id="app-loader-message">يتم تحميل الإعدادات والبيانات المحلية بأمان.</p>
             <div class="progress-bar" aria-hidden="true"><div class="progress" id="app-loader-progress"></div></div>
             <div class="app-loader-actions" id="app-loader-actions" style="display:none;">
-                <button type="button" class="btn btn-primary" onclick="retryAppInitialization()"><i class="fas fa-redo"></i> إعادة المحاولة</button>
-                <button type="button" class="btn btn-outline" onclick="window.location.reload()"><i class="fas fa-sync-alt"></i> إعادة تحميل الصفحة</button>
+                <button type="button" class="btn btn-primary" id="btn-retry-app-init" onclick="retryAppInitialization()"><i class="fas fa-redo"></i> إعادة المحاولة</button>
+                <button type="button" class="btn btn-outline" id="btn-reload-app" onclick="window.location.reload()"><i class="fas fa-sync-alt"></i> إعادة تحميل الصفحة</button>
             </div>
         </div>
     </div>
@@ -1523,13 +1523,13 @@
             </div>
         </div>
         <div class="user-mini">
-            <button class="btn btn-xs btn-outline" onclick="toggleDarkMode()" style="min-height:30px;width:auto;padding:4px 8px;">
+            <button class="btn btn-xs btn-outline" id="btn-toggle-dark-mode-ph" onclick="toggleDarkMode()" style="min-height:30px;width:auto;padding:4px 8px;">
                 <i class="fas fa-moon" id="dark-mode-icon"></i>
             </button>
-            <button class="btn btn-xs btn-outline" onclick="refreshData()" style="min-height:30px;width:auto;padding:4px 8px;" title="تحديث وتنظيف">
+            <button class="btn btn-xs btn-outline" id="btn-refresh-data-ph" onclick="refreshData()" style="min-height:30px;width:auto;padding:4px 8px;" title="تحديث وتنظيف">
                 <i class="fas fa-sync-alt"></i>
             </button>
-            <button class="btn btn-xs btn-primary" onclick="window.location.href='orders.html'" style="min-height:30px;width:auto;padding:4px 8px;" title="إدارة طلبات الإنترنت">
+            <button class="btn btn-xs btn-primary" id="btn-nav-orders-ph" onclick="window.location.href='orders.html'" style="min-height:30px;width:auto;padding:4px 8px;" title="إدارة طلبات الإنترنت">
                 <i class="fas fa-list"></i> إدارة الطلبات
             </button>
             <span class="avatar" id="user-avatar">م</span>
@@ -1543,8 +1543,8 @@
     <div class="top-search-bar" id="top-search-bar">
         <div class="search-row">
             <input type="text" id="top-search-input" class="input-field input-field-sm" placeholder="🔍 بحث عن منتج..." autocomplete="off" />
-            <button class="btn btn-sm btn-primary" onclick="triggerSearch()"><i class="fas fa-search"></i></button>
-            <button class="btn btn-sm btn-outline" onclick="clearSearch()"><i class="fas fa-times"></i></button>
+            <button class="btn btn-sm btn-primary" id="btn-search-trigger-ph" onclick="triggerSearch()"><i class="fas fa-search"></i></button>
+            <button class="btn btn-sm btn-outline" id="btn-clear-search-ph" onclick="clearSearch()"><i class="fas fa-times"></i></button>
             <span class="search-hint" id="search-hint">(ابحث بـ 3 أحرف فأكثر)</span>
         </div>
         <!-- القائمة المنسدلة لنتائج البحث -->
@@ -1589,7 +1589,7 @@
             <!-- عملة الطلب -->
             <div class="summary-row" style="border-bottom:1px solid var(--border);padding-bottom:6px;margin-bottom:6px;flex-wrap:wrap;">
                 <span class="label">💱 العملة</span>
-                <select id="order-currency-select" class="input-field input-field-sm" style="width:auto;min-width:100px;flex:1;" onchange="updateTotals()"></select>
+                <select id="order-currency-select" class="input-field input-field-sm" style="width:auto;min-width:100px;flex:1;" onchange="onOrderCurrencyChange()"></select>
                 <span class="rate-display" id="order-rate-display">سعر: 1 = 1</span>
             </div>
 
@@ -1716,7 +1716,7 @@
                 <select id="sub-category" class="input-field input-field-sm" style="flex:1;min-width:100px;display:none;" onchange="onSubCategoryChange()">
                     <option value="">📂 الفرع</option>
                 </select>
-                <button class="btn btn-sm btn-success" onclick="openAddProductModal()" style="width:auto;"><i class="fas fa-plus"></i> منتج</button>
+                <button class="btn btn-sm btn-success" id="btn-open-add-product-modal-ph" onclick="openAddProductModal()" style="width:auto;"><i class="fas fa-plus"></i> منتج</button>
             </div>
 
             <div class="products-grid" id="products-grid">
@@ -1735,13 +1735,13 @@
 
         <!-- ===== BOTTOM ACTIONS ===== -->
         <div class="bottom-actions">
-            <button class="btn btn-success" onclick="submitOrder(false)" style="padding: 10px 4px;"><i class="fas fa-save"></i> حفظ</button>
+            <button id="btn-phone-submit-order" class="btn btn-success" onclick="submitOrder(false)" style="padding: 10px 4px;"><i class="fas fa-save"></i> حفظ</button>
             
-            <button class="btn btn-warning" onclick="submitOrder(false, true)" style="padding: 10px 4px;"><i class="fas fa-bolt"></i> سريع</button>
-            <button class="btn btn-outline" onclick="saveDraft()" style="padding: 10px 4px;"><i class="fas fa-download"></i> مسودة</button>
-            <button class="btn btn-outline" onclick="openDraftsModal()" style="padding: 10px 4px;"><i class="fas fa-folder-open"></i></button>
-            <button class="btn btn-outline" onclick="openEditOrdersModal()" style="flex:0 0 auto;"><i class="fas fa-edit"></i></button>
-            <button class="btn btn-outline" onclick="resetOrderForm()" style="flex:0 0 auto;"><i class="fas fa-plus"></i></button>
+            <button id="btn-phone-quick-order" class="btn btn-warning" onclick="submitOrder(false, true)" style="padding: 10px 4px;"><i class="fas fa-bolt"></i> سريع</button>
+            <button class="btn btn-outline" id="btn-save-draft-ph" onclick="saveDraft()" style="padding: 10px 4px;"><i class="fas fa-download"></i> مسودة</button>
+            <button class="btn btn-outline" id="btn-open-drafts-modal-ph" onclick="openDraftsModal()" style="padding: 10px 4px;"><i class="fas fa-folder-open"></i></button>
+            <button class="btn btn-outline" id="btn-open-edit-orders-modal-ph" onclick="openEditOrdersModal()" style="flex:0 0 auto;"><i class="fas fa-edit"></i></button>
+            <button class="btn btn-outline" id="btn-reset-order-form-ph" onclick="resetOrderForm()" style="flex:0 0 auto;"><i class="fas fa-plus"></i></button>
             <span id="draft-status" style="font-size:0.72rem;color:var(--muted);margin-right:auto;align-self:center;">الحفظ التلقائي جاهز</span>
         </div>
 
@@ -1750,11 +1750,11 @@
             <div class="modal-box">
                 <div class="modal-header">
                     <h3><i class="fas fa-folder-open text-primary"></i> المسودات المحفوظة</h3>
-                    <button class="close-btn" onclick="closeModal('drafts-modal')">&times;</button>
+                    <button class="close-btn" id="btn-close-drafts-modal-x-ph" onclick="closeModal('drafts-modal')">&times;</button>
                 </div>
                 <div id="drafts-list-container" style="max-height: 60vh; overflow-y: auto; padding-right: 5px;"></div>
                 <div class="modal-actions">
-                    <button class="btn btn-outline" onclick="closeModal('drafts-modal')">إغلاق</button>
+                    <button class="btn btn-outline" id="btn-cancel-drafts-modal-ph" onclick="closeModal('drafts-modal')">إغلاق</button>
                 </div>
             </div>
         </div>
@@ -1764,7 +1764,7 @@
 
         <!-- ===== CAMERA SCANNER ===== -->
         <div id="scanner-container">
-            <button class="close-scanner" onclick="closeCameraScanner()">&times;</button>
+            <button class="close-scanner" id="btn-close-camera-scanner-ph" onclick="closeCameraScanner()">&times;</button>
             <video id="scanner-video" autoplay playsinline></video>
             <div class="scanner-overlay"></div>
             <div class="scanner-line"></div>
@@ -1783,10 +1783,10 @@
                 <div id="invoice-choice-content">
                     <p class="invoice-choice-intro" id="invoice-choice-intro">هل تريد تحميل أو حفظ أو طباعة الفاتورة؟</p>
                     <div class="invoice-choice-actions">
-                        <button class="btn btn-primary" onclick="chooseInvoiceAction('download')"><i class="fas fa-file-pdf"></i> PDF</button>
-                        <button class="btn btn-success" onclick="chooseInvoiceAction('image')"><i class="fas fa-image"></i> صورة</button>
-                        <button class="btn btn-warning" onclick="chooseInvoiceAction('print')"><i class="fas fa-print"></i> طباعة</button>
-                        <button class="btn btn-outline" onclick="chooseInvoiceAction('skip')"><i class="fas fa-times"></i> تخطي</button>
+                        <button class="btn btn-primary" id="btn-action-download-invoice-ph" onclick="chooseInvoiceAction('download')"><i class="fas fa-file-pdf"></i> PDF</button>
+                        <button class="btn btn-success" id="btn-action-image-invoice-ph" onclick="chooseInvoiceAction('image')"><i class="fas fa-image"></i> صورة</button>
+                        <button class="btn btn-warning" id="btn-action-print-invoice-ph" onclick="chooseInvoiceAction('print')"><i class="fas fa-print"></i> طباعة</button>
+                        <button class="btn btn-outline" id="btn-action-skip-invoice-ph" onclick="chooseInvoiceAction('skip')"><i class="fas fa-times"></i> تخطي</button>
                     </div>
                 </div>
                 <div class="invoice-generating-state" id="invoice-generating-state" aria-live="polite">
@@ -1823,7 +1823,7 @@
             <div class="modal-box wide">
                 <div class="modal-header">
                     <h3><i class="fas fa-user-circle text-primary"></i> بيانات العميل</h3>
-                    <button class="close-btn" onclick="closeModal('customer-modal')">&times;</button>
+                    <button class="close-btn" id="btn-close-customer-modal-x-ph" onclick="closeModal('customer-modal')">&times;</button>
                 </div>
                 <div id="customer-found-msg" style="display:none;padding:8px 12px;border-radius:var(--radius-sm);margin-bottom:10px;font-weight:600;font-size:0.85rem;line-height:1.4;">✅ تم العثور على العميل</div>
                 <div class="form-group">
@@ -1840,7 +1840,7 @@
                             style="flex:1;" 
                             oninput="debouncedCustomerSearch(this.value)" 
                         />
-                        <button type="button" class="btn btn-secondary btn-sm" onclick="triggerCustomerPhoneSearch(true)" title="بحث عن العميل" style="padding:0 12px;height:42px;white-space:nowrap;display:flex;align-items:center;gap:4px;">
+                        <button type="button" class="btn btn-secondary btn-sm" id="btn-search-customer-phone-ph" onclick="triggerCustomerPhoneSearch(true)" title="بحث عن العميل" style="padding:0 12px;height:42px;white-space:nowrap;display:flex;align-items:center;gap:4px;">
                             <i class="fas fa-search"></i> بحث
                         </button>
                     </div>
@@ -1851,7 +1851,7 @@
                 </div>
                 <div class="form-group">
                     <label>المحافظة</label>
-                    <select id="modal-governorate" class="input-field">
+                    <select id="modal-governorate" class="input-field" onchange="onGovernorateChange()">
                         <option value="صنعاء">صنعاء</option>
                         <option value="عدن">عدن</option>
                         <option value="تعز">تعز</option>
@@ -1860,16 +1860,39 @@
                         <option value="محافظات أخرى">محافظات أخرى</option>
                     </select>
                 </div>
+                <div class="form-group" id="custom-governorate-group" style="display:none;">
+                    <label>اسم المحافظة المخصصة</label>
+                    <div style="display:flex;gap:6px;">
+                        <input type="text" id="modal-custom-governorate" class="input-field" placeholder="اكتب اسم المحافظة" style="flex:1;">
+                        <button type="button" class="btn btn-sm btn-success" onclick="addCustomGovernorate()" style="min-height:48px;width:auto;padding:0 14px;">
+                            <i class="fas fa-plus"></i> حفظ
+                        </button>
+                    </div>
+                    <small class="text-muted" style="font-size:0.7rem;">سيتم حفظها محلياً واستخدامها في الطلبات القادمة.</small>
+                </div>
                 <div class="form-group">
                     <label>العنوان <span class="text-muted">*</span></label>
                     <input type="text" id="modal-address" class="input-field" placeholder="العنوان التفصيلي" />
                 </div>
                 <div class="form-group">
                     <label>نوع التوصيل</label>
-                    <select id="modal-deliveryType" class="input-field">
+                    <select id="modal-deliveryType" class="input-field" onchange="onDeliveryTypeChange()">
                         <option value="داخل صنعاء">داخل صنعاء</option>
                         <option value="محافظات أخرى">محافظات أخرى</option>
                     </select>
+                </div>
+                <div class="form-group" id="delivery-governorate-group" style="display:none;">
+                    <label>المحافظة المُوصَّل إليها</label>
+                    <select id="modal-delivery-governorate" class="input-field">
+                        <!-- يُملأ تلقائياً عبر JS -->
+                    </select>
+                    <div style="display:flex;gap:6px;margin-top:6px;">
+                        <input type="text" id="modal-new-delivery-governorate" class="input-field" placeholder="أضف محافظة جديدة يدوياً" style="flex:1;">
+                        <button type="button" class="btn btn-sm btn-success" onclick="addNewDeliveryGovernorate()" style="min-height:48px;width:auto;padding:0 14px;">
+                            <i class="fas fa-plus"></i> حفظ
+                        </button>
+                    </div>
+                    <small class="text-muted" style="font-size:0.7rem;display:block;margin-top:4px;">تُحفظ المحافظات المضافة محلياً وتظهر في الطلبات القادمة.</small>
                 </div>
                 <div class="form-group">
                     <label>أرقام إضافية</label>
@@ -1877,8 +1900,8 @@
                     <button type="button" class="btn btn-outline btn-xs" id="modal-addPhoneBtn" style="margin-top:4px;"><i class="fas fa-plus"></i> إضافة</button>
                 </div>
                 <div class="modal-actions">
-                    <button class="btn btn-outline" onclick="closeModal('customer-modal')">إلغاء</button>
-                    <button class="btn btn-primary" onclick="confirmCustomerData()">✅ تأكيد</button>
+                    <button class="btn btn-outline" id="btn-cancel-customer-modal-ph" onclick="closeModal('customer-modal')">إلغاء</button>
+                    <button class="btn btn-primary" id="btn-confirm-customer-data-ph" onclick="confirmCustomerData()">✅ تأكيد</button>
                 </div>
             </div>
         </div>
@@ -1910,7 +1933,7 @@
         <!-- مودال تفاصيل المنتج -->
         <div class="modal-overlay" id="product-details-modal">
             <div class="modal-box">
-                <div class="modal-header"><h3><i class="fas fa-info-circle text-primary"></i> تفاصيل المنتج</h3><button class="close-btn" onclick="closeModal('product-details-modal')">&times;</button></div>
+                <div class="modal-header"><h3><i class="fas fa-info-circle text-primary"></i> تفاصيل المنتج</h3><button class="close-btn" id="btn-close-product-details-modal-x-ph" onclick="closeModal('product-details-modal')">&times;</button></div>
                 <div id="product-details-content"></div>
             </div>
         </div>
@@ -1918,7 +1941,7 @@
         <!-- مودال إضافة للسلة -->
         <div class="modal-overlay" id="add-to-cart-modal">
             <div class="modal-box">
-                <div class="modal-header"><h3><i class="fas fa-cart-plus text-success"></i> إضافة للسلة</h3><button class="close-btn" onclick="closeModal('add-to-cart-modal')">&times;</button></div>
+                <div class="modal-header"><h3><i class="fas fa-cart-plus text-success"></i> إضافة للسلة</h3><button class="close-btn" id="btn-close-add-to-cart-modal-x-ph" onclick="closeModal('add-to-cart-modal')">&times;</button></div>
                 <div id="add-to-cart-content"></div>
             </div>
         </div>
@@ -1926,7 +1949,7 @@
         <!-- مودال تعديل صنف في السلة -->
         <div class="modal-overlay" id="edit-cart-item-modal">
             <div class="modal-box">
-                <div class="modal-header"><h3><i class="fas fa-edit text-primary"></i> تعديل المنتج</h3><button class="close-btn" onclick="closeModal('edit-cart-item-modal')">&times;</button></div>
+                <div class="modal-header"><h3><i class="fas fa-edit text-primary"></i> تعديل المنتج</h3><button class="close-btn" id="btn-close-edit-cart-item-modal-x-ph" onclick="closeModal('edit-cart-item-modal')">&times;</button></div>
                 <div id="edit-cart-item-content"></div>
             </div>
         </div>
@@ -1936,20 +1959,20 @@
             <div class="modal-box wide">
                 <div class="modal-header">
                     <h3><i class="fas fa-edit text-primary"></i> تعديل طلب</h3>
-                    <button class="close-btn" onclick="closeModal('edit-orders-modal')">&times;</button>
+                    <button class="close-btn" id="btn-close-edit-orders-modal-x-ph" onclick="closeModal('edit-orders-modal')">&times;</button>
                 </div>
                 <div style="margin-bottom:10px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
                     <span style="font-size:0.8rem;font-weight:700;">آخر فواتير وطلبات الإنترنت:</span>
-                    <button class="btn btn-sm btn-outline" onclick="fetchRecentOrders(1)"><i class="fas fa-sync-alt"></i></button>
+                    <button class="btn btn-sm btn-outline" id="btn-refresh-recent-orders-ph" onclick="fetchRecentOrders(1)"><i class="fas fa-sync-alt"></i></button>
                 </div>
                 <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">
                     <input id="recent-orders-search" class="input-field" style="flex:1;min-width:210px;" placeholder="بحث برقم الهاتف أو اسم العميل أو رقم الطلب" onkeydown="if(event.key==='Enter') searchRecentOrders()">
-                    <button class="btn btn-sm btn-primary" onclick="searchRecentOrders()"><i class="fas fa-search"></i> بحث</button>
-                    <button class="btn btn-sm btn-outline" onclick="clearRecentOrdersSearch()">مسح</button>
+                    <button class="btn btn-sm btn-primary" id="btn-search-recent-orders-ph" onclick="searchRecentOrders()"><i class="fas fa-search"></i> بحث</button>
+                    <button class="btn btn-sm btn-outline" id="btn-clear-recent-orders-search-ph" onclick="clearRecentOrdersSearch()">مسح</button>
                 </div>
                                 <div id="orders-list-container"><div class="text-center"><i class="fas fa-spinner fa-spin"></i> جاري...</div></div>
                 <div id="orders-pagination" class="modal-actions" style="display:flex;justify-content:center;gap:8px;align-items:center;flex-wrap:wrap;"></div>
-                <div class="modal-actions"><button class="btn btn-outline" onclick="closeModal('edit-orders-modal')">إلغاء</button></div>
+                <div class="modal-actions"><button class="btn btn-outline" id="btn-cancel-edit-orders-modal-ph" onclick="closeModal('edit-orders-modal')">إلغاء</button></div>
             </div>
         </div>
 
@@ -1958,15 +1981,15 @@
             <div class="modal-box" style="max-width:460px;">
                 <div class="modal-header">
                     <h3><i class="fas fa-truck text-primary"></i> إسناد طلب لمندوب</h3>
-                    <button class="close-btn" onclick="closeModal('assign-online-driver-modal')">&times;</button>
+                    <button class="close-btn" id="btn-close-assign-driver-modal-x-ph" onclick="closeModal('assign-online-driver-modal')">&times;</button>
                 </div>
                 <div style="padding:16px;">
                     <input type="hidden" id="assign-online-order-id">
                     <label for="assign-online-driver-select">المندوب</label>
                     <select id="assign-online-driver-select" class="input-field" style="margin-top:8px;"><option value="">جاري تحميل المندوبين...</option></select>
                     <div class="modal-actions">
-                        <button class="btn btn-outline" onclick="closeModal('assign-online-driver-modal')">إلغاء</button>
-                        <button class="btn btn-primary" onclick="submitAssignOnlineDriver()">إسناد الطلب</button>
+                        <button class="btn btn-outline" id="btn-cancel-assign-driver-modal-ph" onclick="closeModal('assign-online-driver-modal')">إلغاء</button>
+                        <button id="btn-phone-assign-driver" class="btn btn-primary" onclick="submitAssignOnlineDriver()">إسناد الطلب</button>
                     </div>
                 </div>
             </div>
@@ -2095,7 +2118,7 @@
             initializeApp();
         }
 
-        const API = 'https://api.ibnalmukhtar.com';
+        const API = (window.API_BASE_URL || (window.apiClient && window.apiClient.baseUrl) || localStorage.getItem('posApiBase') || 'https://api.ibnalmukhtar.com').replace(/\/$/, '');
         let token = safeGetString('pos_token', '');
         if (!token) window.location.replace('index.html?next=add_order_ph.html');
 
@@ -2139,6 +2162,100 @@
             allow_negative_stock: false,
             allow_below_cost: false
         };
+
+        // ================================================================
+        //  قائمة محافظات اليمن + المحافظات المخصصة المحفوظة محلياً
+        // ================================================================
+        const YEMEN_GOVERNORATES = [
+            'صنعاء', 'عدن', 'تعز', 'حضرموت', 'إب',
+            'الحديدة', 'حجة', 'صعدة', 'ذمار', 'المحويت',
+            'ريمة', 'الضالع', 'لحج', 'أبين', 'شبوة',
+            'البيضاء', 'الجوف', 'مأرب', 'المهرة', 'سقطرى'
+        ];
+
+        const CUSTOM_DELIVERY_GOVS_KEY = 'pos_custom_delivery_governorates';
+
+        function getCustomDeliveryGovernorates() {
+            try {
+                const list = safeGetItem(CUSTOM_DELIVERY_GOVS_KEY, []);
+                return Array.isArray(list) ? list.filter(g => g && typeof g === 'string') : [];
+            } catch (_) {
+                return [];
+            }
+        }
+
+        function saveCustomDeliveryGovernorate(name) {
+            const trimmed = String(name || '').trim();
+            if (!trimmed) return false;
+            if (YEMEN_GOVERNORATES.includes(trimmed)) return false;
+            const list = getCustomDeliveryGovernorates();
+            if (list.includes(trimmed)) return false;
+            list.push(trimmed);
+            safeSetItem(CUSTOM_DELIVERY_GOVS_KEY, list);
+            return true;
+        }
+
+        function populateDeliveryGovernorateSelect(selectedValue) {
+            const sel = document.getElementById('modal-delivery-governorate');
+            if (!sel) return;
+            const customs = getCustomDeliveryGovernorates();
+            let html = '';
+            YEMEN_GOVERNORATES.forEach(gov => {
+                html += `<option value="${escapeHTML(gov)}">${escapeHTML(gov)}</option>`;
+            });
+            customs.forEach(gov => {
+                html += `<option value="${escapeHTML(gov)}">${escapeHTML(gov)} ★</option>`;
+            });
+            sel.innerHTML = html;
+            if (selectedValue) {
+                const exists = Array.from(sel.options).some(o => o.value === selectedValue);
+                if (!exists && selectedValue !== 'محافظات أخرى' && selectedValue !== 'داخل صنعاء') {
+                    const opt = document.createElement('option');
+                    opt.value = selectedValue;
+                    opt.textContent = selectedValue + ' ★';
+                    sel.appendChild(opt);
+                }
+                sel.value = selectedValue;
+            }
+        }
+
+        function onDeliveryTypeChange() {
+            const deliveryType = document.getElementById('modal-deliveryType')?.value;
+            const group = document.getElementById('delivery-governorate-group');
+            const govSelect = document.getElementById('modal-delivery-governorate');
+
+            if (deliveryType === 'محافظات أخرى') {
+                if (group) group.style.display = 'block';
+                populateDeliveryGovernorateSelect(govSelect?.value);
+                setTimeout(() => document.getElementById('modal-delivery-governorate')?.focus(), 100);
+            } else {
+                if (group) group.style.display = 'none';
+                const newGovInput = document.getElementById('modal-new-delivery-governorate');
+                if (newGovInput) newGovInput.value = '';
+            }
+        }
+
+        function addNewDeliveryGovernorate() {
+            const input = document.getElementById('modal-new-delivery-governorate');
+            const name = input?.value.trim();
+            if (!name) {
+                showToast('⚠️ اكتب اسم المحافظة أولاً', 'warning');
+                return;
+            }
+            if (YEMEN_GOVERNORATES.includes(name)) {
+                showToast('هذه المحافظة موجودة في القائمة', 'info');
+                populateDeliveryGovernorateSelect(name);
+                if (input) input.value = '';
+                return;
+            }
+            if (saveCustomDeliveryGovernorate(name)) {
+                showToast(`✅ تم حفظ "${name}"`, 'success');
+            } else {
+                showToast('المحافظة موجودة مسبقاً', 'info');
+            }
+            populateDeliveryGovernorateSelect(name);
+            if (input) input.value = '';
+        }
 
         let audioCtx = null;
         function getAudioContext() {
@@ -2283,7 +2400,7 @@
             try {
                 const res = await fetchWithTimeout(`${API}/settings`, { headers: { 'Authorization': `Bearer ${token}` } }, 8000);
                 if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 if (data.settings) {
                     appSettings.allow_negative_stock = data.settings.allow_negative_stock === '1' || data.settings.allow_negative_stock === true;
                     appSettings.allow_below_cost = data.settings.allow_below_cost === '1' || data.settings.allow_below_cost === true;
@@ -2444,6 +2561,54 @@
             return c ? c.code : 'YER';
         }
 
+        function getOrderCurrencyId() {
+            const id = document.getElementById('order-currency-select')?.value;
+            return id ? parseInt(id) : null;
+        }
+        function getOrderRate() {
+            const id = getOrderCurrencyId();
+            return id ? getCurrencyRate(id) : 1;
+        }
+        function getOrderCurrencyCode() {
+            const id = getOrderCurrencyId();
+            return id ? getCurrencyCode(id) : 'ريال';
+        }
+        function baseToDisplay(baseAmount) { return baseAmount / getOrderRate(); }
+        function displayToBase(displayAmount) { return displayAmount * getOrderRate(); }
+
+        let _lastOrderCurrencyId = null;
+
+        function onOrderCurrencyChange() {
+            const newId = getOrderCurrencyId();
+            const newRate = getOrderRate();
+
+            // تحويل حقول الإدخال (الخصم، التوصيل) من العملة القديمة إلى الجديدة مع الحفاظ على القيمة بالـ base
+            if (_lastOrderCurrencyId !== null && _lastOrderCurrencyId !== newId) {
+                const oldRate = _lastOrderCurrencyId ? getCurrencyRate(_lastOrderCurrencyId) : 1;
+
+                const discountType = document.getElementById('discount-type')?.value;
+                if (discountType === 'fixed') {
+                    const discountInput = document.getElementById('cart-discount');
+                    if (discountInput) {
+                        const oldVal = parseFloat(discountInput.value) || 0;
+                        discountInput.value = ((oldVal * oldRate) / newRate).toFixed(2);
+                    }
+                }
+
+                const feeInput = document.getElementById('deliveryFee');
+                if (feeInput) {
+                    const oldVal = parseFloat(feeInput.value) || 0;
+                    feeInput.value = ((oldVal * oldRate) / newRate).toFixed(2);
+                }
+            }
+            _lastOrderCurrencyId = newId;
+
+            updateRateDisplays();
+            renderCart();
+            if (productsCache && productsCache.length) renderProductsGrid(productsCache);
+            updateTotals();
+        }
+
         function convertFromBase(amount, currencyId) {
             if (!currencyId) return amount;
             const rate = getCurrencyRate(currencyId);
@@ -2467,7 +2632,7 @@
             if (navigator.onLine) {
                 try {
                     const res = await fetchWithTimeout(`${API}/currencies`, { headers: { 'Authorization': `Bearer ${token}` } });
-                    const data = await res.json();
+                    const data = await res.json().catch(() => ({}));
                     currenciesCache = data.currencies || [];
                     writeStaticCache('currencies', currenciesCache);
                     const db = await openDB();
@@ -2504,7 +2669,7 @@
             }
             try {
                 const res = await fetchWithTimeout(`${API}/wallets`, { headers: { 'Authorization': `Bearer ${token}` } });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 walletsCache = data.wallets || [];
                 writeStaticCache('wallets', walletsCache);
                 const db = await openDB();
@@ -2789,7 +2954,7 @@
                     
                     if (fetchId !== currentFetchId) return; 
 
-                    const data = await res.json();
+                    const data = await res.json().catch(() => ({}));
                     productsCache = data.products || [];
                     
                     if (productsCache.length > 0) {
@@ -2860,12 +3025,14 @@
                 let stockClass = 'in-stock', stockLabel = `${formatPosQuantity(stock)}`;
                 if (stock === 0) { stockClass = 'out-stock'; stockLabel = 'نفد'; } 
                 else if (stock < 5) { stockClass = 'low-stock'; stockLabel = `${formatPosQuantity(stock)} ⚠️`; }
-                const price = (p.price || 0).toFixed(2);
+                const _rate = getOrderRate();
+                const _currCode = getOrderCurrencyCode();
+                const price = ((p.price || 0) / _rate).toFixed(2);
                 const delay = index * 30;
                 return `
                     <div class="product-card" style="animation-delay:${delay}ms" onclick="quickAddToCart(${p.id})">
                         <span class="prod-name">${escapeHTML(p.name || 'بدون اسم')}</span>
-                        <span class="prod-price">${formatPosMoney(price)} ريال</span>
+                        <span class="prod-price">${formatPosMoney(price)} ${_currCode}</span>
                         <span class="stock-badge ${stockClass}">${stockLabel}</span>
                         <button class="btn-add" onclick="event.stopPropagation();openAddToCartModal(${p.id})"><i class="fas fa-plus"></i> إضافة</button>
                     </div>
@@ -3089,15 +3256,49 @@
             // 2. الاسم
             setElementValue('modal-customerName', customer.name || '');
 
-            // 3. المحافظة
-            setElementValue('modal-governorate', customer.governorate || 'صنعاء');
+            // 3. المحافظة (مع دعم المحافظات المخصصة)
+            const gov = customer.governorate || 'صنعاء';
+            const govSelect = document.getElementById('modal-governorate');
+            if (govSelect) {
+                // إذا كانت المحافظة غير موجودة في القائمة، أضفها كخيار مؤقت
+                const exists = Array.from(govSelect.options).some(o => o.value === gov);
+                if (!exists && gov !== 'محافظات أخرى') {
+                    const otherOption = Array.from(govSelect.options).find(o => o.value === 'محافظات أخرى');
+                    const newOpt = document.createElement('option');
+                    newOpt.value = gov;
+                    newOpt.textContent = gov;
+                    if (otherOption) govSelect.insertBefore(newOpt, otherOption);
+                    else govSelect.appendChild(newOpt);
+                }
+                govSelect.value = gov;
+                if (typeof onGovernorateChange === 'function') onGovernorateChange();
+            }
 
             // 4. العنوان: يدعم address أو default_address
             const address = customer.address || customer.default_address || '';
             setElementValue('modal-address', address);
 
             // 5. نوع التوصيل
-            setElementValue('modal-deliveryType', customer.delivery_type || customer.deliveryType || 'داخل صنعاء');
+            const dtValue = customer.delivery_type || customer.deliveryType || 'داخل صنعاء';
+            setElementValue('modal-deliveryType', dtValue);
+
+            // إذا كان نوع التوصيل "محافظات أخرى" أو المحافظة خارج القائمة القياسية، نعتبره محافظة مخصصة
+            const customerGov = customer.governorate || '';
+            const isStandardDelivery = dtValue === 'داخل صنعاء';
+            if (!isStandardDelivery || (customerGov && !['صنعاء','عدن','تعز','حضرموت','إب'].includes(customerGov))) {
+                // نعتبره "محافظات أخرى" إذا كانت المحافظة ليست ضمن القائمة القياسية
+                if (!['صنعاء','عدن','تعز','حضرموت','إب'].includes(customerGov) && customerGov) {
+                    setElementValue('modal-deliveryType', 'محافظات أخرى');
+                    setTimeout(() => {
+                        populateDeliveryGovernorateSelect(customerGov);
+                        onDeliveryTypeChange();
+                    }, 50);
+                } else {
+                    setTimeout(() => onDeliveryTypeChange(), 50);
+                }
+            } else {
+                setTimeout(() => onDeliveryTypeChange(), 50);
+            }
 
             // 6. الأرقام الإضافية (بدون تكرار الرقم الرئيسي)
             const container = document.getElementById('modal-extraPhonesContainer');
@@ -3141,9 +3342,106 @@
             if (container) { container.innerHTML = ''; addModalExtraPhone(''); }
             const msg = document.getElementById('customer-found-msg');
             if (msg) msg.style.display = 'none';
+            const customGovInput = document.getElementById('modal-custom-governorate');
+            if (customGovInput) customGovInput.value = '';
+            const customGovGroup = document.getElementById('custom-governorate-group');
+            if (customGovGroup) customGovGroup.style.display = 'none';
+            const deliveryGovGroup = document.getElementById('delivery-governorate-group');
+            if (deliveryGovGroup) deliveryGovGroup.style.display = 'none';
+            const newGovInput = document.getElementById('modal-new-delivery-governorate');
+            if (newGovInput) newGovInput.value = '';
+            setElementValue('modal-deliveryType', 'داخل صنعاء');
         }
 
         let modalExtraPhoneCount = 0;
+
+        // ================================================================
+        //  إدارة المحافظات المخصصة (حفظ محلي)
+        // ================================================================
+        const CUSTOM_GOVERNORATES_KEY = 'pos_custom_governorates';
+        const BASE_GOVERNORATES = ['صنعاء', 'عدن', 'تعز', 'حضرموت', 'إب'];
+
+        function getCustomGovernorates() {
+            try {
+                const list = safeGetItem(CUSTOM_GOVERNORATES_KEY, []);
+                return Array.isArray(list) ? list.filter(g => g && typeof g === 'string') : [];
+            } catch (_) {
+                return [];
+            }
+        }
+
+        function saveCustomGovernorate(name) {
+            const trimmed = String(name || '').trim();
+            if (!trimmed || BASE_GOVERNORATES.includes(trimmed) || trimmed === 'محافظات أخرى') return false;
+            const list = getCustomGovernorates();
+            if (list.includes(trimmed)) return false;
+            list.push(trimmed);
+            safeSetItem(CUSTOM_GOVERNORATES_KEY, list);
+            return true;
+        }
+
+        function populateGovernorateSelect() {
+            const sel = document.getElementById('modal-governorate');
+            if (!sel) return;
+            const currentValue = sel.value;
+            const customs = getCustomGovernorates();
+
+            let html = '';
+            BASE_GOVERNORATES.forEach(gov => {
+                html += `<option value="${escapeHTML(gov)}">${escapeHTML(gov)}</option>`;
+            });
+            customs.forEach(gov => {
+                html += `<option value="${escapeHTML(gov)}">${escapeHTML(gov)}</option>`;
+            });
+            html += `<option value="محافظات أخرى">محافظات أخرى</option>`;
+            sel.innerHTML = html;
+
+            if (currentValue) sel.value = currentValue;
+        }
+
+        function onGovernorateChange() {
+            const val = document.getElementById('modal-governorate')?.value;
+            const group = document.getElementById('custom-governorate-group');
+            const paymentSelect = document.getElementById('payment-method');
+
+            if (val === 'محافظات أخرى') {
+                if (group) group.style.display = 'block';
+                // تحويل تلقائي إلى "مدفوع مسبقاً (محفظة)"
+                if (paymentSelect && paymentSelect.value !== 'مدفوع مسبقاً (محفظة)') {
+                    paymentSelect.value = 'مدفوع مسبقاً (محفظة)';
+                    if (typeof handlePaymentMethodChange === 'function') handlePaymentMethodChange();
+                    if (typeof showToast === 'function') {
+                        showToast('💳 تم التحويل تلقائياً إلى الدفع المسبق', 'info');
+                    }
+                }
+                setTimeout(() => document.getElementById('modal-custom-governorate')?.focus(), 100);
+            } else {
+                if (group) group.style.display = 'none';
+                const custom = document.getElementById('modal-custom-governorate');
+                if (custom) custom.value = '';
+            }
+        }
+
+        function addCustomGovernorate() {
+            const input = document.getElementById('modal-custom-governorate');
+            const name = input?.value.trim();
+            if (!name) {
+                if (typeof showToast === 'function') showToast('اكتب اسم المحافظة أولاً', 'warning');
+                return;
+            }
+            if (BASE_GOVERNORATES.includes(name)) {
+                if (typeof showToast === 'function') showToast('هذه المحافظة موجودة في القائمة', 'info');
+                return;
+            }
+            if (saveCustomGovernorate(name)) {
+                if (typeof showToast === 'function') showToast(`✅ تم حفظ "${name}"`, 'success');
+            }
+            populateGovernorateSelect();
+            const sel = document.getElementById('modal-governorate');
+            if (sel) sel.value = name;
+            if (input) input.value = '';
+            onGovernorateChange();
+        }
 
         function openCustomerModal() {
             if (selectedCustomerData) {
@@ -3151,7 +3449,17 @@
                 setElementValue('modal-customerName', selectedCustomerData.name || '');
                 setElementValue('modal-governorate', selectedCustomerData.governorate || 'صنعاء');
                 setElementValue('modal-address', selectedCustomerData.address || '');
-                setElementValue('modal-deliveryType', selectedCustomerData.deliveryType || 'داخل صنعاء');
+                const dt = selectedCustomerData.deliveryType || 'داخل صنعاء';
+                setElementValue('modal-deliveryType', dt);
+                setTimeout(() => {
+                    if (dt === 'محافظات أخرى') {
+                        // ملء قائمة المحافظات واختيار المحافظة المحفوظة
+                        populateDeliveryGovernorateSelect(selectedCustomerData.governorate);
+                        onDeliveryTypeChange();
+                    } else {
+                        onDeliveryTypeChange();
+                    }
+                }, 50);
                 const container = document.getElementById('modal-extraPhonesContainer');
                 if (container) {
                     container.innerHTML = '';
@@ -3260,12 +3568,40 @@
                 extraPhones.push(normalized);
             }
 
+            const governorateVal = document.getElementById('modal-governorate')?.value || 'صنعاء';
+            const customGovVal = document.getElementById('modal-custom-governorate')?.value.trim() || '';
+            let finalGovernorate = governorateVal;
+
+            if (governorateVal === 'محافظات أخرى') {
+                if (!customGovVal) {
+                    showToast('⚠️ اكتب اسم المحافظة المخصصة أولاً', 'warning');
+                    return;
+                }
+                finalGovernorate = customGovVal;
+                // حفظها تلقائياً للاستخدام مستقبلاً
+                if (saveCustomGovernorate(customGovVal)) {
+                    populateGovernorateSelect();
+                }
+            }
+
+            const deliveryTypeVal = document.getElementById('modal-deliveryType')?.value || 'داخل صنعاء';
+            const deliveryGovVal = deliveryTypeVal === 'محافظات أخرى'
+                ? (document.getElementById('modal-delivery-governorate')?.value || '')
+                : '';
+
+            if (deliveryTypeVal === 'محافظات أخرى' && !deliveryGovVal) {
+                showToast('⚠️ اختر المحافظة المُوصَّل إليها', 'warning');
+                return;
+            }
+
             selectedCustomerData = {
                 mainPhone,
                 name: document.getElementById('modal-customerName')?.value.trim() || '',
-                governorate: document.getElementById('modal-governorate')?.value || 'صنعاء',
+                governorate: deliveryTypeVal === 'محافظات أخرى'
+                    ? deliveryGovVal
+                    : (finalGovernorate || document.getElementById('modal-governorate')?.value || 'صنعاء'),
                 address,
-                deliveryType: document.getElementById('modal-deliveryType')?.value || 'داخل صنعاء',
+                deliveryType: deliveryTypeVal,
                 extraPhones
             };
             // ✅ حفظ أو تحديث العميل في الكاش المحلي
@@ -3397,10 +3733,10 @@
             openModal('product-details-modal');
             try {
                 const productRes = await fetchWithTimeout(`${API}/products/${productId}`, { headers: { 'Authorization': `Bearer ${token}` } });
-                const productData = await productRes.json();
+                const productData = await productRes.json().catch(() => ({}));
                 const p = productData.product || {};
                 const supplierRes = await fetchWithTimeout(`${API}/products/suppliers?product_id=${productId}`, { headers: { 'Authorization': `Bearer ${token}` } });
-                const supplierData = await supplierRes.json();
+                const supplierData = await supplierRes.json().catch(() => ({}));
                 const suppliers = supplierData.suppliers || [];
                 let suppliersHtml = suppliers.length === 0 ?
                     '<div class="detail-row"><span class="label">الموردون</span><span class="value">لا يوجد</span></div>' :
@@ -3433,7 +3769,7 @@
             if (Array.isArray(product._variants)) return product._variants;
             try {
                 const res = await fetchWithTimeout(`${API}/products/${product.id}/variants`, { headers: { 'Authorization': `Bearer ${token}` } });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 product._variants = Array.isArray(data.variants) ? data.variants : [];
             } catch (_) { product._variants = []; }
             return product._variants;
@@ -3475,12 +3811,14 @@
             const defaultSizePrice = firstVariant ? Number(firstVariant.selling_price ?? product.price ?? 0) : Number(product.price || 0);
             const cost = isSet ? (currentOrderSaleMode === 'full_set' ? Number(product.cost || 0) : Number(firstVariant?.cost ?? ((Number(product.cost || 0) / Math.max(currentOrderVariants.length, 1)))) ) : Number(product.cost || 0);
             const stock = isSet ? (currentOrderSaleMode === 'full_set' ? fullStock : Number(firstVariant?.stock_quantity || 0)) : Number(product.stock_quantity || 0);
+            const _rate = getOrderRate();
+            const _currCode = getOrderCurrencyCode();
             const variantOptions = currentOrderVariants.map(v => `<option value="${v.id}" ${firstVariant && Number(v.id) === Number(firstVariant.id) ? 'selected' : ''}>${escapeHTML(v.label)} — ${formatPosMoney(v.selling_price ?? product.price ?? 0)} ريال — مخزون ${formatPosQuantity(v.stock_quantity || 0)}</option>`).join('');
             content.innerHTML = `
                 <div style="text-align:center;margin-bottom:8px;"><strong style="font-size:1rem;">${escapeHTML(name)}</strong><div style="font-size:0.7rem;color:var(--muted);">${isSet ? 'طقم بمقاسات مستقلة' : `التكلفة: ${formatPosMoney(cost)} ريال`}</div></div>
                 ${isSet ? `<div class="form-group"><label>طريقة البيع</label><select id="order-set-mode" class="input-field" onchange="updateOrderSetMode()"><option value="full_set" ${currentOrderSaleMode === 'full_set' ? 'selected' : ''}>بيع الطقم كاملًا — ${formatPosMoney(product.price || 0)} ريال</option><option value="size" ${currentOrderSaleMode === 'size' ? 'selected' : ''}>بيع مقاس واحد</option></select></div><div class="form-group" id="order-set-size-wrap" style="display:${currentOrderSaleMode === 'size' ? '' : 'none'}"><label>اختر المقاس</label><select id="order-set-size" class="input-field" onchange="updateOrderSetMode()">${variantOptions}</select></div>` : ''}
                 <div style="display:flex;justify-content:space-between;font-size:0.8rem;margin-bottom:6px;"><span>المخزون المتاح</span><span id="order-set-stock-label" style="font-weight:700;">${formatPosQuantity(stock)} متاح</span></div>
-                <div class="form-group"><label>سعر البيع</label><input type="number" id="modal-sale-price" class="input-field" step="0.01" value="${isSet ? (currentOrderSaleMode === 'full_set' ? Number(product.price || 0) : defaultSizePrice) : Number(product.price || 0)}" min="0" inputmode="decimal" /></div>
+                <div class="form-group"><label>سعر البيع</label><input type="number" id="modal-sale-price" class="input-field" step="0.01" value="${_rate ? ((isSet ? (currentOrderSaleMode === 'full_set' ? Number(product.price || 0) : defaultSizePrice) : Number(product.price || 0)) / _rate).toFixed(2) : 0}" min="0" inputmode="decimal" /></div>
                 <div class="form-group"><label>الكمية</label><input type="number" id="modal-quantity" class="input-field" step="${Number(product.is_decimal_allowed) === 1 ? '0.001' : '1'}" value="1" min="${Number(product.is_decimal_allowed) === 1 ? '0.001' : '1'}" max="${Math.max(0, stock)}" inputmode="decimal" /></div>
                 <div class="form-group"><label>خصم المنتج</label><input type="number" id="modal-item-discount" class="input-field" step="0.01" value="0" min="0" inputmode="decimal" /></div>
                 <div class="form-group"><label>ملاحظات</label><input type="text" id="modal-item-notes" class="input-field" placeholder="ملاحظات..." /></div>
@@ -3494,7 +3832,8 @@
             const qtyInput = document.getElementById('modal-quantity');
             const discountInput = document.getElementById('modal-item-discount');
             const notesInput = document.getElementById('modal-item-notes');
-            const price = parseFloat(priceInput?.value) || 0;
+            const priceDisplay = parseFloat(priceInput?.value) || 0;
+            const price = priceDisplay * getOrderRate();
             const qty = parseFloat(qtyInput?.value) || 1;
             const discount = parseFloat(discountInput?.value) || 0;
             const notes = notesInput?.value.trim() || '';
@@ -3561,9 +3900,9 @@
             content.innerHTML = `
                 <div style="text-align:center;margin-bottom:8px;"><strong>${escapeHTML(item.name)}</strong><div style="font-size:0.7rem;color:var(--muted);">التكلفة: ${formatPosMoney((item.cost||0))} ريال</div></div>
                 <div style="display:flex;justify-content:space-between;font-size:0.8rem;"><span>المخزون</span><span>${formatPosQuantity(stock)}</span></div>
-                <div class="form-group"><label>سعر البيع</label><input type="number" id="edit-sale-price" class="input-field" step="0.01" value="${item.price}" min="0" inputmode="decimal" /></div>
+                <div class="form-group"><label>سعر البيع</label><input type="number" id="edit-sale-price" class="input-field" step="0.01" value="${(item.price / getOrderRate()).toFixed(2)}" min="0" inputmode="decimal" /></div>
                 <div class="form-group"><label>الكمية</label><input type="number" id="edit-quantity" class="input-field" step="${Number(product?.is_decimal_allowed) === 1 ? '0.001' : '1'}" value="${item.quantity}" min="${Number(product?.is_decimal_allowed) === 1 ? '0.001' : '1'}" max="${stock}" inputmode="numeric" /></div>
-                <div class="form-group"><label>خصم المنتج</label><input type="number" id="edit-item-discount" class="input-field" step="0.01" value="${discount}" min="0" inputmode="decimal" /></div>
+                <div class="form-group"><label>خصم المنتج</label><input type="number" id="edit-item-discount" class="input-field" step="0.01" value="${(discount / getOrderRate()).toFixed(2)}" min="0" inputmode="decimal" /></div>
                 <div class="form-group"><label>ملاحظات</label><input type="text" id="edit-item-notes" class="input-field" value="${escapeHTML(notes)}" placeholder="ملاحظات..." /></div>
                 <div class="modal-actions">
                     <button class="btn btn-outline" onclick="closeModal('edit-cart-item-modal')">إلغاء</button>
@@ -3579,9 +3918,10 @@
             const qtyInput = document.getElementById('edit-quantity');
             const discountInput = document.getElementById('edit-item-discount');
             const notesInput = document.getElementById('edit-item-notes');
-            const price = parseFloat(priceInput?.value) || 0;
+            const _rate = getOrderRate();
+            const price = (parseFloat(priceInput?.value) || 0) * _rate;
             const qty = parseInt(qtyInput?.value) || 1;
-            const discount = parseFloat(discountInput?.value) || 0;
+            const discount = (parseFloat(discountInput?.value) || 0) * _rate;
             const notes = notesInput?.value.trim() || '';
             const index = editingCartIndex;
             
@@ -3720,8 +4060,11 @@
                 return;
             }
             if (countEl) countEl.textContent = cart.reduce((s, i) => s + i.quantity, 0);
+            const _rate = getOrderRate();
+            const _currCode = getOrderCurrencyCode();
             container.innerHTML = cart.map((item, i) => {
-                const effectivePrice = item.price - (item.discount || 0);
+                const effectivePrice = (item.price - (item.discount || 0)) / _rate;
+                const itemDiscountDisplay = (item.discount || 0) / _rate;
                 const total = (effectivePrice * item.quantity).toFixed(2);
                 const notesDisplay = item.notes ? ` <span style="font-size:0.55rem;color:var(--muted);">📝${escapeHTML(item.notes)}</span>` : '';
                 return `
@@ -3733,14 +4076,14 @@
                              ontouchend="handleSwipeEnd(event, ${i})">
                             <div class="info">
                                 <div class="name">${escapeHTML(item.name || 'بدون اسم')}${notesDisplay}</div>
-                                <div class="price">${formatPosMoney(effectivePrice)} ريال ${item.discount ? `(خصم ${formatPosMoney(item.discount)})` : ''}</div>
+                                <div class="price">${formatPosMoney(effectivePrice)} ${_currCode} ${item.discount ? `(خصم ${formatPosMoney(itemDiscountDisplay)})` : ''}</div>
                             </div>
                             <div class="qty-ctrl" onclick="event.stopPropagation();">
                                 <button onclick="changeQty(${i}, -1)">−</button>
                                 <span class="num">${formatPosQuantity(item.quantity)}</span>
                                 <button onclick="changeQty(${i}, 1)">+</button>
                             </div>
-                            <span class="total">${formatPosMoney(total)} ريال</span>
+                            <span class="total">${formatPosMoney(total)} ${_currCode}</span>
                             <button class="remove-btn" onclick="event.stopPropagation();removeItem(${i})"><i class="fas fa-trash-alt"></i></button>
                         </div>
                     </div>
@@ -3815,26 +4158,42 @@
         function updateTotals() {
             if (updatingDiscountFromPaid || updatingMixedFromCash || updatingMixedFromWallet) return;
 
+            const rate = getOrderRate();
+            const currCode = getOrderCurrencyCode();
+
             if (cart.length === 0) {
                 const totalEl = document.getElementById('cart-total');
-                if (totalEl) totalEl.innerHTML = '0.00 ريال';
+                if (totalEl) totalEl.innerHTML = `0.00 ${currCode}`;
                 setElementValue('paid-amount', '0');
                 return;
             }
 
+            // subtotal بالـ base
             const subtotal = cart.reduce((s, i) => s + ((i.price || 0) - (i.discount || 0)) * i.quantity, 0);
-            const discount = parseFloat(document.getElementById('cart-discount')?.value) || 0;
+
+            // الخصم: القيمة في الحقل بالـ display → نحوّلها للـ base
+            const discountDisplay = parseFloat(document.getElementById('cart-discount')?.value) || 0;
             const discountType = document.getElementById('discount-type')?.value || 'fixed';
-            let discountAmount = discountType === 'percentage'
-                ? subtotal * (Math.min(discount, 100) / 100)
-                : Math.min(discount, subtotal);
-            const fee = parseFloat(document.getElementById('deliveryFee')?.value) || 0;
+            let discountAmount;
+            if (discountType === 'percentage') {
+                discountAmount = subtotal * (Math.min(discountDisplay, 100) / 100);
+            } else {
+                const discountBase = discountDisplay * rate;
+                discountAmount = Math.min(discountBase, subtotal);
+            }
+
+            // رسوم التوصيل: نفس المبدأ
+            const feeDisplay = parseFloat(document.getElementById('deliveryFee')?.value) || 0;
+            const fee = feeDisplay * rate;
             const feePaidWithOrder = document.getElementById('deliveryFeePayment')?.value === 'مع الطلب';
+
             const total = Math.max(0, subtotal - discountAmount + (feePaidWithOrder ? fee : 0));
+            const totalDisplay = total / rate;
 
             const totalEl = document.getElementById('cart-total');
-            if (totalEl) totalEl.innerHTML = `${formatPosMoney(total)} ريال`;
+            if (totalEl) totalEl.innerHTML = `${formatPosMoney(totalDisplay)} ${currCode}`;
 
+            // ===== نفس منطق isPrepaid الحالي بدون تغيير =====
             const paymentMethod = document.getElementById('payment-method')?.value;
             const isPrepaid = (paymentMethod === 'مدفوع مسبقاً (محفظة)' || paymentMethod === 'مدفوع مسبقاً (مختلط)');
             if (isPrepaid) {
@@ -3868,7 +4227,8 @@
             const paid = parseFloat(paidInput?.value) || 0;
             if (!isFinite(paid)) return;
             const subtotal = cart.reduce((s, i) => s + ((i.price || 0) - (i.discount || 0)) * i.quantity, 0);
-            const fee = parseFloat(document.getElementById('deliveryFee')?.value) || 0;
+            const rate = getOrderRate();
+            const fee = (parseFloat(document.getElementById('deliveryFee')?.value) || 0) * rate;
             const feePaidWithOrder = document.getElementById('deliveryFeePayment')?.value === 'مع الطلب';
             let currencyId = null;
             if (paymentMethod === 'مدفوع مسبقاً (محفظة)') {
@@ -3879,8 +4239,16 @@
             let newDiscount = subtotal - (paidInBase - (feePaidWithOrder ? fee : 0));
             if (newDiscount < 0) newDiscount = 0;
             updatingDiscountFromPaid = true;
+            const discountType = document.getElementById('discount-type')?.value || 'fixed';
             const discountInput = document.getElementById('cart-discount');
-            if (discountInput) discountInput.value = newDiscount.toFixed(2);
+            if (discountInput) {
+                if (discountType === 'percentage') {
+                    const pct = subtotal > 0 ? (newDiscount / subtotal) * 100 : 0;
+                    discountInput.value = Number(pct.toFixed(2));
+                } else {
+                    discountInput.value = (newDiscount / rate).toFixed(2);
+                }
+            }
             updateTotals();
             updatingDiscountFromPaid = false;
             updatingPaidFromDiscount = false;
@@ -3896,12 +4264,13 @@
             if (!isFinite(cashPaid)) cashPaid = 0;
             if (!isFinite(walletPaid)) walletPaid = 0;
             const subtotal = cart.reduce((s, i) => s + ((i.price || 0) - (i.discount || 0)) * i.quantity, 0);
-            const discount = parseFloat(document.getElementById('cart-discount')?.value) || 0;
+            const rate = getOrderRate();
+            const discountDisplay = parseFloat(document.getElementById('cart-discount')?.value) || 0;
             const discountType = document.getElementById('discount-type')?.value || 'fixed';
             let discountAmount = discountType === 'percentage'
-                ? subtotal * (Math.min(discount, 100) / 100)
-                : Math.min(discount, subtotal);
-            const fee = parseFloat(document.getElementById('deliveryFee')?.value) || 0;
+                ? subtotal * (Math.min(discountDisplay, 100) / 100)
+                : Math.min(discountDisplay * rate, subtotal);
+            const fee = (parseFloat(document.getElementById('deliveryFee')?.value) || 0) * rate;
             const feePaidWithOrder = document.getElementById('deliveryFeePayment')?.value === 'مع الطلب';
             const totalDue = Math.max(0, subtotal - discountAmount + (feePaidWithOrder ? fee : 0));
             if (totalDue <= 0) return;
@@ -3920,7 +4289,14 @@
                 if (newDiscount < 0) newDiscount = 0;
                 updatingDiscountFromPaid = true;
                 const discountInput = document.getElementById('cart-discount');
-                if (discountInput) discountInput.value = newDiscount.toFixed(2);
+                if (discountInput) {
+                    if (discountType === 'percentage') {
+                        const pct = subtotal > 0 ? (newDiscount / subtotal) * 100 : 0;
+                        discountInput.value = Number(pct.toFixed(2));
+                    } else {
+                        discountInput.value = (newDiscount / rate).toFixed(2);
+                    }
+                }
                 updateTotals();
                 updatingDiscountFromPaid = false;
                 return;
@@ -3982,7 +4358,14 @@
             if (newDiscount < 0) newDiscount = 0;
             updatingDiscountFromPaid = true;
             const discountInput = document.getElementById('cart-discount');
-            if (discountInput) discountInput.value = newDiscount.toFixed(2);
+            if (discountInput) {
+                if (discountType === 'percentage') {
+                    const pct = subtotal > 0 ? (newDiscount / subtotal) * 100 : 0;
+                    discountInput.value = Number(pct.toFixed(2));
+                } else {
+                    discountInput.value = (newDiscount / rate).toFixed(2);
+                }
+            }
             updateTotals();
             updatingDiscountFromPaid = false;
             updateMixedDueAmounts();
@@ -3990,12 +4373,13 @@
 
         function updateMixedDueAmounts() {
             const subtotal = cart.reduce((s, i) => s + ((i.price || 0) - (i.discount || 0)) * i.quantity, 0);
-            const discount = parseFloat(document.getElementById('cart-discount')?.value) || 0;
+            const rate = getOrderRate();
+            const discountDisplay = parseFloat(document.getElementById('cart-discount')?.value) || 0;
             const discountType = document.getElementById('discount-type')?.value || 'fixed';
             let discountAmount = discountType === 'percentage'
-                ? subtotal * (Math.min(discount, 100) / 100)
-                : Math.min(discount, subtotal);
-            const fee = parseFloat(document.getElementById('deliveryFee')?.value) || 0;
+                ? subtotal * (Math.min(discountDisplay, 100) / 100)
+                : Math.min(discountDisplay * rate, subtotal);
+            const fee = (parseFloat(document.getElementById('deliveryFee')?.value) || 0) * rate;
             const feePaidWithOrder = document.getElementById('deliveryFeePayment')?.value === 'مع الطلب';
             const totalDue = Math.max(0, subtotal - discountAmount + (feePaidWithOrder ? fee : 0));
             const cashCurrencyId = parseInt(document.getElementById('mixed-cash-currency')?.value);
@@ -4111,7 +4495,7 @@
             openModal('assign-online-driver-modal');
             try {
                 const res = await fetchWithTimeout(`${API}/drivers`, { headers: { 'Authorization': `Bearer ${token}` } });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 if (!res.ok) throw new Error(data.error || 'فشل تحميل المندوبين');
                 const drivers = (data.drivers || []).filter(d => d.is_active == 1 || d.is_active === true);
                 select.innerHTML = '<option value="">-- اختر مندوبًا --</option>' + drivers.map(d => `<option value="${d.id}">${escapeHTML(d.name)}</option>`).join('');
@@ -4132,7 +4516,7 @@
                     headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify({ order_id: orderId, driver_id: driverId })
                 });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 if (!res.ok) throw new Error(data.error || 'فشل إسناد الطلب');
                 closeModal('assign-online-driver-modal');
                 showToast('تم إسناد الطلب للمندوب بنجاح', 'success');
@@ -4147,7 +4531,7 @@
             container.innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin"></i> جاري...</div>';
             try {
                 const res = await fetchWithTimeout(`${API}/online-orders?page=${ordersPage}&limit=${ordersPageSize}${recentOrdersSearch ? `&search=${encodeURIComponent(recentOrdersSearch)}` : ''}`, { headers: { 'Authorization': `Bearer ${token}` } });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 const total = Number(data.total ?? data.pagination?.total ?? data.meta?.total ?? 0);
                 ordersTotalPages = Math.max(1, Number(data.pages ?? data.pagination?.pages ?? data.meta?.pages ?? (total ? Math.ceil(total / ordersPageSize) : (data.orders?.length === ordersPageSize ? ordersPage + 1 : ordersPage))));
                 if (data.orders && data.orders.length > 0) {
@@ -4192,7 +4576,7 @@
             setProgress(30);
             try {
                 const res = await fetchWithTimeout(`${API}/online-orders/${orderId}`, { headers: { 'Authorization': `Bearer ${token}` } });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 const order = data.order;
                 if (!order) { showToast('الطلب غير موجود', 'error'); return; }
                 
@@ -4248,11 +4632,6 @@
                 if (currenciesCache.length === 0) { await loadCurrencies(); populateCurrencySelects(); }
                 if (walletsCache.length === 0) { await loadWalletsFromServer(); populateWalletSelects(); }
 
-                const discountInput = document.getElementById('cart-discount');
-                if (discountInput) discountInput.value = parseFloat(order.discount) || parseFloat(order.discount_amount) || 0;
-                const discountTypeSelect = document.getElementById('discount-type');
-                if (discountTypeSelect) discountTypeSelect.value = order.discount_type || 'fixed';
-
                 if (order.currency_id) {
                     const orderCurSel = document.getElementById('order-currency-select');
                     if (orderCurSel) {
@@ -4262,6 +4641,9 @@
                         orderCurSel.value = order.currency_id;
                     }
                 }
+                _lastOrderCurrencyId = getOrderCurrencyId();
+                const _editRate = getOrderRate();
+                document.getElementById('deliveryFee').value = Number(((parseFloat(order.delivery_fee) || 0) / _editRate).toFixed(2));
 
                 const paymentMethod = order.payment_method || 'عند الاستلام';
                 let normalizedPaymentMethod = 'عند الاستلام';
@@ -4304,6 +4686,35 @@
                         const prodMap = localProducts.reduce((acc, p) => { acc[p.id] = p; return acc; }, {});
                         cart = cart.map(item => { if (prodMap[item.id]) item.cost = prodMap[item.id].cost || 0; return item; });
                     }
+
+                    const discountTypeVal = order.discount_type || 'fixed';
+                    let discountAmountVal = parseFloat(order.discount) || parseFloat(order.discount_amount) || 0;
+                    const subtotalForDiscount = cart.reduce((s, i) => 
+                        s + ((i.price || 0) - (i.discount || 0)) * (i.quantity || 0), 0);
+
+                    if (!discountAmountVal && order.total_amount !== undefined && subtotalForDiscount > 0) {
+                        const feeInBase = parseFloat(order.delivery_fee) || 0;
+                        const feePaidWithOrder = (order.delivery_fee_payment || 'مع الطلب') === 'مع الطلب';
+                        const expectedBeforeDiscount = subtotalForDiscount + (feePaidWithOrder ? feeInBase : 0);
+                        const diff = expectedBeforeDiscount - (parseFloat(order.total_amount) || 0);
+                        if (diff > 0.01) discountAmountVal = diff;
+                    }
+
+                    let discountDisplayValue;
+                    if (discountTypeVal === 'percentage') {
+                        // عكس حساب النسبة من المبلغ المحسوب باستخدام مجموع السلة الحالي
+                        discountDisplayValue = subtotalForDiscount > 0 
+                            ? Number(((discountAmountVal / subtotalForDiscount) * 100).toFixed(2))
+                            : 0;
+                    } else {
+                        discountDisplayValue = Number((discountAmountVal / _editRate).toFixed(2));
+                    }
+
+                    const discountTypeSelect = document.getElementById('discount-type');
+                    if (discountTypeSelect) discountTypeSelect.value = discountTypeVal;
+                    const discountInput = document.getElementById('cart-discount');
+                    if (discountInput) discountInput.value = discountDisplayValue;
+
                     saveCartToLocal();
                     renderCart();
                 }
@@ -4346,7 +4757,6 @@
                             document.getElementById('paid-amount').value = wAmt;
                             
                             onWalletSelectChange();
-                            updateTotalsFromPaid(); 
                             
                         } else if (details.prepaid_method === 'mixed' || normalizedPaymentMethod === 'مدفوع مسبقاً (مختلط)') {
                             const wId = details.wallet_id || order.prepaid_wallet_id;
@@ -4363,7 +4773,7 @@
                             ensureSelectOption('mixed-wallet', wId, `محفظة #${wId}`);
                             
                             onMixedWalletChange();
-                            updateTotalsFromPaidMixed(); 
+                            updateMixedDueAmounts();
                         }
                         updateTotals();
                     }, 250);
@@ -4394,7 +4804,7 @@
                     headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify({ order_id: editingOrderId })
                 });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 if (res.ok && data.success) { 
                     showToast('تم إلغاء الطلب', 'success');
                     resetOrderForm();
@@ -4443,12 +4853,13 @@
     const uniquePhones = [...new Set(allPhones)];
 
     const subtotal = cart.reduce((s, i) => s + ((i.price || 0) - (i.discount || 0)) * i.quantity, 0);
-    const discount = parseFloat(document.getElementById('cart-discount')?.value) || 0;
+    const _rate = getOrderRate();
+    const discountDisplay = parseFloat(document.getElementById('cart-discount')?.value) || 0;
     const discountType = document.getElementById('discount-type')?.value || 'fixed';
     let discountAmount = discountType === 'percentage'
-        ? subtotal * (Math.min(discount, 100) / 100)
-        : Math.min(discount, subtotal);
-    const fee = parseFloat(document.getElementById('deliveryFee')?.value) || 0;
+        ? subtotal * (Math.min(discountDisplay, 100) / 100)
+        : Math.min(discountDisplay * _rate, subtotal);
+    const fee = (parseFloat(document.getElementById('deliveryFee')?.value) || 0) * _rate;
     const paymentMethod = document.getElementById('payment-method')?.value || 'عند الاستلام';
     const isCashOnDelivery = paymentMethod === 'عند الاستلام';
     const feePaidWithOrder = document.getElementById('deliveryFeePayment')?.value === 'مع الطلب';
@@ -4539,7 +4950,7 @@
         notes: document.getElementById('notes')?.value.trim() || '',
         driver_id: document.getElementById('driverSelect')?.value ? parseInt(document.getElementById('driverSelect').value) : undefined,
         total_amount: total,
-        discount: discount,
+        discount: discountType === 'percentage' ? discountDisplay : discountAmount,
         discount_amount: discountAmount,
         discount_type: discountType,
         order_date: (() => {
@@ -4585,7 +4996,7 @@
             headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
         setProgress(100);
         setTimeout(() => setProgress(0), 500);
 
@@ -4758,8 +5169,8 @@
                 const discountType = document.getElementById('discount-type')?.value || 'fixed';
                 let rawDiscountAmount = discountType === 'percentage'
                     ? rawSubtotal * (Math.min(rawDiscount, 100) / 100)
-                    : Math.min(rawDiscount, rawSubtotal);
-                const rawFee = parseFloat(document.getElementById('deliveryFee')?.value) || 0;
+                    : Math.min(rawDiscount * rate, rawSubtotal);
+                const rawFee = (parseFloat(document.getElementById('deliveryFee')?.value) || 0) * rate;
                 const feePaidWithOrder = document.getElementById('deliveryFeePayment')?.value === 'مع الطلب';
                 const rawTotal = Math.max(0, rawSubtotal - rawDiscountAmount + (feePaidWithOrder ? rawFee : 0));
                 
@@ -5214,7 +5625,7 @@
                 const res = await fetchWithTimeout(`${API}/categories?flat=1`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 allCategories = data.categories || [];
                 populateMainCategories();
                 populateNewProductCategories();
@@ -5369,7 +5780,7 @@
                     headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify({ name, price, cost, barcode, category_id })
                 });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 
                 setProgress(100);
                 setTimeout(() => setProgress(0), 500);
@@ -5422,7 +5833,7 @@
         async function loadDrivers() {
             try {
                 const res = await fetchWithTimeout(`${API}/drivers`, { headers: { 'Authorization': `Bearer ${token}` } });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 const sel = document.getElementById('driverSelect');
                 if (!sel) return;
                 sel.innerHTML = '<option value="">بدون مندوب</option>';
@@ -5495,7 +5906,7 @@
                     throw new Error(`HTTP ${res.status}`);
                 }
                 
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 const customers = data.customers || [];
                 
                 if (customers.length > 0) {
@@ -5628,6 +6039,10 @@
                 if (failures.length) console.warn('بعض بيانات التهيئة لم تُحمّل:', failures.map(result => result.reason));
 
                 populateCurrencySelects();
+                populateDeliveryGovernorateSelect();
+                onDeliveryTypeChange();
+                populateGovernorateSelect();
+                _lastOrderCurrencyId = getOrderCurrencyId();
                 populateWalletSelects();
                 productRefreshRequested = true;
                 await fetchProducts('', selectedCategoryId, true);

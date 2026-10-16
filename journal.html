@@ -66,11 +66,15 @@
         .detail-row .value { font-weight: 600; }
         .wallet-badge { background: #dbeafe; color: #1e40af; padding: 2px 10px; border-radius: 12px; font-size: 0.7rem; font-weight: 700; }
     </style>
+    <script src="date-utils.js"></script>
     <script src="number-utils.js"></script>
+    <script src="document-utils.js"></script>
+    <script src="sidebar-config.js"></script>
+    <script src="api-client.js"></script>
     <script src="permissions.js"></script>
     <script src="filter-utils.js"></script>
-    <link rel="stylesheet" href="sidebar-v4.css" />
-    <script src="/offline-sync.js"></script>
+    <script src="offline-sync.js"></script>
+    <script src="notification-center-v3.js"></script>
 </head>
 <body>
     <div class="app-wrapper">
@@ -87,7 +91,7 @@
                     <div class="flex-2"><label>بحث في البيان أو المرجع</label><input class="input-field" id="journal-search" placeholder="اكتب كلمة البحث"></div>
                     <div class="flex-1"><label>من تاريخ</label><input class="input-field" type="date" id="journal-from"></div>
                     <div class="flex-1"><label>إلى تاريخ</label><input class="input-field" type="date" id="journal-to"></div>
-                    <button class="btn btn-outline btn-sm" onclick="printJournalReport()"><i class="fas fa-print"></i> طباعة السجل</button>
+                    <button id="btn-print-journal-report" class="btn btn-outline btn-sm" onclick="printJournalReport()"><i class="fas fa-print"></i> طباعة السجل</button>
                 </div>
             </div>
             <div class="card-section">
@@ -118,10 +122,10 @@
                 </div>
                 <div id="manual-entry-lines" style="margin-top:12px;"></div>
                 <div class="flex-row" style="gap:8px;margin-top:10px;align-items:center;">
-                    <button class="btn btn-outline btn-sm" onclick="addManualLine()">إضافة سطر</button>
+                    <button id="btn-add-manual-line" class="btn btn-outline btn-sm" onclick="addManualLine()">إضافة سطر</button>
                     <strong>المدين: <span id="manual-total-debit">0.00</span></strong>
                     <strong>الدائن: <span id="manual-total-credit">0.00</span></strong>
-                    <button class="btn btn-primary btn-sm" onclick="submitManualEntry()">حفظ القيد</button>
+                    <button id="btn-submit-manual-entry" class="btn btn-primary btn-sm" onclick="submitManualEntry()">حفظ القيد</button>
                 </div>
             </div>
         </main>
@@ -130,12 +134,12 @@
     <!-- Modal لعرض تفاصيل القيد -->
     <div id="journal-detail-modal" class="modal">
         <div class="modal-content">
-            <button class="modal-close" onclick="closeModal('journal-detail-modal')">&times;</button>
+            <button id="btn-close-journal-detail-x" class="modal-close" onclick="closeModal('journal-detail-modal')">&times;</button>
             <h4><i class="fas fa-list-ul"></i> تفاصيل القيد</h4>
             <div id="journal-detail-body"></div>
             <div class="modal-actions">
-                <button class="btn btn-primary btn-sm" onclick="window.POSDocs ? POSDocs.printReport(document.getElementById('journal-detail-body'), {title:'تفاصيل القيد'}).catch(e=>console.error(e)) : window.print()"><i class="fas fa-print"></i> طباعة</button>
-                <button class="btn btn-outline btn-sm" onclick="closeModal('journal-detail-modal')">إغلاق</button>
+                <button id="btn-print-journal-detail" class="btn btn-primary btn-sm" onclick="window.POSDocs ? POSDocs.printReport(document.getElementById('journal-detail-body'), {title:'تفاصيل القيد'}).catch(e=>console.error(e)) : window.print()"><i class="fas fa-print"></i> طباعة</button>
+                <button id="btn-close-journal-detail-modal" class="btn btn-outline btn-sm" onclick="closeModal('journal-detail-modal')">إغلاق</button>
             </div>
         </div>
     </div>
@@ -143,7 +147,10 @@
     <div class="toast-container" id="toast-container"></div>
 
     <script>
-        const API = 'https://api.ibnalmukhtar.com';
+        const API = (window.API_BASE_URL || (window.apiClient && window.apiClient.baseUrl) || 'https://api.ibnalmukhtar.com').replace(/\/$/, '');
+    let isSubmittingEntry = false;
+    let isLoadingJournal = false;
+    let isPrintingJournal = false;
         let token = localStorage.getItem('pos_token') || '';
         if (!token) window.location.href = 'index.html';
 
@@ -178,7 +185,7 @@
         }
         async function loadAccounts() {
             const res = await fetch(`${API}/accounts`, { headers: { 'Authorization': `Bearer ${token}` } });
-            const data = await res.json();
+            const data = await res.json().catch(() => ({}));
             if (!res.ok) throw new Error(data.error || 'فشل تحميل الحسابات');
             accountsMap = {};
             (data.accounts || []).forEach(acc => { accountsMap[acc.id] = acc.name; });
@@ -195,7 +202,7 @@
             const state = controller?.getState() || POSFilters.load('journal', { preset: 'today', limit: 20 });
             const params = POSFilters.queryString({ ...state, page: journalPage });
             const res = await fetch(`${API}/journal-entries?${params.toString()}`, { headers: { 'Authorization': `Bearer ${token}` } });
-            const data = await res.json();
+            const data = await res.json().catch(() => ({}));
             if (!res.ok) throw new Error(data.error || 'فشل تحميل القيود');
             entries = data.entries || [];
             entriesMeta = data.pagination || { total: entries.length };
@@ -210,11 +217,15 @@
             journalPage = 1;
             loadJournalEntries();
         }
+        function showJournalDetailsById(id) {
+            const entry = filteredEntries.find(x => String(x.id) === String(id)) || entries.find(x => String(x.id) === String(id));
+            if (entry) showJournalDetails(entry);
+        }
         function renderJournalEntries() {
             const tbody = document.getElementById('journal-entries-body');
             const rows = filteredEntries;
             if (!rows.length) tbody.innerHTML = '<tr><td colspan="5" class="text-muted">لا توجد قيود مطابقة</td></tr>';
-            else tbody.innerHTML = rows.map(e => { const details = parseDetails(e); const total = details.reduce((sum,d)=>sum+Number(d.debit||0)+Number(d.credit||0),0); return `<tr><td>${escapeHtml(e.id)}</td><td>${escapeHtml(e.entry_date)}</td><td>${escapeHtml(e.description)}</td><td>${total ? total.toFixed(2) : '-'}</td><td><button class="btn btn-primary btn-sm" onclick='showJournalDetails(${JSON.stringify(e).replace(/'/g,"\\'")})'><i class="fas fa-eye"></i> عرض</button></td></tr>`; }).join('');
+            else tbody.innerHTML = rows.map(e => { const details = parseDetails(e); const total = details.reduce((sum,d)=>sum+Number(d.debit||0)+Number(d.credit||0),0); return `<tr><td>${escapeHtml(e.id)}</td><td>${escapeHtml(e.entry_date)}</td><td>${escapeHtml(e.description)}</td><td>${total ? total.toFixed(2) : '-'}</td><td><button class="btn btn-primary btn-sm" onclick="showJournalDetailsById(${escapeHtml(e.id)})"><i class="fas fa-eye"></i> عرض</button></td></tr>`; }).join('');
             const totalMovements = filteredEntries.reduce((sum,e)=>sum+parseDetails(e).reduce((s,d)=>s+Number(d.debit||0)+Number(d.credit||0),0),0);
             const today = new Date().toISOString().slice(0,10);
             document.getElementById('stat-entry-count').textContent = filteredEntries.length;
@@ -233,7 +244,45 @@
         let manualLineCount = 0;
         function addManualLine() { const container=document.getElementById('manual-entry-lines'); const row=document.createElement('div'); row.className='flex-row manual-entry-line'; row.style.cssText='gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap;'; row.innerHTML=`<select class="input-field manual-account flex-1"><option value="">اختر الحساب</option>${Object.entries(accountsMap).map(([id,name])=>`<option value="${id}">${escapeHtml(name)}</option>`).join('')}</select><input class="input-field manual-debit" type="number" step="0.01" min="0" placeholder="مدين"><input class="input-field manual-credit" type="number" step="0.01" min="0" placeholder="دائن"><input class="input-field manual-notes flex-1" type="text" placeholder="ملاحظة"><button class="btn btn-danger btn-sm" onclick="this.parentElement.remove();updateManualTotals()">حذف</button>`; container.appendChild(row); row.querySelectorAll('input').forEach(input=>input.addEventListener('input',updateManualTotals)); manualLineCount++; }
         function updateManualTotals() { const debit=[...document.querySelectorAll('.manual-debit')].reduce((s,e)=>s+(parseFloat(e.value)||0),0),credit=[...document.querySelectorAll('.manual-credit')].reduce((s,e)=>s+(parseFloat(e.value)||0),0); document.getElementById('manual-total-debit').textContent=formatPosMoney(debit, 2);document.getElementById('manual-total-credit').textContent=formatPosMoney(credit, 2);return {debit,credit}; }
-        async function submitManualEntry() { const date=document.getElementById('manual-entry-date').value,description=document.getElementById('manual-entry-description').value.trim(),details=[...document.querySelectorAll('.manual-entry-line')].map(row=>({account_id:Number(row.querySelector('.manual-account').value),debit:parseFloat(row.querySelector('.manual-debit').value)||0,credit:parseFloat(row.querySelector('.manual-credit').value)||0,notes:row.querySelector('.manual-notes').value.trim()})).filter(d=>d.account_id&&(d.debit>0||d.credit>0)),totals=updateManualTotals(); if(!date||!description||details.length<2)return showToast('أكمل التاريخ والبيان وسطرين على الأقل','warning');if(Math.abs(totals.debit-totals.credit)>0.001)return showToast('القيد غير متوازن','warning');try{const res=await fetch(`${API}/journal-entries/manual`,{method:'POST',headers:{'Authorization':`Bearer ${token}`,'Content-Type':'application/json'},body:JSON.stringify({entry_date:date,description,details})}),data=await res.json();if(!res.ok)throw Error(data.error||'فشل حفظ القيد');showToast('تم حفظ القيد بنجاح','success');document.getElementById('manual-entry-lines').innerHTML='';document.getElementById('manual-entry-description').value='';addManualLine();addManualLine();await loadJournalEntries()}catch(e){showToast(e.message,'error')} }
+        async function submitManualEntry() {
+        if (isSubmittingEntry) return;
+        const date = document.getElementById('manual-entry-date').value;
+        const description = document.getElementById('manual-entry-description').value.trim();
+        const details = [...document.querySelectorAll('.manual-entry-line')].map(row => ({
+            account_id: Number(row.querySelector('.manual-account').value),
+            debit: parseFloat(row.querySelector('.manual-debit').value) || 0,
+            credit: parseFloat(row.querySelector('.manual-credit').value) || 0,
+            notes: row.querySelector('.manual-notes').value.trim()
+        })).filter(d => d.account_id && (d.debit > 0 || d.credit > 0));
+        const totals = updateManualTotals();
+        if (!date || !description || details.length < 2) return showToast('أكمل التاريخ والبيان وسطرين على الأقل', 'warning');
+        if (Math.abs(totals.debit - totals.credit) > 0.001) return showToast('القيد غير متوازن', 'warning');
+
+        const btn = document.getElementById('btn-submit-manual-entry');
+        const origText = btn ? btn.innerHTML : '';
+        try {
+            isSubmittingEntry = true;
+            if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...'; }
+            const res = await fetch(`${API}/journal-entries/manual`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ entry_date: date, description, details })
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw Error(data.error || 'فشل حفظ القيد');
+            showToast('تم حفظ القيد بنجاح', 'success');
+            document.getElementById('manual-entry-lines').innerHTML = '';
+            document.getElementById('manual-entry-description').value = '';
+            addManualLine();
+            addManualLine();
+            await loadJournalEntries();
+        } catch (e) {
+            showToast(e.message, 'error');
+        } finally {
+            isSubmittingEntry = false;
+            if (btn) { btn.disabled = false; btn.innerHTML = origText; }
+        }
+    }
 
         // إغلاق المودال عند الضغط خارج المحتوى
         document.getElementById('journal-detail-modal').addEventListener('click', function(e) {
@@ -245,8 +294,5 @@
             try { await loadAccounts(); document.getElementById('manual-entry-date').value = new Date().toISOString().split('T')[0]; addManualLine(); addManualLine(); await loadJournalEntries(); } catch (e) { showToast(e.message, 'error'); }
         };
     </script>
-    <script src="document-utils.js"></script>
-    <script src="sidebar-config.js"></script>
-    <script src="notification-center-v3.js"></script>
 </body>
 </html>

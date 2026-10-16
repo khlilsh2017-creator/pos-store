@@ -473,12 +473,16 @@
         }
     </style>
     <script src="number-utils.js"></script>
+    <script src="api-client.js"></script>
     <script src="permissions.js"></script>
     <script src="date-utils.js"></script>
+    <script src="document-utils.js"></script>
+    <script src="sidebar-config.js"></script>
     <script src="filter-utils.js"></script>
     <script>function clean(value){return String(value ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c] || c));}</script>
-    <script src="/offline-sync.js"></script>
-<link rel="stylesheet" href="sidebar-v4.css" />
+    <link rel="stylesheet" href="sidebar-v4.css" />
+    <script src="offline-sync.js"></script>
+    <script src="notification-center-v3.js"></script>
 </head>
 <body>
     <div class="app-wrapper">
@@ -498,8 +502,8 @@
             <div class="card-section">
                 <div class="flex-row" style="justify-content:space-between;">
                     <h4><i class="fas fa-truck"></i> قائمة الموردين</h4>
-                    <button class="btn btn-outline" onclick="printSuppliersList()"><i class="fas fa-print"></i> طباعة الكشوف</button>
-                    <button class="btn btn-primary" onclick="openAddSupplierModal()"><i class="fas fa-user-plus"></i> إضافة مورد</button>
+                    <button class="btn btn-outline" id="btn-print-suppliers-summary" onclick="printSuppliersList()"><i class="fas fa-print"></i> طباعة الكشوف</button>
+                    <button class="btn btn-primary" id="btn-open-add-supplier-modal" onclick="openAddSupplierModal()"><i class="fas fa-user-plus"></i> إضافة مورد</button>
                 </div>
                 <div class="search-bar">
                     <input type="text" id="searchInput" class="input-field" placeholder="بحث بالاسم أو الهاتف..." oninput="loadSuppliers(1)" />
@@ -509,8 +513,8 @@
                         <option value="negative">رصيد سالب (لنا)</option>
                         <option value="zero">رصيد صفر</option>
                     </select>
-                        <button class="btn btn-outline" onclick="loadSuppliers(1)"><i class="fas fa-sync-alt"></i> تحديث</button>
-                        <button class="btn btn-outline" onclick="printSuppliersList()"><i class="fas fa-print"></i> طباعة</button>
+                        <button class="btn btn-outline" id="btn-refresh-suppliers" onclick="loadSuppliers(1)"><i class="fas fa-sync-alt"></i> تحديث</button>
+                        <button class="btn btn-outline" id="btn-print-suppliers-table" onclick="printSuppliersList()"><i class="fas fa-print"></i> طباعة</button>
                 </div>
                 <div style="overflow-x:auto;">
                     <table class="supplier-table" id="supplier-table">
@@ -537,7 +541,7 @@
         <div class="modal-box">
             <div class="modal-header">
                 <h3 id="modalTitle">إضافة مورد جديد</h3>
-                <button class="modal-close" onclick="closeModal('supplierModal')">&times;</button>
+                <button class="modal-close" id="btn-close-supplier-modal-x" onclick="closeModal('supplierModal')">&times;</button>
             </div>
             <form id="supplier-form" onsubmit="saveSupplier(event)">
                 <input type="hidden" id="edit-supplier-id" value="" />
@@ -549,8 +553,8 @@
                 <label>بادئة SKU (اختياري)</label>
                 <input type="text" id="s-sku-prefix" class="input-field" placeholder="مثل: SUP" />
                 <div class="flex-row mt-10">
-                    <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> حفظ</button>
-                    <button type="button" class="btn btn-outline" onclick="closeModal('supplierModal')">إلغاء</button>
+                    <button id="btn-save-supplier" type="submit" class="btn btn-primary" data-permission="suppliers.create"><i class="fas fa-save"></i> حفظ</button>
+                    <button type="button" class="btn btn-outline" id="btn-cancel-supplier-modal" onclick="closeModal('supplierModal')">إلغاء</button>
                 </div>
             </form>
         </div>
@@ -561,24 +565,24 @@
         <div class="modal-box" style="max-width:950px;">
             <div class="modal-header">
                 <h3 id="details-title">تفاصيل المورد</h3>
-                <button class="modal-close" onclick="closeModal('detailsModal')">&times;</button>
+                <button class="modal-close" id="btn-close-details-modal-x" onclick="closeModal('detailsModal')">&times;</button>
             </div>
             <div id="details-content">
                 <!-- التبويبات -->
                 <div class="tabs" id="details-tabs">
-                    <button class="tab-btn active" data-tab="info">المعلومات</button>
-                    <button class="tab-btn" data-tab="purchases">فواتير المشتريات</button>
-                    <button class="tab-btn" data-tab="payments">سندات الدفع والقبض</button>
-                    <button class="tab-btn" data-tab="statement">كشف الحساب</button>
-                    <button class="tab-btn" data-tab="returns">المرتجعات</button>
+                    <button class="tab-btn active" id="tab-btn-supplier-info" data-tab="info">المعلومات</button>
+                    <button class="tab-btn" id="tab-btn-supplier-purchases" data-tab="purchases">فواتير المشتريات</button>
+                    <button class="tab-btn" id="tab-btn-supplier-payments" data-tab="payments">سندات الدفع والقبض</button>
+                    <button class="tab-btn" id="tab-btn-supplier-statement" data-tab="statement">كشف الحساب</button>
+                    <button class="tab-btn" id="tab-btn-supplier-returns" data-tab="returns">المرتجعات</button>
                     <!-- التبويب الجديد للمخزون المتبقي -->
-                    <button class="tab-btn" data-tab="stock">المخزون المتبقي</button>
+                    <button class="tab-btn" id="tab-btn-supplier-stock" data-tab="stock">المخزون المتبقي</button>
                 </div>
 
                 <!-- محتوى التبويبات -->
                 <div id="tab-info" class="tab-content active">
                     <div id="supplier-info-display"></div>
-                    <button class="btn btn-warning mt-10" onclick="openEditSupplierFromDetails()"><i class="fas fa-edit"></i> تعديل البيانات</button>
+                    <button class="btn btn-warning mt-10" id="btn-edit-supplier-from-details" onclick="openEditSupplierFromDetails()"><i class="fas fa-edit"></i> تعديل البيانات</button>
                 </div>
                 <div id="tab-purchases" class="tab-content">
                     <div id="purchases-list"></div>
@@ -624,14 +628,12 @@
                         <span class="rate" id="detail-due-rate"></span>
                     </div>
                     <label>ملاحظة</label><input type="text" id="detail-pay-note" class="input-field" />
-                    <button class="btn btn-warning mt-10" onclick="executeDetailPayment()"><i class="fas fa-check"></i> تنفيذ</button>
+                    <button id="btn-execute-supplier-pay" class="btn btn-warning mt-10" onclick="executeDetailPayment()"><i class="fas fa-check"></i> تنفيذ</button>
                 </div>
                 <div id="tab-statement" class="tab-content">
                     <div class="statement-container" id="statement-list"></div>
                     <div class="statement-actions">
-                        <button class="btn btn-primary btn-sm no-print" onclick="printStatement()"><i class="fas fa-print"></i> طباعة كشف الحساب</button>
-                        
-                        
+                        <button class="btn btn-primary btn-sm no-print" id="btn-print-supplier-statement" onclick="printStatement()"><i class="fas fa-print"></i> طباعة كشف الحساب</button>
                     </div>
                 </div>
                 <div id="tab-returns" class="tab-content">
@@ -650,17 +652,15 @@
         <div class="modal-box" style="max-width:900px;">
             <div class="modal-header">
                 <h3 id="invoice-modal-title">تفاصيل الفاتورة</h3>
-                <button class="modal-close" onclick="closeModal('invoiceModal')">&times;</button>
+                <button class="modal-close" id="btn-close-invoice-modal-x" onclick="closeModal('invoiceModal')">&times;</button>
             </div>
             <div id="invoice-details-content" class="invoice-wrapper">
                 <div id="invoice-details-body"></div>
                 <div style="display:flex; gap:10px; margin-top:20px; flex-wrap:wrap;">
-                    <button class="btn btn-gold" onclick="printInvoice()"><i class="fas fa-print"></i> طباعة الفاتورة</button>
-                    
-                    
+                    <button class="btn btn-gold" id="btn-print-supplier-invoice" onclick="printInvoice()"><i class="fas fa-print"></i> طباعة الفاتورة</button>
                     <button class="btn btn-danger" id="btn-cancel-purchase-invoice" onclick="cancelSupplierInvoice()" style="display:none;"><i class="fas fa-times"></i> إلغاء الفاتورة</button>
                     <button class="btn btn-warning" id="btn-undo-purchase-invoice" onclick="undoSupplierInvoice()" style="display:none;"><i class="fas fa-undo"></i> عكس الإلغاء</button>
-                    <button class="btn btn-outline" onclick="closeModal('invoiceModal')">إغلاق</button>
+                    <button class="btn btn-outline" id="btn-close-invoice-modal" onclick="closeModal('invoiceModal')">إغلاق</button>
                 </div>
             </div>
         </div>
@@ -671,12 +671,12 @@
         <div class="modal-box" style="max-width:700px;">
             <div class="modal-header">
                 <h3 id="return-detail-title">تفاصيل المرتجع</h3>
-                <button class="modal-close" onclick="closeModal('returnDetailModal')">&times;</button>
+                <button class="modal-close" id="btn-close-return-detail-modal-x" onclick="closeModal('returnDetailModal')">&times;</button>
             </div>
             <div id="return-detail-body"></div>
             <div style="display:flex; gap:10px; margin-top:20px;">
-                <button class="btn btn-gold" onclick="printReturnDetail()"><i class="fas fa-print"></i> طباعة</button>
-                <button class="btn btn-outline" onclick="closeModal('returnDetailModal')">إلغاء</button>
+                <button class="btn btn-gold" id="btn-print-return-detail" onclick="printReturnDetail()"><i class="fas fa-print"></i> طباعة</button>
+                <button class="btn btn-outline" id="btn-cancel-return-detail-modal" onclick="closeModal('returnDetailModal')">إلغاء</button>
             </div>
         </div>
     </div>
@@ -686,7 +686,7 @@
         <div class="modal-box" style="max-width:600px;">
             <div class="modal-header">
                 <h3>إرجاع منتج من فاتورة شراء</h3>
-                <button class="modal-close" onclick="closeModal('returnModal')">&times;</button>
+                <button class="modal-close" id="btn-close-return-modal-x" onclick="closeModal('returnModal')">&times;</button>
             </div>
             <form id="return-form" onsubmit="executeReturn(event)">
                 <input type="hidden" id="return-invoice-id" />
@@ -697,8 +697,8 @@
                 <label>سبب الإرجاع</label>
                 <textarea id="return-reason" class="input-field" rows="2"></textarea>
                 <div class="flex-row mt-10">
-                    <button type="submit" class="btn btn-danger"><i class="fas fa-undo-alt"></i> تأكيد الإرجاع</button>
-                    <button type="button" class="btn btn-outline" onclick="closeModal('returnModal')">إلغاء</button>
+                    <button type="submit" class="btn btn-danger" id="btn-confirm-supplier-return"><i class="fas fa-undo-alt"></i> تأكيد الإرجاع</button>
+                    <button type="button" class="btn btn-outline" id="btn-cancel-supplier-return" onclick="closeModal('returnModal')">إلغاء</button>
                 </div>
             </form>
         </div>
@@ -713,11 +713,24 @@
         // ================================================================
         //  CONFIG & HELPERS
         // ================================================================
-        const API = 'https://api.ibnalmukhtar.com';
+        const API = window.API_BASE_URL || (window.apiClient ? window.apiClient.baseUrl : 'https://api.ibnalmukhtar.com');
         let token = localStorage.getItem('pos_token') || '';
         const currentUser = JSON.parse(localStorage.getItem('pos_user') || '{}');
         const canReverseSupplierOperations = currentUser.role === 'admin';
         if (!token) window.location.href = 'index.html';
+
+        // دالة الهروب الأمني الموحدة
+        const escapeHtml = typeof clean === 'function' ? clean : function(str) {
+            return String(str ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c] || c));
+        };
+
+        // أقفال التزامن لمنع النقر المزدوج (Double-Click Concurrency Locks)
+        let isSavingSupplier = false;
+        let isExecutingPayment = false;
+        let isCancelingPayment = false;
+        let isCancelingInvoice = false;
+        let isUndoingCancel = false;
+        let isExecutingReturn = false;
 
         function showToast(msg, type = 'info') {
             const c = document.getElementById('toast-container');
@@ -785,7 +798,7 @@
             if (navigator.onLine) {
                 try {
                     const res = await fetch(`${API}/currencies`, { headers: { 'Authorization': `Bearer ${token}` } });
-                    const data = await res.json();
+                    const data = await res.json().catch(() => ({}));
                     currenciesCache = data.currencies || [];
                     populateCurrencySelects();
                     return;
@@ -797,7 +810,7 @@
             if (navigator.onLine) {
                 try {
                     const res = await fetch(`${API}/wallets`, { headers: { 'Authorization': `Bearer ${token}` } });
-                    const data = await res.json();
+                    const data = await res.json().catch(() => ({}));
                     walletsCache = data.wallets || [];
                     populateWalletSelects();
                     return;
@@ -809,7 +822,7 @@
             if (navigator.onLine) {
                 try {
                     const res = await fetch(`${API}/cash`, { headers: { 'Authorization': `Bearer ${token}` } });
-                    const data = await res.json();
+                    const data = await res.json().catch(() => ({}));
                     if (data.cash_balances) {
                         cashBalances = data.cash_balances;
                     } else {
@@ -949,7 +962,7 @@
             if (filter !== 'all') url += `&balance_filter=${filter}`;
             try {
                 const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 if (res.ok) {
                     renderSuppliers(data.suppliers || []);
                     totalSuppliers = data.total || 0;
@@ -1002,7 +1015,7 @@
             document.getElementById('total-debt').innerText = formatPosMoney(Number(data.total_debt || 0), 2);
             const avg = data.total > 0 ? formatPosMoney(Number(data.total_debt || 0) / data.total) : formatPosMoney(0);
             document.getElementById('avg-balance').innerText = avg;
-            fetch(`${API}/suppliers/total-debt`, { headers: { 'Authorization': `Bearer ${token}` } }).then(r => r.json()).then(d => {
+            fetch(`${API}/suppliers/total-debt`, { headers: { 'Authorization': `Bearer ${token}` } }).then(r => r.json().catch(() => ({}))).then(d => {
                 const total = Number(d.total_debt ?? d.total ?? NaN); if (Number.isFinite(total)) document.getElementById('total-debt').innerText = formatPosMoney(total, 2);
             }).catch(() => {});
         }
@@ -1034,6 +1047,10 @@
 
         async function saveSupplier(e) {
             e.preventDefault();
+            if (isSavingSupplier) return;
+            if (window.POSPermissions && !window.POSPermissions.can('suppliers.create')) {
+                return showToast('ليس لديك صلاحية لإضافة أو تعديل مورد', 'error');
+            }
             const id = document.getElementById('edit-supplier-id').value;
             const name = document.getElementById('s-name').value.trim();
             const phone = document.getElementById('s-phone').value.trim();
@@ -1042,6 +1059,13 @@
             const sku_prefix = document.getElementById('s-sku-prefix').value.trim() || null;
 
             if (!name) { showToast('الاسم مطلوب', 'warning'); return; }
+
+            const btn = document.getElementById('btn-save-supplier');
+            isSavingSupplier = true;
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...';
+            }
 
             const url = id ? `${API}/suppliers/${id}` : `${API}/suppliers`;
             const method = id ? 'PUT' : 'POST';
@@ -1053,7 +1077,7 @@
                     headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify(body)
                 });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 if (res.ok) {
                     showToast(id ? 'تم التحديث' : 'تم الإضافة', 'success');
                     closeModal('supplierModal');
@@ -1063,6 +1087,12 @@
                 }
             } catch (e) {
                 showToast('خطأ', 'error');
+            } finally {
+                isSavingSupplier = false;
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-save"></i> حفظ';
+                }
             }
         }
 
@@ -1073,7 +1103,7 @@
                     method: 'DELETE',
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 if (res.ok) {
                     showToast('تم الحذف', 'success');
                     loadSuppliers(currentPage);
@@ -1102,7 +1132,7 @@
         async function loadSupplierDetails(id) {
             try {
                 const res = await fetch(`${API}/suppliers/${id}`, { headers: { 'Authorization': `Bearer ${token}` } });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 if (res.ok) {
                     const s = data.supplier;
                     currentSupplierData = s;
@@ -1173,7 +1203,7 @@
         async function loadSupplierPurchases(supplierId) {
             try {
                 const res = await fetch(`${API}/suppliers/purchase-invoices?supplier_id=${supplierId}`, { headers: { 'Authorization': `Bearer ${token}` } });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 const container = document.getElementById('purchases-list');
                 if (!data.invoices || data.invoices.length === 0) {
                     container.innerHTML = '<p class="text-muted">لا توجد فواتير شراء لهذا المورد</p>';
@@ -1202,7 +1232,7 @@
         async function viewInvoice(invoiceId) {
             try {
                 const res = await fetch(`${API}/purchases/${invoiceId}`, { headers: { 'Authorization': `Bearer ${token}` } });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 if (res.ok && data.purchase) {
                     const inv = data.purchase;
                     currentPurchaseInvoiceId = inv.id || invoiceId;
@@ -1268,23 +1298,39 @@
         }
 
         async function cancelSupplierInvoice() {
+            if (isCancelingInvoice) return;
             if (!canReverseSupplierOperations) return showToast('هذه العملية متاحة للمدير فقط', 'warning');
             if (!currentPurchaseInvoiceId || !confirm('سيتم إلغاء فاتورة الشراء وعكس المخزون والقيود. هل تريد المتابعة؟')) return;
+            const btn = document.getElementById('btn-cancel-purchase-invoice');
+            isCancelingInvoice = true;
+            if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الإلغاء...'; }
             try {
                 const res = await fetch(`${API}/purchases/cancel`, { method:'POST', headers:{'Authorization': `Bearer ${token}`, 'Content-Type':'application/json'}, body:JSON.stringify({ purchase_invoice_id: currentPurchaseInvoiceId }) });
-                const data = await res.json(); if (!res.ok) throw new Error(data.error || 'فشل إلغاء الفاتورة');
+                const data = await res.json().catch(() => ({})); if (!res.ok) throw new Error(data.error || 'فشل إلغاء الفاتورة');
                 showToast('تم إلغاء فاتورة الشراء', 'success'); closeModal('invoiceModal'); loadSuppliers(currentPage); if (currentSupplierId) loadTabContent('purchases', currentSupplierId);
             } catch (e) { showToast(e.message, 'error'); }
+            finally {
+                isCancelingInvoice = false;
+                if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-times"></i> إلغاء الفاتورة'; }
+            }
         }
 
         async function undoSupplierInvoice() {
+            if (isUndoingCancel) return;
             if (!canReverseSupplierOperations) return showToast('هذه العملية متاحة للمدير فقط', 'warning');
             if (!currentPurchaseInvoiceId || !confirm('هل تريد عكس إلغاء فاتورة الشراء؟')) return;
+            const btn = document.getElementById('btn-undo-purchase-invoice');
+            isUndoingCancel = true;
+            if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري العكس...'; }
             try {
                 const res = await fetch(`${API}/purchases/cancel/undo`, { method:'POST', headers:{'Authorization': `Bearer ${token}`, 'Content-Type':'application/json'}, body:JSON.stringify({ purchase_invoice_id: currentPurchaseInvoiceId }) });
-                const data = await res.json(); if (!res.ok) throw new Error(data.error || 'فشل عكس الإلغاء');
+                const data = await res.json().catch(() => ({})); if (!res.ok) throw new Error(data.error || 'فشل عكس الإلغاء');
                 showToast('تم عكس إلغاء الفاتورة', 'success'); closeModal('invoiceModal'); loadSuppliers(currentPage); if (currentSupplierId) loadTabContent('purchases', currentSupplierId);
             } catch (e) { showToast(e.message, 'error'); }
+            finally {
+                isUndoingCancel = false;
+                if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-undo"></i> عكس الإلغاء'; }
+            }
         }
 
         function printInvoice() {
@@ -1306,7 +1352,7 @@
         async function loadSupplierPayments(supplierId) {
             try {
                 const res = await fetch(`${API}/suppliers/statement?supplier_id=${supplierId}`, { headers: { 'Authorization': `Bearer ${token}` } });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 const payments = data.statement.filter(item => item.type === 'payment' || item.type === 'receipt');
                 const container = document.getElementById('payments-list');
                 if (payments.length === 0) {
@@ -1347,7 +1393,7 @@
         async function loadSupplierStatement(supplierId) {
             try {
                 const res = await fetch(`${API}/suppliers/statement?supplier_id=${supplierId}`, { headers: { 'Authorization': `Bearer ${token}` } });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 const container = document.getElementById('statement-list');
                 const clean = value => String(value ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c] || c));
                 const records = Array.isArray(data.statement) ? data.statement : [];
@@ -1407,7 +1453,7 @@
 
         async function exportSuppliersCSV() {
             try {
-                const res = await fetch(`${API}/suppliers?limit=10000`, { headers: { 'Authorization': `Bearer ${token}` } }); const data = await res.json(); const rows = data.suppliers || [];
+                const res = await fetch(`${API}/suppliers?limit=10000`, { headers: { 'Authorization': `Bearer ${token}` } }); const data = await res.json().catch(() => ({})); const rows = data.suppliers || [];
                 const keys = ['id','name','phone','address','balance'];
                 const csv = '\ufeff' + [keys, ...rows.map(r => keys.map(k => r[k] ?? ''))].map(row => row.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\\n');
                 const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv;charset=utf-8'})); a.download = `كشوف-الموردين-${new Date().toISOString().slice(0,10)}.csv`; a.click(); URL.revokeObjectURL(a.href); showToast('تم تصدير كشوف الموردين', 'success');
@@ -1417,7 +1463,7 @@
         async function exportSupplierStatement(supplierId) {
             if (!supplierId) return showToast('اختر موردًا أولًا', 'warning');
             try {
-                const res = await fetch(`${API}/suppliers/statement?supplier_id=${supplierId}`, { headers: { 'Authorization': `Bearer ${token}` } }); const data = await res.json(); const rows = data.statement || [];
+                const res = await fetch(`${API}/suppliers/statement?supplier_id=${supplierId}`, { headers: { 'Authorization': `Bearer ${token}` } }); const data = await res.json().catch(() => ({})); const rows = data.statement || [];
                 if (!rows.length) return showToast('لا توجد حركات لتصديرها', 'warning');
                 const keys = ['created_at','type','invoice_number','amount','total_amount','currency_code','exchange_rate','note'];
                 const csv = '\ufeff' + [keys, ...rows.map(r => keys.map(k => r[k] ?? ''))].map(row => row.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\\n');
@@ -1502,7 +1548,7 @@
         async function loadSupplierReturns(supplierId) {
             try {
                 const res = await fetch(`${API}/suppliers/statement?supplier_id=${supplierId}`, { headers: { 'Authorization': `Bearer ${token}` } });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 const returns = data.statement.filter(item => item.type === 'return');
                 const container = document.getElementById('returns-list');
                 if (returns.length === 0) {
@@ -1536,7 +1582,7 @@
             const supplierName = window._supplierStatementData?.party || document.querySelector('#supplier-info-display p:nth-child(1)')?.textContent?.replace('الاسم:', '').trim() || `#${currentSupplierId || ''}`;
             try {
                 const res = await fetch(`${API}/suppliers/returns/${r.id}?supplier_id=${currentSupplierId || ''}`, { headers: { 'Authorization': `Bearer ${token}` } });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 if (!res.ok) throw new Error(data.error || 'تعذر تحميل تفاصيل المرتجع');
                 const ret = data.return || r;
                 const items = data.items || [];
@@ -1567,6 +1613,10 @@
         //  EXECUTE PAYMENT (supplier payment)
         // ================================================================
         async function executeDetailPayment() {
+            if (isExecutingPayment) return;
+            if (window.POSPermissions && !window.POSPermissions.can('suppliers.create') && !window.POSPermissions.can('vouchers.create')) {
+                return showToast('ليس لديك صلاحية لإجراء سندات الموردين', 'error');
+            }
             const supplier_id = currentSupplierId;
             const type = document.getElementById('detail-pay-type').value;
             const amount = parseFloat(document.getElementById('detail-pay-amount').value);
@@ -1581,6 +1631,13 @@
             if (!supplier_id || !amount || amount <= 0) { showToast('أدخل مبلغاً صحيحاً', 'warning'); return; }
             if (transfer_fee < 0 || (fee_deducted_from_amount && transfer_fee >= amount)) { showToast('رسوم التحويل يجب أن تكون أقل من المبلغ عند الخصم منه', 'warning'); return; }
             if (method === 'wallet' && !wallet_id) { showToast('اختر محفظة', 'warning'); return; }
+
+            const btn = document.getElementById('btn-execute-supplier-pay');
+            isExecutingPayment = true;
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التنفيذ...';
+            }
 
             try {
                 const body = {
@@ -1601,7 +1658,7 @@
                     headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify(body)
                 });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 if (res.ok) {
                     const currencyName = currency_id ? getCurrencyName(currency_id) : 'ريال يمني';
                     showToast(`تم ${type === 'receipt' ? 'القبض' : 'الصرف'} بنجاح (${currencyName})`, 'success');
@@ -1621,6 +1678,12 @@
                 }
             } catch (e) {
                 showToast('خطأ في الاتصال', 'error');
+            } finally {
+                isExecutingPayment = false;
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-check"></i> تنفيذ';
+                }
             }
         }
 
@@ -1628,14 +1691,17 @@
         //  CANCEL PAYMENT
         // ================================================================
         async function cancelPayment(type, paymentId) {
+            if (isCancelingPayment) return;
+            if (!canReverseSupplierOperations) return showToast('إلغاء السندات متاح للمدير فقط', 'warning');
             if (!confirm('هل أنت متأكد من إلغاء هذا السند؟')) return;
+            isCancelingPayment = true;
             try {
                 const res = await fetch(`${API}/operations/cancel-payment`, {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify({ payment_type: type, payment_id: paymentId })
                 });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 if (res.ok) {
                     showToast('تم إلغاء السند', 'success');
                     loadTabContent('payments', currentSupplierId);
@@ -1650,6 +1716,8 @@
                 }
             } catch (e) {
                 showToast('خطأ', 'error');
+            } finally {
+                isCancelingPayment = false;
             }
         }
 
@@ -1665,7 +1733,7 @@
         async function loadInvoiceProducts(invoiceId) {
             try {
                 const res = await fetch(`${API}/purchases/${invoiceId}`, { headers: { 'Authorization': `Bearer ${token}` } });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 if (res.ok && data.purchase && data.purchase.items) {
                     const select = document.getElementById('return-product-id');
                     select.innerHTML = data.purchase.items.map(item => `
@@ -1681,6 +1749,7 @@
 
         async function executeReturn(e) {
             e.preventDefault();
+            if (isExecutingReturn) return;
             const invoiceId = document.getElementById('return-invoice-id').value;
             const productId = document.getElementById('return-product-id').value;
             const quantity = parseInt(document.getElementById('return-quantity').value);
@@ -1693,6 +1762,13 @@
             if (!productId || !quantity || quantity <= 0) {
                 showToast('أدخل كمية صحيحة', 'warning');
                 return;
+            }
+
+            const btn = document.getElementById('btn-confirm-supplier-return');
+            isExecutingReturn = true;
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الإرجاع...';
             }
 
             try {
@@ -1710,7 +1786,7 @@
                     headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify(body)
                 });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 if (res.ok) {
                     showToast(`تم الإرجاع: ${formatPosMoney(data.refund_amount)} ريال`, 'success');
                     closeModal('returnModal');
@@ -1724,6 +1800,12 @@
                 }
             } catch (e) {
                 showToast('خطأ', 'error');
+            } finally {
+                isExecutingReturn = false;
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-undo-alt"></i> تأكيد الإرجاع';
+                }
             }
         }
 
@@ -1734,7 +1816,7 @@
             const container = document.getElementById('stock-list');
             try {
                 const res = await fetch(`${API}/suppliers/remaining-stock?supplier_id=${supplierId}`, { headers: { 'Authorization': `Bearer ${token}` } });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 if (!res.ok) throw new Error(data.error || 'تعذر تحميل المخزون المتبقي');
                 const rows = data.stock || [];
                 const totalValue = Number(data.summary?.total_value || rows.reduce((sum, item) => sum + Number(item.remaining_value || (Number(item.quantity || 0) * Number(item.last_purchase_price || 0))), 0));
@@ -1778,8 +1860,5 @@
             loadSuppliers(1);
         };
     </script>
-    <script src="document-utils.js"></script>
-    <script src="sidebar-config.js"></script>
-    <script src="notification-center-v3.js"></script>
 </body>
 </html>

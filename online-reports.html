@@ -758,11 +758,15 @@
             }
         }
     </style>
-    <script src="number-utils.js"></script>
-    <script src="permissions.js"></script>
     <script src="date-utils.js"></script>
+    <script src="number-utils.js"></script>
+    <script src="document-utils.js"></script>
+    <script src="sidebar-config.js"></script>
+    <script src="api-client.js"></script>
+    <script src="permissions.js"></script>
     <script src="filter-utils.js"></script>
-    <script src="/offline-sync.js"></script>
+    <script src="offline-sync.js"></script>
+    <script src="notification-center-v3.js"></script>
     <link rel="stylesheet" href="sidebar-v4.css" />
 </head>
 <body>
@@ -781,10 +785,8 @@
                     </h1>
                 </div>
                 <div class="actions">
-                    <button class="btn btn-sm btn-outline" onclick="printReport()"><i class="fas fa-print"></i> طباعة</button>
-                    <button class="btn btn-sm btn-success" onclick="printReport()"><i class="fas fa-print"></i> طباعة التقرير</button>
-                    
-                    <button class="btn btn-sm btn-primary" onclick="applyFilters()"><i class="fas fa-sync-alt"></i> تحديث</button>
+                    <button id="btn-print-online-report" class="btn btn-sm btn-success" onclick="printReport()"><i class="fas fa-print"></i> طباعة التقرير</button>
+                    <button id="btn-apply-online-filters" class="btn btn-sm btn-primary" onclick="applyFilters()"><i class="fas fa-sync-alt"></i> تحديث</button>
                     <span id="report-connection-badge" class="status-badge" style="padding:6px 10px;"><i class="fas fa-spinner fa-spin"></i> فحص</span>
                     <span id="report-role-badge" class="status-badge" style="padding:6px 10px;">قارئ</span>
                 </div>
@@ -907,13 +909,13 @@
         <div class="modal-box">
             <div class="modal-header">
                 <h3><i class="fas fa-info-circle text-primary"></i> تفاصيل الطلب</h3>
-                <button class="close-btn" onclick="closeModal('orderDetailsModal')">&times;</button>
+                <button id="btn-close-order-details-x" class="close-btn" onclick="closeModal('orderDetailsModal')">&times;</button>
             </div>
             <div id="modalContent">
                 <div class="text-center"><i class="fas fa-spinner fa-spin"></i> جاري التحميل...</div>
             </div>
             <div class="modal-actions" style="margin-top: 16px; display: flex; gap: 8px; justify-content: flex-end;">
-                <button class="btn btn-outline btn-sm" onclick="closeModal('orderDetailsModal')">إغلاق</button>
+                <button id="btn-close-order-details-modal" class="btn btn-outline btn-sm" onclick="closeModal('orderDetailsModal')">إغلاق</button>
                 <button class="btn btn-primary btn-sm" id="printSingleOrder"><i class="fas fa-print"></i> طباعة الطلب</button>
             </div>
         </div>
@@ -925,7 +927,9 @@
         // ================================================================
         //  الإعدادات الأساسية والمتغيرات
         // ================================================================
-        const API = 'https://api.ibnalmukhtar.com'; // غيّر حسب خادمك
+        const API = (window.API_BASE_URL || (window.apiClient && window.apiClient.baseUrl) || 'https://api.ibnalmukhtar.com').replace(/\/$/, '');
+    let isPrintingReport = false;
+    let isExportingCSV = false; // غيّر حسب خادمك
         let token = localStorage.getItem('pos_token') || '';
         const currentUser = JSON.parse(localStorage.getItem('pos_user') || '{}');
         if (!token) window.location.href = 'index.html';
@@ -1051,7 +1055,7 @@
                     throw new Error(`الخادم رد بـ ${res.status}: ${errText}`);
                 }
 
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
 
                 if (data.orders && Array.isArray(data.orders)) {
                     allOrders = data.orders;
@@ -1352,7 +1356,7 @@
                     window.location.href = 'index.html';
                     return;
                 }
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 const order = data.order;
 
                 if (!order) {
@@ -1389,6 +1393,9 @@
         //  التصدير والطباعة
         // ================================================================
         function exportCSV() {
+        if (isExportingCSV) return;
+        isExportingCSV = true;
+        setTimeout(() => { isExportingCSV = false; }, 1000);
             if (allOrders.length === 0 && totalRecords === 0) return showToast('لا توجد بيانات للتصدير', 'warning');
 
             const ordersToExport = allOrders;
@@ -1420,6 +1427,9 @@
         }
 
         function printReport() {
+        if (isPrintingReport) return;
+        isPrintingReport = true;
+        setTimeout(() => { isPrintingReport = false; }, 1000);
             const element = document.querySelector('[data-pos-print-target]') || document.querySelector('main') || document.querySelector('.content');
             if (!element || !window.POSDocs) return showToast('تعذر تجهيز التقرير للطباعة', 'error');
             POSDocs.printReport(element, { title: document.title }).catch(e => showToast(e.message, 'error'));
@@ -1500,8 +1510,5 @@
             window.addEventListener('offline', checkReportConnection);
         };
     </script>
-    <script src="document-utils.js"></script>
-    <script src="sidebar-config.js"></script>
-    <script src="notification-center-v3.js"></script>
 </body>
 </html>

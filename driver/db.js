@@ -198,8 +198,8 @@ async function seedInitialData(apiUrl, token) {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if (productsRes.ok) {
-      const data = await productsRes.json();
-      for (const p of data.products) {
+      const data = await productsRes.json().catch(() => ({}));
+      for (const p of (data.products || [])) {
         await saveLocalProduct(p);
       }
     }
@@ -209,8 +209,8 @@ async function seedInitialData(apiUrl, token) {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if (customersRes.ok) {
-      const data = await customersRes.json();
-      for (const c of data.customers) {
+      const data = await customersRes.json().catch(() => ({}));
+      for (const c of (data.customers || [])) {
         await saveLocalCustomer(c);
       }
     }
@@ -220,8 +220,8 @@ async function seedInitialData(apiUrl, token) {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if (suppliersRes.ok) {
-      const data = await suppliersRes.json();
-      for (const s of data.suppliers) {
+      const data = await suppliersRes.json().catch(() => ({}));
+      for (const s of (data.suppliers || [])) {
         await saveLocalSupplier(s);
       }
     }
@@ -231,8 +231,8 @@ async function seedInitialData(apiUrl, token) {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if (walletsRes.ok) {
-      const data = await walletsRes.json();
-      for (const w of data.wallets) {
+      const data = await walletsRes.json().catch(() => ({}));
+      for (const w of (data.wallets || [])) {
         await saveLocalWallet(w);
       }
     }
@@ -334,7 +334,7 @@ async function syncAllOperations(apiUrl, token) {
         await markOperationSynced(op.id);
         // إذا كانت العملية إضافة، يمكن تحديث المعرف المحلي بمعرف الخادم (اختياري)
         if (method === 'POST') {
-          const result = await response.json();
+          const result = await response.json().catch(() => ({}));
           // يمكنك تحديث الكيان المحلي بالمعرف الجديد من الخادم
         }
       } else {

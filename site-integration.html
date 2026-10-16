@@ -109,8 +109,15 @@
         }
 
     </style>
+    <script src="date-utils.js"></script>
+    <script src="number-utils.js"></script>
+    <script src="document-utils.js"></script>
+    <script src="sidebar-config.js"></script>
+    <script src="api-client.js"></script>
     <script src="permissions.js"></script>
-    <script src="/offline-sync.js"></script>
+    <script src="filter-utils.js"></script>
+    <script src="offline-sync.js"></script>
+    <script src="notification-center-v3.js"></script>
 <link rel="stylesheet" href="sidebar-v4.css" />
 </head>
 <body>
@@ -141,7 +148,7 @@
                 <select id="authType" aria-label="نمط المصادقة">
             <option value="Bearer">Bearer (مطلوب)</option>
         </select>
-        <button type="button" onclick="saveConfig()">حفظ الإعدادات</button>
+        <button id="btn-save-integration-config" type="button" onclick="saveConfig()">حفظ الإعدادات</button>
         <button type="button" id="checkConnectionBtn" onclick="checkConnections()" style="background:#17a2b8;">اختبار الاتصال</button>
         <span id="configStatus" style="font-size:13px; color:#28a745;"></span>
         <span id="connectionStatus" class="status-msg" aria-live="polite"></span>
@@ -170,8 +177,8 @@
     <!-- شريط الإجراءات -->
     <div class="action-bar">
         <input type="text" id="filterInput" placeholder="🔍 ابحث بالاسم أو كود المنتج أو الباركود..." oninput="filterTable()" />
-        <button class="clear-btn" onclick="clearFilter()">مسح الفلترة</button>
-        <button class="refresh-btn" onclick="refreshCurrentTab()">🔄 تحديث</button>
+        <button id="btn-clear-integration-filter" class="clear-btn" onclick="clearFilter()">مسح الفلترة</button>
+        <button id="btn-refresh-integration-tab" class="refresh-btn" onclick="refreshCurrentTab()">🔄 تحديث</button>
         <button class="load-site-btn" id="loadSiteProductsBtn" onclick="loadSiteProducts()">📦 تحميل منتجات الموقع</button>
         <button class="view-site-btn" id="viewSiteProductsBtn" onclick="viewSiteProducts()" disabled>📋 عرض المنتجات</button>
         <button class="debug-btn" id="debugBtn" onclick="showDebugResponse()" style="display:none;">🛠 عرض استجابة API</button>
@@ -191,7 +198,7 @@
     <!-- نافذة منبثقة لعرض منتجات الموقع -->
     <div class="modal-overlay" id="siteProductsModal">
         <div class="modal-content">
-            <button class="modal-close" onclick="closeSiteProductsModal()">✕</button>
+            <button id="btn-close-site-products-modal" class="modal-close" onclick="closeSiteProductsModal()">✕</button>
             <h2 style="margin-top:0;">📦 منتجات الموقع الإلكتروني</h2>
             <p id="siteProductsCount" style="color:#6c757d;"></p>
             <div id="siteProductsList"></div>
@@ -201,7 +208,7 @@
     <!-- نافذة منبثقة لعرض استجابة API الخام -->
     <div class="modal-overlay" id="debugModal">
         <div class="modal-content">
-            <button class="modal-close" onclick="closeDebugModal()">✕</button>
+            <button id="btn-close-debug-modal" class="modal-close" onclick="closeDebugModal()">✕</button>
             <h2 style="margin-top:0;">📄 استجابة API الخام</h2>
             <div id="debugContent" class="debug-response"></div>
         </div>
@@ -212,7 +219,7 @@
 
     <div style="margin-top:20px; display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px; border-top:1px solid #e9edf2; padding-top:15px;">
         <div style="font-size:13px; color:#6c757d;">الاتجاهان مدعومان: كود النظام المحاسبي يُستخدم للربط، ومعرف منتج الموقع يُحفظ في POS. المزامنة المجدولة تحتاج إعدادات المتجر في Worker.</div>
-        <div><button class="btn" style="background:#6c757d; color:#fff;" onclick="window.location.reload()">🔄 إعادة تحميل الصفحة</button></div>
+        <div><button id="btn-reload-integration-page" class="btn" style="background:#6c757d; color:#fff;" onclick="window.location.reload()">🔄 إعادة تحميل الصفحة</button></div>
     </div>
 </div>
 
@@ -220,7 +227,12 @@
     // ============================================================
     //  الإعدادات (معدل)
     // ============================================================
-    let POS_API_BASE = localStorage.getItem('posApiBase') || 'https://api.ibnalmukhtar.com';
+    let POS_API_BASE = (window.API_BASE_URL || (window.apiClient && window.apiClient.baseUrl) || localStorage.getItem('posApiBase') || 'https://api.ibnalmukhtar.com').replace(/\/$/, '');
+    let isSavingConfig = false;
+    let isTestingConnection = false;
+    let isSyncingStock = false;
+    let isSavingSyncSettings = false;
+    let isLoadingSiteProducts = false;
     if (!POS_API_BASE || POS_API_BASE === 'null' || POS_API_BASE === 'file://' || POS_API_BASE.includes('pos.ibnalmukhtar.com')) {
         POS_API_BASE = 'https://api.ibnalmukhtar.com';
     }
@@ -246,6 +258,9 @@
     document.getElementById('authType').value = authType;
 
     function saveConfig() {
+        if (isSavingConfig) return;
+        isSavingConfig = true;
+        setTimeout(() => { isSavingConfig = false; }, 1000);
         const newPosBase = document.getElementById('posApiInput').value.trim();
         const newToken = document.getElementById('tokenInput').value.trim();
         const newSiteBase = document.getElementById('siteApiInput').value.trim();
@@ -311,7 +326,7 @@
             const url = `${SITE_API_BASE}/products?page=${page}&limit=${limit}&admin=1&meta=1`;
             const res = await fetchWithTimeout(url, { headers });
             if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-            const data = await res.json();
+            const data = await res.json().catch(() => ({}));
             if (page === 1) lastRawResponse = data;
             const items = Array.isArray(data) ? data : (data.products || data.data || data.items || data.result || []);
             if (!Array.isArray(items) || items.length === 0) break;
@@ -328,6 +343,8 @@
     }
 
     async function checkConnections() {
+        if (isTestingConnection) return;
+        isTestingConnection = true;
         const btn = document.getElementById('checkConnectionBtn');
         const statusEl = document.getElementById('connectionStatus');
         btn.disabled = true;
@@ -350,13 +367,14 @@
         } finally {
             btn.disabled = false;
         }
+        isTestingConnection = false;
     }
 
     async function loadStockSyncStatus() {
         const statusEl = document.getElementById('syncStatus');
         try {
             const res = await fetchWithTimeout(`${POS_API_BASE}/api/stock-sync/status`, { headers: { 'Authorization': getAuthHeader() } });
-            const data = await res.json();
+            const data = await res.json().catch(() => ({}));
             if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
             document.getElementById('syncFrequency').value = data.frequency || 'hourly';
             const last = data.last_run ? new Date(data.last_run).toLocaleString('ar-SA') : 'لم تعمل بعد';
@@ -394,6 +412,8 @@
     }
 
     async function runStockSyncNow() {
+        if (isSyncingStock) return;
+        isSyncingStock = true;
         const btn = document.getElementById('runSyncNowBtn');
         const statusEl = document.getElementById('syncStatus');
         btn.disabled = true;
@@ -560,7 +580,7 @@
             }
             const contentType = res.headers.get('content-type') || '';
             if (!contentType.includes('application/json')) throw new SyntaxError('استجابة غير JSON من Worker المحاسبي');
-            const data = await res.json();
+            const data = await res.json().catch(() => ({}));
             allProducts = data.products || [];
             if (currentTab === 'unlinked') {
                 document.getElementById('unlinkedCount').textContent = allProducts.length;
@@ -693,7 +713,7 @@
                 const errorText = await linkRes.text();
                 throw new Error(`فشل ربط POS (${linkRes.status}): ${errorText.slice(0, 160)}`);
             }
-            const linkData = await linkRes.json();
+            const linkData = await linkRes.json().catch(() => ({}));
             
             if (!linkData.success) {
                 statusEl.textContent = '❌ ' + (linkData.error || 'فشل الربط');
@@ -764,7 +784,7 @@
                         const res = await fetchWithTimeout(`${SITE_API_BASE}/products/search?q=${encodeURIComponent(query)}`, { headers });
 
             if (!res.ok) throw new Error('فشل البحث');
-            const results = await res.json();
+            const results = await res.json().catch(() => ({}));
             if (results.length === 0) {
                 statusEl.textContent = '😕 لا توجد نتائج';
                 statusEl.className = 'status-msg error';
@@ -812,7 +832,5 @@
         loadStockSyncStatus();
     });
 </script>
-<script src="sidebar-config.js"></script>
-    <script src="notification-center-v3.js"></script>
 </body>
 </html>

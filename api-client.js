@@ -18,7 +18,8 @@
         'go3.ibnalmukhtar.com'
     ];
 
-    const REQUEST_TIMEOUT_MS = 7000;
+    const REQUEST_TIMEOUT_MS = 8000;
+    const WRITE_REQUEST_TIMEOUT_MS = 25000;
     const HEALTH_CHECK_INTERVAL_MS = 60000;
     const STORAGE_KEY = '_apiEndpointIndex_v3';  // ← مفتاح جديد
 
@@ -64,6 +65,9 @@
     async function fetchWithFailover(pathWithQuery, init = {}) {
         const errors = [];
         const startIndex = activeIndex;
+        const method = String(init.method || 'GET').toUpperCase();
+        const isWriteRequest = !['GET', 'HEAD', 'OPTIONS'].includes(method);
+        const timeoutMs = isWriteRequest ? WRITE_REQUEST_TIMEOUT_MS : REQUEST_TIMEOUT_MS;
 
         for (let attempt = 0; attempt < API_ENDPOINTS.length; attempt++) {
             const idx = (startIndex + attempt) % API_ENDPOINTS.length;
@@ -71,16 +75,20 @@
             const targetUrl = base + pathWithQuery;
 
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+            const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
             const finalInit = Object.assign({}, init, { signal: controller.signal });
 
             try {
                 const res = await originalFetch(targetUrl, finalInit);
                 clearTimeout(timeoutId);
 
-                // ═══ 5xx = فشل → المتابعة للتالي ═══
+                // ═══ 5xx = فشل → المتابعة للتالي (لطلبات القراءة أو 502/503/504 قبل التنفيذ) ═══
                 if (res.status >= 500 && res.status < 600) {
                     errors.push(`${base}: HTTP ${res.status}`);
+                    if (isWriteRequest && res.status === 500) {
+                        // خطأ 500 من داخل السيرفر في عملية كتابة لا ينبغي إعادته لنقطة اتصال ثانية لنفس قاعدة البيانات
+                        return res;
+                    }
                     console.warn(`❌ [api-client] ${base} → HTTP ${res.status} — المتابعة للتالي`);
                     continue;
                 }
@@ -101,8 +109,13 @@
                 return res;
             } catch (err) {
                 clearTimeout(timeoutId);
-                const reason = err && err.name === 'AbortError' ? 'timeout' : (err && err.message) || 'unknown';
+                const isTimeout = err && err.name === 'AbortError';
+                const reason = isTimeout ? 'timeout' : (err && err.message) || 'unknown';
                 errors.push(`${base}: ${reason}`);
+                if (isWriteRequest && isTimeout) {
+                    console.warn(`⚠️ [api-client] انتهت مهلة عملية الكتابة على ${base} (${timeoutMs}ms) — إيقاف إعادة الإرسال المزدوج لنقطة احتياطية لمنع التكرار`);
+                    break;
+                }
                 console.warn(`❌ [api-client] فشل ${base} (${reason}) — المتابعة للتالي`);
             }
         }

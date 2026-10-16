@@ -8,7 +8,7 @@ const OFFLINE_SYNC_TAG = 'pos-offline-sync';
 const OFFLINE_API_HOST = 'api.ibnalmukhtar.com';
 
 function offlineIsApiRequest(url) {
-  return url.hostname === OFFLINE_API_HOST || url.hostname.endsWith('.' + OFFLINE_API_HOST);
+  return url.hostname.includes('ibnalmukhtar.com') || url.hostname === 'localhost' || url.hostname === '127.0.0.1';
 }
 
 function offlineOpenDB() {

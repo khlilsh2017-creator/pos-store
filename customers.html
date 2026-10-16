@@ -1074,10 +1074,14 @@
     </style>
     <script src="date-utils.js"></script>
     <script src="number-utils.js"></script>
+    <script src="document-utils.js"></script>
+    <script src="sidebar-config.js"></script>
+    <script src="api-client.js"></script>
     <script src="permissions.js"></script>
     <script src="filter-utils.js"></script>
     <link rel="stylesheet" href="sidebar-v4.css" />
-    <script src="/offline-sync.js"></script>
+    <script src="offline-sync.js"></script>
+    <script src="notification-center-v3.js"></script>
 </head>
 <body>
 
@@ -1094,11 +1098,11 @@
                     <p>مرحباً بك في لوحة تحكم العملاء — تتبع الديون، إدارة المدفوعات، وكشوف الحسابات</p>
                 </div>
                 <div class="actions">
-                    <button class="theme-toggle" onclick="toggleTheme()" title="تبديل الوضع">
+                    <button class="theme-toggle" id="btn-theme-toggle" onclick="toggleTheme()" title="تبديل الوضع">
                         <i class="fas fa-moon" id="theme-icon"></i>
                     </button>
-                    <button class="btn btn-outline" onclick="printCustomersList()"><i class="fas fa-print"></i> طباعة الكشوف</button>
-                    <button class="btn btn-primary" onclick="openAddCustomerModal()">
+                    <button class="btn btn-outline" id="btn-print-customers-summary" onclick="printCustomersList()"><i class="fas fa-print"></i> طباعة الكشوف</button>
+                    <button class="btn btn-primary" id="btn-open-add-customer-modal" onclick="openAddCustomerModal()">
                         <i class="fas fa-plus"></i> عميل جديد
                     </button>
                 </div>
@@ -1146,13 +1150,13 @@
 
             <!-- TABS -->
             <div class="tabs">
-                <button class="tab-btn active" data-tab="tab-customers">
+                <button class="tab-btn active" id="tab-btn-customers-list" data-tab="tab-customers">
                     <i class="fas fa-list"></i> العملاء
                 </button>
-                <button class="tab-btn" data-tab="tab-invoices">
+                <button class="tab-btn" id="tab-btn-customers-invoices" data-tab="tab-invoices">
                     <i class="fas fa-receipt"></i> الفواتير المعلقة
                 </button>
-                <button class="tab-btn" data-tab="tab-payments">
+                <button class="tab-btn" id="tab-btn-customers-payments" data-tab="tab-payments">
                     <i class="fas fa-hand-holding-usd"></i> سند قبض
                 </button>
             </div>
@@ -1174,8 +1178,8 @@
                     <div class="card-header">
                         <h4><i class="fas fa-table"></i> قائمة العملاء</h4>
                         <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                            <button class="btn btn-outline btn-sm" onclick="refreshCustomers()"><i class="fas fa-sync-alt"></i> تحديث</button>
-                            <button class="btn btn-outline btn-sm" onclick="printCustomersList()"><i class="fas fa-print"></i> طباعة</button>
+                            <button class="btn btn-outline btn-sm" id="btn-refresh-customers" onclick="refreshCustomers()"><i class="fas fa-sync-alt"></i> تحديث</button>
+                            <button class="btn btn-outline btn-sm" id="btn-print-customers-table" onclick="printCustomersList()"><i class="fas fa-print"></i> طباعة</button>
                         </div>
                     </div>
                     <div class="table-wrapper">
@@ -1330,7 +1334,7 @@
                         <textarea id="pay-note" class="input-field" rows="2" placeholder="أضف ملاحظة حول الدفعة..."></textarea>
                     </div>
 
-                    <button class="btn btn-success mt-10" onclick="executeQuickPayment()" style="width:100%;padding:14px;font-size:1rem;">
+                    <button id="btn-execute-payment" class="btn btn-success mt-10" onclick="executeQuickPayment()" style="width:100%;padding:14px;font-size:1rem;">
                         <i class="fas fa-check-circle"></i> استلام الدفعة
                     </button>
                 </div>
@@ -1370,13 +1374,12 @@
     <!-- Modal: سند القبض -->
     <div id="modal-payment" class="modal">
         <div class="modal-content">
-            <button class="modal-close" onclick="closeModal('modal-payment')">&times;</button>
+            <button class="modal-close" id="btn-close-modal-payment-x" onclick="closeModal('modal-payment')">&times;</button>
             <div class="modal-title"><i class="fas fa-file-invoice"></i> تفاصيل سند القبض</div>
             <div id="payment-details-area">جاري التحميل...</div>
             <div class="modal-actions">
-                <button class="btn btn-primary btn-sm no-print" onclick="window.POSDocs ? POSDocs.printVoucherData(window._customerPaymentData || {type:'receipt',amount:0}, {title:'سند قبض'}).catch(e=>showToast(e.message,'error')) : window.print()"><i class="fas fa-print"></i> طباعة</button>
-                
-                <button class="btn btn-outline btn-sm" onclick="closeModal('modal-payment')">إغلاق</button>
+                <button class="btn btn-primary btn-sm no-print" id="btn-print-modal-payment" onclick="window.POSDocs ? POSDocs.printVoucherData(window._customerPaymentData || {type:'receipt',amount:0}, {title:'سند قبض'}).catch(e=>showToast(e.message,'error')) : window.print()"><i class="fas fa-print"></i> طباعة</button>
+                <button class="btn btn-outline btn-sm" id="btn-close-modal-payment" onclick="closeModal('modal-payment')">إغلاق</button>
             </div>
         </div>
     </div>
@@ -1384,11 +1387,11 @@
     <!-- Modal: مشتريات العميل -->
     <div id="modal-purchases" class="modal">
         <div class="modal-content" style="max-width:900px;">
-            <button class="modal-close" onclick="closeModal('modal-purchases')">&times;</button>
+            <button class="modal-close" id="btn-close-modal-purchases-x" onclick="closeModal('modal-purchases')">&times;</button>
             <div class="modal-title"><i class="fas fa-history"></i> تاريخ مشتريات العميل</div>
             <div id="purchases-list-area">جاري التحميل...</div>
             <div class="modal-actions">
-                <button class="btn btn-outline btn-sm" onclick="closeModal('modal-purchases')">إغلاق</button>
+                <button class="btn btn-outline btn-sm" id="btn-close-modal-purchases" onclick="closeModal('modal-purchases')">إغلاق</button>
             </div>
         </div>
     </div>
@@ -1396,17 +1399,15 @@
     <!-- Modal: تفاصيل الفاتورة -->
     <div id="modal-invoice" class="modal">
         <div class="modal-content" style="max-width:900px;">
-            <button class="modal-close" onclick="closeModal('modal-invoice')">&times;</button>
+            <button class="modal-close" id="btn-close-modal-invoice-x" onclick="closeModal('modal-invoice')">&times;</button>
             <div class="modal-title"><i class="fas fa-receipt"></i> تفاصيل الفاتورة</div>
             <div id="invoice-details-area">جاري التحميل...</div>
             <div class="modal-actions">
-                <button class="btn btn-primary btn-sm no-print" onclick="window.POSDocs ? POSDocs.printInvoiceData(window._customerInvoiceData || {type:'sale',items:[]}, {title:'فاتورة مبيعات'}).catch(e=>showToast(e.message,'error')) : window.print()"><i class="fas fa-print"></i> طباعة</button>
-                
-                
+                <button class="btn btn-primary btn-sm no-print" id="btn-print-modal-invoice" onclick="window.POSDocs ? POSDocs.printInvoiceData(window._customerInvoiceData || {type:'sale',items:[]}, {title:'فاتورة مبيعات'}).catch(e=>showToast(e.message,'error')) : window.print()"><i class="fas fa-print"></i> طباعة</button>
                 <button class="btn btn-warning btn-sm no-print" id="btn-edit-invoice" onclick="editInvoice()"><i class="fas fa-edit"></i> تعديل</button>
                 <button class="btn btn-danger btn-sm no-print" id="btn-cancel-invoice" onclick="cancelInvoice()"><i class="fas fa-times-circle"></i> إلغاء</button>
                 <button class="btn btn-warning btn-sm no-print" id="btn-undo-cancel-invoice" onclick="undoCancelInvoice()" style="display:none;"><i class="fas fa-undo"></i> عكس الإلغاء</button>
-                <button class="btn btn-outline btn-sm" onclick="closeModal('modal-invoice')">إغلاق</button>
+                <button class="btn btn-outline btn-sm" id="btn-close-modal-invoice" onclick="closeModal('modal-invoice')">إغلاق</button>
             </div>
         </div>
     </div>
@@ -1414,14 +1415,12 @@
     <!-- Modal: كشف حساب العميل -->
     <div id="modal-statement" class="modal">
         <div class="modal-content" style="max-width:950px;">
-            <button class="modal-close" onclick="closeModal('modal-statement')">&times;</button>
+            <button class="modal-close" id="btn-close-modal-statement-x" onclick="closeModal('modal-statement')">&times;</button>
             <div class="modal-title"><i class="fas fa-chart-line"></i> كشف حساب العميل</div>
             <div id="statement-details-area">جاري التحميل...</div>
             <div class="modal-actions">
-                <button class="btn btn-primary btn-sm no-print" onclick="printCustomerStatement()"><i class="fas fa-print"></i> طباعة الكشف</button>
-                
-                
-                <button class="btn btn-outline btn-sm" onclick="closeModal('modal-statement')">إغلاق</button>
+                <button class="btn btn-primary btn-sm no-print" id="btn-print-modal-statement" onclick="printCustomerStatement()"><i class="fas fa-print"></i> طباعة الكشف</button>
+                <button class="btn btn-outline btn-sm" id="btn-close-modal-statement" onclick="closeModal('modal-statement')">إغلاق</button>
             </div>
         </div>
     </div>
@@ -1429,12 +1428,12 @@
     <!-- ===== NEW: Modal for customer payments (receipts) ===== -->
     <div id="modal-customer-payments" class="modal">
         <div class="modal-content" style="max-width:900px;">
-            <button class="modal-close" onclick="closeModal('modal-customer-payments')">&times;</button>
+            <button class="modal-close" id="btn-close-modal-customer-payments-x" onclick="closeModal('modal-customer-payments')">&times;</button>
             <div class="modal-title"><i class="fas fa-file-invoice"></i> سندات القبض للعميل</div>
             <div id="customer-payments-list">جاري التحميل...</div>
             <div style="margin-top:15px; display:flex; gap:10px; flex-wrap:wrap;">
-                <button class="btn btn-success" onclick="openAddPaymentFromModal()"><i class="fas fa-plus"></i> إضافة سند قبض</button>
-                <button class="btn btn-outline btn-sm" onclick="closeModal('modal-customer-payments')">إغلاق</button>
+                <button class="btn btn-success" id="btn-open-add-payment-from-modal" onclick="openAddPaymentFromModal()"><i class="fas fa-plus"></i> إضافة سند قبض</button>
+                <button class="btn btn-outline btn-sm" id="btn-close-modal-customer-payments" onclick="closeModal('modal-customer-payments')">إغلاق</button>
             </div>
             <div class="modal-actions">
                 <!-- يمكن إضافة أزرار إضافية هنا -->
@@ -1445,7 +1444,7 @@
     <!-- Modal: إضافة / تعديل عميل -->
     <div id="modal-customer" class="modal">
         <div class="modal-content">
-            <button class="modal-close" onclick="closeModal('modal-customer')">&times;</button>
+            <button class="modal-close" id="btn-close-modal-customer-x" onclick="closeModal('modal-customer')">&times;</button>
             <div class="modal-title" id="modal-customer-title"><i class="fas fa-user-plus"></i> إضافة عميل جديد</div>
             <form id="customer-form" onsubmit="saveCustomer(event)">
                 <div class="input-group" style="margin-bottom:12px;">
@@ -1470,7 +1469,7 @@
                     <label>الرصيد الابتدائي (مدين)</label>
                     <input type="number" step="0.01" id="c-initial-balance" class="input-field" value="0" placeholder="0.00" />
                 </div>
-                <button type="submit" class="btn btn-primary" style="width:100%;padding:14px;">
+                <button id="btn-save-customer" type="submit" class="btn btn-primary" style="width:100%;padding:14px;">
                     <i class="fas fa-save"></i> حفظ العميل
                 </button>
             </form>
@@ -1484,13 +1483,31 @@
     <!-- ===== JAVASCRIPT ===== -->
     <script>
         // ===== CONFIG =====
-        const API = 'https://api.ibnalmukhtar.com';
+        const API = window.API_BASE_URL || (window.apiClient ? window.apiClient.baseUrl : 'https://api.ibnalmukhtar.com');
         const currentUser = JSON.parse(localStorage.getItem('pos_user') || '{}');
         const canReverseCustomerOperations = currentUser.role === 'admin';
         let token = localStorage.getItem('pos_token') || '';
         let currentInvoiceId = null;
         let selectedPaymentMethod = 'cash';
         let currentCustomerIdForPayments = null; // used in the receipts modal
+
+        // دالة الهروب الأمني لحماية النصوص من ثغرات XSS وأخطاء التشغيل
+        function escapeHtml(str) {
+            if (str === null || str === undefined) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        // أقفال التزامن لمنع النقر المزدوج (Double-Click Concurrency Locks)
+        let isSavingCustomer = false;
+        let isExecutingPayment = false;
+        let isCancelingPayment = false;
+        let isCancelingInvoice = false;
+        let isUndoingCancel = false;
 
         // ===== متغيرات العملات والمحافظ =====
         let currenciesCache = [];
@@ -1517,7 +1534,7 @@
         async function loadCurrencies() {
             try {
                 const res = await fetch(`${API}/currencies`, { headers: { 'Authorization': `Bearer ${token}` } });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 currenciesCache = data.currencies || [];
                 populateCurrencySelects();
                 updateCurrencyInfo();
@@ -1558,7 +1575,7 @@
             try {
                 const res = await fetch(`${API}/wallets`, { headers: { 'Authorization': `Bearer ${token}` } });
                 if (!res.ok) throw new Error('فشل تحميل المحافظ');
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 walletsCache = data.wallets || [];
                 populateWalletSelects();
                 if (walletsCache.length === 0) {
@@ -1740,7 +1757,7 @@
         async function loadCustomers() {
             try {
                 const res = await fetch(`${API}/customers`, { headers: { 'Authorization': `Bearer ${token}` } });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 const tbody = document.getElementById('customers-tbody');
                 const paySelect = document.getElementById('pay-customer-id');
                 tbody.innerHTML = '';
@@ -1778,7 +1795,7 @@
                     ' <small style="font-size:0.6rem;font-weight:400;">ريال</small>';
                 try {
                     const debtRes = await fetch(`${API}/customers/total-debt`, { headers: { 'Authorization': `Bearer ${token}` } });
-                    const debtData = await debtRes.json();
+                    const debtData = await debtRes.json().catch(() => ({}));
                     const serverDebt = Number(debtData.total_debt ?? debtData.total ?? NaN);
                     if (Number.isFinite(serverDebt)) document.getElementById('stat-total-debt').innerHTML = serverDebt.toFixed(2) + ' <small style="font-size:0.6rem;font-weight:400;">ريال</small>';
                 } catch (_) {}
@@ -1796,7 +1813,7 @@
         async function loadStats() {
             try {
                 const res = await fetch(`${API}/customers`, { headers: { 'Authorization': `Bearer ${token}` } });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 const debtCount = data.customers.filter(c => parseFloat(c.balance || 0) > 0).length;
                 document.getElementById('stat-pending-invoices').textContent = debtCount;
                 const trend = document.getElementById('stat-debt-trend');
@@ -1809,7 +1826,7 @@
         async function loadPendingInvoices() {
             try {
                 const res = await fetch(`${API}/sales`, { headers: { 'Authorization': `Bearer ${token}` } });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 const allSales = data.sales || [];
                 const pending = allSales.filter(s => {
                     const method = (s.payment_method || '').toLowerCase();
@@ -1877,7 +1894,7 @@
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (!res.ok) throw new Error('No endpoint');
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 const tbody = document.getElementById('recent-payments-tbody');
                 if (!data.payments || data.payments.length === 0) {
                     tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">لا توجد مدفوعات حديثة</td></tr>';
@@ -1904,7 +1921,7 @@
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (!res.ok) throw new Error('No endpoint');
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 const total = data.total || 0;
                 const count = data.count || 0;
                 document.getElementById('stat-paid-today').innerHTML = total.toFixed(2) +
@@ -1916,7 +1933,7 @@
                     const res2 = await fetch(`${API}/customers/recent-payments`, {
                         headers: { 'Authorization': `Bearer ${token}` }
                     });
-                    const data2 = await res2.json();
+                    const data2 = await res2.json().catch(() => ({}));
                     if (data2.payments) {
                             const today = POSDate.today();
                         const todayPayments = data2.payments.filter(p => POSDate.date(p.created_at) === today);
@@ -1954,6 +1971,10 @@
 
         async function saveCustomer(e) {
             e.preventDefault();
+            if (isSavingCustomer) return;
+            if (window.POSPermissions && !window.POSPermissions.can('customers.create')) {
+                return showToast('ليس لديك صلاحية لإضافة عميل جديد', 'error');
+            }
             const body = {
                 name: document.getElementById('c-name').value.trim(),
                 phone: document.getElementById('c-phone').value.trim(),
@@ -1961,13 +1982,19 @@
                 initial_balance: parseFloat(document.getElementById('c-initial-balance').value) || 0
             };
             if (!body.name) return showToast('الاسم مطلوب', 'warning');
+            const btn = document.getElementById('btn-save-customer');
+            isSavingCustomer = true;
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...';
+            }
             try {
                 const res = await fetch(`${API}/customers`, {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify(body)
                 });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 if (res.ok) {
                     showToast('تمت إضافة العميل بنجاح', 'success');
                     closeModal('modal-customer');
@@ -1975,7 +2002,15 @@
                 } else {
                     showToast(data.error || 'خطأ في الإضافة', 'error');
                 }
-            } catch { showToast('خطأ في الاتصال', 'error'); }
+            } catch {
+                showToast('خطأ في الاتصال', 'error');
+            } finally {
+                isSavingCustomer = false;
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-save"></i> حفظ العميل';
+                }
+            }
         }
 
         // ===== CUSTOMER PAYMENTS MODAL =====
@@ -1995,7 +2030,7 @@
                 const res = await fetch(`${API}/customers/statement?customer_id=${customerId}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 const payments = data.statement.filter(s => s.type === 'payment');
                 const container = document.getElementById('customer-payments-list');
                 if (payments.length === 0) {
@@ -2037,17 +2072,19 @@
 
         // ===== CANCEL CUSTOMER PAYMENT =====
         async function cancelCustomerPayment(paymentId, customerId) {
+            if (isCancelingPayment) return;
+            if (!canReverseCustomerOperations) return showToast('إلغاء سندات القبض متاح للمدير فقط', 'warning');
             if (!confirm('هل أنت متأكد من إلغاء هذا السند؟')) return;
+            isCancelingPayment = true;
             try {
                 const res = await fetch(`${API}/operations/cancel-payment`, {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify({ payment_type: 'customer', payment_id: paymentId })
                 });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 if (res.ok) {
                     showToast('تم إلغاء السند بنجاح', 'success');
-                    // Reload payments list and refresh customer stats
                     loadCustomerPayments(customerId);
                     loadCustomers();
                 } else {
@@ -2055,6 +2092,8 @@
                 }
             } catch (e) {
                 showToast('خطأ في الاتصال', 'error');
+            } finally {
+                isCancelingPayment = false;
             }
         }
 
@@ -2073,6 +2112,10 @@
 
         // ===== QUICK PAY (used in payment tab) =====
         async function executeQuickPayment() {
+            if (isExecutingPayment) return;
+            if (window.POSPermissions && !window.POSPermissions.can('customers.create') && !window.POSPermissions.can('vouchers.create')) {
+                return showToast('ليس لديك صلاحية لاستلام دفعات العملاء', 'error');
+            }
             const customer_id = document.getElementById('pay-customer-id').value;
             const method = document.getElementById('pay-method').value;
             const note = document.getElementById('pay-note').value;
@@ -2144,7 +2187,7 @@
                     headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 if (res.ok) {
                     const currencyName = getCurrencyName(currency_id);
                     showToast(`تم استلام ${formatPosMoney(totalAmount)} ${currencyName} بنجاح. رقم السند: ${data.payment_id}`, 'success');
@@ -2170,7 +2213,7 @@
                 const res = await fetch(`${API}/customers/statement?customer_id=${customerId}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 const slip = data.statement.find(s => s.id == paymentId && s.type === 'payment');
                 if (slip) {
                     const currencyId = slip.currency_id || 1;
@@ -2204,7 +2247,7 @@
         async function exportCustomerStatement(customerId) {
             try {
                 const res = await fetch(`${API}/customers/statement?customer_id=${customerId}`, { headers: { 'Authorization': `Bearer ${token}` } });
-                const data = await res.json(); const rows = data.statement || [];
+                const data = await res.json().catch(() => ({})); const rows = data.statement || [];
                 if (!rows.length) return showToast('لا توجد حركات لتصديرها', 'warning');
                 const keys = ['created_at','type','invoice_number','amount','total_amount','payment_method','note'];
                 const csv = '\ufeff' + [keys, ...rows.map(r => keys.map(k => r[k] ?? ''))].map(row => row.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\\n');
@@ -2246,7 +2289,7 @@
 
         async function exportCustomersCSV() {
             try {
-                const res = await fetch(`${API}/customers`, { headers: { 'Authorization': `Bearer ${token}` } }); const data = await res.json(); const rows = data.customers || [];
+                const res = await fetch(`${API}/customers`, { headers: { 'Authorization': `Bearer ${token}` } }); const data = await res.json().catch(() => ({})); const rows = data.customers || [];
                 const total = rows.reduce((sum, c) => sum + Math.max(0, Number(c.balance) || 0), 0);
                 const keys = ['id','name','phone','address','balance'];
                 const csv = '\ufeff' + [keys, ...rows.map(r => keys.map(k => r[k] ?? ''))].map(row => row.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\\n');
@@ -2263,7 +2306,7 @@
                 const res = await fetch(`${API}/customers/statement?customer_id=${customerId}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 const movements = data.statement || [];
                 movements.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
 
@@ -2285,7 +2328,7 @@
                                 headers: { 'Authorization': `Bearer ${token}` }
                             });
                             if (invRes.ok) {
-                                const inv = await invRes.json();
+                                const inv = await invRes.json().catch(() => ({}));
                                 const paymentMethod = (inv.payment_method || '').toLowerCase();
                                 if (paymentMethod === 'credit' || paymentMethod === 'آجل') {
                                     displayMovements.push({
@@ -2413,7 +2456,7 @@
             try {
                 const res = await fetch(`${API}/sales/${invoiceId}`, { headers: { 'Authorization': `Bearer ${token}` } });
                 if (!res.ok) throw new Error('الفاتورة غير موجودة');
-                const inv = await res.json();
+                const inv = await res.json().catch(() => ({}));
                 window._customerInvoiceData = {
                     type:'sale', number:inv.invoice_number || invoiceId, id:inv.id || invoiceId,
                     date:inv.created_at || new Date().toLocaleString('ar-SA'),
@@ -2472,16 +2515,20 @@
 
         // ===== CANCEL INVOICE =====
         async function cancelInvoice() {
+            if (isCancelingInvoice) return;
             if (!canReverseCustomerOperations) return showToast('إلغاء الفواتير متاح للمدير فقط', 'warning');
             if (!currentInvoiceId) return showToast('لا توجد فاتورة محددة', 'error');
             if (!confirm('هل أنت متأكد من إلغاء هذه الفاتورة؟ سيتم استرجاع المخزون وعكس القيود المحاسبية.')) return;
+            const btn = document.getElementById('btn-cancel-invoice');
+            isCancelingInvoice = true;
+            if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الإلغاء...'; }
             try {
                 const res = await fetch(`${API}/sales/cancel`, {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify({ sale_id: currentInvoiceId })
                 });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 if (res.ok) {
                     showToast('تم إلغاء الفاتورة بنجاح', 'success');
                     closeModal('modal-invoice');
@@ -2490,6 +2537,10 @@
                     showToast(data.error || 'فشل الإلغاء', 'error');
                 }
             } catch { showToast('خطأ في الاتصال', 'error'); }
+            finally {
+                isCancelingInvoice = false;
+                if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-times-circle"></i> إلغاء'; }
+            }
         }
 
         function editInvoice() {
@@ -2498,13 +2549,21 @@
         }
 
         async function undoCancelInvoice() {
+            if (isUndoingCancel) return;
             if (!canReverseCustomerOperations) return showToast('هذه العملية متاحة للمدير فقط', 'warning');
             if (!currentInvoiceId || !confirm('هل تريد عكس إلغاء الفاتورة وإعادتها؟')) return;
+            const btn = document.getElementById('btn-undo-cancel-invoice');
+            isUndoingCancel = true;
+            if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري العكس...'; }
             try {
                 const res = await fetch(`${API}/sales/cancel/undo`, { method:'POST', headers:{'Authorization': `Bearer ${token}`, 'Content-Type':'application/json'}, body:JSON.stringify({ sale_id: currentInvoiceId }) });
-                const data = await res.json(); if (!res.ok) throw new Error(data.error || 'فشل عكس الإلغاء');
+                const data = await res.json().catch(() => ({})); if (!res.ok) throw new Error(data.error || 'فشل عكس الإلغاء');
                 showToast('تم عكس إلغاء الفاتورة', 'success'); closeModal('modal-invoice'); loadCustomers();
             } catch (e) { showToast(e.message, 'error'); }
+            finally {
+                isUndoingCancel = false;
+                if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-undo"></i> عكس الإلغاء'; }
+            }
         }
 
         // ===== VIEW CUSTOMER PURCHASES =====
@@ -2517,7 +2576,7 @@
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (!res.ok) throw new Error('لا توجد مشتريات');
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 const purchases = data.purchases || [];
                 if (purchases.length === 0) {
                     document.getElementById('purchases-list-area').innerHTML =
@@ -2573,8 +2632,5 @@
             }
         });
     </script>
-    <script src="document-utils.js"></script>
-    <script src="sidebar-config.js"></script>
-    <script src="notification-center-v3.js"></script>
 </body>
 </html>

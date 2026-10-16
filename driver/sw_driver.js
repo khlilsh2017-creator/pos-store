@@ -23,7 +23,7 @@ const SYNC_TAG = 'driver-orders-pending-v3';
 const STATIC_ASSETS = [
   
   '/driver/',
-  '/index.html/',
+  '/driver/index.html',
   '/driver/manifest_pos.json',
   '/driver/icon-192x192.png',
   '/driver/icon-512x512.png',
@@ -360,6 +360,16 @@ async function markSynced(id) {
   });
 }
 
+async function deletePendingOp(id) {
+  const db = await openOperationsDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(OPERATIONS_STORE, 'readwrite');
+    tx.objectStore(OPERATIONS_STORE).delete(id);
+    tx.oncomplete = () => { db.close(); resolve(); };
+    tx.onerror = () => { db.close(); reject(tx.error); };
+  });
+}
+
 async function notifyClients(message) {
   const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
   clients.forEach(client => client.postMessage(message));
@@ -370,9 +380,10 @@ async function notifyClients(message) {
 // ============================================================
 
 async function sendOperation(op, token) {
+  const opId = String(op.data?.operation_id || op.operation_id || op.id);
   const payload = {
     ...(op.data || {}),
-    operation_id: op.data?.operation_id || op.operation_id,
+    operation_id: opId,
     _local_id: op.id
   };
   const response = await fetch(`${API_BASE}/driver/update-delivery`, {
@@ -380,21 +391,28 @@ async function sendOperation(op, token) {
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
-      'X-Offline-Operation-Id': String(op.data?.operation_id || op.operation_id || op.id)
+      'X-Offline-Operation-Id': opId
     },
     body: JSON.stringify(payload)
   });
-  if (response.ok) return true;
-  if (response.status >= 400 && response.status < 500) return false;
+  if (response.ok) return 'synced';
+  if (response.status >= 400 && response.status < 500 && response.status !== 408) return 'drop';
   throw new Error(`HTTP ${response.status}`);
 }
 
 async function syncPendingUnlocked() {
+  // إذا كانت نافذة التطبيق مفتوحة وتعمل في الواجهة، اترك المزامنة للنافذة لمنع التضارب المزدوج
+  const openClients = await self.clients.matchAll({ type: 'window', includeUncontrolled: false });
+  if (openClients && openClients.length > 0) {
+    openClients.forEach(client => client.postMessage({ type: 'TRIGGER_CLIENT_SYNC' }));
+    return;
+  }
+
   const token = await readToken();
   if (!token) {
     console.warn('[SW] لا يوجد رمز دخول للمزامنة');
     await notifyClients({ type: 'SYNC_STATUS', status: 'no_token', pending: 0 });
-    throw new Error('لا يوجد رمز دخول للمزامنة الخلفية');
+    return;
   }
 
   const operations = await getPending();
@@ -407,26 +425,17 @@ async function syncPendingUnlocked() {
   await notifyClients({ type: 'SYNC_STATUS', status: 'syncing', pending: operations.length });
 
   let failed = 0;
-  const maxRetries = 3;
-  let delay = 1000;
 
   for (const op of operations) {
-    let done = false;
-    for (let attempt = 1; attempt <= maxRetries && !done; attempt++) {
-      try {
-        done = await sendOperation(op, token);
-        if (!done) break;
-      } catch (error) {
-        console.warn(`[SW] محاولة ${attempt} للعملية ${op.id} فشلت:`, error);
-        if (attempt < maxRetries) {
-          await new Promise(resolve => setTimeout(resolve, delay));
-          delay *= 2;
-        }
+    try {
+      const outcome = await sendOperation(op, token);
+      if (outcome === 'synced' || outcome === 'drop') {
+        await deletePendingOp(op.id);
+      } else {
+        failed++;
       }
-    }
-    if (done) {
-      await markSynced(op.id);
-    } else {
+    } catch (error) {
+      console.warn(`[SW] فشل مزامنة العملية ${op.id}:`, error);
       failed++;
     }
   }
@@ -440,10 +449,6 @@ async function syncPendingUnlocked() {
     synced,
     failed
   });
-
-    if (failed) {
-    throw new Error(`${failed} عملية لا تزال معلقة`);
-  }
 }
 
 let driverSyncInFlight = null;

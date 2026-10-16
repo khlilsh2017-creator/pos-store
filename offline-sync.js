@@ -76,8 +76,9 @@
       try { url = new URL(typeof input === 'string' ? input : input.url, location.href); } catch (_) { return originalFetch(input, init); }
       const method = String(init.method || (input && input.method) || 'GET').toUpperCase();
       const isMutation = !['GET', 'HEAD', 'OPTIONS'].includes(method);
-      const isAuth = url.hostname === 'api.ibnalmukhtar.com' && /^\/auth\/(login|logout|me)$/.test(url.pathname);
-      if (!isMutation || !url.hostname.endsWith('ibnalmukhtar.com') || isAuth) return originalFetch(input, init);
+      const isAuth = /^\/auth\/(login|logout|me)$/.test(url.pathname);
+      const isApi = url.hostname.endsWith('ibnalmukhtar.com') || url.hostname === 'localhost' || url.hostname === '127.0.0.1' || (window.API_BASE_URL && url.href.startsWith(window.API_BASE_URL));
+      if (!isMutation || !isApi || isAuth) return originalFetch(input, init);
       const headers = new Headers(input instanceof Request ? input.headers : undefined);
       new Headers(init.headers || {}).forEach((value, key) => headers.set(key, value));
       if (!headers.has('X-Offline-Operation-Id')) {

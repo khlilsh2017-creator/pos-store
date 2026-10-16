@@ -41,12 +41,12 @@
   <div class="shell">
     <header class="topbar">
       <div class="topbar-row">
-        <button class="icon-btn" onclick="goToCreateOrder()" aria-label="طلب جديد" title="إنشاء طلب جديد"><span>+</span></button>
+        <button class="icon-btn" id="btn-phone-new-order-top" onclick="goToCreateOrder()" aria-label="طلب جديد" title="إنشاء طلب جديد"><span>+</span></button>
         <div class="brand"><h1>إدارة طلبات الإنترنت</h1><p>متابعة الطلبات والتوصيل من الجوال</p></div>
         <button class="icon-btn" id="driverManagerHeaderBtn" onclick="openDriverManagerMobile()" title="إدارة المندوبين" aria-label="إدارة المندوبين" style="display:none;"><i class="fas fa-users"></i></button>
         <button class="icon-btn" id="refreshBtn" onclick="refreshCurrentSection()" aria-label="تحديث" title="تحديث البيانات">↻</button>
       </div>
-      <div class="user-pill"><span id="userLabel">مستخدم POS</span><button onclick="logout()">تسجيل الخروج</button></div>
+      <div class="user-pill"><span id="userLabel">مستخدم POS</span><button id="btn-phone-orders-logout" onclick="logout()">تسجيل الخروج</button></div>
     </header>
     <div id="offlineBanner" class="offline-banner" style="display:none;"><i class="fas fa-wifi-slash"></i> <span>وضع عدم الاتصال — يتم عرض البيانات المحفوظة محلياً</span></div>
     <main class="content">
@@ -59,16 +59,16 @@
           <input class="input" id="searchInput" placeholder="ابحث برقم الطلب أو الهاتف أو اسم العميل" enterkeyhint="search">
           <button class="search-filter-btn" id="searchClearBtn" type="button" onclick="clearOrdersSearch()" style="display:none;" title="مسح البحث" aria-label="مسح البحث">✕</button>
           <button class="search-filter-btn" id="ordersDateToggleBtn" type="button" onclick="toggleOrdersDateBox()" title="تصفية بالتاريخ" aria-label="تصفية بالتاريخ">📅</button>
-          <button class="search-btn" onclick="loadOrders(1)" aria-label="بحث">⌕</button>
+          <button class="search-btn" id="btn-search-orders" onclick="loadOrders(1)" aria-label="بحث">⌕</button>
         </div>
         <div id="ordersDateBox" class="orders-date-box" style="display:none;">
           <div style="margin-bottom:8px;">
             <label style="display:block;font-size:.62rem;color:var(--muted);font-weight:700;margin-bottom:4px;">فترة العرض السريعة</label>
             <div style="display:flex;gap:4px;flex-wrap:wrap;">
-              <button type="button" class="btn btn-xs btn-soft date-preset-btn" onclick="applyOrdersPreset('today', this)">اليوم</button>
-              <button type="button" class="btn btn-xs btn-soft date-preset-btn" onclick="applyOrdersPreset('month', this)">من بداية الشهر</button>
-              <button type="button" class="btn btn-xs btn-soft date-preset-btn" onclick="applyOrdersPreset('year', this)">من بداية السنة</button>
-              <button type="button" class="btn btn-xs btn-soft date-preset-btn" onclick="applyOrdersPreset('all', this)">كل الفترات</button>
+              <button type="button" class="btn btn-xs btn-soft date-preset-btn" id="btn-preset-orders-today" onclick="applyOrdersPreset('today', this)">اليوم</button>
+              <button type="button" class="btn btn-xs btn-soft date-preset-btn" id="btn-preset-orders-month" onclick="applyOrdersPreset('month', this)">من بداية الشهر</button>
+              <button type="button" class="btn btn-xs btn-soft date-preset-btn" id="btn-preset-orders-year" onclick="applyOrdersPreset('year', this)">من بداية السنة</button>
+              <button type="button" class="btn btn-xs btn-soft date-preset-btn" id="btn-preset-orders-all" onclick="applyOrdersPreset('all', this)">كل الفترات</button>
             </div>
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
@@ -82,8 +82,8 @@
             </div>
           </div>
           <div style="display:flex;gap:6px;margin-top:8px;">
-            <button class="btn btn-primary" style="flex:1" type="button" onclick="loadOrders(1)">تطبيق التاريخ</button>
-            <button class="btn btn-gray" style="flex:1" type="button" onclick="clearOrdersDateFilter()">مسح التاريخ</button>
+            <button class="btn btn-primary" style="flex:1" type="button" id="btn-load-orders-filter" onclick="loadOrders(1)">تطبيق التاريخ</button>
+            <button class="btn btn-gray" style="flex:1" type="button" id="btn-clear-orders-date-filter" onclick="clearOrdersDateFilter()">مسح التاريخ</button>
           </div>
         </div>
         <div class="filters">
@@ -91,9 +91,9 @@
           <select class="select" id="driverFilter"><option value="">كل المندوبين</option></select>
         </div>
         <div class="orders-quick-actions" style="display:flex;gap:6px;margin-top:8px;">
-          <button class="btn btn-soft btn-xs" style="flex:1;" type="button" onclick="exportOrdersCSV()" title="تصدير إلى CSV"><i class="fas fa-file-csv"></i> تصدير CSV</button>
-          <button class="btn btn-soft btn-xs" style="flex:1;" type="button" onclick="printOrdersList()" title="طباعة قائمة الطلبات"><i class="fas fa-print"></i> طباعة القائمة</button>
-          <button class="btn btn-green btn-xs" style="flex:1;" type="button" onclick="goToCreateOrder()" title="طلب جديد"><i class="fas fa-plus"></i> طلب جديد</button>
+          <button class="btn btn-soft btn-xs" style="flex:1;" type="button" id="btn-export-orders-csv" onclick="exportOrdersCSV()" title="تصدير إلى CSV"><i class="fas fa-file-csv"></i> تصدير CSV</button>
+          <button class="btn btn-soft btn-xs" style="flex:1;" type="button" id="btn-print-orders-list" onclick="printOrdersList()" title="طباعة قائمة الطلبات"><i class="fas fa-print"></i> طباعة القائمة</button>
+          <button class="btn btn-green btn-xs" style="flex:1;" type="button" id="btn-phone-new-order-toolbar" onclick="goToCreateOrder()" title="طلب جديد"><i class="fas fa-plus"></i> طلب جديد</button>
         </div>
       </section>
       <section class="stats"><div class="stat"><strong id="statCount">0</strong><span>طلبات الصفحة</span></div><div class="stat"><strong id="statPending">0</strong><span>غير مكتملة</span></div><div class="stat"><strong id="statTotal">0</strong><span>إجمالي الصفحة</span></div></section>
@@ -106,7 +106,7 @@
           <h2>حسابات المندوبين</h2>
           <div style="display:flex;gap:6px;">
             <button class="btn btn-primary btn-sm" id="driverManagerSectionBtn" onclick="openDriverManagerMobile()" style="display:none;"><i class="fas fa-user-plus"></i> إدارة المندوبين</button>
-            <button class="btn btn-soft btn-sm" onclick="loadDriverSummaryMobile()">تحديث</button>
+            <button class="btn btn-soft btn-sm" id="btn-refresh-driver-summary" onclick="loadDriverSummaryMobile()">تحديث</button>
           </div>
         </div>
         <div id="driverSummary" class="driver-grid"><div class="empty">جاري تحميل حسابات المندوبين...</div></div>
@@ -114,7 +114,7 @@
       <section id="returnsSection" class="mobile-section">
         <div class="section-head">
           <h2>طلبات الإرجاع</h2>
-          <button class="btn btn-soft" onclick="loadReturnsMobile(1)">تحديث</button>
+          <button class="btn btn-soft" id="btn-refresh-returns" onclick="loadReturnsMobile(1)">تحديث</button>
         </div>
         <div class="filters">
           <select class="select" id="returnStatusFilter" onchange="loadReturnsMobile(1)"><option value="">كل الحالات</option><option value="pending">معلقة</option><option value="completed">تم التنفيذ</option><option value="cancelled">ملغاة</option></select>
@@ -127,9 +127,9 @@
         <div class="section-head">
           <h2 id="statementTitle">كشف حركة المندوب</h2>
           <div style="display:flex;gap:6px">
-            <button class="btn btn-primary" onclick="printDriverStatement()"><i class="fas fa-print"></i> طباعة</button>
-            <button class="btn btn-soft" onclick="exportDriverStatementPDFMobile()"><i class="fas fa-file-pdf"></i> PDF</button>
-            <button class="btn btn-gray" onclick="showMobileSection('drivers')">رجوع</button>
+            <button class="btn btn-primary" id="btn-print-driver-statement-mobile" onclick="printDriverStatement()"><i class="fas fa-print"></i> طباعة</button>
+            <button class="btn btn-soft" id="btn-export-driver-statement-pdf-mobile" onclick="exportDriverStatementPDFMobile()"><i class="fas fa-file-pdf"></i> PDF</button>
+            <button class="btn btn-gray" id="btn-back-to-drivers-section" onclick="showMobileSection('drivers')">رجوع</button>
           </div>
         </div>
         <div class="statement-toolbar">
@@ -142,10 +142,10 @@
           <div style="margin-bottom:8px;">
             <label style="display:block;font-size:.62rem;color:var(--muted);font-weight:700;margin-bottom:4px;">فترة كشف الحساب السريعة</label>
             <div style="display:flex;gap:4px;flex-wrap:wrap;">
-              <button type="button" class="btn btn-xs btn-soft stmt-preset-btn" onclick="applyStatementPreset('today', this)">اليوم</button>
-              <button type="button" class="btn btn-xs btn-soft stmt-preset-btn" onclick="applyStatementPreset('month', this)">من بداية الشهر</button>
-              <button type="button" class="btn btn-xs btn-soft stmt-preset-btn" onclick="applyStatementPreset('year', this)">من بداية السنة</button>
-              <button type="button" class="btn btn-xs btn-soft stmt-preset-btn" onclick="applyStatementPreset('all', this)">كل الفترات</button>
+              <button type="button" class="btn btn-xs btn-soft stmt-preset-btn" id="btn-preset-stmt-today" onclick="applyStatementPreset('today', this)">اليوم</button>
+              <button type="button" class="btn btn-xs btn-soft stmt-preset-btn" id="btn-preset-stmt-month" onclick="applyStatementPreset('month', this)">من بداية الشهر</button>
+              <button type="button" class="btn btn-xs btn-soft stmt-preset-btn" id="btn-preset-stmt-year" onclick="applyStatementPreset('year', this)">من بداية السنة</button>
+              <button type="button" class="btn btn-xs btn-soft stmt-preset-btn" id="btn-preset-stmt-all" onclick="applyStatementPreset('all', this)">كل الفترات</button>
             </div>
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
@@ -159,8 +159,8 @@
             </div>
           </div>
           <div style="display:flex;gap:6px;margin-top:8px;">
-            <button class="btn btn-primary" style="flex:1" type="button" onclick="applyStatementFilter()">تحديث الكشف</button>
-            <button class="btn btn-gray" style="flex:1" type="button" onclick="clearStatementFilter()">عرض الكل</button>
+            <button class="btn btn-primary" id="btn-apply-statement-filter" style="flex:1" type="button" onclick="applyStatementFilter()">تحديث الكشف</button>
+            <button class="btn btn-gray" style="flex:1" type="button" id="btn-clear-stmt-filter" onclick="clearStatementFilter()">عرض الكل</button>
           </div>
         </div>
         <div id="statementSummary" class="statement-summary"></div>
@@ -169,13 +169,13 @@
     </main>
   </div>
 </div>
-<div id="detailBackdrop" class="modal-backdrop" onclick="backdropClose(event)"><section class="modal" role="dialog" aria-modal="true"><div class="modal-head"><h2 id="detailTitle">تفاصيل الطلب</h2><button class="close" onclick="closeDetail()">×</button></div><div id="detailContent"></div><div id="detailActions" class="modal-actions"></div></section></div>
-<div id="assignBackdrop" class="modal-backdrop" onclick="backdropClose(event)"><section class="modal" role="dialog" aria-modal="true"><div class="modal-head"><h2>إسناد الطلب لمندوب</h2><button class="close" onclick="closeAssign()">×</button></div><p class="muted" id="assignHint"></p><label class="muted" for="driverSelect">اختر المندوب</label><select class="select" id="driverSelect"><option value="">اختر المندوب</option></select><div class="modal-actions"><button class="btn btn-primary wide" onclick="confirmAssign()">تأكيد الإسناد</button><button class="btn btn-gray wide" onclick="closeAssign()">إلغاء</button></div></section></div>
+<div id="detailBackdrop" class="modal-backdrop" onclick="backdropClose(event)"><section class="modal" role="dialog" aria-modal="true"><div class="modal-head"><h2 id="detailTitle">تفاصيل الطلب</h2><button class="close" id="btn-close-order-detail-mobile-x" onclick="closeDetail()">×</button></div><div id="detailContent"></div><div id="detailActions" class="modal-actions"></div></section></div>
+<div id="assignBackdrop" class="modal-backdrop" onclick="backdropClose(event)"><section class="modal" role="dialog" aria-modal="true"><div class="modal-head"><h2>إسناد الطلب لمندوب</h2><button class="close" id="btn-close-assign-mobile-x" onclick="closeAssign()">×</button></div><p class="muted" id="assignHint"></p><label class="muted" for="driverSelect">اختر المندوب</label><select class="select" id="driverSelect"><option value="">اختر المندوب</option></select><div class="modal-actions"><button class="btn btn-primary wide" id="btn-confirm-assign-mobile" onclick="confirmAssign()">تأكيد الإسناد</button><button class="btn btn-gray wide" id="btn-cancel-assign-mobile" onclick="closeAssign()">إلغاء</button></div></section></div>
 <div id="settlementBackdrop" class="modal-backdrop" onclick="backdropClose(event)">
   <section class="modal" role="dialog" aria-modal="true">
     <div class="modal-head">
       <h2><i class="fas fa-handshake text-primary"></i> تسوية حساب المندوب</h2>
-      <button class="close" onclick="closeSettlement()">×</button>
+      <button class="close" id="btn-close-settlement-mobile-x" onclick="closeSettlement()">×</button>
     </div>
     
     <div id="settlementDriverCard" style="background:#f8fafc;border:1px solid var(--line);border-radius:14px;padding:11px;margin-bottom:12px;">
@@ -246,23 +246,23 @@
     </div>
 
     <div class="modal-actions" style="margin-top:12px;">
-      <button class="btn btn-primary wide" onclick="submitSettlementMobile()"><i class="fas fa-check"></i> تأكيد وحفظ التسوية</button>
-      <button class="btn btn-gray wide" onclick="closeSettlement()">إلغاء</button>
+      <button class="btn btn-primary wide" id="btn-submit-settlement-mobile" onclick="submitSettlementMobile()"><i class="fas fa-check"></i> تأكيد وحفظ التسوية</button>
+      <button class="btn btn-gray wide" id="btn-cancel-settlement-mobile" onclick="closeSettlement()">إلغاء</button>
     </div>
   </section>
 </div>
-<div id="returnBackdrop" class="modal-backdrop" onclick="backdropClose(event)"><section class="modal" role="dialog" aria-modal="true"><div class="modal-head"><h2 id="returnTitle">تفاصيل الإرجاع</h2><button class="close" onclick="closeReturnDetail()">×</button></div><div id="returnDetailContent"></div><div id="returnDetailActions" class="modal-actions"></div></section></div>
-<div id="receiptBackdrop" class="modal-backdrop" onclick="backdropClose(event)"><section class="modal" role="dialog" aria-modal="true"><div class="modal-head"><h2 id="receiptTitle">تسوية استلام الطلبات</h2><button class="close" onclick="closeMobileReceipt()">×</button></div><div id="receiptSummary" class="detail-list"></div><div id="receiptOrders" class="items" style="margin-top:12px"><div class="empty">جاري تحميل الطلبات...</div></div><div class="modal-actions"><button class="btn btn-green wide" id="mobileReceiveAll" onclick="receiveAllMobileOrders()">تم استلام الكل</button><button class="btn btn-gray wide" onclick="closeMobileReceipt()">إغلاق</button></div></section></div>
+<div id="returnBackdrop" class="modal-backdrop" onclick="backdropClose(event)"><section class="modal" role="dialog" aria-modal="true"><div class="modal-head"><h2 id="returnTitle">تفاصيل الإرجاع</h2><button class="close" id="btn-close-return-detail-mobile-x" onclick="closeReturnDetail()">×</button></div><div id="returnDetailContent"></div><div id="returnDetailActions" class="modal-actions"></div></section></div>
+<div id="receiptBackdrop" class="modal-backdrop" onclick="backdropClose(event)"><section class="modal" role="dialog" aria-modal="true"><div class="modal-head"><h2 id="receiptTitle">تسوية استلام الطلبات</h2><button class="close" id="btn-close-mobile-receipt-x" onclick="closeMobileReceipt()">×</button></div><div id="receiptSummary" class="detail-list"></div><div id="receiptOrders" class="items" style="margin-top:12px"><div class="empty">جاري تحميل الطلبات...</div></div><div class="modal-actions"><button class="btn btn-green wide" id="mobileReceiveAll" onclick="receiveAllMobileOrders()">تم استلام الكل</button><button class="btn btn-gray wide" id="btn-cancel-mobile-receipt" onclick="closeMobileReceipt()">إغلاق</button></div></section></div>
 <!-- مودال إدارة المندوبين بالجوال -->
 <div id="driverManagerBackdrop" class="modal-backdrop" onclick="backdropClose(event)">
   <section class="modal" role="dialog" aria-modal="true">
     <div class="modal-head">
       <h2><i class="fas fa-users text-primary"></i> إدارة المندوبين</h2>
-      <button class="close" onclick="closeDriverManagerMobile()">×</button>
+      <button class="close" id="btn-close-driver-manager-mobile-x" onclick="closeDriverManagerMobile()">×</button>
     </div>
     <div style="display:flex;gap:8px;margin-bottom:12px;">
-      <button class="btn btn-green" style="flex:1;" onclick="toggleAddDriverFormMobile()"><i class="fas fa-user-plus"></i> إضافة مندوب جديد</button>
-      <button class="btn btn-soft" onclick="loadDriversListMobile()"><i class="fas fa-sync-alt"></i> تحديث</button>
+      <button class="btn btn-green" style="flex:1;" id="btn-toggle-add-driver-form-mobile" onclick="toggleAddDriverFormMobile()"><i class="fas fa-user-plus"></i> إضافة مندوب جديد</button>
+      <button class="btn btn-soft" id="btn-refresh-drivers-list" onclick="loadDriversListMobile()"><i class="fas fa-sync-alt"></i> تحديث</button>
     </div>
     <div id="addDriverFormMobile" class="form-card" style="display:none;background:#f8fafc;border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:12px;">
       <h3 style="margin-top:0;font-size:.9rem;"><i class="fas fa-plus-circle text-primary"></i> بيانات المندوب الجديد</h3>
@@ -281,13 +281,13 @@
       <label class="muted">مفتاح API (CallMeBot)</label>
       <input class="input" id="newDriverWhatsappApikey" placeholder="مفتاح API">
       <div class="modal-actions" style="margin-top:10px;">
-        <button class="btn btn-green wide" onclick="saveNewDriverMobile()"><i class="fas fa-save"></i> حفظ المندوب</button>
-        <button class="btn btn-gray wide" onclick="toggleAddDriverFormMobile(false)">إلغاء</button>
+        <button class="btn btn-green wide" id="btn-save-new-driver-mobile" onclick="saveNewDriverMobile()"><i class="fas fa-save"></i> حفظ المندوب</button>
+        <button class="btn btn-gray wide" id="btn-cancel-add-driver-form-mobile" onclick="toggleAddDriverFormMobile(false)">إلغاء</button>
       </div>
     </div>
     <div id="driverListMobile" class="items" style="max-height:55vh;overflow-y:auto;"><div class="empty">جاري تحميل المندوبين...</div></div>
     <div class="modal-actions" style="margin-top:12px;">
-      <button class="btn btn-gray wide" onclick="closeDriverManagerMobile()">إغلاق</button>
+      <button class="btn btn-gray wide" id="btn-close-driver-manager-mobile-bottom" onclick="closeDriverManagerMobile()">إغلاق</button>
     </div>
   </section>
 </div>
@@ -296,7 +296,7 @@
   <section class="modal" role="dialog" aria-modal="true">
     <div class="modal-head">
       <h2><i class="fas fa-user-edit text-primary"></i> تعديل بيانات المندوب</h2>
-      <button class="close" onclick="closeEditDriverMobile()">×</button>
+      <button class="close" id="btn-close-edit-driver-mobile-x" onclick="closeEditDriverMobile()">×</button>
     </div>
     <input type="hidden" id="editDriverId">
     <label class="muted">الاسم *</label>
@@ -312,8 +312,8 @@
     <label class="muted">مفتاح API</label>
     <input class="input" id="editDriverWhatsappApikey" placeholder="مفتاح API">
     <div class="modal-actions" style="margin-top:12px;">
-      <button class="btn btn-green wide" onclick="submitEditDriverMobile()"><i class="fas fa-save"></i> حفظ التغييرات</button>
-      <button class="btn btn-gray wide" onclick="closeEditDriverMobile()">إلغاء</button>
+      <button class="btn btn-green wide" id="btn-submit-edit-driver-mobile" onclick="submitEditDriverMobile()"><i class="fas fa-save"></i> حفظ التغييرات</button>
+      <button class="btn btn-gray wide" id="btn-cancel-edit-driver-mobile" onclick="closeEditDriverMobile()">إلغاء</button>
     </div>
   </section>
 </div>
@@ -322,7 +322,7 @@
   <section class="modal" role="dialog" aria-modal="true">
     <div class="modal-head">
       <h2><i class="fas fa-undo-alt text-warning"></i> طلب إرجاع: #<span id="createReturnOrderId"></span></h2>
-      <button class="close" onclick="closeCreateReturnMobile()">×</button>
+      <button class="close" id="btn-close-create-return-mobile-x" onclick="closeCreateReturnMobile()">×</button>
     </div>
     <div id="createReturnOrderInfo" class="detail-list" style="margin-bottom:10px;"></div>
     <h3 class="subheading">المنتجات المراد إرجاعها</h3>
@@ -364,8 +364,8 @@
       <strong id="createReturnTotalDisplay" style="font-size:1.1rem;color:var(--blue);">0.00 ريال</strong>
     </div>
     <div class="modal-actions" style="margin-top:12px;">
-      <button class="btn btn-amber wide" onclick="submitCreateReturnMobile()"><i class="fas fa-check"></i> تأكيد إرسال طلب الإرجاع</button>
-      <button class="btn btn-gray wide" onclick="closeCreateReturnMobile()">إلغاء</button>
+      <button class="btn btn-amber wide" id="btn-submit-create-return-mobile" onclick="submitCreateReturnMobile()"><i class="fas fa-check"></i> تأكيد إرسال طلب الإرجاع</button>
+      <button class="btn btn-gray wide" id="btn-cancel-create-return-mobile" onclick="closeCreateReturnMobile()">إلغاء</button>
     </div>
   </section>
 </div>
@@ -381,7 +381,10 @@
   </div>
 </div>
 <script>
-const API='https://api.ibnalmukhtar.com';
+const API = (window.API_BASE_URL || (window.apiClient && window.apiClient.baseUrl) || localStorage.getItem('posApiBase') || 'https://api.ibnalmukhtar.com').replace(/\/$/, '');
+let isRefreshingOrders = false;
+let isCancellingOrder = false;
+let isUpdatingOrderStatus = false;
 let token=localStorage.getItem('pos_token')||'';
 let currentUser=null, orders=[], currentPage=1, totalPages=1, detailOrder=null, assignOrderId=null, drivers=[];
 const $=id=>document.getElementById(id);
@@ -981,7 +984,21 @@ async function openAssign(id){assignOrderId=id;$('assignHint').textContent='طل
 function closeAssign(){$('assignBackdrop').classList.remove('open');}
 async function confirmAssign(){const id=$('driverSelect').value;if(!id)return showNotice('اختر مندوبًا أولاً','warning');const data=await api('/online-orders/assign-driver',{method:'POST',loadingTitle:'جاري إسناد الطلب...',body:JSON.stringify({order_id:assignOrderId,driver_id:Number(id)})});if(data){showNotice('تم إسناد الطلب بنجاح','success');closeAssign();await loadOrders(currentPage, { silent: true });if(detailOrder?.id===assignOrderId){const fresh=await api('/online-orders/'+assignOrderId, { silent: true });if(fresh){detailOrder=fresh.order||fresh;renderDetail();$('detailBackdrop').classList.add('open');}}}}
 async function updateStatus(){if(!detailOrder||!$('detailStatus'))return;const status=$('detailStatus').value,note=$('detailStatusNote').value.trim();if(status===detailOrder.status&&!note)return showNotice('اختر حالة جديدة أو أضف ملاحظة','warning');const data=await api('/online-orders/update-status',{method:'POST',loadingTitle:'جاري تحديث الحالة...',body:JSON.stringify({order_id:detailOrder.id,new_status:status,notes:note})});if(data){showNotice('تم تحديث الحالة وتسجيل العملية','success');await loadOrders(currentPage, { silent: true });const fresh=await api('/online-orders/'+detailOrder.id, { silent: true });if(fresh){detailOrder=fresh.order||fresh;renderDetail();}}}
-async function cancelOrder(id){if(!await showConfirmModal('هل أنت متأكد من إلغاء الطلب #'+id+'؟',{title:'إلغاء الطلب',type:'danger',okText:'إلغاء الطلب',cancelText:'تراجع'}))return;const data=await api('/online-orders/cancel',{method:'POST',loadingTitle:'جاري إلغاء الطلب...',body:JSON.stringify({order_id:id})});if(data){showNotice(data.message||'تم إلغاء الطلب بنجاح','success');closeDetail();await loadOrders(currentPage, { silent: true });}}
+async function cancelOrder(id){
+    if (isCancellingOrder) return;
+    if(!await showConfirmModal('هل أنت متأكد من إلغاء الطلب #'+id+'؟',{title:'إلغاء الطلب',type:'danger',okText:'إلغاء الطلب',cancelText:'تراجع'}))return;
+    try {
+        isCancellingOrder = true;
+        const data=await api('/online-orders/cancel',{method:'POST',loadingTitle:'جاري إلغاء الطلب...',body:JSON.stringify({order_id:id})});
+        if(data){
+            showNotice(data.message||'تم إلغاء الطلب بنجاح','success');
+            closeDetail();
+            await loadOrders(currentPage, { silent: true });
+        }
+    } finally {
+        isCancellingOrder = false;
+    }
+}
 async function printOrder(){if(!detailOrder||!window.POSDocs)return showNotice('تعذر تحميل قالب الفاتورة','error');const o=detailOrder;const items=(o.items||[]).map(i=>{const d=Number(i.discount||i.discount_amount||0);const qty=Number(i.quantity||0);const price=Number(i.unit_price||0);const lineTotal=Number(i.line_total??i.total_price??((price-d)*qty));return {name:i.product_name||'منتج',product_code:i.product_code||'',quantity:qty,unit_price:price,discount:d,note:i.note||i.notes||'',line_total:lineTotal};});showLoading('جاري تجهيز الفاتورة...','يتم إعداد نسخة الطباعة');try{await POSDocs.printInvoiceData({type:'sale',is_online_order:true,online_order_id:o.id,order_number:o.id,number:o.invoice_number||o.id,date:o.order_date||o.created_at,party:o.customer_name||'',customer_name:o.customer_name||'',customer_phone:o.customer_phone||'',customer_address:o.customer_address||'',governorate:o.governorate||'',delivery_type:o.delivery_type||'',driver_name:o.driver_name||'',payment_method:o.payment_method||'',status:o.status||'',items,gross_subtotal:items.reduce((s,i)=>s+i.unit_price*i.quantity,0),total:Number(o.total_amount||0),additional:Number(o.delivery_fee||0),notes:o.notes||''},{title:'فاتورة طلب الإنترنت #'+o.id});}catch(e){showNotice(e.message,'error');}finally{hideLoading();}}
 function showMobileSection(section){
     const allowed=section==='orders'||(section==='drivers'&&userCan('delivery.drivers.view'))||(section==='statement'&&userCan('delivery.drivers.view'))||(section==='returns'&&currentUser?.role==='admin');

@@ -751,12 +751,16 @@
             .tab-content:not(.active) { display: block !important; }
         }
     </style>
-    <script src="number-utils.js"></script>
-    <script src="permissions.js"></script>
     <script src="date-utils.js"></script>
+    <script src="number-utils.js"></script>
+    <script src="document-utils.js"></script>
+    <script src="sidebar-config.js"></script>
+    <script src="api-client.js"></script>
+    <script src="permissions.js"></script>
     <script src="filter-utils.js"></script>
+    <script src="offline-sync.js"></script>
+    <script src="notification-center-v3.js"></script>
     <link rel="stylesheet" href="sidebar-v4.css" />
-    <script src="/offline-sync.js"></script>
 </head>
 <body>
 
@@ -773,9 +777,9 @@
         <div class="header">
             <h1><i class="fas fa-store-alt"></i> لوحة الإدارة المتطورة</h1>
             <div class="header-actions">
-                <button class="btn btn-success btn-sm" onclick="openAddOrder()"><i class="fas fa-plus"></i> طلب جديد</button>
-                <button class="btn btn-info btn-sm" onclick="openDriverManager()"><i class="fas fa-users"></i> إدارة المندوبين</button>
-                <button class="btn btn-danger btn-sm" onclick="logout()"><i class="fas fa-sign-out-alt"></i> خروج</button>
+                <button class="btn btn-success btn-sm" id="btn-open-add-order" onclick="openAddOrder()"><i class="fas fa-plus"></i> طلب جديد</button>
+                <button class="btn btn-info btn-sm" id="btn-open-driver-manager" onclick="openDriverManager()"><i class="fas fa-users"></i> إدارة المندوبين</button>
+                <button class="btn btn-danger btn-sm" id="btn-orders-logout" onclick="logout()"><i class="fas fa-sign-out-alt"></i> خروج</button>
             </div>
         </div>
 
@@ -784,10 +788,10 @@
 
         <!-- ===== TABS ===== -->
         <div class="tabs">
-            <button class="tab-btn active" data-tab="orders"><i class="fas fa-list-ul"></i> الطلبات</button>
-            <button class="tab-btn" data-tab="drivers"><i class="fas fa-handshake"></i> تسوية المندوبين</button>
-            <button class="tab-btn" data-tab="driver-account"><i class="fas fa-file-invoice"></i> كشف حساب المندوب</button>
-            <button class="tab-btn" data-tab="returns"><i class="fas fa-undo-alt"></i> طلبات الإرجاع</button>
+            <button class="tab-btn active" id="tab-btn-orders-list" data-tab="orders"><i class="fas fa-list-ul"></i> الطلبات</button>
+            <button class="tab-btn" id="tab-btn-drivers-settlement" data-tab="drivers"><i class="fas fa-handshake"></i> تسوية المندوبين</button>
+            <button class="tab-btn" id="tab-btn-driver-account-statement" data-tab="driver-account"><i class="fas fa-file-invoice"></i> كشف حساب المندوب</button>
+            <button class="tab-btn" id="tab-btn-orders-returns" data-tab="returns"><i class="fas fa-undo-alt"></i> طلبات الإرجاع</button>
         </div>
 
         <!-- ===== TAB: ORDERS ===== -->
@@ -823,8 +827,8 @@
                     <input type="text" id="filterSearch" placeholder="اسم أو هاتف" />
                 </div>
                 <div class="filter-actions">
-                    <button class="btn btn-purple btn-sm" onclick="printOrders()"><i class="fas fa-print"></i> طباعة</button>
-                    <button class="btn btn-info btn-sm" onclick="printOrders()"><i class="fas fa-print"></i> طباعة السجل</button>
+                    <button class="btn btn-purple btn-sm" id="btn-print-orders" onclick="printOrders()"><i class="fas fa-print"></i> طباعة</button>
+                    <button class="btn btn-info btn-sm" id="btn-print-orders-log" onclick="printOrders()"><i class="fas fa-print"></i> طباعة السجل</button>
                 </div>
             </div>
 
@@ -858,9 +862,9 @@
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; margin-bottom:16px;">
                 <div style="display:flex; gap:8px; align-items:center;">
                     <h3 style="font-size:1.2rem;"><i class="fas fa-handshake"></i> تسوية المندوبين</h3>
-                    <button class="btn btn-secondary btn-sm" onclick="loadDriversSummary()" title="تحديث"><i class="fas fa-sync-alt"></i></button>
+                    <button class="btn btn-secondary btn-sm" id="btn-refresh-drivers-summary" onclick="loadDriversSummary()" title="تحديث"><i class="fas fa-sync-alt"></i></button>
                 </div>
-                <button class="btn btn-purple btn-sm" onclick="openDriverManager()"><i class="fas fa-user-plus"></i> إدارة المندوبين</button>
+                <button class="btn btn-purple btn-sm" id="btn-open-driver-manager-tab" onclick="openDriverManager()"><i class="fas fa-user-plus"></i> إدارة المندوبين</button>
             </div>
 
             <div class="stats-grid" id="driverStats">
@@ -896,9 +900,8 @@
                         <input type="date" id="accountDateTo" onchange="loadDriverStatement()" />
                     </div>
                     <div class="filter-actions">
-                        <button class="btn btn-primary btn-sm" onclick="loadDriverStatement()"><i class="fas fa-search"></i> عرض</button>
-                        <button class="btn btn-purple btn-sm" onclick="printDriverStatement()"><i class="fas fa-print"></i> طباعة</button>
-                        
+                        <button class="btn btn-primary btn-sm" id="btn-load-driver-statement" onclick="loadDriverStatement()"><i class="fas fa-search"></i> عرض</button>
+                        <button class="btn btn-purple btn-sm" id="btn-print-driver-statement" onclick="printDriverStatement()"><i class="fas fa-print"></i> طباعة</button>
                     </div>
                 </div>
                 <div id="driverStatementContent">
@@ -914,7 +917,7 @@
         <div class="tab-content" id="tab-returns">
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; margin-bottom:16px;">
                 <h3 style="font-size:1.2rem;"><i class="fas fa-undo-alt"></i> طلبات الإرجاع</h3>
-                <button class="btn btn-secondary btn-sm" onclick="fetchReturns()" title="تحديث"><i class="fas fa-sync-alt"></i></button>
+                <button class="btn btn-secondary btn-sm" id="btn-refresh-returns" onclick="fetchReturns()" title="تحديث"><i class="fas fa-sync-alt"></i></button>
             </div>
 
             <div class="filters" style="margin-bottom:16px;">
@@ -932,8 +935,8 @@
                     <select id="filterReturnDriver"><option value="">الجميع</option></select>
                 </div>
                 <div class="filter-actions">
-                    <button class="btn btn-primary btn-sm" onclick="fetchReturns()"><i class="fas fa-filter"></i> تطبيق</button>
-                    <button class="btn btn-secondary btn-sm" onclick="document.getElementById('filterReturnStatus').value='';document.getElementById('filterReturnDriver').value='';fetchReturns();"><i class="fas fa-undo"></i> مسح</button>
+                    <button class="btn btn-primary btn-sm" id="btn-filter-returns" onclick="fetchReturns()"><i class="fas fa-filter"></i> تطبيق</button>
+                    <button class="btn btn-secondary btn-sm" id="btn-clear-returns-filter" onclick="document.getElementById('filterReturnStatus').value='';document.getElementById('filterReturnDriver').value='';fetchReturns();"><i class="fas fa-undo"></i> مسح</button>
                 </div>
             </div>
 
@@ -968,7 +971,7 @@
 <!-- مودال تفاصيل الطلب -->
 <div class="modal-overlay" id="detailModal">
     <div class="modal">
-        <h2><span>تفاصيل الطلب #<span id="detailOrderId"></span></span><button class="close-btn" onclick="closeDetailModal()">&times;</button></h2>
+        <h2><span>تفاصيل الطلب #<span id="detailOrderId"></span></span><button class="close-btn" id="btn-close-detail-modal-x" onclick="closeDetailModal()">&times;</button></h2>
         <div id="detailContent"></div>
         <div class="status-editor" style="margin-top:16px;padding:14px;background:var(--gray-50);border:1px solid var(--gray-200);border-radius:var(--radius-sm);">
             <div style="font-weight:700;margin-bottom:8px;"><i class="fas fa-route"></i> تحديث حالة الطلب</div>
@@ -976,7 +979,7 @@
                 <div class="form-group"><label>الحالة الجديدة</label><select id="detailStatusSelect"><option value="جديد">جديد</option><option value="مُسند لمندوب">مُسند لمندوب</option><option value="قيد التوصيل">قيد التوصيل</option><option value="تم التسليم">تم التسليم</option><option value="فشل التسليم">فشل التسليم</option><option value="مرتجع جزئي">مرتجع جزئي</option><option value="مرتجع كلي">مرتجع كلي</option><option value="ملغي">ملغي</option></select></div>
                 <div class="form-group"><label>ملاحظة التغيير</label><input type="text" id="detailStatusNotes" placeholder="سبب أو ملاحظة اختيارية"></div>
             </div>
-            <button class="btn btn-primary btn-sm" onclick="updateOrderStatusFromDetail()"><i class="fas fa-save"></i> حفظ الحالة</button>
+            <button id="btn-update-order-status" class="btn btn-primary btn-sm" onclick="updateOrderStatusFromDetail()"><i class="fas fa-save"></i> حفظ الحالة</button>
         </div>
         <div class="flex-row" id="detailActions"></div>
     </div>
@@ -985,11 +988,11 @@
 <!-- مودال إدارة المندوبين -->
 <div class="modal-overlay" id="driverManagerModal">
     <div class="modal" style="max-width:800px;">
-        <h2><span><i class="fas fa-users"></i> إدارة المندوبين</span><button class="close-btn" onclick="closeDriverManager()">&times;</button></h2>
+        <h2><span><i class="fas fa-users"></i> إدارة المندوبين</span><button class="close-btn" id="btn-close-driver-manager-x" onclick="closeDriverManager()">&times;</button></h2>
         <div id="driverManagerContent">
             <div style="margin-bottom:16px; display:flex; gap:10px; flex-wrap:wrap;">
-                <button class="btn btn-success" onclick="showAddDriverForm()"><i class="fas fa-plus"></i> إضافة مندوب</button>
-                <button class="btn btn-secondary" onclick="loadDriversList()"><i class="fas fa-sync-alt"></i> تحديث</button>
+                <button class="btn btn-success" id="btn-show-add-driver-form" onclick="showAddDriverForm()"><i class="fas fa-plus"></i> إضافة مندوب</button>
+                <button class="btn btn-secondary" id="btn-refresh-drivers-list" onclick="loadDriversList()"><i class="fas fa-sync-alt"></i> تحديث</button>
             </div>
             <div id="driverList"></div>
             <div id="addDriverForm" class="hidden" style="margin-top:20px; border-top:1px solid var(--gray-200); padding-top:16px;">
@@ -1003,8 +1006,8 @@
                     <div class="form-group"><label>رقم الواتساب</label><input type="text" id="newDriverWhatsappPhone" placeholder="رقم الواتساب" /></div>
                     <div class="form-group"><label>مفتاح API</label><input type="text" id="newDriverWhatsappApikey" placeholder="مفتاح CallMeBot" /></div>
                     <div class="form-group" style="display:flex; gap:8px; align-items:flex-end; justify-content:flex-end;">
-                        <button class="btn btn-success" onclick="saveNewDriver()"><i class="fas fa-save"></i> حفظ</button>
-                        <button class="btn btn-secondary" onclick="hideAddDriverForm()">إلغاء</button>
+                        <button id="btn-save-new-driver" class="btn btn-success" onclick="saveNewDriver()"><i class="fas fa-save"></i> حفظ</button>
+                        <button class="btn btn-secondary" id="btn-cancel-add-driver-form" onclick="hideAddDriverForm()">إلغاء</button>
                     </div>
                 </div>
             </div>
@@ -1015,7 +1018,7 @@
 <!-- مودال تعديل المندوب -->
 <div class="modal-overlay" id="editDriverModal">
     <div class="modal" style="max-width:600px;">
-        <h2><span><i class="fas fa-user-edit"></i> تعديل المندوب</span><button class="close-btn" onclick="closeEditDriverModal()">&times;</button></h2>
+        <h2><span><i class="fas fa-user-edit"></i> تعديل المندوب</span><button class="close-btn" id="btn-close-edit-driver-modal-x" onclick="closeEditDriverModal()">&times;</button></h2>
         <form id="editDriverForm" onsubmit="submitEditDriver(event)">
             <input type="hidden" id="editDriverId" />
             <div class="form-grid">
@@ -1028,7 +1031,7 @@
             </div>
             <div class="flex-row">
                 <button type="submit" class="btn btn-success"><i class="fas fa-save"></i> حفظ التغييرات</button>
-                <button type="button" class="btn btn-secondary" onclick="closeEditDriverModal()">إلغاء</button>
+                <button type="button" class="btn btn-secondary" id="btn-cancel-edit-driver-modal" onclick="closeEditDriverModal()">إلغاء</button>
             </div>
         </form>
     </div>
@@ -1037,7 +1040,7 @@
 <!-- مودال تسوية المندوب -->
 <div class="modal-overlay" id="settlementModal">
     <div class="modal" style="max-width:550px;">
-        <h2><span><i class="fas fa-money-bill-wave"></i> تسوية المندوب</span><button class="close-btn" onclick="closeSettlementModal()">&times;</button></h2>
+        <h2><span><i class="fas fa-money-bill-wave"></i> تسوية المندوب</span><button class="close-btn" id="btn-close-settlement-modal-x" onclick="closeSettlementModal()">&times;</button></h2>
         <div id="settlementContent">
             <div style="margin-bottom:12px; padding:12px; background:var(--gray-50); border-radius:var(--radius-sm);">
                 <p><strong>المندوب:</strong> <span id="settlementDriverName"></span></p>
@@ -1093,8 +1096,8 @@
                     <div class="row total"><span>الرصيد بعد التسوية:</span><span id="summaryNewBalance">0.00</span></div>
                 </div>
                 <div class="flex-row">
-                    <button type="submit" class="btn btn-success"><i class="fas fa-check"></i> تأكيد التسوية</button>
-                    <button type="button" class="btn btn-secondary" onclick="closeSettlementModal()">إلغاء</button>
+                    <button id="btn-submit-settlement" type="submit" class="btn btn-success"><i class="fas fa-check"></i> تأكيد التسوية</button>
+                    <button type="button" class="btn btn-secondary" id="btn-cancel-settlement-modal" onclick="closeSettlementModal()">إلغاء</button>
                 </div>
             </form>
         </div>
@@ -1104,12 +1107,12 @@
 <!-- مودال استلام طلبات المندوب -->
 <div class="modal-overlay" id="driverReceiptModal">
     <div class="modal" style="max-width:760px;">
-        <h2><span><i class="fas fa-box-open"></i> تسوية استلام الطلبات</span><button class="close-btn" onclick="closeDriverReceiptModal()">&times;</button></h2>
+        <h2><span><i class="fas fa-box-open"></i> تسوية استلام الطلبات</span><button class="close-btn" id="btn-close-driver-receipt-modal-x" onclick="closeDriverReceiptModal()">&times;</button></h2>
         <div id="driverReceiptSummary" class="statement-header" style="margin-bottom:12px;"></div>
         <div id="driverReceiptOrders" style="max-height:430px; overflow:auto;"><div class="text-center text-muted" style="padding:30px;"><i class="fas fa-spinner fa-spin"></i> جاري تحميل الطلبات...</div></div>
         <div class="flex-row" style="margin-top:14px;">
             <button type="button" class="btn btn-success" id="receiveAllDriverOrdersBtn" onclick="receiveAllDriverOrders()"><i class="fas fa-check-double"></i> تم استلام الكل</button>
-            <button type="button" class="btn btn-secondary" onclick="closeDriverReceiptModal()">إغلاق</button>
+            <button type="button" class="btn btn-secondary" id="btn-cancel-driver-receipt-modal" onclick="closeDriverReceiptModal()">إغلاق</button>
         </div>
     </div>
 </div>
@@ -1117,7 +1120,7 @@
 <!-- مودال حركات المندوب -->
 <div class="modal-overlay" id="transactionsModal">
     <div class="modal" style="max-width:700px;">
-        <h2><span>حركات المندوب <span id="transDriverName"></span></span><button class="close-btn" onclick="closeTransactionsModal()">&times;</button></h2>
+        <h2><span>حركات المندوب <span id="transDriverName"></span></span><button class="close-btn" id="btn-close-transactions-modal-x" onclick="closeTransactionsModal()">&times;</button></h2>
         <div class="table-wrap">
             <table>
                 <thead><tr><th>التاريخ</th><th>النوع</th><th>المبلغ</th><th>العملة</th><th>الوصف</th><th>المحفظة</th></tr></thead>
@@ -1130,14 +1133,14 @@
 <!-- مودال إسناد مندوب -->
 <div class="modal-overlay" id="assignDriverModal">
     <div class="modal" style="max-width:400px;">
-        <h2><span>إسناد مندوب للطلب #<span id="assignOrderId"></span></span><button class="close-btn" onclick="closeAssignDriverModal()">&times;</button></h2>
+        <h2><span>إسناد مندوب للطلب #<span id="assignOrderId"></span></span><button class="close-btn" id="btn-close-assign-driver-modal-x" onclick="closeAssignDriverModal()">&times;</button></h2>
         <div class="form-group">
             <label>اختر المندوب</label>
             <select id="assignDriverSelect"><option value="">-- اختر مندوب --</option></select>
         </div>
         <div class="flex-row">
-            <button class="btn btn-success" onclick="confirmAssignDriver()"><i class="fas fa-check"></i> تأكيد</button>
-            <button class="btn btn-secondary" onclick="closeAssignDriverModal()">إلغاء</button>
+            <button id="btn-confirm-assign-driver" class="btn btn-success" onclick="confirmAssignDriver()"><i class="fas fa-check"></i> تأكيد</button>
+            <button class="btn btn-secondary" id="btn-cancel-assign-driver-modal" onclick="closeAssignDriverModal()">إلغاء</button>
         </div>
     </div>
 </div>
@@ -1147,7 +1150,7 @@
     <div class="modal" style="max-width:750px;">
         <h2>
             <span><i class="fas fa-undo-alt" style="color:var(--warning);"></i> إرجاع من الطلب #<span id="returnOrderId"></span></span>
-            <button class="close-btn" onclick="closeReturnModal()">&times;</button>
+            <button class="close-btn" id="btn-close-return-modal-x" onclick="closeReturnModal()">&times;</button>
         </h2>
         <div id="returnContent">
             <div id="returnOrderInfo" style="margin-bottom:16px; padding:12px; background:var(--gray-50); border-radius:var(--radius-sm);"></div>
@@ -1204,8 +1207,8 @@
                 </div>
             </div>
             <div class="flex-row">
-                <button class="btn btn-success" onclick="submitReturn()"><i class="fas fa-check"></i> تأكيد الإرجاع</button>
-                <button class="btn btn-secondary" onclick="closeReturnModal()">إلغاء</button>
+                <button id="btn-submit-return" class="btn btn-success" onclick="submitReturn()"><i class="fas fa-check"></i> تأكيد الإرجاع</button>
+                <button class="btn btn-secondary" id="btn-cancel-return-modal" onclick="closeReturnModal()">إلغاء</button>
             </div>
         </div>
     </div>
@@ -1216,7 +1219,7 @@
 <!-- مودال تفاصيل طلب الإرجاع -->
 <div class="modal-overlay" id="returnDetailsModal">
     <div class="modal" style="max-width:700px;">
-        <h2><span><i class="fas fa-undo-alt" style="color:var(--warning);"></i> تفاصيل طلب الإرجاع #<span id="returnDetailId"></span></span><button class="close-btn" onclick="closeReturnDetailsModal()">&times;</button></h2>
+        <h2><span><i class="fas fa-undo-alt" style="color:var(--warning);"></i> تفاصيل طلب الإرجاع #<span id="returnDetailId"></span></span><button class="close-btn" id="btn-close-return-details-modal-x" onclick="closeReturnDetailsModal()">&times;</button></h2>
         <div id="returnDetailContent"></div>
         <div class="flex-row" id="returnDetailActions"></div>
     </div>
@@ -1229,7 +1232,17 @@
     // ================================================================
     //  CONSTANTS & STATE
     // ================================================================
-    const API_BASE = 'https://api.ibnalmukhtar.com';
+    const API_BASE = (window.API_BASE_URL || (window.apiClient && window.apiClient.baseUrl) || 'https://api.ibnalmukhtar.com').replace(/\/$/, '');
+    let isAssigningDriver = false;
+    let isCancelingOrder = false;
+    let isSubmittingSettlement = false;
+    let isSavingDriver = false;
+    let isSubmittingReturn = false;
+    let isUpdatingStatus = false;
+    let isLoggingIn = false;
+    let isReceivingOrders = false;
+    let isDeletingDriver = false;
+    let isHandlingReturnAdmin = false;
     let token = localStorage.getItem('pos_token') || '';
     let currentPage = 1;
     let totalPages = 1;
@@ -1327,6 +1340,7 @@
     // ================================================================
     async function handleLogin(e) {
         e.preventDefault();
+        if (isLoggingIn) return;
         const username = document.getElementById('loginUsername').value.trim();
         const password = document.getElementById('loginPassword').value.trim();
         if (!username || !password) {
@@ -1334,12 +1348,13 @@
             return;
         }
         try {
+            isLoggingIn = true;
             const res = await fetch(`${API_BASE}/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username, password })
             });
-            const data = await res.json();
+            const data = await res.json().catch(() => ({ error: 'فشل قراءة الاستجابة من الخادم' }));
             if (!res.ok) {
                 showLoginAlert(data.error || 'فشل تسجيل الدخول', 'error');
                 return;
@@ -1351,6 +1366,8 @@
             await initApp();
         } catch (err) {
             showLoginAlert('حدث خطأ: ' + err.message, 'error');
+        } finally {
+            isLoggingIn = false;
         }
     }
 
@@ -1644,17 +1661,27 @@
     }
 
     async function updateOrderStatusFromDetail() {
+        if (isUpdatingStatus) return;
         if (!currentDetailOrder) return showAlert('افتح تفاصيل طلب أولاً', 'warning');
         const new_status = document.getElementById('detailStatusSelect').value;
         const notes = document.getElementById('detailStatusNotes').value.trim();
         if (new_status === currentDetailOrder.status && !notes) return showAlert('اختر حالة جديدة أو أضف ملاحظة', 'warning');
         if (!confirm(`تأكيد تغيير حالة الطلب #${currentDetailOrder.id} إلى: ${new_status}؟`)) return;
-        const result = await apiFetch('/online-orders/update-status', { method:'POST', body: JSON.stringify({ order_id: currentDetailOrder.id, new_status, notes }) });
-        if (result && result.success) {
-            showAlert('تم تحديث حالة الطلب وتسجيلها في السجل', 'success');
-            currentDetailOrder.status = new_status;
-            document.getElementById('detailStatusNotes').value = '';
-            await fetchOrders(currentPage); await openDetailModal(currentDetailOrder.id);
+        const btn = document.getElementById('btn-update-order-status');
+        const origText = btn ? btn.innerHTML : '';
+        try {
+            isUpdatingStatus = true;
+            if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...'; }
+            const result = await apiFetch('/online-orders/update-status', { method:'POST', body: JSON.stringify({ order_id: currentDetailOrder.id, new_status, notes }) });
+            if (result && result.success) {
+                showAlert('تم تحديث حالة الطلب وتسجيلها في السجل', 'success');
+                currentDetailOrder.status = new_status;
+                document.getElementById('detailStatusNotes').value = '';
+                await fetchOrders(currentPage); await openDetailModal(currentDetailOrder.id);
+            }
+        } finally {
+            isUpdatingStatus = false;
+            if (btn) { btn.disabled = false; btn.innerHTML = origText; }
         }
     }
 
@@ -1662,17 +1689,23 @@
     //  CANCEL ORDER
     // ================================================================
     async function cancelOrder(orderId) {
+        if (isCancelingOrder) return;
         if (!confirm(`⚠️ هل أنت متأكد من إلغاء الطلب #${orderId}؟`)) return;
-        const result = await apiFetch('/online-orders/cancel', {
-            method: 'POST',
-            body: JSON.stringify({ order_id: orderId })
-        });
-        if (result && result.success) {
-            showAlert(`✅ ${result.message || 'تم إلغاء الطلب بنجاح'}`, 'success');
-            fetchOrders(currentPage);
-            closeDetailModal();
-        } else {
-            showAlert('❌ فشل الإلغاء: ' + (result?.error || ''), 'error');
+        try {
+            isCancelingOrder = true;
+            const result = await apiFetch('/online-orders/cancel', {
+                method: 'POST',
+                body: JSON.stringify({ order_id: orderId })
+            });
+            if (result && result.success) {
+                showAlert(`✅ ${result.message || 'تم إلغاء الطلب بنجاح'}`, 'success');
+                fetchOrders(currentPage);
+                closeDetailModal();
+            } else {
+                showAlert('❌ فشل الإلغاء: ' + (result?.error || ''), 'error');
+            }
+        } finally {
+            isCancelingOrder = false;
         }
     }
 
@@ -1783,19 +1816,29 @@
     }
 
     async function confirmAssignDriver() {
+        if (isAssigningDriver) return;
         const driverId = document.getElementById('assignDriverSelect').value;
         if (!driverId) { showAlert('اختر مندوب', 'error'); return; }
-        const result = await apiFetch('/online-orders/assign-driver', {
-            method: 'POST',
-            body: JSON.stringify({ order_id: assignOrderId, driver_id: parseInt(driverId) })
-        });
-        if (result && result.success) {
-            showAlert('تم الإسناد', 'success');
-            fetchOrders(currentPage);
-            closeAssignDriverModal();
-            closeDetailModal();
-        } else {
-            showAlert('فشل الإسناد', 'error');
+        const btn = document.getElementById('btn-confirm-assign-driver');
+        const origText = btn ? btn.innerHTML : '';
+        try {
+            isAssigningDriver = true;
+            if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الإسناد...'; }
+            const result = await apiFetch('/online-orders/assign-driver', {
+                method: 'POST',
+                body: JSON.stringify({ order_id: assignOrderId, driver_id: parseInt(driverId) })
+            });
+            if (result && result.success) {
+                showAlert('تم الإسناد', 'success');
+                fetchOrders(currentPage);
+                closeAssignDriverModal();
+                closeDetailModal();
+            } else {
+                showAlert('فشل الإسناد', 'error');
+            }
+        } finally {
+            isAssigningDriver = false;
+            if (btn) { btn.disabled = false; btn.innerHTML = origText; }
         }
     }
 
@@ -2125,6 +2168,7 @@
 
     async function submitSettlement(e) {
         e.preventDefault();
+        if (isSubmittingSettlement) return;
         const driverId = document.getElementById('settlementDriverId').value;
         const type = document.getElementById('settlementType').value;
         const notes = document.getElementById('settlementNotes').value.trim();
@@ -2162,19 +2206,28 @@
             wallet_amount: walletAmount
         };
 
-        const result = await apiFetch('/drivers/payment', {
-            method: 'POST',
-            body: JSON.stringify(payload)
-        });
+        const btn = document.getElementById('btn-submit-settlement');
+        const origText = btn ? btn.innerHTML : '';
+        try {
+            isSubmittingSettlement = true;
+            if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...'; }
+            const result = await apiFetch('/drivers/payment', {
+                method: 'POST',
+                body: JSON.stringify(payload)
+            });
 
-        if (result && result.success) {
-            showAlert('✅ تمت التسوية بنجاح!', 'success');
-            closeSettlementModal();
-            loadDriversSummary();
-            loadDriversForFilter();
-            loadDriversForAccountSelect();
-        } else {
-            showAlert('❌ فشل التسوية: ' + (result?.error || ''), 'error');
+            if (result && result.success) {
+                showAlert('✅ تمت التسوية بنجاح!', 'success');
+                closeSettlementModal();
+                loadDriversSummary();
+                loadDriversForFilter();
+                loadDriversForAccountSelect();
+            } else {
+                showAlert('❌ فشل التسوية: ' + (result?.error || ''), 'error');
+            }
+        } finally {
+            isSubmittingSettlement = false;
+            if (btn) { btn.disabled = false; btn.innerHTML = origText; }
         }
     }
 
@@ -2336,6 +2389,7 @@
     }
 
     async function saveNewDriver() {
+        if (isSavingDriver) return;
         const name = document.getElementById('newDriverName').value.trim();
         const phone = document.getElementById('newDriverPhone').value.trim();
         const vehicle_info = document.getElementById('newDriverVehicle').value.trim();
@@ -2348,35 +2402,50 @@
             showAlert('الاسم، اسم المستخدم وكلمة المرور إجبارية', 'error');
             return;
         }
-        const result = await apiFetch('/drivers', {
-            method: 'POST',
-            body: JSON.stringify({ name, phone, vehicle_info, username, password, whatsapp_phone, whatsapp_apikey })
-        });
-        if (result && result.success) {
-            showAlert('تم إضافة المندوب', 'success');
-            hideAddDriverForm();
-            loadDriversList();
-            loadDriversForFilter();
-            loadDriversSummary();
-            loadDriversForAccountSelect();
-            loadDriversForReturnFilter();
-        } else {
-            showAlert('فشل الإضافة', 'error');
+        const btn = document.getElementById('btn-save-new-driver');
+        const origText = btn ? btn.innerHTML : '';
+        try {
+            isSavingDriver = true;
+            if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...'; }
+            const result = await apiFetch('/drivers', {
+                method: 'POST',
+                body: JSON.stringify({ name, phone, vehicle_info, username, password, whatsapp_phone, whatsapp_apikey })
+            });
+            if (result && result.success) {
+                showAlert('تم إضافة المندوب', 'success');
+                hideAddDriverForm();
+                loadDriversList();
+                loadDriversForFilter();
+                loadDriversSummary();
+                loadDriversForAccountSelect();
+                loadDriversForReturnFilter();
+            } else {
+                showAlert('فشل الإضافة', 'error');
+            }
+        } finally {
+            isSavingDriver = false;
+            if (btn) { btn.disabled = false; btn.innerHTML = origText; }
         }
     }
 
     async function deleteDriver(driverId) {
+        if (isDeletingDriver) return;
         if (!confirm('حذف المندوب؟')) return;
-        const result = await apiFetch(`/drivers/${driverId}`, { method: 'DELETE' });
-        if (result && result.success) {
-            showAlert('تم الحذف', 'success');
-            loadDriversList();
-            loadDriversForFilter();
-            loadDriversSummary();
-            loadDriversForAccountSelect();
-            loadDriversForReturnFilter();
-        } else {
-            showAlert('فشل الحذف', 'error');
+        try {
+            isDeletingDriver = true;
+            const result = await apiFetch(`/drivers/${driverId}`, { method: 'DELETE' });
+            if (result && result.success) {
+                showAlert('تم الحذف', 'success');
+                loadDriversList();
+                loadDriversForFilter();
+                loadDriversSummary();
+                loadDriversForAccountSelect();
+                loadDriversForReturnFilter();
+            } else {
+                showAlert('فشل الحذف', 'error');
+            }
+        } finally {
+            isDeletingDriver = false;
         }
     }
 
@@ -2538,30 +2607,42 @@
     }
 
     async function confirmReturnByAdmin(returnId) {
+        if (isHandlingReturnAdmin) return;
         if (!confirm('تأكيد تنفيذ طلب الإرجاع هذا؟')) return;
-        const result = await apiFetch(`/returns/${returnId}/confirm`, { method: 'POST' });
-        if (result && result.success) {
-            showAlert('✅ تم تأكيد الإرجاع بنجاح', 'success');
-            fetchReturns();
-            if (document.getElementById('tab-orders').classList.contains('active')) {
-                fetchOrders(currentPage);
+        try {
+            isHandlingReturnAdmin = true;
+            const result = await apiFetch(`/returns/${returnId}/confirm`, { method: 'POST' });
+            if (result && result.success) {
+                showAlert('✅ تم تأكيد الإرجاع بنجاح', 'success');
+                fetchReturns();
+                if (document.getElementById('tab-orders').classList.contains('active')) {
+                    fetchOrders(currentPage);
+                }
+            } else {
+                showAlert('❌ فشل التأكيد: ' + (result?.error || ''), 'error');
             }
-        } else {
-            showAlert('❌ فشل التأكيد: ' + (result?.error || ''), 'error');
+        } finally {
+            isHandlingReturnAdmin = false;
         }
     }
 
     async function cancelReturnByAdmin(returnId) {
+        if (isHandlingReturnAdmin) return;
         if (!confirm('إلغاء طلب الإرجاع هذا؟')) return;
-        const result = await apiFetch(`/returns/${returnId}/cancel`, { method: 'POST' });
-        if (result && result.success) {
-            showAlert('✅ تم إلغاء طلب الإرجاع', 'success');
-            fetchReturns();
-            if (document.getElementById('tab-orders').classList.contains('active')) {
-                fetchOrders(currentPage);
+        try {
+            isHandlingReturnAdmin = true;
+            const result = await apiFetch(`/returns/${returnId}/cancel`, { method: 'POST' });
+            if (result && result.success) {
+                showAlert('✅ تم إلغاء طلب الإرجاع', 'success');
+                fetchReturns();
+                if (document.getElementById('tab-orders').classList.contains('active')) {
+                    fetchOrders(currentPage);
+                }
+            } else {
+                showAlert('❌ فشل الإلغاء: ' + (result?.error || ''), 'error');
             }
-        } else {
-            showAlert('❌ فشل الإلغاء: ' + (result?.error || ''), 'error');
+        } finally {
+            isHandlingReturnAdmin = false;
         }
     }
 
@@ -2719,6 +2800,7 @@
     }
 
     async function submitReturn() {
+        if (isSubmittingReturn) return;
         const orderId = parseInt(document.getElementById('returnOrderId').textContent);
 
         const items = [];
@@ -2773,24 +2855,33 @@
             return_driver_id: returnDriverId || null
         };
 
-        const result = await apiFetch('/driver/return-items', {
-            method: 'POST',
-            body: JSON.stringify(payload)
-        });
+        const btn = document.getElementById('btn-submit-return');
+        const origText = btn ? btn.innerHTML : '';
+        try {
+            isSubmittingReturn = true;
+            if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري المعالجة...'; }
+            const result = await apiFetch('/driver/return-items', {
+                method: 'POST',
+                body: JSON.stringify(payload)
+            });
 
-        if (result && result.success) {
-            showAlert(`✅ تم إنشاء طلب إرجاع! في انتظار تأكيد المندوب.`, 'success');
-            closeReturnModal();
-            fetchOrders(currentPage);
-            closeDetailModal();
-            if (document.getElementById('tab-drivers').classList.contains('active')) {
-                loadDriversSummary();
+            if (result && result.success) {
+                showAlert(`✅ تم إنشاء طلب إرجاع! في انتظار تأكيد المندوب.`, 'success');
+                closeReturnModal();
+                fetchOrders(currentPage);
+                closeDetailModal();
+                if (document.getElementById('tab-drivers').classList.contains('active')) {
+                    loadDriversSummary();
+                }
+                if (document.getElementById('tab-returns').classList.contains('active')) {
+                    fetchReturns();
+                }
+            } else {
+                showAlert('❌ فشل الإرجاع: ' + (result?.error || ''), 'error');
             }
-            if (document.getElementById('tab-returns').classList.contains('active')) {
-                fetchReturns();
-            }
-        } else {
-            showAlert('❌ فشل الإرجاع: ' + (result?.error || ''), 'error');
+        } finally {
+            isSubmittingReturn = false;
+            if (btn) { btn.disabled = false; btn.innerHTML = origText; }
         }
     }
 
@@ -2818,9 +2909,5 @@
 
     console.log('✅ نظام ابن المختار – النسخة الموحدة والمحسّنة (Lazy Loading)');
 </script>
-
-    <script src="document-utils.js"></script>
-    <script src="sidebar-config.js"></script>
-    <script src="notification-center-v3.js"></script>
 </body>
 </html>

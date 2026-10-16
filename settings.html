@@ -67,10 +67,16 @@
         input:checked + .toggle-slider:before { transform: translateX(22px); }
         @media (max-width: 768px) { .sidebar { width: 60px; padding: 10px 0; } .sidebar .brand span { display: none; } .sidebar .nav-link span { display: none; } .sidebar .nav-link { justify-content: center; padding: 12px 0; } }
     </style>
+    <script src="date-utils.js"></script>
     <script src="number-utils.js"></script>
+    <script src="document-utils.js"></script>
+    <script src="sidebar-config.js"></script>
+    <script src="api-client.js"></script>
     <script src="permissions.js"></script>
-    <link rel="stylesheet" href="sidebar-v4.css" />
-    <script src="/offline-sync.js"></script>
+    <script src="filter-utils.js"></script>
+    <script src="offline-sync.js"></script>
+    <script src="notification-center-v3.js"></script>
+    <script src="notification-settings-v3.js"></script>
 </head>
 <body>
     <div class="app-wrapper">
@@ -178,7 +184,7 @@
                     </div>
                     <div class="flex-row mt-10">
                         <div class="flex-1">
-                            <button type="button" class="btn btn-warning" onclick="generateMissingSKU()">
+                            <button id="btn-generate-sku" type="button" class="btn btn-warning" onclick="generateMissingSKU()">
                                 <i class="fas fa-sync-alt"></i> توليد أرقام للمنتجات القديمة
                             </button>
                             <span id="generate-sku-message" class="text-muted" style="margin-right:10px;"></span>
@@ -191,7 +197,7 @@
                         <div class="flex-1"><label>معاينة الشعار</label><div id="brand-logo-preview" style="height:48px;border:1px dashed var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;overflow:hidden;color:var(--text-muted);">لا يوجد شعار</div></div>
                     </div>
                     <div class="form-group mt-10"><label>تذييل الفاتورة والسند</label><input type="text" id="setting-invoice-footer" class="input-field" value="شكرًا لتعاملكم معنا" maxlength="200" /></div>
-                    <button type="submit" class="btn btn-primary mt-10"><i class="fas fa-save"></i> حفظ الإعدادات</button>
+                    <button id="btn-save-settings" type="submit" class="btn btn-primary mt-10"><i class="fas fa-save"></i> حفظ الإعدادات</button>
                 </form>
             </div>
 
@@ -214,8 +220,8 @@
                     <div class="flex-1"><span id="accounting-lock-status" class="text-muted">جاري فحص الحالة...</span></div>
                 </div>
                 <div class="form-actions mt-10">
-                    <button type="button" class="btn btn-warning" onclick="closeAccountingYear()"><i class="fas fa-lock"></i> إقفال حتى التاريخ</button>
-                    <button type="button" class="btn btn-outline" onclick="reopenAccounting()"><i class="fas fa-lock-open"></i> إعادة فتح آخر إقفال</button>
+                    <button id="btn-close-accounting-year" type="button" class="btn btn-warning" onclick="closeAccountingYear()"><i class="fas fa-lock"></i> إقفال حتى التاريخ</button>
+                    <button id="btn-reopen-accounting" type="button" class="btn btn-outline" onclick="reopenAccounting()"><i class="fas fa-lock-open"></i> إعادة فتح آخر إقفال</button>
                 </div>
             </div>
 
@@ -227,12 +233,12 @@
                     <div class="flex-1" style="border-left: 1px solid var(--border); padding-left: 15px;">
                         <h5><i class="fas fa-download"></i> تصدير البيانات</h5>
                         <p class="text-muted" style="font-size: 0.85rem; margin-bottom: 10px;">تحميل ملف JSON يحتوي على كافة الجداول والأرصدة.</p>
-                        <button class="btn btn-primary" data-permission="backup.export" onclick="exportData()"><i class="fas fa-file-export"></i> تحميل نسخة احتياطية</button>
+                        <button id="btn-export-backup" class="btn btn-primary" data-permission="backup.export" onclick="exportData()"><i class="fas fa-file-export"></i> تحميل نسخة احتياطية</button>
                     </div>
                     <div class="flex-1">
                         <h5><i class="fas fa-upload"></i> استيراد البيانات</h5>
                         <input type="file" id="import-file" accept=".json" class="input-field mt-10" style="margin-bottom: 10px;" />
-                        <button class="btn btn-warning" data-permission="backup.restore" onclick="importData()"><i class="fas fa-file-import"></i> استعادة البيانات</button>
+                        <button id="btn-import-backup" class="btn btn-warning" data-permission="backup.restore" onclick="importData()"><i class="fas fa-file-import"></i> استعادة البيانات</button>
                         <small class="text-danger" style="display:block; margin-top:5px; font-weight:bold;">تحذير: الاستعادة ستمسح كافة البيانات الحالية وتستبدلها بالنسخة المرفوعة.</small>
                     </div>
                 </div>
@@ -289,7 +295,7 @@
                         </select>
                     </div>
                     <div class="form-group" style="min-width:80px;">
-                        <button type="submit" class="btn btn-success"><i class="fas fa-user-plus"></i> إضافة</button>
+                        <button id="btn-add-user" type="submit" class="btn btn-success"><i class="fas fa-user-plus"></i> إضافة</button>
                     </div>
                 </form>
 
@@ -317,7 +323,16 @@
     <div class="toast-container" id="toast-container"></div>
 
     <script>
-        const API = 'https://api.ibnalmukhtar.com';
+        const API = (window.API_BASE_URL || (window.apiClient && window.apiClient.baseUrl) || 'https://api.ibnalmukhtar.com').replace(/\/$/, '');
+    let isSavingSettings = false;
+    let isSavingUser = false;
+    let isSavingPermissions = false;
+    let isInitializingSystem = false;
+    let isExportingBackup = false;
+    let isImportingBackup = false;
+    let isGeneratingSKU = false;
+    let isClosingAccounting = false;
+    let isReopeningAccounting = false;
         let token = localStorage.getItem('pos_token') || '';
         const currentUser = JSON.parse(localStorage.getItem('pos_user') || '{}');
         const isAdmin = currentUser.role === 'admin';
@@ -355,7 +370,7 @@
         async function loadSettings() {
             try {
                 const res = await fetch(`${API}/settings`, { headers: { 'Authorization': `Bearer ${token}` } });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 const s = data.settings;
                 document.getElementById('setting-shop-name').value = s.shop_name || '';
                 document.getElementById('setting-shop-phone').value = s.shop_phone || '';
@@ -397,6 +412,9 @@
 
         async function saveSettings(e) {
             e.preventDefault();
+            if (isSavingSettings) return;
+            const btn = document.getElementById('btn-save-settings');
+            const origText = btn ? btn.innerHTML : '';
             const body = {
                 shop_name: document.getElementById('setting-shop-name').value,
                 shop_phone: document.getElementById('setting-shop-phone').value,
@@ -414,6 +432,8 @@
                 nav_style: document.getElementById('setting-nav-style').value
             };
             try {
+                isSavingSettings = true;
+                if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...'; }
                 const res = await fetch(`${API}/settings`, {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -425,8 +445,12 @@
                     showToast('تم حفظ الإعدادات', 'success');
                     if (window.POSDocs) POSDocs.setIdentity(body);
                     loadSettings();
-                } else { const err = await res.json(); showToast(err.error, 'error'); }
+                } else { const err = await res.json().catch(() => ({})); showToast(err.error || 'فشل حفظ الإعدادات', 'error'); }
             } catch { showToast('خطأ', 'error'); }
+            finally {
+                isSavingSettings = false;
+                if (btn) { btn.disabled = false; btn.innerHTML = origText; }
+            }
         }
 
         function previewBrandLogo() {
@@ -455,7 +479,7 @@
                     headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify({ entry_date: new Date().toISOString().slice(0, 10), description: 'قيد التأسيس الآلي للنظام' })
                 });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 if (!res.ok) throw new Error(data.error || 'فشل تنفيذ التأسيس الآلي');
                 const total = Number(data.total_debit || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                 const summary = document.getElementById('system-initialization-summary');
@@ -469,24 +493,44 @@
         }
 
         async function closeAccountingYear() {
+            if (isClosingAccounting) return;
             if (!window.POSPermissions?.can('accounting.close')) return showToast('لا تملك صلاحية الإقفال المحاسبي', 'error');
             const date = document.getElementById('closed-until-date').value;
             if (!date) return showToast('حدد تاريخ الإقفال أولاً', 'warning');
             if (!confirm(`سيتم إنشاء قيد إقفال ومنع التعديلات حتى ${date}. هل تريد المتابعة؟`)) return;
+            const btn = document.getElementById('btn-close-accounting-year');
+            const origText = btn ? btn.innerHTML : '';
             try {
+                isClosingAccounting = true;
+                if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الإقفال...'; }
                 const res = await fetch(`${API}/accounting/close-year`, { method:'POST', headers:{'Authorization':`Bearer ${token}`,'Content-Type':'application/json'}, body:JSON.stringify({closing_date:date}) });
-                const data = await res.json(); if (!res.ok) throw new Error(data.error || 'فشل الإقفال');
+                const data = await res.json().catch(() => ({})); if (!res.ok) throw new Error(data.error || 'فشل الإقفال');
                 showToast('تم إقفال السنة وإنشاء القيد العكسي', 'success'); await loadSettings();
-            } catch (e) { showToast(e.message, 'error'); }
+            } catch (e) {
+                showToast(e.message, 'error');
+            } finally {
+                isClosingAccounting = false;
+                if (btn) { btn.disabled = false; btn.innerHTML = origText; }
+            }
         }
         async function reopenAccounting() {
+            if (isReopeningAccounting) return;
             if (!window.POSPermissions?.can('accounting.close')) return showToast('لا تملك صلاحية إعادة الفتح', 'error');
             if (!confirm('سيتم حذف قيد آخر إقفال وفتح الفترة. هل تريد المتابعة؟')) return;
+            const btn = document.getElementById('btn-reopen-accounting');
+            const origText = btn ? btn.innerHTML : '';
             try {
+                isReopeningAccounting = true;
+                if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الفتح...'; }
                 const res = await fetch(`${API}/accounting/reopen`, { method:'POST', headers:{'Authorization':`Bearer ${token}`,'Content-Type':'application/json'}, body:'{}' });
-                const data = await res.json(); if (!res.ok) throw new Error(data.error || 'فشل إعادة الفتح');
+                const data = await res.json().catch(() => ({})); if (!res.ok) throw new Error(data.error || 'فشل إعادة الفتح');
                 showToast(data.message || 'تم فتح الفترة المحاسبية', 'success'); await loadSettings();
-            } catch (e) { showToast(e.message, 'error'); }
+            } catch (e) {
+                showToast(e.message, 'error');
+            } finally {
+                isReopeningAccounting = false;
+                if (btn) { btn.disabled = false; btn.innerHTML = origText; }
+            }
         }
 
         // ========== توليد أرقام SKU للمنتجات القديمة ==========
@@ -498,7 +542,7 @@
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 if (res.ok) {
                     msgEl.innerHTML = `<span class="text-success">✅ ${data.message}</span>`;
                     showToast(data.message, 'success');
@@ -523,7 +567,7 @@
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (!res.ok) {
-                    const err = await res.json();
+                    const err = await res.json().catch(() => ({}));
                     throw new Error(err.error || 'فشل التصدير');
                 }
                 const blob = await res.blob();
@@ -570,7 +614,7 @@
                         showToast('تم استعادة البيانات بنجاح! سيتم إعادة تحميل الصفحة...', 'success');
                         setTimeout(() => location.reload(), 2500);
                     } else {
-                        const err = await res.json();
+                        const err = await res.json().catch(() => ({}));
                         showToast(err.error || 'فشل الاستيراد', 'error');
                     }
                 } catch (err) {
@@ -603,7 +647,7 @@
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (!res.ok) throw new Error('فشل تحميل الأعداد');
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 const display = document.getElementById('invoice-numbers-display');
                 const numbers = data.invoice_numbers;
                 display.innerHTML = `
@@ -639,7 +683,7 @@
                     document.getElementById('invoice-start-number').value = '';
                     loadInvoiceNumbers();
                 } else {
-                    const err = await res.json();
+                    const err = await res.json().catch(() => ({}));
                     showToast(err.error || 'فشل التحديث', 'error');
                 }
             } catch (e) {
@@ -670,8 +714,8 @@
         async function loadUsers() {
             try {
                 const res = await fetch(`${API}/users`, { headers: { 'Authorization': `Bearer ${token}` } });
-                if (!res.ok) { const err = await res.json(); showToast(err.error || 'غير مصرح', 'error'); return; }
-                const data = await res.json(); usersCache = data.users || [];
+                if (!res.ok) { const err = await res.json().catch(() => ({})); showToast(err.error || 'غير مصرح', 'error'); return; }
+                const data = await res.json().catch(() => ({})); usersCache = data.users || [];
                 const tbody = document.getElementById('users-list');
                 if (!usersCache.length) { tbody.innerHTML = '<tr><td colspan="6" class="text-muted">لا يوجد مستخدمون</td></tr>'; return; }
                 tbody.innerHTML = usersCache.map((u, idx) => `<tr><td>${formatPosNumber(idx + 1, 0)}</td><td>${u.username}</td><td>${roleName(u.role)}</td><td>${new Date(u.created_at).toLocaleString()}</td><td><button class="btn btn-sm btn-primary" onclick="editUser(${u.id}, '${String(u.username).replace(/'/g, "\\'")}', '${u.role}')"><i class="fas fa-edit"></i></button><button class="btn btn-sm btn-danger" onclick="deleteUser(${u.id})"><i class="fas fa-trash"></i></button></td><td>${u.role === 'admin' ? '<span class="text-muted">كل الصلاحيات</span>' : `<button class="btn btn-sm btn-outline" onclick="openPermissionEditorById(${u.id})"><i class="fas fa-key"></i> تخصيص</button>`}</td></tr>`).join('');
@@ -679,17 +723,26 @@
         }
         async function addUser(e) {
             e.preventDefault();
+            if (isSavingUser) return;
             const username = document.getElementById('user-username').value.trim();
             const password = document.getElementById('user-password').value.trim();
             const role = document.getElementById('user-role').value;
             if (!username || !password) return showToast('اسم المستخدم وكلمة المرور مطلوبة', 'warning');
+            const btn = document.getElementById('btn-add-user');
+            const origText = btn ? btn.innerHTML : '';
             try {
+                isSavingUser = true;
+                if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الإضافة...'; }
                 const res = await fetch(`${API}/users`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password, role }) });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 if (!res.ok) return showToast(data.error || 'فشل إنشاء المستخدم', 'error');
                 showToast('تم إضافة المستخدم', 'success'); document.getElementById('user-form').reset(); await loadUsers();
                 if (role !== 'admin' && data.user) openPermissionEditor(data.user);
             } catch { showToast('خطأ', 'error'); }
+            finally {
+                isSavingUser = false;
+                if (btn) { btn.disabled = false; btn.innerHTML = origText; }
+            }
         }
         function editUser(id, username, role) {
             const newRole = prompt(`تغيير دور المستخدم "${username}" (admin/cashier/custom):`, role); if (newRole === null) return;
@@ -698,12 +751,12 @@
             const body = { role: newRole }; if (newPassword && newPassword.trim()) body.password = newPassword.trim(); updateUser(id, body);
         }
         async function updateUser(id, body) {
-            try { const res = await fetch(`${API}/users/${id}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); const data = await res.json(); if (!res.ok) return showToast(data.error || 'فشل التحديث', 'error'); showToast('تم التحديث', 'success'); loadUsers(); }
+            try { const res = await fetch(`${API}/users/${id}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); const data = await res.json().catch(() => ({})); if (!res.ok) return showToast(data.error || 'فشل التحديث', 'error'); showToast('تم التحديث', 'success'); loadUsers(); }
             catch { showToast('خطأ', 'error'); }
         }
         async function deleteUser(id) {
             if (!confirm('هل أنت متأكد من حذف هذا المستخدم؟')) return;
-            try { const res = await fetch(`${API}/users/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } }); const data = await res.json(); if (!res.ok) return showToast(data.error || 'فشل الحذف', 'error'); showToast('تم الحذف', 'success'); loadUsers(); }
+            try { const res = await fetch(`${API}/users/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } }); const data = await res.json().catch(() => ({})); if (!res.ok) return showToast(data.error || 'فشل الحذف', 'error'); showToast('تم الحذف', 'success'); loadUsers(); }
             catch { showToast('خطأ', 'error'); }
         }
 
@@ -720,9 +773,5 @@
         window.addEventListener('offline', checkConnection);
         setInterval(checkConnection, 60000);
     </script>
-    <script src="document-utils.js"></script>
-    <script src="sidebar-config.js"></script>
-    <script src="notification-center-v3.js"></script>
-    <script src="notification-settings-v3.js"></script>
 </body>
 </html>

@@ -193,7 +193,7 @@
                     <span id="connectionStatus" class="online-status online"></span>
                     <span class="connection-label" id="connectionLabel">متصل</span>
                     <span class="driver-badge" id="driverNameDisplay">مندوب</span>
-                    <button class="logout-btn" onclick="logout()">خروج</button>
+                    <button id="btn-driver-logout" class="logout-btn" onclick="logout()">خروج</button>
                 </div>
             </div>
         </div>
@@ -220,11 +220,14 @@
         <div id="invoiceContent"></div>
     </div>
 
+    <script src="api-client.js"></script>
     <script>
         // =============================================================
         // 1. إعدادات API والتخزين المحلي
         // =============================================================
-        const API_BASE = 'https://api.ibnalmukhtar.com';
+        const API_BASE = (window.API_BASE_URL || (window.apiClient && window.apiClient.baseUrl) || 'https://api.ibnalmukhtar.com').replace(/\/$/, '');
+        let isLoggingIn = false;
+        let isConfirmingReturn = false;
         let currentOrders = [];
         let totalBalance = 0;
         let currentStatusFilter = '';
@@ -441,13 +444,13 @@
         // =============================================================
         async function updateSyncCounter() {
             const pending = await getPendingOperations();
-            const statusEl = document.getElementById('syncStatus');
-            const countEl = document.getElementById('syncCount');
-            if (pending.length > 0 && statusEl) {
-                statusEl.classList.remove('hidden');
-                if (countEl) countEl.textContent = pending.length;
-            } else if (statusEl) {
-                statusEl.classList.add('hidden');
+            const statusEls = document.querySelectorAll('.sync-status, #syncStatus');
+            const countEls = document.querySelectorAll('.sync-count, #syncCount');
+            if (pending.length > 0) {
+                statusEls.forEach(el => el.classList.remove('hidden'));
+                countEls.forEach(el => el.textContent = pending.length);
+            } else {
+                statusEls.forEach(el => el.classList.add('hidden'));
             }
             return pending.length;
         }
@@ -569,7 +572,7 @@ const registration = await navigator.serviceWorker.register('./sw.js', { scope: 
                     console.error('❌ فشل التسجيل في الخادم:', res.status, errorText);
                     return false;
                 }
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 return data.success === true;
             } catch (err) {
                 console.error('خطأ في الاتصال بالخادم:', err);
@@ -749,7 +752,7 @@ const registration = await navigator.serviceWorker.register('./sw.js', { scope: 
         const res = await fetch(`${API_BASE}${endpoint}`, options);
         if (res.status === 401) { logout(); throw new Error('انتهت صلاحية الجلسة'); }
         if (!res.ok) { const txt = await res.text(); throw new Error(txt || 'خطأ'); }
-        return res.json();
+        return res.json().catch(() => ({}));
     } catch (err) {
         if (err.message === 'Failed to fetch') throw new Error('تعذر الاتصال بالخادم');
         throw err;
@@ -762,7 +765,7 @@ const registration = await navigator.serviceWorker.register('./sw.js', { scope: 
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username, password })
             });
-            const data = await res.json();
+            const data = await res.json().catch(() => ({}));
             if (!res.ok) throw new Error(data.error || 'فشل تسجيل الدخول');
             return data;
         }
@@ -828,9 +831,9 @@ const registration = await navigator.serviceWorker.register('./sw.js', { scope: 
 
         function showError(message) {
             document.getElementById('mainContent').innerHTML = `
-                <div id="syncStatus" class="sync-status hidden">
+                <div  class="sync-status hidden">
                     <span>🔄 جاري المزامنة...</span>
-                    <span class="sync-count" id="syncCount">0</span>
+                    <span class="sync-count" >0</span>
                     <span>عملية معلقة</span>
                 </div>
                 <div class="empty-state"><span class="empty-icon">⚠️</span><span>${message}</span>
@@ -948,9 +951,9 @@ const registration = await navigator.serviceWorker.register('./sw.js', { scope: 
             const periodLabel = getPeriodLabel(currentPeriod);
             lastAccountData = account;
             const html = `
-                <div id="syncStatus" class="sync-status hidden">
+                <div  class="sync-status hidden">
                     <span>🔄 جاري المزامنة...</span>
-                    <span class="sync-count" id="syncCount">0</span>
+                    <span class="sync-count" >0</span>
                     <span>عملية معلقة</span>
                 </div>
                 <div class="balance-card"><div class="balance-row"><div class="balance-info">
@@ -1231,9 +1234,9 @@ const registration = await navigator.serviceWorker.register('./sw.js', { scope: 
             const container = document.getElementById('mainContent');
             if (!requests || requests.length === 0) {
                 container.innerHTML = `
-                    <div id="syncStatus" class="sync-status hidden">
+                    <div  class="sync-status hidden">
                         <span>🔄 جاري المزامنة...</span>
-                        <span class="sync-count" id="syncCount">0</span>
+                        <span class="sync-count" >0</span>
                         <span>عملية معلقة</span>
                     </div>
                     <div class="empty-state"><span class="empty-icon">🔄</span><span>لا توجد طلبات إرجاع معلقة</span>
@@ -1244,9 +1247,9 @@ const registration = await navigator.serviceWorker.register('./sw.js', { scope: 
                 return;
             }
             let html = `
-                <div id="syncStatus" class="sync-status hidden">
+                <div  class="sync-status hidden">
                     <span>🔄 جاري المزامنة...</span>
-                    <span class="sync-count" id="syncCount">0</span>
+                    <span class="sync-count" >0</span>
                     <span>عملية معلقة</span>
                 </div>
                 <div style="margin-bottom:12px;">
@@ -1381,9 +1384,9 @@ function useLocalOrdersForDashboard() {
         if (driverOrders.length === 0) {
             // لا توجد بيانات محلية، اعرض رسالة واضحة
             document.getElementById('mainContent').innerHTML = `
-                <div id="syncStatus" class="sync-status hidden">
+                <div  class="sync-status hidden">
                     <span>🔄 جاري المزامنة...</span>
-                    <span class="sync-count" id="syncCount">0</span>
+                    <span class="sync-count" >0</span>
                     <span>عملية معلقة</span>
                 </div>
                 <div class="empty-state">
@@ -1423,9 +1426,9 @@ function useLocalOrdersForDashboard() {
             if (!driverId) { showLoginScreen(); return; }
             if (!navigator.onLine) {
                 document.getElementById('mainContent').innerHTML = `
-                    <div id="syncStatus" class="sync-status hidden">
+                    <div  class="sync-status hidden">
                         <span>🔄 جاري المزامنة...</span>
-                        <span class="sync-count" id="syncCount">0</span>
+                        <span class="sync-count" >0</span>
                         <span>عملية معلقة</span>
                     </div>
                     <div class="empty-state"><span class="empty-icon">📴</span><span>غير متصل بالإنترنت، لا يمكن تحميل طلبات الإرجاع</span></div>`;
@@ -1433,9 +1436,9 @@ function useLocalOrdersForDashboard() {
                 return;
             }
             document.getElementById('mainContent').innerHTML = `
-                <div id="syncStatus" class="sync-status hidden">
+                <div  class="sync-status hidden">
                     <span>🔄 جاري المزامنة...</span>
-                    <span class="sync-count" id="syncCount">0</span>
+                    <span class="sync-count" >0</span>
                     <span>عملية معلقة</span>
                 </div>
                 <div class="loading-state">⏳ جاري تحميل طلبات الإرجاع...</div>`;
@@ -1447,9 +1450,9 @@ function useLocalOrdersForDashboard() {
                 renderReturnRequests(requests);
             } catch (err) {
                 document.getElementById('mainContent').innerHTML = `
-                    <div id="syncStatus" class="sync-status hidden">
+                    <div  class="sync-status hidden">
                         <span>🔄 جاري المزامنة...</span>
-                        <span class="sync-count" id="syncCount">0</span>
+                        <span class="sync-count" >0</span>
                         <span>عملية معلقة</span>
                     </div>
                     <div class="empty-state"><span class="empty-icon">⚠️</span><span>فشل تحميل طلبات الإرجاع: ${err.message}</span>
@@ -1459,6 +1462,8 @@ function useLocalOrdersForDashboard() {
         }
 
         async function confirmReturnAction(returnId) {
+            if (isConfirmingReturn) return;
+            isConfirmingReturn = true;
             if (!confirm('هل أنت متأكد من تأكيد هذا الإرجاع؟ سيتم تنفيذ الإرجاع وتحديث المخزون والمحاسبة.')) return;
             if (!navigator.onLine) {
                 showToast('❌ لا يمكن التأكيد دون اتصال بالإنترنت');
@@ -1476,6 +1481,8 @@ function useLocalOrdersForDashboard() {
                 }
             } catch (err) {
                 showToast('❌ فشل تأكيد الإرجاع: ' + err.message);
+            } finally {
+                isConfirmingReturn = false;
             }
         }
 
@@ -1522,9 +1529,9 @@ function useLocalOrdersForDashboard() {
         function showSearchPage() {
             document.getElementById('pageTitle').textContent = '🔍 بحث';
             document.getElementById('mainContent').innerHTML = `
-                <div id="syncStatus" class="sync-status hidden">
+                <div  class="sync-status hidden">
                     <span>🔄 جاري المزامنة...</span>
-                    <span class="sync-count" id="syncCount">0</span>
+                    <span class="sync-count" >0</span>
                     <span>عملية معلقة</span>
                 </div>
                 <div class="filter-section">
@@ -1616,9 +1623,9 @@ function useLocalOrdersForDashboard() {
             const monthChangeFees = feesLastMonth === 0 ? 0 : ((feesThisMonth - feesLastMonth) / feesLastMonth * 100);
 
             const html = `
-                <div id="syncStatus" class="sync-status hidden">
+                <div  class="sync-status hidden">
                     <span>🔄 جاري المزامنة...</span>
-                    <span class="sync-count" id="syncCount">0</span>
+                    <span class="sync-count" >0</span>
                     <span>عملية معلقة</span>
                 </div>
                 <div style="margin-bottom:16px;">
@@ -1689,9 +1696,9 @@ function useLocalOrdersForDashboard() {
             const lastSettlement = lastAccountData?.last_settlement_date ? new Date(lastAccountData.last_settlement_date).toLocaleDateString('ar-EG') : '--';
 
             const html = `
-                <div id="syncStatus" class="sync-status hidden">
+                <div  class="sync-status hidden">
                     <span>🔄 جاري المزامنة...</span>
-                    <span class="sync-count" id="syncCount">0</span>
+                    <span class="sync-count" >0</span>
                     <span>عملية معلقة</span>
                 </div>
                 <div style="text-align:center; padding:10px 0 20px;">
@@ -1881,7 +1888,7 @@ function useLocalOrdersForDashboard() {
                 <label>📝 ملاحظات</label>
                 <input type="text" id="modalNotes" placeholder="أي ملاحظات إضافية">
 
-                <button class="submit-btn" onclick="submitDeliveryUpdate(${orderId})">✅ تأكيد التحديث</button>
+                <button id="submitDeliveryBtn" class="submit-btn" onclick="submitDeliveryUpdate(${orderId})">✅ تأكيد التحديث</button>
             `;
             document.getElementById('modalContent').innerHTML = modalHtml;
             document.getElementById('modalSheet').classList.add('active');
@@ -2094,9 +2101,9 @@ function useLocalOrdersForDashboard() {
         function showLoginScreen() {
             document.getElementById('pageTitle').textContent = '🚚 تسجيل الدخول';
             document.getElementById('mainContent').innerHTML = `
-                <div id="syncStatus" class="sync-status hidden">
+                <div  class="sync-status hidden">
                     <span>🔄 جاري المزامنة...</span>
-                    <span class="sync-count" id="syncCount">0</span>
+                    <span class="sync-count" >0</span>
                     <span>عملية معلقة</span>
                 </div>
                 <div style="padding:30px 20px; text-align:center;">
@@ -2108,16 +2115,21 @@ function useLocalOrdersForDashboard() {
                         <label style="font-weight:600;">🔒 كلمة المرور</label>
                         <input id="loginPassword" type="password" placeholder="كلمة المرور" style="width:100%; padding:14px; border:2px solid var(--border); border-radius:var(--radius-sm); margin:8px 0; background:var(--surface-secondary);">
                         <div id="loginError" style="color:var(--danger); font-size:0.8rem; margin:8px 0; display:none;"></div>
-                        <button class="btn btn-primary" onclick="handleLogin()" style="width:100%; padding:15px; font-size:1rem;">🔑 دخول</button>
+                        <button id="btn-driver-login" class="btn btn-primary" onclick="handleLogin()" style="width:100%; padding:15px; font-size:1rem;">🔑 دخول</button>
                     </div>
                 </div>`;
             updateSyncCounter();
         }
 
         async function handleLogin() {
+            if (isLoggingIn) return;
+            const btn = document.getElementById('btn-driver-login');
+            const origText = btn ? btn.innerHTML : '';
             const username = document.getElementById('loginUsername').value.trim();
             const password = document.getElementById('loginPassword').value.trim();
             const errorDiv = document.getElementById('loginError');
+            isLoggingIn = true;
+            if (btn) { btn.disabled = true; btn.innerHTML = '🔄 جاري الدخول...'; }
             if (!username || !password) { errorDiv.textContent = 'يرجى إدخال البيانات';
                 errorDiv.style.display = 'block'; return; }
             errorDiv.style.display = 'none';
@@ -2221,11 +2233,10 @@ function useLocalOrdersForDashboard() {
                 return;
             }
 
-            const statusEl = document.getElementById('syncStatus');
-            if (statusEl) {
-                statusEl.classList.remove('hidden');
-                document.getElementById('syncCount').textContent = operations.length;
-            }
+            const statusEls = document.querySelectorAll('.sync-status, #syncStatus');
+            const countEls = document.querySelectorAll('.sync-count, #syncCount');
+            statusEls.forEach(el => el.classList.remove('hidden'));
+            countEls.forEach(el => el.textContent = operations.length);
 
             let syncedCount = 0;
             let failedCount = 0;
@@ -2247,7 +2258,7 @@ function useLocalOrdersForDashboard() {
                                 await markOperationSynced(op.id);
                                 syncedCount++;
                                 success = true;
-                                const result = await response.json();
+                                const result = await response.json().catch(() => ({}));
                                 if (result.order) await updateOrderLocally(result.order);
                                 break;
                             } else {
@@ -2260,7 +2271,7 @@ function useLocalOrdersForDashboard() {
                         } catch (err) {
                             console.error(`محاولة ${attempt} فشلت للعملية ${op.id}:`, err);
                             if (attempt === 1) {
-                                await new Promise(resolve => setTimeout(resolve, 2000));
+                                    await new Promise(resolve => setTimeout(resolve, 2000));
                             }
                         }
                     }
@@ -2273,9 +2284,7 @@ function useLocalOrdersForDashboard() {
                 }
 
                 const remaining = operations.length - syncedCount - failedCount - cancelledCount;
-                if (document.getElementById('syncCount')) {
-                    document.getElementById('syncCount').textContent = remaining;
-                }
+                document.querySelectorAll('.sync-count, #syncCount').forEach(el => el.textContent = remaining);
             }
 
             await updateSyncCounter();

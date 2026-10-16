@@ -54,10 +54,13 @@
   function currentUser() {
     try { return JSON.parse(localStorage.getItem('pos_user') || '{}'); } catch (_) { return {}; }
   }
+  function getApiBase() {
+    return (window.API_BASE_URL || (window.apiClient && window.apiClient.baseUrl) || localStorage.getItem('posApiBase') || 'https://api.ibnalmukhtar.com').replace(/\/$/, '');
+  }
   function recordLogout() {
     const logoutToken = localStorage.getItem('pos_token');
     if (!logoutToken) return;
-    try { fetch('https://api.ibnalmukhtar.com/auth/logout', { method: 'POST', keepalive: true, headers: { 'Authorization': `Bearer ${logoutToken}` } }).catch(() => {}); } catch (_) {}
+    try { fetch(getApiBase() + '/auth/logout', { method: 'POST', keepalive: true, headers: { 'Authorization': `Bearer ${logoutToken}` } }).catch(() => {}); } catch (_) {}
   }
   function identityLabel(user) {
     const u = user || currentUser();
@@ -81,7 +84,7 @@
     const token = localStorage.getItem('pos_token');
     if (!token) return;
     try {
-      const response = await fetch('https://api.ibnalmukhtar.com/auth/me', { headers: { 'Authorization': `Bearer ${token}`, 'X-Page-Name': location.pathname.split('/').pop() || 'index.html' } });
+      const response = await fetch(getApiBase() + '/auth/me', { headers: { 'Authorization': `Bearer ${token}`, 'X-Page-Name': location.pathname.split('/').pop() || 'index.html' } });
       if (response.status === 401 || response.status === 403) {
         if (location.pathname.split('/').pop() !== 'index.html') {
           localStorage.removeItem('pos_token'); localStorage.removeItem('pos_user');
@@ -90,7 +93,7 @@
         return;
       }
       if (!response.ok) { refresh(); return; }
-      const data = await response.json();
+      const data = await response.json().catch(() => ({}));
       if (data.user) {
         localStorage.setItem('pos_user', JSON.stringify(data.user));
         refresh();

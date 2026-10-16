@@ -65,7 +65,7 @@ const STATIC_ASSETS = [
 
     // ===== ملفات CSS =====
     '/sidebar.css',
-    '/sidebar-v4.css',          // تمت إضافته مؤخراً
+    '/sidebar-v4.css',
 
     // ===== مكتبات خارجية =====
     '/html2canvas.min.js',

@@ -178,10 +178,15 @@
         .exchange-box { background: #f8fafc; padding: 15px; border-radius: 10px; border: 1px dashed var(--primary); margin: 10px 0; }
     </style>
     <script src="number-utils.js"></script>
+    <script src="date-utils.js"></script>
+    <script src="document-utils.js"></script>
+    <script src="api-client.js"></script>
     <script src="permissions.js"></script>
     <script src="filter-utils.js"></script>
     <link rel="stylesheet" href="sidebar-v4.css" />
-    <script src="/offline-sync.js"></script>
+    <script src="sidebar-config.js"></script>
+    <script src="notification-center-v3.js"></script>
+    <script src="offline-sync.js"></script>
 </head>
 <body>
     <div class="app-wrapper">
@@ -202,7 +207,7 @@
                                 <div class="form-group" style="display:flex;align-items:center;gap:6px;">
                                     <input type="checkbox" id="cur-isbase" /> <label>أساسية</label>
                                 </div>
-                                <div class="form-group"><button type="submit" class="btn btn-success"><i class="fas fa-plus"></i> إضافة</button></div>
+                                <div class="form-group"><button type="submit" class="btn btn-success" id="add-currency-btn"><i class="fas fa-plus"></i> إضافة</button></div>
                             </form>
                         </div>
                     </div>
@@ -237,15 +242,15 @@
                     <label>العملة</label>
                     <select id="cash-currency" class="input-field"></select>
                     <label>ملاحظة</label><input type="text" id="cash-note" class="input-field" />
-                    <button class="btn btn-primary mt-10" onclick="addCashOperation()"><i class="fas fa-save"></i> تسجيل</button>
+                    <button class="btn btn-primary mt-10" id="add-cash-op-btn" onclick="addCashOperation()"><i class="fas fa-save"></i> تسجيل</button>
                     <hr />
                     <h5>سجل حركات الصندوق التفصيلي</h5>
-                    <button type="button" class="btn btn-outline btn-sm ledger-filter-toggle" onclick="toggleLedgerFilter('cash')"><i class="fas fa-filter"></i> إظهار/إخفاء تصفية الصندوق</button>
+                    <button id="btn-toggle-cash-ledger-filter" type="button" class="btn btn-outline btn-sm ledger-filter-toggle" onclick="toggleLedgerFilter('cash')"><i class="fas fa-filter"></i> إظهار/إخفاء تصفية الصندوق</button>
                     <div id="cash-ledger-filters" class="flex-row ledger-filters" data-permission="cash.view" hidden>
                         <div class="flex-1"><label>نوع العملية</label><select id="cash-filter-type" class="input-field"><option value="">كل الأنواع</option><option value="open">فتح صندوق</option><option value="deposit">إيداع</option><option value="withdraw">سحب</option><option value="close">إغلاق صندوق</option></select></div>
                         <div class="flex-1"><label>العملة</label><select id="cash-filter-currency" class="input-field"><option value="">كل العملات</option></select></div>
                         <div class="flex-1"><label>تفاصيل العملية</label><select id="cash-filter-detail" class="input-field"><option value="">كل التفاصيل</option><option value="open">فتح الصندوق</option><option value="close">إغلاق الصندوق</option><option value="cash_wallet_transfer">تحويل صندوق/محفظة</option><option value="exchange">مصارفة</option><option value="sale">مبيعات</option><option value="purchase">مشتريات</option><option value="expense">مصروف</option><option value="customer_payment">سند عميل</option><option value="supplier_payment">سند مورد</option><option value="manual">عملية يدوية</option><option value="other">أخرى</option></select></div>
-                        <div class="flex-1" style="display:flex;align-items:end;gap:6px"><button class="btn btn-primary" onclick="loadCashLedger()"><i class="fas fa-filter"></i> تصفية</button><button class="btn btn-outline" onclick="printCashLedger()"><i class="fas fa-print"></i> طباعة</button></div>
+                        <div class="flex-1" style="display:flex;align-items:end;gap:6px"><button id="btn-filter-cash-ledger" class="btn btn-primary" onclick="loadCashLedger()"><i class="fas fa-filter"></i> تصفية</button><button id="btn-print-cash-ledger" class="btn btn-outline" onclick="printCashLedger()"><i class="fas fa-print"></i> طباعة</button></div>
                     </div>
                     <div id="cash-ledger-summary" class="text-muted mt-10"></div>
                     <div id="cash-log" style="max-height:420px; overflow:auto;"></div>
@@ -259,7 +264,7 @@
                     <h5 data-permission="wallets.manage">إضافة محفظة جديدة</h5>
                     <form id="wallet-form" data-permission="wallets.manage" onsubmit="addWallet(event)">
                         <label>اسم المحفظة</label><input type="text" id="wallet-name" class="input-field" required />
-                        <button type="submit" class="btn btn-success mt-10"><i class="fas fa-plus"></i> إضافة</button>
+                        <button type="submit" class="btn btn-success mt-10" id="add-wallet-btn"><i class="fas fa-plus"></i> إضافة</button>
                     </form>
                     <hr />
                     <h5 data-permission="wallets.manage">تحويل / إيداع / سحب</h5>
@@ -284,15 +289,15 @@
                         <div class="flex-1" id="fee-deducted-field" style="display:flex;align-items:center;gap:7px"><input type="checkbox" id="fee-deducted-from-amount" /><label for="fee-deducted-from-amount">خصم الرسوم من المبلغ المحدد</label></div>
                     </div>
                     <div class="flex-row" data-permission="wallets.manage">
-                        <div class="flex-1"><button class="btn btn-warning mt-10" onclick="executeTransfer()"><i class="fas fa-exchange-alt"></i> تنفيذ</button></div>
+                        <div class="flex-1"><button class="btn btn-warning mt-10" id="execute-transfer-btn" onclick="executeTransfer()"><i class="fas fa-exchange-alt"></i> تنفيذ</button></div>
                     </div>
                     <h5 class="mt-10" data-permission="wallets.transactions.view">سجل حركات المحافظ التفصيلي</h5>
-                    <button type="button" class="btn btn-outline btn-sm ledger-filter-toggle" onclick="toggleLedgerFilter('wallet')"><i class="fas fa-filter"></i> إظهار/إخفاء تصفية المحافظ</button>
+                    <button id="btn-toggle-wallet-ledger-filter" type="button" class="btn btn-outline btn-sm ledger-filter-toggle" onclick="toggleLedgerFilter('wallet')"><i class="fas fa-filter"></i> إظهار/إخفاء تصفية المحافظ</button>
                     <div id="wallet-ledger-filters" class="flex-row ledger-filters" data-permission="wallets.transactions.view" hidden>
                         <div class="flex-1"><label>المحفظة</label><select id="wallet-filter-wallet" class="input-field"><option value="">كل المحافظ</option></select></div>
                         <div class="flex-1"><label>نوع العملية</label><select id="wallet-filter-type" class="input-field"><option value="">كل الأنواع</option><option value="deposit">إيداع</option><option value="withdraw">سحب</option></select></div>
                         <div class="flex-1"><label>تفاصيل العملية</label><select id="wallet-filter-detail" class="input-field"><option value="">كل التفاصيل</option><option value="cash_in">إيداع من الصندوق</option><option value="cash_out">سحب إلى الصندوق</option><option value="wallet_transfer_in">تحويل وارد من محفظة</option><option value="wallet_transfer_out">تحويل صادر إلى محفظة</option><option value="exchange">مصارفة</option><option value="sale">مبيعات</option><option value="purchase">مشتريات</option><option value="expense">مصروف</option><option value="customer_payment">سند عميل</option><option value="supplier_payment">سند مورد</option><option value="fee">رسوم/خسائر صرف</option><option value="other">أخرى</option></select></div>
-                        <div class="flex-1" style="display:flex;align-items:end;gap:6px"><button class="btn btn-primary" onclick="loadWalletLedger()"><i class="fas fa-filter"></i> تصفية</button><button class="btn btn-outline" onclick="printWalletLedger()"><i class="fas fa-print"></i> طباعة</button></div>
+                        <div class="flex-1" style="display:flex;align-items:end;gap:6px"><button id="btn-filter-wallet-ledger" class="btn btn-primary" onclick="loadWalletLedger()"><i class="fas fa-filter"></i> تصفية</button><button id="btn-print-wallet-ledger" class="btn btn-outline" onclick="printWalletLedger()"><i class="fas fa-print"></i> طباعة</button></div>
                     </div>
                     <div id="wallet-ledger-summary" class="text-muted mt-10"></div>
                     <div id="wallet-transactions" data-permission="wallets.transactions.view" style="max-height:420px; overflow:auto;"></div>
@@ -300,11 +305,11 @@
             </div>
 
             <!-- ========== سندات نقدية ========== -->
-            <div class="card-section">
+            <div class="card-section" data-permission="vouchers.view">
                 <h4><i class="fas fa-file-invoice"></i> سندات نقدية (قبض / صرف)</h4>
                 <div class="flex-row">
                     <div class="flex-1">
-                        <form id="voucher-form" onsubmit="addCashVoucher(event)">
+                        <form id="voucher-form" data-permission="vouchers.create" onsubmit="addCashVoucher(event)">
                             <div class="flex-row">
                                 <div class="flex-1">
                                     <label>النوع</label>
@@ -334,7 +339,7 @@
                                     <input type="text" id="voucher-reason" class="input-field" placeholder="سبب السند" />
                                 </div>
                             </div>
-                            <button type="submit" class="btn btn-primary mt-10"><i class="fas fa-save"></i> تسجيل سند</button>
+                            <button type="submit" class="btn btn-primary mt-10" id="add-voucher-btn"><i class="fas fa-save"></i> تسجيل سند</button>
                         </form>
                     </div>
                     <div class="flex-1">
@@ -348,9 +353,16 @@
     <div class="toast-container" id="toast-container"></div>
 
     <script>
-        const API = 'https://api.ibnalmukhtar.com';
+        const API = window.API_BASE_URL || (window.apiClient ? window.apiClient.baseUrl : 'https://api.ibnalmukhtar.com');
         let token = localStorage.getItem('pos_token') || '';
         if (!token) window.location.href = 'index.html';
+
+        let isAddingCurrency = false;
+        let isSavingCashOp = false;
+        let isAddingWallet = false;
+        let isExecutingTransfer = false;
+        let isSavingVoucher = false;
+        let isCancelingVoucher = false;
 
         function escapeHtml(value) { return String(value ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
         function clean(value) { return escapeHtml(value); }
@@ -377,22 +389,23 @@
         async function loadCurrencies() {
             try {
                 const res = await fetch(`${API}/currencies`, { headers: { 'Authorization': `Bearer ${token}` } });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 const tbody = document.getElementById('currency-list');
-                tbody.innerHTML = data.currencies.map(c => `
+                const list = Array.isArray(data.currencies) ? data.currencies : [];
+                tbody.innerHTML = list.map(c => `
                     <tr>
                         <td>${escapeHtml(c.code)}</td>
                         <td>${escapeHtml(c.name)}</td>
                         <td>${formatPosNumber(Number(c.rate_to_base || 0), 4)}</td>
-                        <td>${formatPosNumber(c.is_base ? '✅' : '')}</td>
+                        <td>${c.is_base ? '✅' : ''}</td>
                         <td>
-                            ${!c.is_base ? `<span data-permission="settings.currencies.manage"><button class="btn btn-sm btn-primary" onclick="editCurrencyRate(${c.id}, '${c.code}')"><i class="fas fa-edit"></i> تعديل</button>
+                            ${!c.is_base ? `<span data-permission="settings.currencies.manage"><button class="btn btn-sm btn-primary" onclick="editCurrencyRate(${c.id}, '${escapeHtml(c.code)}')"><i class="fas fa-edit"></i> تعديل</button>
                             <button class="btn btn-sm btn-danger" onclick="deleteCurrency(${c.id})"><i class="fas fa-trash"></i> حذف</button></span>` : ''}
                         </td>
                     </tr>
                 `).join('');
                 // تحديث القوائم المنسدلة
-                populateCurrencySelects(data.currencies);
+                populateCurrencySelects(list);
             } catch { showToast('خطأ في تحميل العملات', 'error'); }
         }
 
@@ -412,23 +425,45 @@
 
         async function addCurrency(e) {
             e.preventDefault();
-            const code = document.getElementById('cur-code').value.trim();
+            if (isAddingCurrency) return;
+            const code = document.getElementById('cur-code').value.trim().toUpperCase();
             const name = document.getElementById('cur-name').value.trim();
             const rate = parseFloat(document.getElementById('cur-rate').value);
             const isBase = document.getElementById('cur-isbase').checked;
-            if (!code || !name || !rate) return showToast('جميع الحقول مطلوبة', 'warning');
+            if (!code || !name || !rate || rate <= 0) return showToast('جميع الحقول مطلوبة مع سعر صرف صالح', 'warning');
+
+            const btn = document.getElementById('add-currency-btn') || document.querySelector('#currency-form button[type="submit"]');
+            const originalHTML = btn ? btn.innerHTML : '<i class="fas fa-plus"></i> إضافة';
+
+            isAddingCurrency = true;
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري...';
+            }
+
             try {
                 const res = await fetch(`${API}/currencies`, {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify({ code, name, rate_to_base: rate, is_base: isBase })
                 });
+                const data = await res.json().catch(() => ({}));
                 if (res.ok) {
-                    showToast('تمت الإضافة', 'success');
+                    showToast('تمت إضافة العملة بنجاح', 'success');
                     document.getElementById('currency-form').reset();
-                    loadCurrencies();
-                } else { const err = await res.json(); showToast(err.error, 'error'); }
-            } catch { showToast('خطأ', 'error'); }
+                    await loadCurrencies();
+                } else {
+                    showToast(data.error || 'فشلت إضافة العملة', 'error');
+                }
+            } catch (err) {
+                showToast(err.message || 'خطأ في الاتصال بالخادم', 'error');
+            } finally {
+                isAddingCurrency = false;
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = originalHTML;
+                }
+            }
         }
 
         async function editCurrencyRate(id, code) {
@@ -442,11 +477,16 @@
                     headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify({ rate_to_base: rate, is_base: false })
                 });
+                const data = await res.json().catch(() => ({}));
                 if (res.ok) {
-                    showToast('تم التحديث', 'success');
-                    loadCurrencies();
-                } else { const err = await res.json(); showToast(err.error, 'error'); }
-            } catch { showToast('خطأ', 'error'); }
+                    showToast('تم تحديث سعر الصرف', 'success');
+                    await loadCurrencies();
+                } else {
+                    showToast(data.error || 'فشل تحديث سعر الصرف', 'error');
+                }
+            } catch (err) {
+                showToast(err.message || 'خطأ في الاتصال بالخادم', 'error');
+            }
         }
 
         async function deleteCurrency(id) {
@@ -456,11 +496,16 @@
                     method: 'DELETE',
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
+                const data = await res.json().catch(() => ({}));
                 if (res.ok) {
-                    showToast('تم الحذف', 'success');
-                    loadCurrencies();
-                } else { const err = await res.json(); showToast(err.error, 'error'); }
-            } catch { showToast('خطأ', 'error'); }
+                    showToast('تم حذف العملة بنجاح', 'success');
+                    await loadCurrencies();
+                } else {
+                    showToast(data.error || 'فشل حذف العملة', 'error');
+                }
+            } catch (err) {
+                showToast(err.message || 'خطأ في الاتصال بالخادم', 'error');
+            }
         }
 
         // ========== الصندوق ==========
@@ -518,7 +563,8 @@
                 const rows = (data.transactions || data.history || []).map(row => ({ ...row, operation_detail: row.operation_detail || deriveOperationDetail(row.type, row.note) }));
                 const container = document.getElementById('cash-log');
                 document.getElementById('cash-ledger-summary').textContent = `عدد الحركات: ${formatPosQuantity(data.summary?.count || rows.length)}`;
-                container.innerHTML = rows.length ? `<table class="supplier-table"><thead><tr><th>التاريخ</th><th>النوع</th><th>تفاصيل العملية</th><th>المبلغ</th><th>القيمة الأساسية</th><th>العملة</th><th>البيان</th></tr></thead><tbody>${rows.map(h => `<tr><td>${escapeHtml(new Date(h.created_at).toLocaleString('ar-YE'))}</td><td><span class="badge ${h.type}">${h.type === 'deposit' ? 'إيداع' : h.type === 'withdraw' ? 'سحب' : h.type === 'open' ? 'فتح' : 'إغلاق'}</span></td><td>${escapeHtml(operationDetailLabel(h.operation_detail))}</td><td>${formatPosMoney(h.amount || 0)}</td><td>${formatPosMoney(Number(h.amount || 0) * (Number(h.exchange_rate) || 1))}</td><td>${escapeHtml(h.currency_code || h.currency_name || '-')}</td><td>${escapeHtml(h.note || '-')}</td></tr>`).join('')}</tbody></table>` : '<p class="text-muted">لا توجد حركات مطابقة.</p>';
+                const formatTime = (ts) => window.posDateTime ? posDateTime(ts) : new Date(ts).toLocaleString('ar-YE');
+                container.innerHTML = rows.length ? `<table class="supplier-table"><thead><tr><th>التاريخ</th><th>النوع</th><th>تفاصيل العملية</th><th>المبلغ</th><th>القيمة الأساسية</th><th>العملة</th><th>البيان</th></tr></thead><tbody>${rows.map(h => `<tr><td>${escapeHtml(formatTime(h.created_at))}</td><td><span class="badge ${h.type}">${h.type === 'deposit' ? 'إيداع' : h.type === 'withdraw' ? 'سحب' : h.type === 'open' ? 'فتح' : 'إغلاق'}</span></td><td>${escapeHtml(operationDetailLabel(h.operation_detail))}</td><td>${formatPosMoney(h.amount || 0)}</td><td>${formatPosMoney(Number(h.amount || 0) * (Number(h.exchange_rate) || 1))}</td><td>${escapeHtml(h.currency_code || h.currency_name || '-')}</td><td>${escapeHtml(h.note || '-')}</td></tr>`).join('')}</tbody></table>` : '<p class="text-muted">لا توجد حركات مطابقة.</p>';
             } catch (e) { showToast(e.message || 'خطأ في تحميل سجل الصندوق', 'error'); }
         }
         function printCashLedger() {
@@ -528,33 +574,56 @@
         }
 
         async function addCashOperation() {
+            if (isSavingCashOp) return;
             const type = document.getElementById('cash-type').value;
             const amount = parseFloat(document.getElementById('cash-amount').value);
             const currency_id = parseInt(document.getElementById('cash-currency').value);
             const note = document.getElementById('cash-note').value;
-            if (!amount || !currency_id) return showToast('أدخل المبلغ واختر العملة', 'warning');
+            if (!amount || amount <= 0 || !currency_id) return showToast('أدخل مبلغاً صالحاً واختر العملة', 'warning');
+
+            const btn = document.getElementById('add-cash-op-btn') || document.querySelector('button[onclick="addCashOperation()"]');
+            const originalHTML = btn ? btn.innerHTML : '<i class="fas fa-save"></i> تسجيل';
+
+            isSavingCashOp = true;
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري...';
+            }
+
             try {
                 const res = await fetch(`${API}/cash`, {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify({ type, amount, currency_id, note })
                 });
+                const data = await res.json().catch(() => ({}));
                 if (res.ok) {
-                    showToast('تم التسجيل', 'success');
+                    showToast('تم التسجيل بنجاح', 'success');
                     document.getElementById('cash-amount').value = '';
                     document.getElementById('cash-note').value = '';
-                    loadCashStatus();
-                } else { const err = await res.json(); showToast(err.error, 'error'); }
-            } catch { showToast('خطأ', 'error'); }
+                    await loadCashStatus();
+                } else {
+                    showToast(data.error || 'فشل تسجيل حركة الصندوق', 'error');
+                }
+            } catch (err) {
+                showToast(err.message || 'خطأ في الاتصال بالخادم', 'error');
+            } finally {
+                isSavingCashOp = false;
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = originalHTML;
+                }
+            }
         }
 
         // ========== المحافظ ==========
         async function loadWallets() {
             try {
                 const res = await fetch(`${API}/wallets`, { headers: { 'Authorization': `Bearer ${token}` } });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 const container = document.getElementById('wallets-list');
-                container.innerHTML = data.wallets.map(w => {
+                const walletList = Array.isArray(data.wallets) ? data.wallets : [];
+                container.innerHTML = walletList.map(w => {
                     let balancesHtml = '';
                     if (window.POSPermissions?.can('wallets.balance.view') && w.balances && w.balances.length) {
                         balancesHtml = w.balances.map(b => `<span>${escapeHtml(b.code)}: ${formatPosMoney(Number(b.balance || 0))}</span>`).join('');
@@ -564,8 +633,9 @@
                 // تحديث القوائم المنسدلة للتحويل
                 const fromSel = document.getElementById('from-wallet');
                 const toSel = document.getElementById('to-wallet');
-                const opts = data.wallets.map(w => `<option value="${w.id}">${escapeHtml(w.name)}</option>`).join('');
-                fromSel.innerHTML = toSel.innerHTML = opts;
+                const opts = walletList.map(w => `<option value="${w.id}">${escapeHtml(w.name)}</option>`).join('');
+                if (fromSel) fromSel.innerHTML = opts;
+                if (toSel) toSel.innerHTML = opts;
                 const walletFilter = document.getElementById('wallet-filter-wallet');
                 if (walletFilter) walletFilter.innerHTML = '<option value="">كل المحافظ</option>' + opts;
                 loadWalletLedger();
@@ -574,21 +644,43 @@
 
         async function addWallet(e) {
             e.preventDefault();
+            if (isAddingWallet) return;
             const name = document.getElementById('wallet-name').value.trim();
             if (!name) return showToast('أدخل اسم المحفظة', 'warning');
+
+            const btn = document.getElementById('add-wallet-btn') || document.querySelector('#wallet-form button[type="submit"]');
+            const originalHTML = btn ? btn.innerHTML : '<i class="fas fa-plus"></i> إضافة';
+
+            isAddingWallet = true;
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري...';
+            }
+
             try {
                 const res = await fetch(`${API}/wallets`, {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify({ name })
                 });
+                const data = await res.json().catch(() => ({}));
                 if (res.ok) {
-                    showToast('تم الإضافة', 'success');
+                    showToast('تمت إضافة المحفظة بنجاح', 'success');
                     document.getElementById('wallet-form').reset();
-                    loadWallets();
-                    loadCashStatus();
-                } else { const err = await res.json(); showToast(err.error, 'error'); }
-            } catch { showToast('خطأ', 'error'); }
+                    await loadWallets();
+                    await loadCashStatus();
+                } else {
+                    showToast(data.error || 'فشلت إضافة المحفظة', 'error');
+                }
+            } catch (err) {
+                showToast(err.message || 'خطأ في الاتصال بالخادم', 'error');
+            } finally {
+                isAddingWallet = false;
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = originalHTML;
+                }
+            }
         }
 
         function handleTransferType() {
@@ -621,6 +713,7 @@
         }
 
         async function executeTransfer() {
+            if (isExecutingTransfer) return;
             const type = document.getElementById('transfer-type').value;
             const amount = parseFloat(document.getElementById('transfer-amount').value);
             const fee = parseFloat(document.getElementById('transfer-fee').value) || 0;
@@ -637,6 +730,7 @@
                 const to = parseInt(document.getElementById('to-wallet').value);
                 const currency = parseInt(document.getElementById('transfer-currency').value);
                 if (!from || !to || !currency) return showToast('اختر المحفظتين والعملة', 'warning');
+                if (from === to) return showToast('لا يمكن التحويل لنفس المحفظة', 'warning');
                 body.from_wallet_id = from;
                 body.to_wallet_id = to;
                 body.currency_id = currency;
@@ -666,7 +760,7 @@
                 if (fromCurr === toCurr) return showToast('لا يمكن الصرف لنفس العملة', 'warning');
                 body.from_currency_id = fromCurr; body.to_currency_id = toCurr;
             } else {
-                return showToast('نوع غير معروف', 'error');
+                return showToast('نوع عملية غير معروف', 'error');
             }
 
             // تحديد المسار المناسب
@@ -674,23 +768,44 @@
             if (type === 'exchange') endpoint = '/wallets/exchange';
             if (type === 'cash_exchange') endpoint = '/cash/exchange';
 
+            const btn = document.getElementById('execute-transfer-btn') || document.querySelector('button[onclick="executeTransfer()"]');
+            const originalHTML = btn ? btn.innerHTML : '<i class="fas fa-exchange-alt"></i> تنفيذ';
+
+            isExecutingTransfer = true;
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التنفيذ...';
+            }
+
             try {
                 const res = await fetch(`${API}${endpoint}`, {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify(body)
                 });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 if (res.ok) {
-                    showToast('تم التنفيذ', 'success');
-                    loadWallets();
-                    loadCashStatus();
+                    showToast('تم تنفيذ العملية بنجاح', 'success');
+                    await loadWallets();
+                    await loadCashStatus();
                     document.getElementById('transfer-amount').value = '';
                     document.getElementById('transfer-exchange-rate').value = '';
                     document.getElementById('transfer-fee').value = '0';
                     document.getElementById('fee-deducted-from-amount').checked = false;
-                } else showToast(data.error, 'error');
-            } catch { showToast('خطأ', 'error'); }
+                    const preview = document.getElementById('exchange-preview');
+                    if (preview) preview.style.display = 'none';
+                } else {
+                    showToast(data.error || 'فشل تنفيذ العملية', 'error');
+                }
+            } catch (err) {
+                showToast(err.message || 'خطأ في الاتصال بالخادم', 'error');
+            } finally {
+                isExecutingTransfer = false;
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = originalHTML;
+                }
+            }
         }
 
         async function loadWalletLedger() {
@@ -711,7 +826,8 @@
                 const rows = (data.transactions || data.history || []).map(row => ({ ...row, operation_detail: row.operation_detail || deriveOperationDetail(row.type, row.description) }));
                 const container = document.getElementById('wallet-transactions');
                 document.getElementById('wallet-ledger-summary').textContent = `عدد الحركات: ${formatPosQuantity(data.summary?.count || rows.length)}`;
-                container.innerHTML = rows.length ? `<table class="supplier-table"><thead><tr><th>التاريخ</th><th>المحفظة</th><th>النوع</th><th>تفاصيل العملية</th><th>المبلغ</th><th>العملة</th><th>البيان التفصيلي</th><th>المرجع</th></tr></thead><tbody>${rows.map(t => `<tr><td>${escapeHtml(new Date(t.created_at).toLocaleString('ar-YE'))}</td><td>${escapeHtml(t.wallet_name || '-')}</td><td><span class="badge ${t.type}">${t.type === 'deposit' ? 'إيداع' : 'سحب'}</span></td><td>${escapeHtml(operationDetailLabel(t.operation_detail))}</td><td>${formatPosMoney(t.amount || 0)}</td><td>${escapeHtml(t.currency_code || t.currency_name || '-')}</td><td>${escapeHtml(t.description || '-')}</td><td>${escapeHtml(t.reference_id || '-')}</td></tr>`).join('')}</tbody></table>` : '<p class="text-muted">لا توجد حركات مطابقة.</p>';
+                const formatTime = (ts) => window.posDateTime ? posDateTime(ts) : new Date(ts).toLocaleString('ar-YE');
+                container.innerHTML = rows.length ? `<table class="supplier-table"><thead><tr><th>التاريخ</th><th>المحفظة</th><th>النوع</th><th>تفاصيل العملية</th><th>المبلغ</th><th>العملة</th><th>البيان التفصيلي</th><th>المرجع</th></tr></thead><tbody>${rows.map(t => `<tr><td>${escapeHtml(formatTime(t.created_at))}</td><td>${escapeHtml(t.wallet_name || '-')}</td><td><span class="badge ${t.type}">${t.type === 'deposit' ? 'إيداع' : 'سحب'}</span></td><td>${escapeHtml(operationDetailLabel(t.operation_detail))}</td><td>${formatPosMoney(t.amount || 0)}</td><td>${escapeHtml(t.currency_code || t.currency_name || '-')}</td><td>${escapeHtml(t.description || '-')}</td><td>${escapeHtml(t.reference_id || '-')}</td></tr>`).join('')}</tbody></table>` : '<p class="text-muted">لا توجد حركات مطابقة.</p>';
             } catch (e) { showToast(e.message || 'خطأ في تحميل سجل المحافظ', 'error'); }
         }
         function printWalletLedger() {
@@ -722,18 +838,25 @@
 
         // ========== سندات نقدية ==========
         async function loadVouchers() {
+            if (!window.POSPermissions?.can('vouchers.view')) {
+                const container = document.getElementById('vouchers-list');
+                if (container) container.innerHTML = '<p class="text-muted">عرض السندات يتطلب صلاحية vouchers.view</p>';
+                return;
+            }
             try {
                 const res = await fetch(`${API}/cash/vouchers`, { headers: { 'Authorization': `Bearer ${token}` } });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 const container = document.getElementById('vouchers-list');
-                if (data.vouchers && data.vouchers.length) {
-                    container.innerHTML = data.vouchers.slice(0, 20).map(v => `
+                const list = Array.isArray(data.vouchers) ? data.vouchers : [];
+                if (list.length) {
+                    const formatTime = (ts) => window.posDateTime ? posDateTime(ts) : new Date(ts).toLocaleString('ar-YE');
+                    container.innerHTML = list.slice(0, 20).map(v => `
                         <div class="voucher-item">
                             <div>
                                 <strong>${v.type === 'receipt' ? 'قبض' : 'صرف'}</strong> | ${formatPosMoney(Number(v.amount || 0))} ${escapeHtml(v.currency_code || '')} | الأساس: ${formatPosMoney(Number(v.amount || 0) * (Number(v.exchange_rate) || 1))} | ${escapeHtml(v.reason || '')}
-                                <br><small>${escapeHtml(new Date(v.created_at).toLocaleString('ar-YE'))}</small>
+                                <br><small>${escapeHtml(formatTime(v.created_at))}</small>
                             </div>
-                            <button class="btn btn-sm btn-danger" onclick="cancelVoucher(${v.id})">إلغاء</button>
+                            <span data-permission="vouchers.cancel"><button class="btn btn-sm btn-danger" onclick="cancelVoucher(${v.id})">إلغاء</button></span>
                         </div>
                     `).join('');
                 } else {
@@ -744,12 +867,23 @@
 
         async function addCashVoucher(e) {
             e.preventDefault();
+            if (isSavingVoucher) return;
             const type = document.getElementById('voucher-type').value;
             const amount = parseFloat(document.getElementById('voucher-amount').value);
             const currency_id = parseInt(document.getElementById('voucher-currency').value);
             const reason = document.getElementById('voucher-reason').value;
             const exchange_rate = parseFloat(document.getElementById('voucher-exchange-rate').value) || undefined;
-            if (!amount || !currency_id) return showToast('أدخل المبلغ واختر العملة', 'warning');
+            if (!amount || amount <= 0 || !currency_id) return showToast('أدخل مبلغاً صالحاً واختر العملة', 'warning');
+
+            const btn = document.getElementById('add-voucher-btn') || document.querySelector('#voucher-form button[type="submit"]');
+            const originalHTML = btn ? btn.innerHTML : '<i class="fas fa-save"></i> تسجيل سند';
+
+            isSavingVoucher = true;
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري...';
+            }
+
             try {
                 const body = { type, amount, currency_id, reason };
                 if (exchange_rate && !isNaN(exchange_rate)) body.exchange_rate = exchange_rate;
@@ -758,29 +892,49 @@
                     headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify(body)
                 });
+                const data = await res.json().catch(() => ({}));
                 if (res.ok) {
-                    showToast('تم تسجيل السند', 'success');
+                    showToast('تم تسجيل السند بنجاح', 'success');
                     document.getElementById('voucher-form').reset();
-                    loadVouchers();
-                    loadCashStatus();
-                } else { const err = await res.json(); showToast(err.error, 'error'); }
-            } catch { showToast('خطأ', 'error'); }
+                    await loadVouchers();
+                    await loadCashStatus();
+                } else {
+                    showToast(data.error || 'فشل تسجيل السند', 'error');
+                }
+            } catch (err) {
+                showToast(err.message || 'خطأ في الاتصال بالخادم', 'error');
+            } finally {
+                isSavingVoucher = false;
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = originalHTML;
+                }
+            }
         }
 
         async function cancelVoucher(voucherId) {
+            if (isCancelingVoucher) return;
             if (!confirm('هل أنت متأكد من إلغاء هذا السند؟')) return;
+            isCancelingVoucher = true;
             try {
                 const res = await fetch(`${API}/cash/cancel-voucher`, {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify({ voucher_id: voucherId })
                 });
+                const data = await res.json().catch(() => ({}));
                 if (res.ok) {
-                    showToast('تم الإلغاء', 'success');
-                    loadVouchers();
-                    loadCashStatus();
-                } else { const err = await res.json(); showToast(err.error, 'error'); }
-            } catch { showToast('خطأ', 'error'); }
+                    showToast('تم إلغاء السند بنجاح', 'success');
+                    await loadVouchers();
+                    await loadCashStatus();
+                } else {
+                    showToast(data.error || 'فشل إلغاء السند', 'error');
+                }
+            } catch (err) {
+                showToast(err.message || 'خطأ في الاتصال بالخادم', 'error');
+            } finally {
+                isCancelingVoucher = false;
+            }
         }
 
         // ========== تحميل الصفحة ==========
@@ -792,9 +946,5 @@
             handleTransferType();
         };
     </script>
-    <script src="date-utils.js"></script>
-    <script src="document-utils.js"></script>
-    <script src="sidebar-config.js"></script>
-    <script src="notification-center-v3.js"></script>
 </body>
 </html>

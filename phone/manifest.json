@@ -28,8 +28,8 @@
   "categories": ["shopping", "productivity"],
   "screenshots": [
     {
-      "src": "/screenshots/cashier-invoice.png",
-      "sizes": "1080x1920",
+      "src": "/icon-512x512.png",
+      "sizes": "512x512",
       "type": "image/png",
       "form_factor": "narrow",
       "label": "شاشة إتمام البيع"

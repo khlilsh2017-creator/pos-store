@@ -2,7 +2,7 @@
 (function () {
   'use strict';
 
-  const API_BASE = 'https://api.ibnalmukhtar.com';
+  const API_BASE = (window.API_BASE_URL || (window.apiClient && window.apiClient.baseUrl) || localStorage.getItem('posApiBase') || 'https://api.ibnalmukhtar.com').replace(/\/$/, '');
 
   function authToken() {
     return localStorage.getItem('pos_token') || '';
@@ -38,7 +38,7 @@
     try {
       const response = await fetch(`${API_BASE}/fcm-tokens`, { headers: { Authorization: `Bearer ${token}` } });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const data = await response.json();
+      const data = await response.json().catch(() => ({}));
       const drivers = Array.isArray(data.driver_tokens) ? data.driver_tokens.length : 0;
       const admins = Array.isArray(data.admin_tokens) ? data.admin_tokens.length : 0;
       document.getElementById('notificationDriverTokens').textContent = drivers;
