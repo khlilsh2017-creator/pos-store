@@ -10,8 +10,8 @@
 <style>
 :root{--navy:#123b72;--blue:#1d63c6;--bg:#f2f7fd;--card:#fff;--text:#152238;--muted:#718096;--line:#e2e8f0;--red:#c93232;--shadow:0 12px 34px rgba(18,59,114,.12);--safe-top:env(safe-area-inset-top,0px);--safe-bottom:env(safe-area-inset-bottom,0px)}*{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:Cairo,Arial,sans-serif;background:linear-gradient(160deg,#eaf3ff,#f9fbfe);color:var(--text)}body{padding:calc(20px + var(--safe-top)) 14px calc(20px + var(--safe-bottom))}.shell{width:min(100%,470px);margin:auto}.brand{text-align:center;margin:14px 0 18px}.logo{width:72px;height:72px;margin:auto;display:grid;place-items:center;border-radius:24px;background:linear-gradient(135deg,var(--navy),var(--blue));color:#fff;font-size:2rem;box-shadow:0 9px 22px rgba(29,99,198,.25)}h1{font-size:1.3rem;margin:12px 0 3px;font-weight:800}.subtitle{font-size:.75rem;color:var(--muted);margin:0;line-height:1.8}.card{background:var(--card);border:1px solid var(--line);border-radius:24px;box-shadow:var(--shadow);padding:20px 17px}.card h2{font-size:1rem;margin:0 0 3px}.card .hint{font-size:.7rem;color:var(--muted);margin:0 0 14px}.notice{display:none;padding:10px 11px;border-radius:11px;font-size:.73rem;margin:8px 0}.notice.show{display:block}.notice.error{background:#fff0f0;color:#a62323}.notice.success{background:#effbf3;color:#146b35}.field{margin:10px 0}.field label{display:block;font-size:.72rem;font-weight:700;margin-bottom:5px}.input{width:100%;min-height:47px;border:1px solid var(--line);border-radius:12px;padding:9px 11px;font:inherit;outline:0}.input:focus{border-color:var(--blue);box-shadow:0 0 0 3px #dbeafe}.btn{width:100%;min-height:47px;border:0;border-radius:12px;font:inherit;font-weight:800;cursor:pointer}.primary{background:var(--blue);color:#fff;margin-top:6px}.secondary{background:#edf4ff;color:#1557a3}.ghost{background:#eef2f7;color:#415267}.actions{display:grid;gap:9px;margin-top:15px}.apps{display:grid;gap:9px;margin-top:12px}.app-btn{display:flex;align-items:center;gap:11px;text-align:right;padding:11px;border:1px solid var(--line);border-radius:14px;background:#fff;color:var(--text);cursor:pointer;font:inherit}.app-btn strong{display:block;font-size:.78rem}.app-btn small{display:block;color:var(--muted);font-size:.64rem;margin-top:2px}.app-icon{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:#eaf3ff;color:var(--blue);font-size:1.2rem}.session{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 10px;background:#effbf3;border-radius:12px;color:#146b35;font-size:.72rem}.session button{border:0;background:transparent;color:var(--red);font:inherit;font-size:.68rem;cursor:pointer}.footer{text-align:center;color:var(--muted);font-size:.65rem;margin-top:14px}@media(min-width:600px){body{padding-top:40px}}
 </style>
-<script src="../api-client.js"></script>  <!-- ⬅️ أضف هذا -->
-    <script src="../offline-sync.js"></script>
+<script src="/api-client.js?v=1.0.3"></script>
+    <script src="/offline-sync.js"></script>
 </head>
 <body>
 <main class="shell">
@@ -43,28 +43,79 @@
   <p class="footer">جلسة POS مستقلة عن جلسة تطبيق المندوب</p>
 </main>
 <script>
-function getApi() {
-  return (window.apiClient?.baseUrl || window.API_BASE_URL || localStorage.getItem('posApiBase') || 'https://api.ibnalmukhtar.com').replace(/\/$/, '');
+const PRIMARY_API = 'https://api.ibnalmukhtar.com';
+const BACKUP_API = 'https://api2.ibnalmukhtar.com';
+
+const $ = id => document.getElementById(id);
+
+function showNotice(text, type = 'error') {
+  const box = $('notice');
+  if (!box) return;
+  box.textContent = text;
+  box.className = 'notice show ' + type;
 }
+
+function getApi() {
+  if (window.apiClient?.baseUrl) {
+    return window.apiClient.baseUrl.replace(/\/$/, '');
+  }
+  const savedBase = localStorage.getItem('posApiBase');
+  if (savedBase) return savedBase.replace(/\/$/, '');
+  const savedIdx = localStorage.getItem('_apiEndpointIndex_v3');
+  if (savedIdx === '1') return BACKUP_API;
+  return (window.API_BASE_URL || PRIMARY_API).replace(/\/$/, '');
+}
+
 function updateServerBadge() {
-  const label = $('serverNameLabel');
+  const label = document.getElementById('serverNameLabel');
+  const dot = document.getElementById('serverDot');
   if (!label) return;
   const current = getApi();
   if (current.includes('api2')) {
     label.textContent = 'الاحتياطي (api2)';
     label.style.color = '#1d63c6';
+    if (dot) dot.style.background = '#1d63c6';
   } else {
     label.textContent = 'الأساسي (api)';
     label.style.color = '#123b72';
+    if (dot) dot.style.background = '#16a34a';
   }
 }
+
 function switchServerManual() {
-  if (window.apiClient?.toggleEndpoint) {
-    const nextUrl = window.apiClient.toggleEndpoint();
+  try {
+    let nextUrl = '';
+    // 1. استخدام دالة toggleEndpoint من apiClient إذا كانت متوفرة
+    if (window.apiClient && typeof window.apiClient.toggleEndpoint === 'function') {
+      nextUrl = window.apiClient.toggleEndpoint();
+    } else if (window.ApiClient && typeof window.ApiClient.toggleEndpoint === 'function') {
+      nextUrl = window.ApiClient.toggleEndpoint();
+    } else {
+      // 2. Fallback فوري ومستقل يعمل حتى قبل تحميل أو عند تخزين ملفات قديمة
+      const current = getApi();
+      const isBackup = current.includes('api2') || localStorage.getItem('_apiEndpointIndex_v3') === '1';
+      nextUrl = isBackup ? PRIMARY_API : BACKUP_API;
+      const nextIdx = isBackup ? '0' : '1';
+      localStorage.setItem('_apiEndpointIndex_v3', nextIdx);
+      localStorage.setItem('posApiBase', nextUrl);
+      if (window.apiClient && typeof window.apiClient.setActiveIndex === 'function') {
+        window.apiClient.setActiveIndex(Number(nextIdx));
+      }
+    }
+    updateServerBadge();
+    const isNowBackup = (nextUrl || getApi()).includes('api2');
+    showNotice(isNowBackup ? '🔄 تم التبديل إلى الخادم الاحتياطي (api2)' : '🔄 تم التبديل إلى الخادم الأساسي (api)', 'info');
+  } catch (err) {
+    console.error('Error switching server:', err);
+    const current = localStorage.getItem('posApiBase') || '';
+    const nextUrl = current.includes('api2') ? PRIMARY_API : BACKUP_API;
+    localStorage.setItem('_apiEndpointIndex_v3', current.includes('api2') ? '0' : '1');
+    localStorage.setItem('posApiBase', nextUrl);
     updateServerBadge();
     showNotice(nextUrl.includes('api2') ? '🔄 تم التبديل إلى الخادم الاحتياطي (api2)' : '🔄 تم التبديل إلى الخادم الأساسي (api)', 'info');
   }
 }
+
 window.addEventListener('api-endpoint-changed', e => {
   updateServerBadge();
   const to = e.detail?.to || '';
@@ -78,31 +129,63 @@ window.addEventListener('api-endpoint-recovered', () => {
 });
 
 let isLoggingIn = false;
-let token=localStorage.getItem('pos_token')||'';
-const $=id=>document.getElementById(id);
-function showNotice(text,type='error'){const box=$('notice');box.textContent=text;box.className='notice show '+type;}
-function nextPage(){const value=new URLSearchParams(location.search).get('next');return value==='orders.html'||value==='add_order_ph.html'?value:'';}
-function openApp(page){location.href=page;}
-function goToMain(){location.href='../index.html';}
-function logout(){localStorage.removeItem('pos_token');localStorage.removeItem('pos_user');token='';$('sessionCard').hidden=true;$('loginCard').hidden=false;$('password').value='';showNotice('تم تسجيل الخروج','success');}
-function showSession(user){$('loginCard').hidden=true;$('sessionCard').hidden=false;$('userLabel').textContent=(user?.name||user?.username||'مستخدم POS')+' · جلسة POS نشطة';}
-async function validateSession(){
+let token = localStorage.getItem('pos_token') || '';
+
+function nextPage() {
+  const value = new URLSearchParams(location.search).get('next');
+  return value === 'orders.html' || value === 'add_order_ph.html' ? value : '';
+}
+function openApp(page) { location.href = page; }
+function goToMain() { location.href = '../index.html'; }
+function logout() {
+  localStorage.removeItem('pos_token');
+  localStorage.removeItem('pos_user');
+  token = '';
+  $('sessionCard').hidden = true;
+  $('loginCard').hidden = false;
+  $('password').value = '';
+  showNotice('تم تسجيل الخروج', 'success');
+}
+function showSession(user) {
+  $('loginCard').hidden = true;
+  $('sessionCard').hidden = false;
+  $('userLabel').textContent = (user?.name || user?.username || 'مستخدم POS') + ' · جلسة POS نشطة';
+}
+
+async function validateSession() {
   updateServerBadge();
-  if(!token)return;
-  try{
-    const res=await fetch(getApi()+'/auth/me',{headers:{Authorization:'Bearer '+token,'Content-Type':'application/json','X-Page-Name':'phone/index.html'}});
-    const data=await res.json().catch(()=>({}));
-    if(res.status===401||res.status===403){
-      localStorage.removeItem('pos_token');localStorage.removeItem('pos_user');token='';$('sessionCard').hidden=true;$('loginCard').hidden=false;showNotice('انتهت صلاحية الجلسة، يرجى تسجيل الدخول مرة أخرى','error');return;
+  if (!token) return;
+  try {
+    const res = await fetch(getApi() + '/auth/me', {
+      headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json', 'X-Page-Name': 'phone/index.html' }
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.status === 401 || res.status === 403) {
+      localStorage.removeItem('pos_token');
+      localStorage.removeItem('pos_user');
+      token = '';
+      $('sessionCard').hidden = true;
+      $('loginCard').hidden = false;
+      showNotice('انتهت صلاحية الجلسة، يرجى تسجيل الدخول مرة أخرى', 'error');
+      return;
     }
-    if(!res.ok||!data.user){
-      const saved=localStorage.getItem('pos_user');if(saved){try{showSession(JSON.parse(saved));}catch(_){}}return;
+    if (!res.ok || !data.user) {
+      const saved = localStorage.getItem('pos_user');
+      if (saved) { try { showSession(JSON.parse(saved)); } catch (_) {} }
+      return;
     }
     showSession(data.user);
-  }catch(_){
-    const saved=localStorage.getItem('pos_user');if(saved){try{showSession(JSON.parse(saved));showNotice('أنت في وضع عدم الاتصال؛ الجلسة المحلية محفوظة','info');}catch(__){}}
+  } catch (_) {
+    const saved = localStorage.getItem('pos_user');
+    if (saved) {
+      try {
+        showSession(JSON.parse(saved));
+        showNotice('أنت في وضع عدم الاتصال؛ الجلسة المحلية محفوظة', 'info');
+      } catch (__) {}
+    }
   }
 }
+
 $('loginForm').addEventListener('submit', async e => {
   e.preventDefault();
   if (isLoggingIn) return;
@@ -110,14 +193,51 @@ $('loginForm').addEventListener('submit', async e => {
   const btn = $('loginBtn');
   btn.disabled = true;
   btn.textContent = 'جارٍ التحقق...';
+
+  let currentBase = getApi();
+  let res = null;
+  let data = {};
+
   try {
-    const res = await fetch(getApi() + '/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Page-Name': 'phone/index.html' },
-      body: JSON.stringify({ username: $('username').value.trim(), password: $('password').value })
-    });
-    const data = await res.json().catch(() => ({}));
+    try {
+      res = await fetch(currentBase + '/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Page-Name': 'phone/index.html' },
+        body: JSON.stringify({ username: $('username').value.trim(), password: $('password').value })
+      });
+      data = await res.json().catch(() => ({}));
+    } catch (networkErr) {
+      console.warn(`⚠️ فشل الاتصال بـ ${currentBase}:`, networkErr.message);
+    }
+
+    // Failover تلقائي إذا تعذر الاتصال بالأساسي أو أعاد 5xx
+    if ((!res || (res.status >= 500 && res.status < 600)) && !currentBase.includes('api2')) {
+      const backupBase = BACKUP_API;
+      console.log('🔄 المحاولة التلقائية على الخادم الاحتياطي:', backupBase);
+      try {
+        const backupRes = await fetch(backupBase + '/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Page-Name': 'phone/index.html' },
+          body: JSON.stringify({ username: $('username').value.trim(), password: $('password').value })
+        });
+        if (backupRes) {
+          res = backupRes;
+          data = await backupRes.json().catch(() => ({}));
+          if (res.ok) {
+            localStorage.setItem('_apiEndpointIndex_v3', '1');
+            localStorage.setItem('posApiBase', backupBase);
+            if (window.apiClient?.setActiveIndex) window.apiClient.setActiveIndex(1);
+            updateServerBadge();
+          }
+        }
+      } catch (backupErr) {
+        console.warn('⚠️ فشل الاحتياطي أيضاً:', backupErr.message);
+      }
+    }
+
+    if (!res) throw Error('تعذر الاتصال بجميع الخوادم، تأكد من اتصال الإنترنت أو استخدم زر تبديل الخادم');
     if (!res.ok || !data.token) throw Error(data.error || 'بيانات الدخول غير صحيحة');
+
     token = data.token;
     localStorage.setItem('pos_token', token);
     localStorage.setItem('pos_user', JSON.stringify(data.user || {}));
@@ -133,9 +253,14 @@ $('loginForm').addEventListener('submit', async e => {
     updateServerBadge();
   }
 });
-if ('serviceWorker' in navigator && (location.protocol === 'http:' || location.protocol === 'https:')) navigator.serviceWorker.register('sw_phone.js').catch(()=>{});
+
+if ('serviceWorker' in navigator && (location.protocol === 'http:' || location.protocol === 'https:')) {
+  navigator.serviceWorker.register('sw_phone.js?v=17').then(reg => {
+    reg.update().catch(() => {});
+  }).catch(() => {});
+}
 if (location.protocol === 'file:') {
-    showNotice('⚠️ تنبيه: تم فتح الصفحة كملف محلي (file:///). ميزات العمل بدون إنترنت والـ PWA تتطلب تشغيل خادم محلي مثل Live Server (http://localhost) أو نطاق https.', 'error');
+  showNotice('⚠️ تنبيه: تم فتح الصفحة كملف محلي (file:///). ميزات العمل بدون إنترنت والـ PWA تتطلب تشغيل خادم محلي مثل Live Server (http://localhost) أو نطاق https.', 'error');
 }
 updateServerBadge();
 validateSession();

@@ -10,7 +10,7 @@ try {
   }
 }
 
-const CACHE_NAME = 'pos-phone-shell-v16-failover-auth';
+const CACHE_NAME = 'pos-phone-shell-v17-switch-fix';
 
 // قائمة الملفات الثابتة لضمان العمل بدون اتصال (تشمل صفحات الجوال)
 const STATIC_FILES = [
@@ -19,6 +19,7 @@ const STATIC_FILES = [
   '/phone/index.html',
   '/phone/manifest.json',
   '/phone/sw_phone.js',
+  '/api-client.js',
   '/offline-sw-core.js',
   '/offline-sync.js',
   '/date-utils.js',
@@ -61,6 +62,22 @@ self.addEventListener('fetch', event => {
   // 1. معالجة طلبات API للمزامنة والعمل بدون اتصال
   if (typeof offlineIsApiRequest === 'function' && offlineIsApiRequest(url)) {
     event.respondWith(offlineHandleApiRequest(request));
+    return;
+  }
+
+  // 1.5. استثناء خاص لـ api-client.js: استراتيجية Network-First دائماً لضمان الحصول على أحدث منطق للاتصال
+  if (url.pathname.includes('api-client.js')) {
+    event.respondWith(
+      fetch(request)
+        .then(response => {
+          if (response && response.status === 200) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then(cache => cache.put(request, clone)).catch(() => {});
+          }
+          return response;
+        })
+        .catch(() => caches.match(request, { ignoreSearch: true }))
+    );
     return;
   }
 

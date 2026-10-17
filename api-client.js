@@ -1,6 +1,6 @@
 /* ============================================================
  * api-client.js — نظام Failover مركزي
- * الإصدار: 1.0.2
+ * الإصدار: 1.0.3
  * ============================================================ */
 (function () {
     'use strict';
@@ -265,7 +265,7 @@
             } catch (_) {}
         },
         fetch: (path, init) => fetchWithFailover(path, init),
-        version: '1.0.2'
+        version: '1.0.3'
     };
 
     window.ApiClient = apiClientObj;
@@ -277,7 +277,7 @@
     if (!isInitialized) {
         isInitialized = true;
         startHealthMonitor();
-        console.log(`✅ [api-client v1.0.2] مُفعّل. النقطة النشطة: ${API_ENDPOINTS[activeIndex]}`);
+        console.log(`✅ [api-client v1.0.3] مُفعّل. النقطة النشطة: ${API_ENDPOINTS[activeIndex]}`);
         console.log(`📋 الترتيب: ${API_ENDPOINTS.join(' → ')}`);
     }
 })();
