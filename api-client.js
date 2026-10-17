@@ -10,7 +10,7 @@
     // ═══════════════════════════════════════════════════════════
     const API_ENDPOINTS = [
         'https://api.ibnalmukhtar.com',   // الأساسي — مباشر
-        'https://go3.ibnalmukhtar.com'    // الاحتياطي — عبر الوسيط
+        'https://api2.ibnalmukhtar.com'    // الاحتياطي — عبر الوسيط
     ];
 
     const PROTECTED_DOMAINS = [

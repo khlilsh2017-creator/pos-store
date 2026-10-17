@@ -1579,7 +1579,7 @@
             const driverId = getDriverId();
             if (!driverId || !navigator.onLine) return;
             try {
-                const data = await fetchDriverOrders(driverId, 1, currentStatusFilter, currentPeriod, 500);
+                const data = await fetchDriverOrders(driverId, 1, currentStatusFilter, currentPeriod, 50);
                 const incomingOrders = data.orders || [];
 
                 let hasNewOrders = false;
@@ -1926,7 +1926,7 @@
 
             try {
                 const filteredData = await fetchDriverOrders(
-                    driverId, 1, currentStatusFilter, currentPeriod, 500
+                    driverId, 1, currentStatusFilter, currentPeriod, 50
                 );
                 const serverOrders = filteredData.orders || [];
                 const account = filteredData.account || {};
@@ -3095,7 +3095,7 @@ function renderOrders(orders) {
             if (navigator.onLine) {
                 try {
                     await loadInitialData();
-                    const filteredData = await fetchDriverOrders(driverId, 1, currentStatusFilter, currentPeriod, 500);
+                    const filteredData = await fetchDriverOrders(driverId, 1, currentStatusFilter, currentPeriod, 50);
                     const newOrders = await applyPendingOperationsToOrders(filteredData.orders || []);
                     const account = filteredData.account || {};
 
