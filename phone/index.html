@@ -18,6 +18,13 @@
   <header class="brand"><div class="logo">⌂</div><h1>تطبيق POS للجوال</h1><p class="subtitle">تسجيل دخول واحد للوصول إلى إنشاء الطلبات<br>وإدارة طلبات الإنترنت</p></header>
   <section class="card" id="loginCard">
     <h2>تسجيل الدخول</h2><p class="hint">صفحة دخول احتياطية مشتركة لتطبيقَي الجوال</p>
+    <div id="serverBadge" style="display:flex;align-items:center;justify-content:space-between;background:#eef4ff;border:1px solid #c7dcff;border-radius:12px;padding:8px 12px;margin:0 0 12px;font-size:0.75rem;">
+      <span style="display:flex;align-items:center;gap:6px;">
+        <span id="serverDot" style="width:8px;height:8px;border-radius:50%;background:#16a34a;display:inline-block;"></span>
+        <span>الخادم: <strong id="serverNameLabel">جاري الفحص...</strong></span>
+      </span>
+      <button type="button" id="btnSwitchServer" onclick="switchServerManual()" style="border:none;background:#1d63c6;color:#fff;border-radius:8px;padding:4px 10px;font-size:0.7rem;font-weight:700;cursor:pointer;font-family:inherit;">تبديل الخادم</button>
+    </div>
     <div id="notice" class="notice"></div>
     <form id="loginForm">
       <div class="field"><label for="username">اسم المستخدم</label><input class="input" id="username" autocomplete="username" required placeholder="أدخل اسم المستخدم"></div>
@@ -36,7 +43,40 @@
   <p class="footer">جلسة POS مستقلة عن جلسة تطبيق المندوب</p>
 </main>
 <script>
-const API = (window.API_BASE_URL || (window.apiClient && window.apiClient.baseUrl) || localStorage.getItem('posApiBase') || 'https://api.ibnalmukhtar.com').replace(/\/$/, '');
+function getApi() {
+  return (window.apiClient?.baseUrl || window.API_BASE_URL || localStorage.getItem('posApiBase') || 'https://api.ibnalmukhtar.com').replace(/\/$/, '');
+}
+function updateServerBadge() {
+  const label = $('serverNameLabel');
+  if (!label) return;
+  const current = getApi();
+  if (current.includes('api2')) {
+    label.textContent = 'الاحتياطي (api2)';
+    label.style.color = '#1d63c6';
+  } else {
+    label.textContent = 'الأساسي (api)';
+    label.style.color = '#123b72';
+  }
+}
+function switchServerManual() {
+  if (window.apiClient?.toggleEndpoint) {
+    const nextUrl = window.apiClient.toggleEndpoint();
+    updateServerBadge();
+    showNotice(nextUrl.includes('api2') ? '🔄 تم التبديل إلى الخادم الاحتياطي (api2)' : '🔄 تم التبديل إلى الخادم الأساسي (api)', 'info');
+  }
+}
+window.addEventListener('api-endpoint-changed', e => {
+  updateServerBadge();
+  const to = e.detail?.to || '';
+  if (to.includes('api2')) {
+    showNotice('⚡ تم التحويل تلقائياً إلى الخادم الاحتياطي (api2) لضمان استمرار الاتصال', 'info');
+  }
+});
+window.addEventListener('api-endpoint-recovered', () => {
+  updateServerBadge();
+  showNotice('✅ تم استعادة الاتصال بالخادم الأساسي (api)', 'success');
+});
+
 let isLoggingIn = false;
 let token=localStorage.getItem('pos_token')||'';
 const $=id=>document.getElementById(id);
@@ -46,7 +86,23 @@ function openApp(page){location.href=page;}
 function goToMain(){location.href='../index.html';}
 function logout(){localStorage.removeItem('pos_token');localStorage.removeItem('pos_user');token='';$('sessionCard').hidden=true;$('loginCard').hidden=false;$('password').value='';showNotice('تم تسجيل الخروج','success');}
 function showSession(user){$('loginCard').hidden=true;$('sessionCard').hidden=false;$('userLabel').textContent=(user?.name||user?.username||'مستخدم POS')+' · جلسة POS نشطة';}
-async function validateSession(){if(!token)return;try{const res=await fetch(API+'/auth/me',{headers:{Authorization:'Bearer '+token,'Content-Type':'application/json','X-Page-Name':'phone/index.html'}});const data=await res.json().catch(()=>({}));if(res.status===401||res.status===403){localStorage.removeItem('pos_token');localStorage.removeItem('pos_user');token='';$('sessionCard').hidden=true;$('loginCard').hidden=false;showNotice('انتهت صلاحية الجلسة، يرجى تسجيل الدخول مرة أخرى','error');return;}if(!res.ok||!data.user){const saved=localStorage.getItem('pos_user');if(saved){try{showSession(JSON.parse(saved));}catch(_){}}return;}showSession(data.user);}catch(_){const saved=localStorage.getItem('pos_user');if(saved){try{showSession(JSON.parse(saved));showNotice('أنت في وضع عدم الاتصال؛ الجلسة المحلية محفوظة','info');}catch(__){}}}}
+async function validateSession(){
+  updateServerBadge();
+  if(!token)return;
+  try{
+    const res=await fetch(getApi()+'/auth/me',{headers:{Authorization:'Bearer '+token,'Content-Type':'application/json','X-Page-Name':'phone/index.html'}});
+    const data=await res.json().catch(()=>({}));
+    if(res.status===401||res.status===403){
+      localStorage.removeItem('pos_token');localStorage.removeItem('pos_user');token='';$('sessionCard').hidden=true;$('loginCard').hidden=false;showNotice('انتهت صلاحية الجلسة، يرجى تسجيل الدخول مرة أخرى','error');return;
+    }
+    if(!res.ok||!data.user){
+      const saved=localStorage.getItem('pos_user');if(saved){try{showSession(JSON.parse(saved));}catch(_){}}return;
+    }
+    showSession(data.user);
+  }catch(_){
+    const saved=localStorage.getItem('pos_user');if(saved){try{showSession(JSON.parse(saved));showNotice('أنت في وضع عدم الاتصال؛ الجلسة المحلية محفوظة','info');}catch(__){}}
+  }
+}
 $('loginForm').addEventListener('submit', async e => {
   e.preventDefault();
   if (isLoggingIn) return;
@@ -55,7 +111,7 @@ $('loginForm').addEventListener('submit', async e => {
   btn.disabled = true;
   btn.textContent = 'جارٍ التحقق...';
   try {
-    const res = await fetch(API + '/auth/login', {
+    const res = await fetch(getApi() + '/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Page-Name': 'phone/index.html' },
       body: JSON.stringify({ username: $('username').value.trim(), password: $('password').value })
@@ -74,12 +130,14 @@ $('loginForm').addEventListener('submit', async e => {
     btn.disabled = false;
     btn.textContent = 'تسجيل الدخول';
     isLoggingIn = false;
+    updateServerBadge();
   }
 });
 if ('serviceWorker' in navigator && (location.protocol === 'http:' || location.protocol === 'https:')) navigator.serviceWorker.register('sw_phone.js').catch(()=>{});
 if (location.protocol === 'file:') {
     showNotice('⚠️ تنبيه: تم فتح الصفحة كملف محلي (file:///). ميزات العمل بدون إنترنت والـ PWA تتطلب تشغيل خادم محلي مثل Live Server (http://localhost) أو نطاق https.', 'error');
 }
+updateServerBadge();
 validateSession();
 </script>
 </body>

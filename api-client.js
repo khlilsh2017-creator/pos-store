@@ -1,6 +1,6 @@
 /* ============================================================
  * api-client.js — نظام Failover مركزي
- * الإصدار: 1.0.1
+ * الإصدار: 1.0.2
  * ============================================================ */
 (function () {
     'use strict';
@@ -10,18 +10,27 @@
     // ═══════════════════════════════════════════════════════════
     const API_ENDPOINTS = [
         'https://api.ibnalmukhtar.com',   // الأساسي — مباشر
-        'https://api2.ibnalmukhtar.com'    // الاحتياطي — عبر الوسيط
+        'https://api2.ibnalmukhtar.com'    // الاحتياطي — عبر الخادم البديل
     ];
+
+    function extractHostname(u) {
+        try { return new URL(u).hostname; } catch (_) { return u.replace(/^https?:\/\//, '').split('/')[0]; }
+    }
 
     const PROTECTED_DOMAINS = [
-        'api.ibnalmukhtar.com',
-        'go3.ibnalmukhtar.com'
+        ...new Set([
+            ...API_ENDPOINTS.map(extractHostname),
+            'api.ibnalmukhtar.com',
+            'api2.ibnalmukhtar.com',
+            'go3.ibnalmukhtar.com'
+        ])
     ];
 
-    const REQUEST_TIMEOUT_MS = 8000;
-    const WRITE_REQUEST_TIMEOUT_MS = 25000;
-    const HEALTH_CHECK_INTERVAL_MS = 60000;
-    const STORAGE_KEY = '_apiEndpointIndex_v3';  // ← مفتاح جديد
+    const REQUEST_TIMEOUT_MS = 6000;         // مهلة طلبات القراءة (6 ثوانٍ)
+    const AUTH_REQUEST_TIMEOUT_MS = 6000;    // مهلة طلبات تسجيل الدخول والتحقق (6 ثوانٍ للتحويل السريع للبديل)
+    const WRITE_REQUEST_TIMEOUT_MS = 15000;  // مهلة عمليات الكتابة الحساسة (15 ثانية)
+    const HEALTH_CHECK_INTERVAL_MS = 60000;  // فحص عودة السيرفر الأساسي كل دقيقة
+    const STORAGE_KEY = '_apiEndpointIndex_v3';
 
     // ═══════════════════════════════════════════════════════════
     // 2. الحالة الداخلية
@@ -66,8 +75,15 @@
         const errors = [];
         const startIndex = activeIndex;
         const method = String(init.method || 'GET').toUpperCase();
-        const isWriteRequest = !['GET', 'HEAD', 'OPTIONS'].includes(method);
-        const timeoutMs = isWriteRequest ? WRITE_REQUEST_TIMEOUT_MS : REQUEST_TIMEOUT_MS;
+        
+        // التحقق مما إذا كان الطلب مصادقة (تسجيل دخول/تحقق)
+        const isAuth = pathWithQuery.startsWith('/auth/') || pathWithQuery.includes('auth/login');
+        // طلبات القراءة أو المصادقة آمنة ولا تسبب تكرار حركات مالية
+        const isSafeRequest = ['GET', 'HEAD', 'OPTIONS'].includes(method) || isAuth;
+        const isWriteRequest = !isSafeRequest;
+        
+        // مهلة مخصصة: طلبات الدخول سريعة (6s) للانتقال الفوري للبديل دون تجميد الواجهة
+        const timeoutMs = isAuth ? AUTH_REQUEST_TIMEOUT_MS : (isWriteRequest ? WRITE_REQUEST_TIMEOUT_MS : REQUEST_TIMEOUT_MS);
 
         for (let attempt = 0; attempt < API_ENDPOINTS.length; attempt++) {
             const idx = (startIndex + attempt) % API_ENDPOINTS.length;
@@ -82,22 +98,24 @@
                 const res = await originalFetch(targetUrl, finalInit);
                 clearTimeout(timeoutId);
 
-                // ═══ 5xx = فشل → المتابعة للتالي (لطلبات القراءة أو 502/503/504 قبل التنفيذ) ═══
+                // ═══ 5xx = فشل السيرفر → المتابعة للتالي ═══
                 if (res.status >= 500 && res.status < 600) {
                     errors.push(`${base}: HTTP ${res.status}`);
-                    if (isWriteRequest && res.status === 500) {
-                        // خطأ 500 من داخل السيرفر في عملية كتابة لا ينبغي إعادته لنقطة اتصال ثانية لنفس قاعدة البيانات
+                    if (isWriteRequest && res.status === 500 && !isAuth) {
                         return res;
                     }
                     console.warn(`❌ [api-client] ${base} → HTTP ${res.status} — المتابعة للتالي`);
                     continue;
                 }
 
-                // نجاح (2xx, 3xx, 4xx)
+                // نجاح (2xx, 3xx, 4xx) → حفظ النقطة الناجحة كنقطة نشطة
                 if (activeIndex !== idx) {
                     const previousBase = API_ENDPOINTS[activeIndex];
                     activeIndex = idx;
-                    try { localStorage.setItem(STORAGE_KEY, String(idx)); } catch (_) {}
+                    try {
+                        localStorage.setItem(STORAGE_KEY, String(idx));
+                        localStorage.setItem('posApiBase', API_ENDPOINTS[idx]);
+                    } catch (_) {}
                     console.log(`🔄 [api-client] التبديل من ${previousBase} إلى ${base}`);
                     try {
                         dispatchEvent(new CustomEvent('api-endpoint-changed', {
@@ -112,7 +130,9 @@
                 const isTimeout = err && err.name === 'AbortError';
                 const reason = isTimeout ? 'timeout' : (err && err.message) || 'unknown';
                 errors.push(`${base}: ${reason}`);
-                if (isWriteRequest && isTimeout) {
+
+                // لا نوقف التبديل أبداً في طلبات الدخول أو القراءة
+                if (isWriteRequest && isTimeout && !isAuth) {
                     console.warn(`⚠️ [api-client] انتهت مهلة عملية الكتابة على ${base} (${timeoutMs}ms) — إيقاف إعادة الإرسال المزدوج لنقطة احتياطية لمنع التكرار`);
                     break;
                 }
@@ -189,7 +209,10 @@
                 console.log('✅ [api-client] الأساسي رجع يعمل — العودة إليه');
                 const previousBase = API_ENDPOINTS[activeIndex];
                 activeIndex = 0;
-                try { localStorage.setItem(STORAGE_KEY, '0'); } catch (_) {}
+                try {
+                    localStorage.setItem(STORAGE_KEY, '0');
+                    localStorage.setItem('posApiBase', API_ENDPOINTS[0]);
+                } catch (_) {}
                 dispatchEvent(new CustomEvent('api-endpoint-recovered', {
                     detail: { from: previousBase, to: API_ENDPOINTS[0] }
                 }));
@@ -203,27 +226,58 @@
     }
 
     // ═══════════════════════════════════════════════════════════
-    // 7. واجهة API عامة
+    // 7. واجهة API عامة (متوافقة مع ApiClient و apiClient)
     // ═══════════════════════════════════════════════════════════
-    window.ApiClient = {
+    const apiClientObj = {
         endpoints: API_ENDPOINTS.slice(),
         getActive: () => API_ENDPOINTS[activeIndex],
         getActiveIndex: () => activeIndex,
+        get baseUrl() {
+            return API_ENDPOINTS[activeIndex];
+        },
+        setActiveIndex: (idx) => {
+            const num = Number(idx);
+            if (Number.isInteger(num) && num >= 0 && num < API_ENDPOINTS.length) {
+                const prev = API_ENDPOINTS[activeIndex];
+                activeIndex = num;
+                try {
+                    localStorage.setItem(STORAGE_KEY, String(num));
+                    localStorage.setItem('posApiBase', API_ENDPOINTS[num]);
+                } catch (_) {}
+                console.log(`🔄 [api-client] تم التبديل يدوياً إلى: ${API_ENDPOINTS[num]}`);
+                try {
+                    dispatchEvent(new CustomEvent('api-endpoint-changed', {
+                        detail: { from: prev, to: API_ENDPOINTS[num], index: num }
+                    }));
+                } catch (_) {}
+            }
+        },
+        toggleEndpoint: () => {
+            const nextIdx = (activeIndex + 1) % API_ENDPOINTS.length;
+            apiClientObj.setActiveIndex(nextIdx);
+            return API_ENDPOINTS[nextIdx];
+        },
         reset: () => {
             activeIndex = 0;
-            try { localStorage.setItem(STORAGE_KEY, '0'); } catch (_) {}
+            try {
+                localStorage.setItem(STORAGE_KEY, '0');
+                localStorage.setItem('posApiBase', API_ENDPOINTS[0]);
+            } catch (_) {}
         },
         fetch: (path, init) => fetchWithFailover(path, init),
-        version: '1.0.1'
+        version: '1.0.2'
     };
 
+    window.ApiClient = apiClientObj;
+    window.apiClient = apiClientObj;
+
     // ═══════════════════════════════════════════════════════════
-    // 8. بدء
+    // 8. بدء التشغيل
     // ═══════════════════════════════════════════════════════════
     if (!isInitialized) {
         isInitialized = true;
         startHealthMonitor();
-        console.log(`✅ [api-client v1.0.1] مُفعّل. النقطة النشطة: ${API_ENDPOINTS[activeIndex]}`);
+        console.log(`✅ [api-client v1.0.2] مُفعّل. النقطة النشطة: ${API_ENDPOINTS[activeIndex]}`);
         console.log(`📋 الترتيب: ${API_ENDPOINTS.join(' → ')}`);
     }
 })();
