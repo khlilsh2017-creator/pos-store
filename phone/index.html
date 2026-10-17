@@ -11,24 +11,26 @@
 :root{--navy:#123b72;--blue:#1d63c6;--bg:#f2f7fd;--card:#fff;--text:#152238;--muted:#718096;--line:#e2e8f0;--red:#c93232;--shadow:0 12px 34px rgba(18,59,114,.12);--safe-top:env(safe-area-inset-top,0px);--safe-bottom:env(safe-area-inset-bottom,0px)}*{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:Cairo,Arial,sans-serif;background:linear-gradient(160deg,#eaf3ff,#f9fbfe);color:var(--text)}body{padding:calc(20px + var(--safe-top)) 14px calc(20px + var(--safe-bottom))}.shell{width:min(100%,470px);margin:auto}.brand{text-align:center;margin:14px 0 18px}.logo{width:72px;height:72px;margin:auto;display:grid;place-items:center;border-radius:24px;background:linear-gradient(135deg,var(--navy),var(--blue));color:#fff;font-size:2rem;box-shadow:0 9px 22px rgba(29,99,198,.25)}h1{font-size:1.3rem;margin:12px 0 3px;font-weight:800}.subtitle{font-size:.75rem;color:var(--muted);margin:0;line-height:1.8}.card{background:var(--card);border:1px solid var(--line);border-radius:24px;box-shadow:var(--shadow);padding:20px 17px}.card h2{font-size:1rem;margin:0 0 3px}.card .hint{font-size:.7rem;color:var(--muted);margin:0 0 14px}.notice{display:none;padding:10px 11px;border-radius:11px;font-size:.73rem;margin:8px 0}.notice.show{display:block}.notice.error{background:#fff0f0;color:#a62323}.notice.success{background:#effbf3;color:#146b35}.field{margin:10px 0}.field label{display:block;font-size:.72rem;font-weight:700;margin-bottom:5px}.input{width:100%;min-height:47px;border:1px solid var(--line);border-radius:12px;padding:9px 11px;font:inherit;outline:0}.input:focus{border-color:var(--blue);box-shadow:0 0 0 3px #dbeafe}.btn{width:100%;min-height:47px;border:0;border-radius:12px;font:inherit;font-weight:800;cursor:pointer}.primary{background:var(--blue);color:#fff;margin-top:6px}.secondary{background:#edf4ff;color:#1557a3}.ghost{background:#eef2f7;color:#415267}.actions{display:grid;gap:9px;margin-top:15px}.apps{display:grid;gap:9px;margin-top:12px}.app-btn{display:flex;align-items:center;gap:11px;text-align:right;padding:11px;border:1px solid var(--line);border-radius:14px;background:#fff;color:var(--text);cursor:pointer;font:inherit}.app-btn strong{display:block;font-size:.78rem}.app-btn small{display:block;color:var(--muted);font-size:.64rem;margin-top:2px}.app-icon{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:#eaf3ff;color:var(--blue);font-size:1.2rem}.session{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 10px;background:#effbf3;border-radius:12px;color:#146b35;font-size:.72rem}.session button{border:0;background:transparent;color:var(--red);font:inherit;font-size:.68rem;cursor:pointer}.footer{text-align:center;color:var(--muted);font-size:.65rem;margin-top:14px}@media(min-width:600px){body{padding-top:40px}}
 </style>
 <script src="/api-client.js?v=1.0.3"></script>
+    <script src="/login-helper.js?v=1.0.0"></script>
     <script src="/offline-sync.js"></script>
 </head>
 <body>
 <main class="shell">
   <header class="brand"><div class="logo">⌂</div><h1>تطبيق POS للجوال</h1><p class="subtitle">تسجيل دخول واحد للوصول إلى إنشاء الطلبات<br>وإدارة طلبات الإنترنت</p></header>
   <section class="card" id="loginCard">
-    <h2>تسجيل الدخول</h2><p class="hint">صفحة دخول احتياطية مشتركة لتطبيقَي الجوال</p>
-    <div id="serverBadge" style="display:flex;align-items:center;justify-content:space-between;background:#eef4ff;border:1px solid #c7dcff;border-radius:12px;padding:8px 12px;margin:0 0 12px;font-size:0.75rem;">
-      <span style="display:flex;align-items:center;gap:6px;">
-        <span id="serverDot" style="width:8px;height:8px;border-radius:50%;background:#16a34a;display:inline-block;"></span>
-        <span>الخادم: <strong id="serverNameLabel">جاري الفحص...</strong></span>
-      </span>
-      <button type="button" id="btnSwitchServer" onclick="switchServerManual()" style="border:none;background:#1d63c6;color:#fff;border-radius:8px;padding:4px 10px;font-size:0.7rem;font-weight:700;cursor:pointer;font-family:inherit;">تبديل الخادم</button>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+      <h2 style="margin:0;">تسجيل الدخول</h2>
+      <button type="button" onclick="LoginHelper?.openSettingsModal()" style="border:none;background:#edf4ff;color:#123b72;border-radius:10px;padding:6px 10px;font-size:0.75rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:4px;">
+        <span>⚙️ إعدادات الخادم</span>
+      </button>
     </div>
+    <p class="hint">صفحة دخول احتياطية مشتركة لتطبيقَي الجوال</p>
+    <div id="savedAccountsBox"></div>
     <div id="notice" class="notice"></div>
     <form id="loginForm">
       <div class="field"><label for="username">اسم المستخدم</label><input class="input" id="username" autocomplete="username" required placeholder="أدخل اسم المستخدم"></div>
       <div class="field"><label for="password">كلمة المرور</label><input class="input" id="password" type="password" autocomplete="current-password" required placeholder="أدخل كلمة المرور"></div>
+      <div id="rememberMeBox"></div>
       <div class="actions"><button class="btn primary" id="loginBtn" type="submit">تسجيل الدخول</button><button class="btn ghost" id="btn-goto-main-login" type="button" onclick="goToMain()">العودة إلى النظام الرئيسي</button></div>
     </form>
   </section>
@@ -186,6 +188,15 @@ async function validateSession() {
   }
 }
 
+const lh = window.LoginHelper?.init({
+  pageType: 'pos',
+  usernameInputId: 'username',
+  passwordInputId: 'password',
+  savedAccountsContainerId: 'savedAccountsBox',
+  rememberContainerId: 'rememberMeBox',
+  settingsButtonTarget: '.shell'
+});
+
 $('loginForm').addEventListener('submit', async e => {
   e.preventDefault();
   if (isLoggingIn) return;
@@ -194,53 +205,43 @@ $('loginForm').addEventListener('submit', async e => {
   btn.disabled = true;
   btn.textContent = 'جارٍ التحقق...';
 
-  let currentBase = getApi();
-  let res = null;
-  let data = {};
+  const username = $('username').value.trim();
+  const password = $('password').value;
 
   try {
-    try {
-      res = await fetch(currentBase + '/auth/login', {
+    let result = null;
+    if (window.LoginHelper?.loginWithFailover) {
+      result = await window.LoginHelper.loginWithFailover({ username, password, pageName: 'phone/index.html' });
+    } else {
+      const res = await fetch(getApi() + '/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Page-Name': 'phone/index.html' },
-        body: JSON.stringify({ username: $('username').value.trim(), password: $('password').value })
+        body: JSON.stringify({ username, password })
       });
-      data = await res.json().catch(() => ({}));
-    } catch (networkErr) {
-      console.warn(`⚠️ فشل الاتصال بـ ${currentBase}:`, networkErr.message);
+      const data = await res.json().catch(() => ({}));
+      result = { ok: res.ok && Boolean(data?.token), data, res, error: data?.error };
     }
 
-    // Failover تلقائي إذا تعذر الاتصال بالأساسي أو أعاد 5xx
-    if ((!res || (res.status >= 500 && res.status < 600)) && !currentBase.includes('api2')) {
-      const backupBase = BACKUP_API;
-      console.log('🔄 المحاولة التلقائية على الخادم الاحتياطي:', backupBase);
-      try {
-        const backupRes = await fetch(backupBase + '/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-Page-Name': 'phone/index.html' },
-          body: JSON.stringify({ username: $('username').value.trim(), password: $('password').value })
-        });
-        if (backupRes) {
-          res = backupRes;
-          data = await backupRes.json().catch(() => ({}));
-          if (res.ok) {
-            localStorage.setItem('_apiEndpointIndex_v3', '1');
-            localStorage.setItem('posApiBase', backupBase);
-            if (window.apiClient?.setActiveIndex) window.apiClient.setActiveIndex(1);
-            updateServerBadge();
-          }
-        }
-      } catch (backupErr) {
-        console.warn('⚠️ فشل الاحتياطي أيضاً:', backupErr.message);
-      }
+    if (!result.ok || !result.data?.token) {
+      throw Error(result.error || 'بيانات الدخول غير صحيحة');
     }
 
-    if (!res) throw Error('تعذر الاتصال بجميع الخوادم، تأكد من اتصال الإنترنت أو استخدم زر تبديل الخادم');
-    if (!res.ok || !data.token) throw Error(data.error || 'بيانات الدخول غير صحيحة');
-
+    const data = result.data;
     token = data.token;
     localStorage.setItem('pos_token', token);
     localStorage.setItem('pos_user', JSON.stringify(data.user || {}));
+
+    // حفظ المستخدم في قائمة الحسابات إذا كان "تذكرني" محدداً
+    if (lh?.isRememberChecked()) {
+      window.LoginHelper?.saveAccount({
+        username,
+        password,
+        name: data.user?.name || data.user?.username,
+        role: data.user?.role || 'مستخدم POS'
+      }, 'pos');
+      lh?.renderSavedAccounts();
+    }
+
     const target = nextPage();
     if (target) location.href = target;
     else showSession(data.user || {});
@@ -255,7 +256,7 @@ $('loginForm').addEventListener('submit', async e => {
 });
 
 if ('serviceWorker' in navigator && (location.protocol === 'http:' || location.protocol === 'https:')) {
-  navigator.serviceWorker.register('sw_phone.js?v=17').then(reg => {
+  navigator.serviceWorker.register('sw_phone.js?v=18').then(reg => {
     reg.update().catch(() => {});
   }).catch(() => {});
 }

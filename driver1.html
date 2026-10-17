@@ -221,6 +221,7 @@
     </div>
 
     <script src="api-client.js"></script>
+    <script src="login-helper.js?v=1.0.0"></script>
     <script>
         // =============================================================
         // 1. إعدادات API والتخزين المحلي
@@ -760,6 +761,11 @@ const registration = await navigator.serviceWorker.register('./sw.js', { scope: 
 }
 
         async function login(username, password) {
+            if (window.LoginHelper?.loginWithFailover) {
+                const res = await window.LoginHelper.loginWithFailover({ username, password, pageName: 'driver1.html' });
+                if (!res.ok) throw new Error(res.error || 'فشل تسجيل الدخول');
+                return res.data;
+            }
             const res = await fetch(`${API_BASE}/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -2101,24 +2107,38 @@ function useLocalOrdersForDashboard() {
         function showLoginScreen() {
             document.getElementById('pageTitle').textContent = '🚚 تسجيل الدخول';
             document.getElementById('mainContent').innerHTML = `
-                <div  class="sync-status hidden">
+                <div class="sync-status hidden">
                     <span>🔄 جاري المزامنة...</span>
-                    <span class="sync-count" >0</span>
+                    <span class="sync-count">0</span>
                     <span>عملية معلقة</span>
                 </div>
-                <div style="padding:30px 20px; text-align:center;">
-                    <div style="font-size:4rem;">🚚</div>
+                <div style="padding:24px 18px; text-align:center; position:relative;">
+                    <button type="button" class="lh-settings-btn" onclick="LoginHelper?.openSettingsModal()" title="إعدادات الخادم والاتصال" style="position:absolute;top:10px;left:10px;">
+                        <span style="font-size:1.1rem;">⚙️</span>
+                        <span class="lh-status-dot"></span>
+                    </button>
+                    <div style="font-size:3.5rem;">🚚</div>
                     <h2>منصة المندوبين</h2>
-                    <div style="text-align:right; margin-top:24px;">
+                    <div id="driver1SavedAccountsBox"></div>
+                    <div style="text-align:right; margin-top:16px;">
                         <label style="font-weight:600;">👤 اسم المستخدم</label>
                         <input id="loginUsername" placeholder="اسم المستخدم" style="width:100%; padding:14px; border:2px solid var(--border); border-radius:var(--radius-sm); margin:8px 0; background:var(--surface-secondary);">
                         <label style="font-weight:600;">🔒 كلمة المرور</label>
                         <input id="loginPassword" type="password" placeholder="كلمة المرور" style="width:100%; padding:14px; border:2px solid var(--border); border-radius:var(--radius-sm); margin:8px 0; background:var(--surface-secondary);">
+                        <div id="driver1RememberMeBox"></div>
                         <div id="loginError" style="color:var(--danger); font-size:0.8rem; margin:8px 0; display:none;"></div>
                         <button id="btn-driver-login" class="btn btn-primary" onclick="handleLogin()" style="width:100%; padding:15px; font-size:1rem;">🔑 دخول</button>
                     </div>
                 </div>`;
             updateSyncCounter();
+
+            window.driver1LoginHelper = window.LoginHelper?.init({
+                pageType: 'driver',
+                usernameInputId: 'loginUsername',
+                passwordInputId: 'loginPassword',
+                savedAccountsContainerId: 'driver1SavedAccountsBox',
+                rememberContainerId: 'driver1RememberMeBox'
+            });
         }
 
         async function handleLogin() {
@@ -2139,6 +2159,15 @@ function useLocalOrdersForDashboard() {
                     setToken(data.token);
                     setDriverId(data.user.id);
                     setDriverName(data.user.username);
+                    if (window.driver1LoginHelper?.isRememberChecked()) {
+                        window.LoginHelper?.saveAccount({
+                            username,
+                            password,
+                            name: data.user.name || data.user.username,
+                            role: 'مندوب توصيل'
+                        }, 'driver');
+                        window.driver1LoginHelper?.renderSavedAccounts();
+                    }
                     loadFilterSettings();
                     await loadDashboard();
                     if (navigator.onLine) await syncAllOperations();

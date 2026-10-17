@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-    <script src="../api-client.js"></script>  <!-- ⬅️ أضف هذا -->
+    <script src="/api-client.js?v=1.0.3"></script>
+    <script src="/login-helper.js?v=1.0.0"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging-compat.js"></script>
     <meta charset="UTF-8">
@@ -1711,6 +1712,11 @@
         }
 
         async function login(username, password) {
+            if (window.LoginHelper?.loginWithFailover) {
+                const res = await window.LoginHelper.loginWithFailover({ username, password, pageName: 'driver/index.html' });
+                if (!res.ok) throw new Error(res.error || 'فشل تسجيل الدخول');
+                return res.data;
+            }
             const res = await fetch(`${API_BASE}/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -3979,19 +3985,33 @@ function renderOrders(orders) {
                     <span class="sync-count" id="syncCount">0</span>
                     <span>عملية معلقة</span>
                 </div>
-                <div style="padding:30px 20px; text-align:center;">
-                    <div style="font-size:4rem;">🚚</div>
+                <div style="padding:24px 18px; text-align:center; position:relative;">
+                    <button type="button" class="lh-settings-btn" onclick="LoginHelper?.openSettingsModal()" title="إعدادات الخادم والاتصال" style="position:absolute;top:10px;left:10px;">
+                        <span style="font-size:1.1rem;">⚙️</span>
+                        <span class="lh-status-dot"></span>
+                    </button>
+                    <div style="font-size:3.5rem;">🚚</div>
                     <h2>منصة المندوبين</h2>
-                    <div style="text-align:right; margin-top:24px;">
+                    <div id="driverSavedAccountsBox"></div>
+                    <div style="text-align:right; margin-top:16px;">
                         <label style="font-weight:600;">👤 اسم المستخدم</label>
                         <input id="loginUsername" placeholder="اسم المستخدم" style="width:100%; padding:14px; border:2px solid var(--border); border-radius:var(--radius-sm); margin:8px 0; background:var(--surface-secondary);">
                         <label style="font-weight:600;">🔒 كلمة المرور</label>
                         <input id="loginPassword" type="password" placeholder="كلمة المرور" style="width:100%; padding:14px; border:2px solid var(--border); border-radius:var(--radius-sm); margin:8px 0; background:var(--surface-secondary);">
+                        <div id="driverRememberMeBox"></div>
                         <div id="loginError" style="color:var(--danger); font-size:0.8rem; margin:8px 0; display:none;"></div>
                         <button class="btn btn-primary" id="btn-driver-handle-login" onclick="handleLogin()" style="width:100%; padding:15px; font-size:1rem;">🔑 دخول</button>
                     </div>
                 </div>`;
             updateSyncCounter();
+
+            window.driverLoginHelper = window.LoginHelper?.init({
+                pageType: 'driver',
+                usernameInputId: 'loginUsername',
+                passwordInputId: 'loginPassword',
+                savedAccountsContainerId: 'driverSavedAccountsBox',
+                rememberContainerId: 'driverRememberMeBox'
+            });
         }
 
         async function handleLogin() {
@@ -4014,6 +4034,17 @@ function renderOrders(orders) {
                         setDriverId(data.user.id);
                         const driverRealName = data.user.name || data.user.driver_name || data.user.full_name;
                         setDriverName(data.user.username, driverRealName);
+
+                        if (window.driverLoginHelper?.isRememberChecked()) {
+                            window.LoginHelper?.saveAccount({
+                                username,
+                                password,
+                                name: driverRealName || username,
+                                role: 'مندوب توصيل'
+                            }, 'driver');
+                            window.driverLoginHelper?.renderSavedAccounts();
+                        }
+
                         loadFilterSettings();
                         await loadDashboard();
                         if (navigator.onLine) await syncAllOperations();

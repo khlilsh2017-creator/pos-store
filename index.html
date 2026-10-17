@@ -9,7 +9,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
 
     <!-- ===== مكتبات Firebase للإشعارات ===== -->
-     <script src="api-client.js"></script>  <!-- ⬅️ أضف هذا -->
+     <script src="api-client.js"></script>
+     <script src="login-helper.js?v=1.0.0"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js">
     </script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging-compat.js">
@@ -599,13 +600,19 @@
 <body>
 
     <!-- ===== شاشة تسجيل الدخول ===== -->
-    <div id="login-screen">
-        <div class="login-card">
+    <div id="login-screen" style="position:relative;">
+        <div class="login-card" style="position:relative;">
+            <button type="button" class="lh-settings-btn" onclick="LoginHelper?.openSettingsModal()" title="إعدادات الخادم والاتصال" style="position:absolute;top:16px;left:16px;">
+                <span style="font-size:1.1rem;">⚙️</span>
+                <span class="lh-status-dot"></span>
+            </button>
             <div class="logo">🏠</div>
             <h2>النظام المحاسبي</h2>
             <div class="sub" id="login-shop-name">ابن المختار للأدوات المنزلية</div>
+            <div id="posSavedAccountsBox"></div>
             <input type="text" id="login-username" class="input-field" placeholder="اسم المستخدم" autocomplete="username" />
             <input type="password" id="login-password" class="input-field" placeholder="كلمة المرور" autocomplete="current-password" />
+            <div id="posRememberMeBox"></div>
             <button id="login-btn" class="btn" onclick="attemptLogin()"><i class="fas fa-sign-in-alt"></i> دخول</button>
             <div id="login-error" class="error"></div>
         </div>
@@ -1081,10 +1088,24 @@
         // ================================================================
         //  5. المصادقة
         // ================================================================
+        let posLoginHelper = null;
+        function initPosLoginHelper() {
+            if (posLoginHelper) return;
+            posLoginHelper = window.LoginHelper?.init({
+                pageType: 'pos',
+                usernameInputId: 'login-username',
+                passwordInputId: 'login-password',
+                savedAccountsContainerId: 'posSavedAccountsBox',
+                rememberContainerId: 'posRememberMeBox',
+                settingsButtonTarget: '#login-screen .login-card'
+            });
+        }
+
         async function attemptLogin() {
             const username = document.getElementById('login-username').value.trim();
             const password = document.getElementById('login-password').value.trim();
             const errorEl = document.getElementById('login-error');
+            const loginBtn = document.getElementById('login-btn');
 
             if (!username || !password) {
                 errorEl.textContent = 'يرجى إدخال اسم المستخدم وكلمة المرور';
@@ -1099,7 +1120,6 @@
                         currentUser = JSON.parse(savedUser);
                         token = localStorage.getItem('pos_token') || 'offline-token';
                         showApp();
-                        // تفعيل الإشعارات في وضع غير متصل (قد لا تعمل لكن نحاول)
                         registerAdminNotifications();
                         showToast('✅ تم الدخول في وضع عدم الاتصال', 'info');
                         return;
@@ -1111,18 +1131,39 @@
             }
 
             try {
-                const res = await fetch(`${API}/auth/login`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, password })
-                });
-                const data = await res.json().catch(() => ({}));
+                if (loginBtn) { loginBtn.disabled = true; loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التحقق...'; }
 
-                if (res.ok) {
+                let result = null;
+                if (window.LoginHelper?.loginWithFailover) {
+                    result = await window.LoginHelper.loginWithFailover({ username, password, pageName: 'index.html' });
+                } else {
+                    const res = await fetch(`${API}/auth/login`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username, password })
+                    });
+                    const data = await res.json().catch(() => ({}));
+                    result = { ok: res.ok && Boolean(data?.token), data, res, error: data?.error };
+                }
+
+                if (result.ok && result.data?.token) {
+                    const data = result.data;
                     token = data.token;
                     currentUser = data.user;
                     localStorage.setItem('pos_token', token);
                     localStorage.setItem('pos_user', JSON.stringify(currentUser));
+
+                    // حفظ المستخدم في قائمة الحسابات إذا كان "تذكرني" محدداً
+                    if (posLoginHelper?.isRememberChecked()) {
+                        window.LoginHelper?.saveAccount({
+                            username,
+                            password,
+                            name: currentUser.name || currentUser.username,
+                            role: currentUser.role || 'مدير'
+                        }, 'pos');
+                        posLoginHelper?.renderSavedAccounts();
+                    }
+
                     const returnTo = new URLSearchParams(window.location.search).get('return');
                     if (returnTo === 'orders.html') {
                         window.location.replace('orders.html');
@@ -1131,15 +1172,16 @@
                     showApp();
                     if (window.POSPermissions?.refresh) window.POSPermissions.refresh();
                     showToast('✅ تم تسجيل الدخول بنجاح', 'success');
-                    // ===== تفعيل إشعارات الإدارة =====
                     registerAdminNotifications();
                 } else {
-                    errorEl.textContent = data.error || 'خطأ في اسم المستخدم أو كلمة المرور';
+                    errorEl.textContent = result.error || 'خطأ في اسم المستخدم أو كلمة المرور';
                     errorEl.style.display = 'block';
                 }
             } catch (err) {
-                errorEl.textContent = 'فشل الاتصال بالخادم';
+                errorEl.textContent = 'فشل الاتصال بالخادم: ' + (err.message || '');
                 errorEl.style.display = 'block';
+            } finally {
+                if (loginBtn) { loginBtn.disabled = false; loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> دخول'; }
             }
         }
 
@@ -1594,6 +1636,7 @@ messaging.onMessage((payload) => {
                 registerAdminNotifications();
             } else {
                 document.getElementById('login-screen').style.display = 'flex';
+                initPosLoginHelper();
             }
 
             document.addEventListener('keydown', (e) => {

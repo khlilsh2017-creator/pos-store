@@ -10,7 +10,7 @@ try {
   }
 }
 
-const CACHE_NAME = 'pos-phone-shell-v17-switch-fix';
+const CACHE_NAME = 'pos-phone-shell-v18-login-upgrade';
 
 // قائمة الملفات الثابتة لضمان العمل بدون اتصال (تشمل صفحات الجوال)
 const STATIC_FILES = [
@@ -20,6 +20,7 @@ const STATIC_FILES = [
   '/phone/manifest.json',
   '/phone/sw_phone.js',
   '/api-client.js',
+  '/login-helper.js',
   '/offline-sw-core.js',
   '/offline-sync.js',
   '/date-utils.js',
@@ -65,8 +66,8 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // 1.5. استثناء خاص لـ api-client.js: استراتيجية Network-First دائماً لضمان الحصول على أحدث منطق للاتصال
-  if (url.pathname.includes('api-client.js')) {
+  // 1.5. استثناء خاص لـ api-client.js و login-helper.js: استراتيجية Network-First دائماً
+  if (url.pathname.includes('api-client.js') || url.pathname.includes('login-helper.js')) {
     event.respondWith(
       fetch(request)
         .then(response => {

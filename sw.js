@@ -51,6 +51,8 @@ const STATIC_ASSETS = [
     '/phone/sw_phone.js',
 
     // ===== ملفات JavaScript الأساسية =====
+    '/api-client.js',
+    '/login-helper.js',
     '/db.js',
     '/offline-sw-core.js',
     '/offline-sync.js',
