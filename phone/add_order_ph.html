@@ -2249,14 +2249,39 @@
                 const customInput = document.getElementById('modal-custom-governorate');
                 if (customInput) customInput.value = '';
 
-                // 3. التبديل التلقائي لنوع التوصيل
+                // 3. التبديل التلقائي لنوع التوصيل + طريقة الدفع + ملء العنوان
                 if (!deliveryTypeSelect) return;
 
+                const paymentSelect = document.getElementById('payment-method');
+                const addressInput = document.getElementById('modal-address');
+
                 if (val === 'صنعاء') {
+                    // داخل صنعاء → الدفع عند الاستلام
                     deliveryTypeSelect.value = 'داخل صنعاء';
+                    if (paymentSelect && paymentSelect.value !== 'عند الاستلام') {
+                        paymentSelect.value = 'عند الاستلام';
+                        if (typeof handlePaymentMethodChange === 'function') handlePaymentMethodChange();
+                    }
+                    // إذا كان العنوان مساوياً لاسم محافظة سابقة، يتم تفريغه لتسهيل كتابة عنوان صنعاء التفصيلي
+                    if (addressInput && (YEMEN_GOVERNORATES_FULL.includes(addressInput.value.trim()) || getSavedCustomGovernorates().includes(addressInput.value.trim()))) {
+                        addressInput.value = '';
+                    }
                 } else if (val) {
+                    // محافظات أخرى → الدفع المسبق عبر المحفظة
                     deliveryTypeSelect.value = 'محافظات أخرى';
+                    if (paymentSelect && paymentSelect.value !== 'مدفوع مسبقاً (محفظة)') {
+                        paymentSelect.value = 'مدفوع مسبقاً (محفظة)';
+                        if (typeof handlePaymentMethodChange === 'function') handlePaymentMethodChange();
+                        if (typeof showToast === 'function') {
+                            showToast('💳 تم التحويل تلقائياً إلى الدفع المسبق', 'info');
+                        }
+                    }
+                    // ملء حقل العنوان تلقائياً باسم المحافظة المحددة
+                    if (addressInput) {
+                        addressInput.value = val;
+                    }
                 } else {
+                    // لا محافظة محددة → افتراضي: داخل صنعاء
                     deliveryTypeSelect.value = 'داخل صنعاء';
                 }
             } finally {
@@ -3305,9 +3330,11 @@
             populateGovernorateSelect(gov);
             onGovernorateChange();
 
-            // 4. العنوان (لا تغيير)
+            // 4. العنوان
             const address = customer.address || customer.default_address || '';
-            setElementValue('modal-address', address);
+            if (address) {
+                setElementValue('modal-address', address);
+            }
 
             // 5. نوع التوصيل
             const dtValue = customer.delivery_type || customer.deliveryType || 'داخل صنعاء';
@@ -3396,11 +3423,14 @@
             if (selectedCustomerData) {
                 setElementValue('modal-mainPhone', selectedCustomerData.mainPhone || '');
                 setElementValue('modal-customerName', selectedCustomerData.name || '');
-                setElementValue('modal-address', selectedCustomerData.address || '');
-
                 // ضبط المحافظة بعد بناء القائمة
                 populateGovernorateSelect(selectedCustomerData.governorate || 'صنعاء');
                 onGovernorateChange();
+
+                // ضبط العنوان (إذا كان محفوظاً نثبته، وإلا يحتفظ باسم المحافظة تلقائياً)
+                if (selectedCustomerData.address) {
+                    setElementValue('modal-address', selectedCustomerData.address);
+                }
 
                 // ضبط نوع التوصيل
                 setElementValue('modal-deliveryType', selectedCustomerData.deliveryType || 'داخل صنعاء');
@@ -3499,9 +3529,6 @@
                 return;
             }
 
-            const address = document.getElementById('modal-address')?.value.trim();
-            if (!address) { showToast('العنوان مطلوب', 'warning'); return; }
-
             // ✅ تطبيع الأرقام الإضافية والتحقق منها
             const extraInputs = document.querySelectorAll('#modal-extraPhonesContainer .modal-extra-phone');
             const extraPhones = [];
@@ -3542,6 +3569,13 @@
                 showToast('⚠️ المحافظة مطلوبة', 'warning');
                 return;
             }
+
+            let address = document.getElementById('modal-address')?.value.trim();
+            if (!address && finalGovernorate && finalGovernorate !== 'صنعاء') {
+                address = finalGovernorate;
+                setElementValue('modal-address', address);
+            }
+            if (!address) { showToast('العنوان مطلوب', 'warning'); return; }
 
             const deliveryTypeVal = document.getElementById('modal-deliveryType')?.value || 'داخل صنعاء';
 
