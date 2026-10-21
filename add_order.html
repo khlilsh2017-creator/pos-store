@@ -1542,7 +1542,7 @@
 
             selectedCustomerData = {
                 mainPhone: mainPhone,
-                name: document.getElementById('modal-customerName')?.value.trim() || '',
+                name: document.getElementById('modal-customerName')?.value.trim() || 'عميل عام',
                 governorate: document.getElementById('modal-governorate')?.value || 'صنعاء',
                 address: address,
                 deliveryType: document.getElementById('modal-deliveryType')?.value || 'داخل صنعاء',
@@ -2607,7 +2607,7 @@
             }));
 
             const payload = {
-                customer_name: selectedCustomerData.name || undefined,
+                customer_name: (selectedCustomerData.name && selectedCustomerData.name.trim()) ? selectedCustomerData.name.trim() : 'عميل عام',
                 customer_phones: uniquePhones,
                 customer_address: address,
                 governorate: selectedCustomerData.governorate || 'صنعاء',
@@ -2727,7 +2727,7 @@
                 }));
 
                 const payload = {
-                    customer_name: selectedCustomerData.name || undefined,
+                    customer_name: (selectedCustomerData.name && selectedCustomerData.name.trim()) ? selectedCustomerData.name.trim() : 'عميل عام',
                     customer_phones: uniquePhones,
                     customer_address: address,
                     governorate: selectedCustomerData.governorate || 'صنعاء',

@@ -1,4 +1,4 @@
-// ==================== worker.js (المعدل بالكامل) ====================
+﻿// ==================== worker.js (المعدل بالكامل) ====================
 import { createClient } from '@libsql/client/web';
 
 // ==================== المتغيرات العامة والأمان ====================
@@ -10144,7 +10144,9 @@ async function createOnlineOrder(request, env, ctx, headers, userId) {
     order_date
   } = await request.json();
 
-  // --- التحقق من البيانات الأساسية ---
+  customer_name = (customer_name && String(customer_name).trim()) ? String(customer_name).trim() : 'عميل عام';
+
+  // التحقق من البيانات الأساسية ---
   if (!customer_phones || !Array.isArray(customer_phones) || customer_phones.length === 0) {
     return jsonResponse({ error: 'رقم هاتف واحد على الأقل مطلوب' }, 400, headers);
   }

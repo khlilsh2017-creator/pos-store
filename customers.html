@@ -1448,8 +1448,8 @@
             <div class="modal-title" id="modal-customer-title"><i class="fas fa-user-plus"></i> إضافة عميل جديد</div>
             <form id="customer-form" onsubmit="saveCustomer(event)">
                 <div class="input-group" style="margin-bottom:12px;">
-                    <label>الاسم <span class="required">*</span></label>
-                    <input type="text" id="c-name" class="input-field" required placeholder="أدخل اسم العميل" />
+                    <label>الاسم (اختياري)</label>
+                    <input type="text" id="c-name" class="input-field" placeholder="أدخل اسم العميل (اختياري)" />
                 </div>
                 <div class="flex-row" style="margin-bottom:12px;">
                     <div class="flex-1">
@@ -1981,7 +1981,7 @@
                 address: document.getElementById('c-address').value.trim(),
                 initial_balance: parseFloat(document.getElementById('c-initial-balance').value) || 0
             };
-            if (!body.name) return showToast('الاسم مطلوب', 'warning');
+            if (!body.name) body.name = body.phone ? `عميل ${body.phone}` : 'عميل عام';
             const btn = document.getElementById('btn-save-customer');
             isSavingCustomer = true;
             if (btn) {

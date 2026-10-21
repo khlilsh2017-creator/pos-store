@@ -1,0 +1,3183 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#123b72">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="إدارة المندوبين">
+<title>إدارة المندوبين - ابن المختار</title>
+
+<link rel="manifest" href="manifest_drivers.json">
+<link rel="apple-touch-icon" href="/icon-192x192.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+<!-- Core Architecture Scripts -->
+<script src="/api-client.js?v=1.0.3"></script>
+<script src="/login-helper.js?v=1.0.0"></script>
+<script src="../date-utils.js"></script>
+<script src="../number-utils.js"></script>
+<script src="../permissions.js"></script>
+<script src="../document-utils.js?v=20261015-1"></script>
+<script src="../offline-sync.js"></script>
+
+<style>
+:root {
+  --navy: #123b72;
+  --navy-dark: #0a254a;
+  --blue: #1d63c6;
+  --blue-light: #3b82f6;
+  --sky: #eaf3ff;
+  --bg: #f3f6fa;
+  --card: #ffffff;
+  --text: #0f172a;
+  --muted: #64748b;
+  --line: #e2e8f0;
+  --green: #10b981;
+  --green-dark: #059669;
+  --green-bg: #ecfdf5;
+  --red: #ef4444;
+  --red-dark: #dc2626;
+  --red-bg: #fef2f2;
+  --amber: #f59e0b;
+  --amber-bg: #fffbeb;
+  --purple: #8b5cf6;
+  --purple-bg: #f5f3ff;
+  --shadow-sm: 0 2px 6px rgba(18,59,114,.06);
+  --shadow: 0 8px 24px rgba(18,59,114,.08);
+  --shadow-lg: 0 16px 36px rgba(18,59,114,.13);
+  --radius-sm: 10px;
+  --radius: 16px;
+  --radius-lg: 22px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+  font-family: 'Cairo', system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  overflow-x: hidden;
+}
+
+body {
+  padding-bottom: calc(75px + var(--safe-bottom));
+}
+
+button, input, select, textarea {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+  border: 0;
+  outline: 0;
+}
+
+/* App Header & Topbar */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background: linear-gradient(135deg, var(--navy-dark) 0%, var(--navy) 60%, var(--blue) 100%);
+  color: #fff;
+  padding: calc(10px + var(--safe-top)) 14px 12px;
+  box-shadow: 0 4px 20px rgba(10,37,74,.25);
+}
+
+.topbar-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brand-col {
+  flex: 1;
+  min-width: 0;
+}
+
+.brand-col h1 {
+  font-size: 1.15rem;
+  font-weight: 900;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  letter-spacing: -0.2px;
+}
+
+.brand-col p {
+  font-size: 0.68rem;
+  color: rgba(255,255,255,.8);
+  margin: 2px 0 0;
+  font-weight: 500;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.icon-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: rgba(255,255,255,.12);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-size: 0.95rem;
+  transition: all .15s ease;
+  border: 1px solid rgba(255,255,255,.1);
+}
+
+.icon-btn:active {
+  transform: scale(0.94);
+  background: rgba(255,255,255,.22);
+}
+
+/* Sub-header status strip */
+.sub-header-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 10px;
+  padding-top: 9px;
+  border-top: 1px solid rgba(255,255,255,.12);
+  font-size: 0.72rem;
+}
+
+.server-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(0,0,0,.2);
+  padding: 4px 9px;
+  border-radius: 999px;
+  cursor: pointer;
+  border: 1px solid rgba(255,255,255,.15);
+}
+
+.server-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 8px #22c55e;
+}
+
+.server-dot.backup {
+  background: #3b82f6;
+  box-shadow: 0 0 8px #3b82f6;
+}
+
+.server-dot.offline {
+  background: #ef4444;
+  box-shadow: 0 0 8px #ef4444;
+}
+
+.user-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: rgba(255,255,255,.9);
+  font-weight: 600;
+}
+
+/* Offline Banner */
+.offline-banner {
+  display: none;
+  background: #fffbeb;
+  color: #b45309;
+  border-bottom: 1px solid #fde68a;
+  padding: 8px 14px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-align: center;
+  gap: 6px;
+  align-items: center;
+  justify-content: center;
+}
+
+.offline-banner.show {
+  display: flex;
+}
+
+/* PWA Install Banner */
+.pwa-banner {
+  background: linear-gradient(135deg, #1e293b, #0f172a);
+  color: #fff;
+  margin: 10px 12px 0;
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  box-shadow: 0 6px 18px rgba(0,0,0,.15);
+  border: 1px solid rgba(255,255,255,.1);
+}
+
+.pwa-banner-text strong {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.pwa-banner-text small {
+  display: block;
+  font-size: 0.68rem;
+  color: #94a3b8;
+  margin-top: 2px;
+}
+
+.pwa-btn {
+  background: linear-gradient(135deg, var(--blue), #2563eb);
+  color: #fff;
+  padding: 7px 14px;
+  border-radius: 10px;
+  font-weight: 800;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  box-shadow: 0 3px 10px rgba(37,99,235,.3);
+}
+
+/* Content Container */
+.container {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 12px 12px;
+}
+
+/* Dashboard Statistics Carousel/Grid */
+.stats-dashboard {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 9px;
+  margin-bottom: 14px;
+}
+
+.stat-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 11px 12px;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+
+.stat-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  font-size: 1.15rem;
+  flex-shrink: 0;
+}
+
+.stat-icon.blue { background: var(--sky); color: var(--blue); }
+.stat-icon.red { background: var(--red-bg); color: var(--red); }
+.stat-icon.green { background: var(--green-bg); color: var(--green-dark); }
+.stat-icon.amber { background: var(--amber-bg); color: #d97706; }
+.stat-icon.purple { background: var(--purple-bg); color: var(--purple); }
+
+.stat-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.stat-info span {
+  display: block;
+  font-size: 0.66rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.stat-info strong {
+  display: block;
+  font-size: 1.05rem;
+  font-weight: 900;
+  color: var(--text);
+  margin-top: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stat-card.featured {
+  grid-column: 1 / -1;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border-right: 4px solid var(--red);
+}
+
+/* Bottom Tab Navigation Bar */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  background: rgba(255,255,255,.94);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-top: 1px solid var(--line);
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  padding: 6px 4px calc(6px + var(--safe-bottom));
+  box-shadow: 0 -4px 20px rgba(0,0,0,.06);
+}
+
+.nav-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 6px 2px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.65rem;
+  font-weight: 700;
+  border-radius: 10px;
+  transition: all .15s ease;
+}
+
+.nav-tab i {
+  font-size: 1.12rem;
+  transition: transform .15s ease;
+}
+
+.nav-tab.active {
+  color: var(--navy);
+  font-weight: 900;
+}
+
+.nav-tab.active i {
+  transform: translateY(-2px);
+  color: var(--blue);
+}
+
+/* Tab Sections */
+.tab-section {
+  display: none;
+  animation: fadeIn .2s ease-out;
+}
+
+.tab-section.active {
+  display: block;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Section Header */
+.section-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 4px 2px 12px;
+}
+
+.section-title-row h2 {
+  font-size: 1.05rem;
+  font-weight: 900;
+  margin: 0;
+  color: var(--navy);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.section-title-row .count-badge {
+  background: var(--sky);
+  color: var(--blue);
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 3px 9px;
+  border-radius: 999px;
+}
+
+/* Search and Filters Toolbar */
+.search-box {
+  position: relative;
+  margin-bottom: 10px;
+}
+
+.search-box input {
+  width: 100%;
+  min-height: 46px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 10px 42px 10px 14px;
+  font-size: 0.85rem;
+  box-shadow: var(--shadow-sm);
+  outline: 0;
+  color: var(--text);
+}
+
+.search-box input:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(29,99,198,.12);
+}
+
+.search-box .search-icon {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.search-box .clear-btn {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.95rem;
+  padding: 4px;
+  display: none;
+}
+
+.filter-pills {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+  margin-bottom: 12px;
+  scrollbar-width: none;
+}
+
+.filter-pills::-webkit-scrollbar { display: none; }
+
+.pill-btn {
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+  box-shadow: var(--shadow-sm);
+  transition: all .15s ease;
+}
+
+.pill-btn.active {
+  background: var(--navy);
+  color: #fff;
+  border-color: var(--navy);
+  font-weight: 800;
+}
+
+/* Driver Cards List */
+.drivers-list {
+  display: grid;
+  gap: 12px;
+}
+
+.driver-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 14px;
+  box-shadow: var(--shadow);
+  transition: transform .15s ease, box-shadow .15s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.driver-card::before {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--line);
+}
+
+.driver-card.has-balance::before {
+  background: var(--red);
+}
+
+.driver-card.is-credited::before {
+  background: var(--green);
+}
+
+.driver-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.driver-title {
+  flex: 1;
+  min-width: 0;
+}
+
+.driver-title h3 {
+  font-size: 1rem;
+  font-weight: 800;
+  margin: 0;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.driver-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+
+.driver-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.quick-contact {
+  display: flex;
+  gap: 5px;
+}
+
+.contact-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  font-size: 0.85rem;
+  color: #fff;
+  text-decoration: none;
+}
+
+.contact-btn.call {
+  background: #0284c7;
+}
+
+.contact-btn.whatsapp {
+  background: #16a34a;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 800;
+}
+
+.status-badge.active { background: var(--green-bg); color: var(--green-dark); }
+.status-badge.inactive { background: #f1f5f9; color: #64748b; }
+.status-badge.debt { background: var(--red-bg); color: var(--red-dark); }
+.status-badge.credit { background: var(--green-bg); color: var(--green-dark); }
+.status-badge.balanced { background: #f1f5f9; color: #475569; }
+
+/* Balance Highlight Banner */
+.driver-balance-row {
+  margin: 12px 0 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.driver-balance-row.alert {
+  background: #fff5f5;
+  border-color: #fed7d7;
+}
+
+.driver-balance-row.credit {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+
+.balance-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.balance-value {
+  font-size: 1.15rem;
+  font-weight: 900;
+  color: var(--navy);
+  direction: ltr;
+  display: inline-block;
+}
+
+.balance-value.negative { color: var(--red); }
+.balance-value.positive { color: var(--green-dark); }
+
+/* Driver Mini Metrics Grid */
+.driver-grid-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin: 10px 0;
+}
+
+.mini-metric {
+  background: #f8fafc;
+  border-radius: 10px;
+  padding: 7px 8px;
+  text-align: center;
+}
+
+.mini-metric label {
+  display: block;
+  font-size: 0.58rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.mini-metric strong {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--text);
+  margin-top: 1px;
+}
+
+/* Action Buttons inside Card */
+.driver-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
+.action-btn {
+  min-height: 38px;
+  padding: 6px 8px;
+  border-radius: 11px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  transition: all .12s ease;
+}
+
+.action-btn:active { transform: scale(0.96); }
+
+.action-btn.primary {
+  background: linear-gradient(135deg, var(--blue), #2563eb);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(37,99,235,.25);
+}
+
+.action-btn.warning {
+  background: #fffbeb;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+
+.action-btn.soft {
+  background: var(--sky);
+  color: var(--blue);
+}
+
+.action-btn.gray {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.action-btn.danger {
+  background: var(--red-bg);
+  color: var(--red-dark);
+}
+
+/* Forms & Inputs */
+.form-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  box-shadow: var(--shadow);
+  margin-bottom: 14px;
+}
+
+.form-group {
+  margin-bottom: 13px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 0.74rem;
+  font-weight: 800;
+  color: var(--text);
+  margin-bottom: 5px;
+}
+
+.form-group small {
+  display: block;
+  font-size: 0.65rem;
+  color: var(--muted);
+  margin-top: 3px;
+}
+
+.input-field, .select-field, .textarea-field {
+  width: 100%;
+  min-height: 46px;
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 0.85rem;
+  color: var(--text);
+  outline: 0;
+  transition: border-color .15s ease, background .15s ease;
+}
+
+.input-field:focus, .select-field:focus, .textarea-field:focus {
+  border-color: var(--blue);
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(29,99,198,.12);
+}
+
+/* Live Settlement Impact Preview Box */
+.impact-preview {
+  background: linear-gradient(135deg, #f8fafc, #edf4ff);
+  border: 1px solid #dbeafe;
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  margin: 14px 0;
+}
+
+.impact-preview-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: var(--navy);
+}
+
+.impact-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  text-align: center;
+}
+
+.impact-cell {
+  background: #fff;
+  border-radius: 10px;
+  padding: 8px 6px;
+  border: 1px solid #e2e8f0;
+}
+
+.impact-cell label {
+  display: block;
+  font-size: 0.6rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.impact-cell strong {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 900;
+  color: var(--text);
+  margin-top: 2px;
+  direction: ltr;
+}
+
+/* Modals */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(10,25,47,.6);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: none;
+  align-items: flex-end;
+  justify-content: center;
+  animation: fadeInModal .15s ease-out;
+}
+
+.modal-overlay.open {
+  display: flex;
+}
+
+@keyframes fadeInModal {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modal-sheet {
+  width: 100%;
+  max-width: 600px;
+  max-height: 90vh;
+  background: var(--card);
+  border-radius: 26px 26px 0 0;
+  padding: 18px 16px calc(20px + var(--safe-bottom));
+  overflow-y: auto;
+  box-shadow: 0 -10px 40px rgba(0,0,0,.2);
+  animation: slideUpSheet .22s cubic-bezier(.16,1,.3,1);
+}
+
+@keyframes slideUpSheet {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--line);
+}
+
+.modal-header h3 {
+  font-size: 1.05rem;
+  font-weight: 900;
+  margin: 0;
+  color: var(--navy);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.modal-close {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #f1f5f9;
+  color: #64748b;
+  font-size: 1.1rem;
+  display: grid;
+  place-items: center;
+}
+
+/* Statement Timeline View */
+.statement-summary-box {
+  background: linear-gradient(135deg, var(--navy-dark), var(--navy));
+  color: #fff;
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  margin-bottom: 14px;
+  box-shadow: var(--shadow);
+}
+
+.stmt-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.stmt-top h3 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 800;
+}
+
+.stmt-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  background: rgba(255,255,255,.08);
+  border-radius: 12px;
+  padding: 10px;
+}
+
+.stmt-metrics .mini-metric {
+  background: transparent;
+}
+
+.stmt-metrics .mini-metric label {
+  color: rgba(255,255,255,.7);
+}
+
+.stmt-metrics .mini-metric strong {
+  color: #fff;
+  font-size: 0.85rem;
+}
+
+.stmt-final-balance {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255,255,255,.15);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.stmt-final-balance span {
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.stmt-final-balance strong {
+  font-size: 1.25rem;
+  font-weight: 900;
+  direction: ltr;
+}
+
+.stmt-actions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.stmt-btn {
+  min-height: 42px;
+  border-radius: 12px;
+  font-size: 0.74rem;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.stmt-btn.whatsapp {
+  background: #15803d;
+  color: #fff;
+}
+
+.stmt-btn.print {
+  background: #1e293b;
+  color: #fff;
+}
+
+.stmt-btn.pdf {
+  background: #b91c1c;
+  color: #fff;
+}
+
+.tx-timeline {
+  display: grid;
+  gap: 8px;
+}
+
+.tx-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 11px 12px;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.tx-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+.tx-icon.settlement { background: #dcfce7; color: #15803d; }
+.tx-icon.collection { background: #fee2e2; color: #b91c1c; }
+.tx-icon.delivery_fee { background: #e0f2fe; color: #0369a1; }
+.tx-icon.other { background: #f1f5f9; color: #475569; }
+
+.tx-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.tx-details strong {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tx-details small {
+  display: block;
+  font-size: 0.64rem;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.tx-amount {
+  text-align: left;
+  flex-shrink: 0;
+}
+
+.tx-amount strong {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 900;
+  direction: ltr;
+}
+
+.tx-amount small {
+  display: block;
+  font-size: 0.62rem;
+  color: var(--muted);
+  direction: ltr;
+}
+
+/* Floating Action Button (Add Driver) */
+.fab-btn {
+  position: fixed;
+  bottom: calc(85px + var(--safe-bottom));
+  left: 18px;
+  z-index: 45;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--navy), var(--blue));
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-size: 1.3rem;
+  box-shadow: 0 8px 24px rgba(18,59,114,.35);
+  transition: transform .15s ease;
+}
+
+.fab-btn:active {
+  transform: scale(0.92);
+}
+
+/* Notice Toast */
+.notice-toast {
+  position: fixed;
+  top: calc(14px + var(--safe-top));
+  left: 14px;
+  right: 14px;
+  z-index: 200;
+  padding: 12px 14px;
+  border-radius: 14px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  display: none;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.15);
+  animation: slideDownToast .2s ease-out;
+}
+
+.notice-toast.show { display: flex; }
+.notice-toast.success { background: #059669; color: #fff; }
+.notice-toast.error { background: #dc2626; color: #fff; }
+.notice-toast.warning { background: #d97706; color: #fff; }
+.notice-toast.info { background: #2563eb; color: #fff; }
+
+@keyframes slideDownToast {
+  from { transform: translateY(-30px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* Empty State */
+.empty-box {
+  text-align: center;
+  padding: 40px 16px;
+  background: var(--card);
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-lg);
+  color: var(--muted);
+}
+
+.empty-box i {
+  font-size: 2.4rem;
+  color: #cbd5e1;
+  margin-bottom: 10px;
+  display: block;
+}
+
+.empty-box p {
+  font-size: 0.82rem;
+  margin: 0;
+}
+
+/* Confirm Dialog */
+.confirm-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  background: rgba(0,0,0,.5);
+  backdrop-filter: blur(4px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 14px;
+}
+
+.confirm-modal-overlay.open {
+  display: flex;
+}
+
+.confirm-dialog {
+  width: 100%;
+  max-width: 400px;
+  background: #fff;
+  border-radius: 20px;
+  padding: 22px 18px;
+  text-align: center;
+  box-shadow: var(--shadow-lg);
+  animation: popIn .2s ease-out;
+}
+
+@keyframes popIn {
+  from { transform: scale(.92); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.confirm-dialog-icon {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  margin: 0 auto 12px;
+  display: grid;
+  place-items: center;
+  font-size: 1.5rem;
+}
+
+.confirm-dialog-icon.danger { background: var(--red-bg); color: var(--red); }
+.confirm-dialog-icon.success { background: var(--green-bg); color: var(--green-dark); }
+.confirm-dialog-icon.warning { background: var(--amber-bg); color: #d97706; }
+
+.confirm-dialog-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+/* Shimmer Loading Animation */
+.shimmer {
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Spinner */
+.spin-icon {
+  display: inline-block;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+</style>
+</head>
+<body>
+
+<!-- Notice Toast -->
+<div id="noticeToast" class="notice-toast"><i id="noticeIcon" class="fas fa-info-circle"></i><span id="noticeMsg"></span></div>
+
+<!-- Offline Banner -->
+<div id="offlineBanner" class="offline-banner">
+  <i class="fas fa-wifi"></i>
+  <span>وضع غير متصل بالإنترنت · يتم استخدام البيانات المخزنة محلياً</span>
+</div>
+
+<!-- Header -->
+<header class="topbar">
+  <div class="topbar-main">
+    <button class="icon-btn" onclick="goToHome()" title="الرجوع للرئيسية"><i class="fas fa-arrow-right"></i></button>
+    <div class="brand-col">
+      <h1><i class="fas fa-id-card-clip"></i> إدارة المندوبين</h1>
+      <p>التسوية والكشوفات والتحصيلات والعهد المالية</p>
+    </div>
+    <div class="header-actions">
+      <button class="icon-btn" id="installPwaBtn" onclick="promptInstallPwa()" title="تثبيت التطبيق" style="display:none;">
+        <i class="fas fa-download"></i>
+      </button>
+      <button class="icon-btn" id="refreshBtn" onclick="refreshAllData()" title="تحديث البيانات">
+        <i class="fas fa-rotate"></i>
+      </button>
+      <button class="icon-btn" onclick="LoginHelper?.openSettingsModal()" title="إعدادات الخادم والتبديل">
+        <i class="fas fa-gear"></i>
+      </button>
+    </div>
+  </div>
+
+  <div class="sub-header-strip">
+    <div class="server-indicator" onclick="LoginHelper?.openSettingsModal()" title="انقر لتغيير الخادم">
+      <div id="serverDot" class="server-dot"></div>
+      <span id="serverNameLabel">الأساسي (api)</span>
+      <i class="fas fa-chevron-down" style="font-size:0.6rem;opacity:.7;"></i>
+    </div>
+    <div class="user-badge">
+      <i class="fas fa-user-circle"></i>
+      <span id="currentUserLabel">مستخدم POS</span>
+      <button onclick="logout()" style="background:transparent;color:rgba(255,255,255,.7);font-size:0.7rem;padding:2px 4px;margin-right:4px;" title="تسجيل الخروج">
+        <i class="fas fa-sign-out-alt"></i>
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- iOS PWA Banner (conditional) -->
+<div id="pwaBanner" class="pwa-banner" style="display:none;">
+  <div class="pwa-banner-text">
+    <strong><i class="fas fa-mobile-screen"></i> ثبّت تطبيق إدارة المندوبين</strong>
+    <small>سرعة فائقة ووصول مباشر من شاشة هاتفك الرئيسية</small>
+  </div>
+  <button class="pwa-btn" onclick="promptInstallPwa()">تثبيت الآن</button>
+</div>
+
+<!-- Main Container -->
+<main class="container">
+
+  <!-- Overall Key Metrics Dashboard -->
+  <section class="stats-dashboard">
+    <div class="stat-card featured">
+      <div class="stat-icon red"><i class="fas fa-hand-holding-dollar"></i></div>
+      <div class="stat-info">
+        <span>عهدة مستحقة على المندوبين للمحل</span>
+        <strong id="statDueToShop" style="color:var(--red);">0.00 ريال</strong>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon blue"><i class="fas fa-users-gear"></i></div>
+      <div class="stat-info">
+        <span>إجمالي المندوبين</span>
+        <strong id="statTotalDrivers">0 مندوب</strong>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon green"><i class="fas fa-wallet"></i></div>
+      <div class="stat-info">
+        <span>مستحق للمندوبين</span>
+        <strong id="statDueToDrivers" style="color:var(--green-dark);">0.00 ريال</strong>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon amber"><i class="fas fa-box-open"></i></div>
+      <div class="stat-info">
+        <span>طلبات لم تُستلم عهدتها</span>
+        <strong id="statUnreceivedOrders">0 طلب</strong>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon purple"><i class="fas fa-truck-ramp-box"></i></div>
+      <div class="stat-info">
+        <span>رسوم التوصيل المحققة</span>
+        <strong id="statTotalFees">0.00 ريال</strong>
+      </div>
+    </div>
+  </section>
+
+  <!-- TAB 1: DRIVERS LIST -->
+  <section id="tabDrivers" class="tab-section active">
+    <div class="section-title-row">
+      <h2><i class="fas fa-list-check"></i> قائمة المندوبين</h2>
+      <span class="count-badge" id="driversCountBadge">0 مندوب</span>
+    </div>
+
+    <div class="search-box">
+      <i class="fas fa-magnifying-glass search-icon"></i>
+      <input type="text" id="driverSearchInput" placeholder="ابحث باسم المندوب أو الهاتف أو اسم المستخدم..." oninput="onDriverSearch(this.value)">
+      <button class="clear-btn" id="driverSearchClear" onclick="clearDriverSearch()"><i class="fas fa-times"></i></button>
+    </div>
+
+    <div class="filter-pills">
+      <button class="pill-btn active" data-filter="all" onclick="setDriverFilter('all')">الكل</button>
+      <button class="pill-btn" data-filter="has_balance" onclick="setDriverFilter('has_balance')">عليهم عهدة للمحل</button>
+      <button class="pill-btn" data-filter="unreceived" onclick="setDriverFilter('unreceived')">لديهم طلبات غير مستلمة</button>
+      <button class="pill-btn" data-filter="balanced" onclick="setDriverFilter('balanced')">متوازن</button>
+      <button class="pill-btn" data-filter="inactive" onclick="setDriverFilter('inactive')">غير نشط</button>
+    </div>
+
+    <div id="driversListContainer" class="drivers-list">
+      <!-- Cards rendered dynamically via JS -->
+      <div class="empty-box"><i class="fas fa-spinner spin-icon"></i><p>جاري تحميل بيانات المندوبين...</p></div>
+    </div>
+  </section>
+
+  <!-- TAB 2: FINANCIAL SETTLEMENT -->
+  <section id="tabSettlement" class="tab-section">
+    <div class="section-title-row">
+      <h2><i class="fas fa-scale-balanced"></i> تسوية العهدة المالية</h2>
+    </div>
+
+    <div class="form-card">
+      <div class="form-group">
+        <label><i class="fas fa-user"></i> اختر المندوب للتسوية <span style="color:var(--red);">*</span></label>
+        <select id="settleDriverSelect" class="select-field" onchange="onSettleDriverSelect(this.value)">
+          <option value="">-- اختر المندوب --</option>
+        </select>
+      </div>
+
+      <!-- Current Balance Info Card -->
+      <div id="settleDriverSummaryBox" style="display:none;margin-bottom:14px;padding:12px;border-radius:var(--radius);background:#f8fafc;border:1px solid var(--line);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <strong id="settleDriverNameDisplay" style="font-size:0.95rem;">-</strong>
+          <span id="settleDriverStatusBadge" class="status-badge">-</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-top:1px dashed var(--line);border-bottom:1px dashed var(--line);">
+          <span style="font-size:0.75rem;color:var(--muted);font-weight:700;">الرصيد القائم حالياً:</span>
+          <strong id="settleDriverCurrentBalance" style="font-size:1.15rem;direction:ltr;">0.00 ريال</strong>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px;font-size:0.68rem;color:var(--muted);">
+          <div>طلبات بانتظار الاستلام: <strong id="settlePendingCount" style="color:var(--text);">0</strong></div>
+          <div>طلبات فاشلة: <strong id="settleFailedCount" style="color:var(--red);">0</strong></div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label><i class="fas fa-exchange-alt"></i> نوع العملية</label>
+        <select id="settleTypeSelect" class="select-field" onchange="updateSettlementCalculation()">
+          <option value="driver_pays_shop">المندوب يدفع للمحل (توريد وسداد عهدة)</option>
+          <option value="shop_pays_driver">المحل يدفع للمندوب (صرف أجور وعمولات)</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
+          <label style="margin:0;"><i class="fas fa-money-bill-wave"></i> مبلغ التسوية <span style="color:var(--red);">*</span></label>
+          <button type="button" class="action-btn soft" style="min-height:28px;padding:2px 8px;font-size:0.65rem;" onclick="fillFullSettleAmount()">
+            <i class="fas fa-bolt"></i> تصفية كامل الرصيد
+          </button>
+        </div>
+        <input type="number" id="settleAmountInput" class="input-field" step="0.01" placeholder="أدخل المبلغ بالريال" oninput="updateSettlementCalculation()">
+      </div>
+
+      <div class="form-group">
+        <label><i class="fas fa-credit-card"></i> طريقة الدفع</label>
+        <select id="settleMethodSelect" class="select-field" onchange="onSettleMethodChange(this.value)">
+          <option value="cash">نقداً (الصندوق الرئيسي)</option>
+          <option value="wallet">محفظة إلكترونية</option>
+          <option value="mixed">مختلط (نقد + محفظة)</option>
+        </select>
+      </div>
+
+      <!-- Wallet Selector (shown for wallet or mixed) -->
+      <div id="settleWalletGroup" class="form-group" style="display:none;">
+        <label><i class="fas fa-building-columns"></i> المحفظة المستلمة أو المدفوع منها <span style="color:var(--red);">*</span></label>
+        <select id="settleWalletSelect" class="select-field">
+          <option value="">-- اختر المحفظة --</option>
+        </select>
+      </div>
+
+      <!-- Mixed Payment Breakdown -->
+      <div id="settleMixedGroup" style="display:none;" class="form-group">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <div>
+            <label>المبلغ النقدي</label>
+            <input type="number" id="settleCashPart" class="input-field" step="0.01" placeholder="0.00" oninput="updateSettlementCalculation()">
+          </div>
+          <div>
+            <label>مبلغ المحفظة</label>
+            <input type="number" id="settleWalletPart" class="input-field" step="0.01" placeholder="0.00" oninput="updateSettlementCalculation()">
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Impact Preview Box -->
+      <div class="impact-preview">
+        <div class="impact-preview-head">
+          <span><i class="fas fa-calculator"></i> الأثر المالي للتسوية</span>
+          <span id="settleImpactTypeDesc" style="color:var(--blue);">-</span>
+        </div>
+        <div class="impact-grid">
+          <div class="impact-cell">
+            <label>الرصيد السابق</label>
+            <strong id="impactPrevBal">0.00</strong>
+          </div>
+          <div class="impact-cell">
+            <label>المبلغ المسدد</label>
+            <strong id="impactAmount">0.00</strong>
+          </div>
+          <div class="impact-cell">
+            <label>الرصيد بعد الحفظ</label>
+            <strong id="impactNewBal">0.00</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label><i class="fas fa-note-sticky"></i> ملاحظات وبيان التسوية (اختياري)</label>
+        <textarea id="settleNotesInput" class="textarea-field" rows="2" placeholder="اكتب ملاحظات حول هذه التسوية..."></textarea>
+      </div>
+
+      <button id="btnSubmitSettlement" class="action-btn primary" style="width:100%;min-height:48px;font-size:0.85rem;" onclick="submitSettlementForm()">
+        <i class="fas fa-floppy-disk"></i> حفظ وتأكيد التسوية المالية
+      </button>
+    </div>
+  </section>
+
+  <!-- TAB 3: ACCOUNT STATEMENT -->
+  <section id="tabStatement" class="tab-section">
+    <div class="section-title-row">
+      <h2><i class="fas fa-file-invoice-dollar"></i> كشف حساب المندوب</h2>
+    </div>
+
+    <div class="form-card" style="margin-bottom:12px;padding:12px;">
+      <div class="form-group" style="margin-bottom:9px;">
+        <label><i class="fas fa-user-check"></i> المندوب</label>
+        <select id="stmtDriverSelect" class="select-field" onchange="onStatementDriverChange(this.value)">
+          <option value="">-- اختر المندوب لعرض كشف الحساب --</option>
+        </select>
+      </div>
+
+      <!-- Quick Date Presets -->
+      <div class="filter-pills" style="margin-bottom:8px;">
+        <button class="pill-btn active" data-preset="all" onclick="setStatementPreset('all')">الكل</button>
+        <button class="pill-btn" data-preset="today" onclick="setStatementPreset('today')">اليوم</button>
+        <button class="pill-btn" data-preset="yesterday" onclick="setStatementPreset('yesterday')">أمس</button>
+        <button class="pill-btn" data-preset="week" onclick="setStatementPreset('week')">آخر 7 أيام</button>
+        <button class="pill-btn" data-preset="month" onclick="setStatementPreset('month')">هذا الشهر</button>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div>
+          <label style="font-size:0.65rem;color:var(--muted);font-weight:700;">من تاريخ</label>
+          <input type="date" id="stmtDateFrom" class="input-field" style="min-height:40px;font-size:0.75rem;" onchange="applyStatementCustomDates()">
+        </div>
+        <div>
+          <label style="font-size:0.65rem;color:var(--muted);font-weight:700;">إلى تاريخ</label>
+          <input type="date" id="stmtDateTo" class="input-field" style="min-height:40px;font-size:0.75rem;" onchange="applyStatementCustomDates()">
+        </div>
+      </div>
+    </div>
+
+    <!-- Statement Summary Card (rendered dynamically) -->
+    <div id="statementSummaryWrapper" style="display:none;">
+      <div class="statement-summary-box">
+        <div class="stmt-top">
+          <h3 id="stmtDriverNameHeading">-</h3>
+          <span id="stmtPeriodHeading" style="font-size:0.68rem;opacity:.8;">-</span>
+        </div>
+
+        <div class="stmt-metrics">
+          <div class="mini-metric">
+            <label>عدد الطلبات</label>
+            <strong id="stmtOrdersCount">0</strong>
+          </div>
+          <div class="mini-metric">
+            <label>إجمالي التحصيلات</label>
+            <strong id="stmtTotalDebit">0.00</strong>
+          </div>
+          <div class="mini-metric">
+            <label>إجمالي التوريدات</label>
+            <strong id="stmtTotalCredit">0.00</strong>
+          </div>
+        </div>
+
+        <div class="stmt-final-balance">
+          <span>الرصيد النهائي للفترة:</span>
+          <strong id="stmtFinalBalance">0.00 ريال</strong>
+        </div>
+      </div>
+
+      <!-- Export & Print Actions -->
+      <div class="stmt-actions">
+        <button class="stmt-btn whatsapp" onclick="shareStatementWhatsApp()">
+          <i class="fab fa-whatsapp"></i> واتساب
+        </button>
+        <button class="stmt-btn print" onclick="printDriverStatementData()">
+          <i class="fas fa-print"></i> طباعة
+        </button>
+        <button class="stmt-btn pdf" onclick="exportStatementPdfFile()">
+          <i class="fas fa-file-pdf"></i> تصدير PDF
+        </button>
+      </div>
+    </div>
+
+    <!-- Timeline / Transactions List -->
+    <div id="statementTransactionsList" class="tx-timeline">
+      <div class="empty-box"><i class="fas fa-hand-pointer"></i><p>اختر مندوباً من الأعلى لعرض كشف حسابه</p></div>
+    </div>
+  </section>
+
+  <!-- TAB 4: UNRECEIVED ORDERS -->
+  <section id="tabUnreceived" class="tab-section">
+    <div class="section-title-row">
+      <h2><i class="fas fa-truck-ramp-box"></i> استلام وتوريد الطلبات</h2>
+      <span class="count-badge" id="unreceivedCountBadge">0 طلب</span>
+    </div>
+
+    <div class="form-card" style="margin-bottom:12px;padding:12px;">
+      <label style="font-size:0.74rem;font-weight:800;color:var(--text);margin-bottom:5px;display:block;"><i class="fas fa-filter"></i> تصفية بمندوب معين</label>
+      <select id="unreceivedDriverSelect" class="select-field" onchange="onUnreceivedDriverChange(this.value)">
+        <option value="">-- كل المندوبين --</option>
+      </select>
+    </div>
+
+    <div id="unreceivedBatchBar" style="display:none;background:var(--navy);color:#fff;border-radius:var(--radius);padding:10px 14px;margin-bottom:12px;align-items:center;justify-content:space-between;">
+      <div>
+        <strong id="unreceivedBatchCount" style="font-size:0.85rem;">0 طلب</strong>
+        <span id="unreceivedBatchTotal" style="display:block;font-size:0.7rem;opacity:.85;">بقيمة 0.00 ريال</span>
+      </div>
+      <button class="action-btn" style="background:#22c55e;color:#fff;" onclick="receiveAllFilteredOrders()">
+        <i class="fas fa-check-double"></i> استلام الكل دفعة واحدة
+      </button>
+    </div>
+
+    <div id="unreceivedOrdersList" class="drivers-list">
+      <div class="empty-box"><i class="fas fa-box-open"></i><p>لا توجد طلبات عالقة بانتظار الاستلام</p></div>
+    </div>
+  </section>
+
+</main>
+
+<!-- Floating Action Button (Add Driver) -->
+<button class="fab-btn" id="fabAddDriver" onclick="openAddDriverModal()" title="إضافة مندوب جديد">
+  <i class="fas fa-user-plus"></i>
+</button>
+
+<!-- Bottom Navigation Bar -->
+<nav class="bottom-nav">
+  <button class="nav-tab active" data-tab="tabDrivers" onclick="switchTab('tabDrivers')">
+    <i class="fas fa-users"></i>
+    <span>المندوبون</span>
+  </button>
+  <button class="nav-tab" data-tab="tabSettlement" onclick="switchTab('tabSettlement')">
+    <i class="fas fa-scale-balanced"></i>
+    <span>التسوية</span>
+  </button>
+  <button class="nav-tab" data-tab="tabStatement" onclick="switchTab('tabStatement')">
+    <i class="fas fa-file-invoice-dollar"></i>
+    <span>كشف الحساب</span>
+  </button>
+  <button class="nav-tab" data-tab="tabUnreceived" onclick="switchTab('tabUnreceived')">
+    <i class="fas fa-truck-ramp-box"></i>
+    <span>استلام الطلبات</span>
+  </button>
+</nav>
+
+<!-- MODAL: ADD DRIVER -->
+<div id="modalAddDriver" class="modal-overlay">
+  <div class="modal-sheet">
+    <div class="modal-header">
+      <h3><i class="fas fa-user-plus" style="color:var(--blue);"></i> إضافة مندوب جديد</h3>
+      <button class="modal-close" onclick="closeModal('modalAddDriver')">&times;</button>
+    </div>
+    <form onsubmit="handleCreateDriver(event)">
+      <div class="form-group">
+        <label>اسم المندوب الكامل <span style="color:var(--red);">*</span></label>
+        <input type="text" id="newDriverName" class="input-field" required placeholder="مثال: محمد أحمد العواضي">
+      </div>
+      <div class="form-group">
+        <label>رقم الهاتف</label>
+        <input type="tel" id="newDriverPhone" class="input-field" placeholder="مثال: 777123456" dir="ltr">
+      </div>
+      <div class="form-group">
+        <label>بيانات المركبة أو المنطقة</label>
+        <input type="text" id="newDriverVehicle" class="input-field" placeholder="مثال: دباب - صنعاء القديمة والتحرير">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div class="form-group">
+          <label>اسم المستخدم (ID) <span style="color:var(--red);">*</span></label>
+          <input type="text" id="newDriverUsername" class="input-field" required placeholder="driver1" dir="ltr">
+        </div>
+        <div class="form-group">
+          <label>كلمة المرور <span style="color:var(--red);">*</span></label>
+          <input type="password" id="newDriverPassword" class="input-field" required placeholder="••••••" dir="ltr">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>رقم الواتساب للإشعارات (اختياري)</label>
+        <input type="tel" id="newDriverWhatsappPhone" class="input-field" placeholder="967777123456" dir="ltr">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px;">
+        <button type="button" class="action-btn gray" onclick="closeModal('modalAddDriver')">إلغاء</button>
+        <button type="submit" class="action-btn primary" id="btnSubmitAddDriver">حفظ المندوب</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL: EDIT DRIVER -->
+<div id="modalEditDriver" class="modal-overlay">
+  <div class="modal-sheet">
+    <div class="modal-header">
+      <h3><i class="fas fa-user-pen" style="color:var(--blue);"></i> تعديل بيانات المندوب</h3>
+      <button class="modal-close" onclick="closeModal('modalEditDriver')">&times;</button>
+    </div>
+    <form onsubmit="handleUpdateDriver(event)">
+      <input type="hidden" id="editDriverId">
+      <div class="form-group">
+        <label>اسم المندوب <span style="color:var(--red);">*</span></label>
+        <input type="text" id="editDriverName" class="input-field" required>
+      </div>
+      <div class="form-group">
+        <label>رقم الهاتف</label>
+        <input type="tel" id="editDriverPhone" class="input-field" dir="ltr">
+      </div>
+      <div class="form-group">
+        <label>بيانات المركبة أو المنطقة</label>
+        <input type="text" id="editDriverVehicle" class="input-field">
+      </div>
+      <div class="form-group">
+        <label>كلمة مرور جديدة (اتركه فارغاً للإبقاء على الحالية)</label>
+        <input type="password" id="editDriverPassword" class="input-field" placeholder="كلمة مرور جديدة..." dir="ltr">
+      </div>
+      <div class="form-group">
+        <label>رقم الواتساب</label>
+        <input type="tel" id="editDriverWhatsappPhone" class="input-field" dir="ltr">
+      </div>
+      <div class="form-group">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+          <input type="checkbox" id="editDriverActive" style="width:18px;height:18px;">
+          <span>الحساب نشط (يمكن إسناد طلبات له)</span>
+        </label>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px;">
+        <button type="button" class="action-btn gray" onclick="closeModal('modalEditDriver')">إلغاء</button>
+        <button type="submit" class="action-btn primary" id="btnSubmitEditDriver">حفظ التعديلات</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL: CHANGE PASSWORD -->
+<div id="modalChangePassword" class="modal-overlay">
+  <div class="modal-sheet">
+    <div class="modal-header">
+      <h3><i class="fas fa-key" style="color:var(--amber);"></i> تغيير كلمة مرور المندوب</h3>
+      <button class="modal-close" onclick="closeModal('modalChangePassword')">&times;</button>
+    </div>
+    <form onsubmit="handleChangePasswordSubmit(event)">
+      <input type="hidden" id="pwdDriverId">
+      <p style="font-size:0.8rem;margin:0 0 12px;color:var(--muted);">
+        تغيير كلمة المرور للمندوب: <strong id="pwdDriverNameDisplay" style="color:var(--navy);">-</strong>
+      </p>
+      <div class="form-group">
+        <label>كلمة المرور الجديدة <span style="color:var(--red);">*</span></label>
+        <input type="password" id="pwdNewPassword" class="input-field" required placeholder="أدخل كلمة المرور الجديدة" dir="ltr">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px;">
+        <button type="button" class="action-btn gray" onclick="closeModal('modalChangePassword')">إلغاء</button>
+        <button type="submit" class="action-btn primary" id="btnSubmitPassword">تحديث كلمة المرور</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- CONFIRM DIALOG MODAL -->
+<div id="customConfirmModal" class="confirm-modal-overlay">
+  <div class="confirm-dialog">
+    <div id="confirmIconBox" class="confirm-dialog-icon warning"><i class="fas fa-exclamation"></i></div>
+    <h3 id="confirmTitle" style="font-size:1.05rem;font-weight:800;margin:0 0 6px;">تأكيد</h3>
+    <p id="confirmMessage" style="font-size:0.8rem;color:var(--muted);margin:0;line-height:1.6;"></p>
+    <div class="confirm-dialog-actions">
+      <button class="action-btn gray" id="confirmCancelBtn" onclick="resolveCustomConfirm(false)">تراجع</button>
+      <button class="action-btn primary" id="confirmOkBtn" onclick="resolveCustomConfirm(true)">تأكيد</button>
+    </div>
+  </div>
+</div>
+
+<!-- JAVASCRIPT LOGIC -->
+<script>
+// ==================== STATE MANAGEMENT ====================
+let driversData = [];
+let walletsData = [];
+let unreceivedOrdersData = [];
+let statementState = {
+  driverId: null,
+  driverName: '',
+  transactions: [],
+  summary: null,
+  preset: 'all',
+  from: '',
+  to: ''
+};
+
+let currentFilter = 'all';
+let searchQuery = '';
+let deferredPrompt = null;
+let confirmPromiseResolve = null;
+
+const $ = id => document.getElementById(id);
+
+// ==================== SOUND SYNTHESIS ====================
+function playSuccessSound() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(523.25, ctx.currentTime); // C5
+    osc.frequency.exponentialRampToValueAtTime(659.25, ctx.currentTime + 0.1); // E5
+    osc.frequency.exponentialRampToValueAtTime(783.99, ctx.currentTime + 0.2); // G5
+    gain.gain.setValueAtTime(0.18, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.35);
+  } catch (_) {}
+}
+
+function playWarningSound() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(300, ctx.currentTime);
+    osc.frequency.setValueAtTime(200, ctx.currentTime + 0.1);
+    gain.gain.setValueAtTime(0.2, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.25);
+  } catch (_) {}
+}
+
+// ==================== TOAST & CONFIRM NOTIFICATIONS ====================
+let toastTimer = null;
+function showToast(msg, type = 'info') {
+  const toast = $('noticeToast');
+  const msgEl = $('noticeMsg');
+  const icon = $('noticeIcon');
+  if (!toast) return;
+
+  clearTimeout(toastTimer);
+  toast.className = `notice-toast show ${type}`;
+  msgEl.textContent = msg;
+
+  if (type === 'success') {
+    icon.className = 'fas fa-check-circle';
+    playSuccessSound();
+  } else if (type === 'error') {
+    icon.className = 'fas fa-circle-exclamation';
+    playWarningSound();
+  } else if (type === 'warning') {
+    icon.className = 'fas fa-triangle-exclamation';
+    playWarningSound();
+  } else {
+    icon.className = 'fas fa-circle-info';
+  }
+
+  toastTimer = setTimeout(() => {
+    toast.classList.remove('show');
+  }, 4000);
+}
+
+function showConfirm(message, { title = 'تأكيد العملية', type = 'warning', okText = 'تأكيد', cancelText = 'تراجع' } = {}) {
+  const modal = $('customConfirmModal');
+  const titleEl = $('confirmTitle');
+  const msgEl = $('confirmMessage');
+  const okBtn = $('confirmOkBtn');
+  const cancelBtn = $('confirmCancelBtn');
+  const iconBox = $('confirmIconBox');
+
+  titleEl.textContent = title;
+  msgEl.textContent = message;
+  okBtn.textContent = okText;
+  cancelBtn.textContent = cancelText;
+
+  iconBox.className = `confirm-dialog-icon ${type}`;
+  if (type === 'danger') {
+    iconBox.innerHTML = '<i class="fas fa-trash-can"></i>';
+    okBtn.className = 'action-btn danger';
+  } else if (type === 'success') {
+    iconBox.innerHTML = '<i class="fas fa-check"></i>';
+    okBtn.className = 'action-btn primary';
+  } else {
+    iconBox.innerHTML = '<i class="fas fa-triangle-exclamation"></i>';
+    okBtn.className = 'action-btn primary';
+  }
+
+  modal.classList.add('open');
+  return new Promise(resolve => {
+    confirmPromiseResolve = resolve;
+  });
+}
+
+function resolveCustomConfirm(result) {
+  $('customConfirmModal').classList.remove('open');
+  if (typeof confirmPromiseResolve === 'function') {
+    confirmPromiseResolve(result);
+    confirmPromiseResolve = null;
+  }
+}
+
+// ==================== PWA INSTALL HANDLING ====================
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  const btn = $('installPwaBtn');
+  const banner = $('pwaBanner');
+  if (btn) btn.style.display = 'grid';
+  if (banner) banner.style.display = 'flex';
+});
+
+window.addEventListener('appinstalled', () => {
+  deferredPrompt = null;
+  if ($('installPwaBtn')) $('installPwaBtn').style.display = 'none';
+  if ($('pwaBanner')) $('pwaBanner').style.display = 'none';
+  showToast('🎉 تم تثبيت تطبيق إدارة المندوبين بنجاح!', 'success');
+});
+
+async function promptInstallPwa() {
+  if (deferredPrompt) {
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      deferredPrompt = null;
+      if ($('installPwaBtn')) $('installPwaBtn').style.display = 'none';
+      if ($('pwaBanner')) $('pwaBanner').style.display = 'none';
+    }
+  } else {
+    // Check if iOS Safari
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    if (isIOS) {
+      showConfirm(
+        'لتثبيت التطبيق على جهازك:\n1. اضغط على زر المشاركة (Share) أسفل المتصفح.\n2. اختر "إضافة إلى الشاشة الرئيسية" (Add to Home Screen).',
+        { title: 'تثبيت إدارة المندوبين على iPhone', type: 'info', okText: 'حسناً', cancelText: 'إغلاق' }
+      );
+    } else {
+      showToast('التطبيق مثبت بالفعل أو أن متصفحك لا يدعم التثبيت المباشر', 'info');
+    }
+  }
+}
+
+// ==================== NETWORKING & API HELPER ====================
+function getAuthToken() {
+  return localStorage.getItem('pos_token') || '';
+}
+
+function getCurrentUser() {
+  try {
+    const raw = localStorage.getItem('pos_user');
+    return raw ? JSON.parse(raw) : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+function getBaseApiUrl() {
+  if (window.apiClient?.baseUrl) {
+    return window.apiClient.baseUrl.replace(/\/$/, '');
+  }
+  const saved = localStorage.getItem('posApiBase');
+  if (saved) return saved.replace(/\/$/, '');
+  return 'https://api.ibnalmukhtar.com';
+}
+
+function updateServerBadgeUi() {
+  const dot = $('serverDot');
+  const label = $('serverNameLabel');
+  if (!label || !dot) return;
+
+  const current = getBaseApiUrl();
+  if (current.includes('api2')) {
+    label.textContent = 'الاحتياطي (api2)';
+    dot.className = 'server-dot backup';
+  } else {
+    label.textContent = 'الأساسي (api)';
+    dot.className = 'server-dot';
+  }
+}
+
+window.addEventListener('api-endpoint-changed', e => {
+  updateServerBadgeUi();
+  const to = e.detail?.to || '';
+  if (to.includes('api2')) {
+    showToast('⚡ تم التبديل إلى الخادم الاحتياطي (api2)', 'warning');
+  }
+});
+
+window.addEventListener('api-endpoint-recovered', () => {
+  updateServerBadgeUi();
+  showToast('✅ تم استعادة الاتصال بالخادم الأساسي (api)', 'success');
+});
+
+window.addEventListener('online', () => {
+  $('offlineBanner').classList.remove('show');
+  updateServerBadgeUi();
+  refreshAllData(true);
+});
+
+window.addEventListener('offline', () => {
+  $('offlineBanner').classList.add('show');
+  const dot = $('serverDot');
+  if (dot) dot.className = 'server-dot offline';
+});
+
+async function apiRequest(endpoint, options = {}) {
+  const token = getAuthToken();
+  if (!token) {
+    location.href = `index.html?next=drivers.html`;
+    return null;
+  }
+
+  const url = `${getBaseApiUrl()}${endpoint}`;
+  const headers = {
+    'Authorization': `Bearer ${token}`,
+    'Content-Type': 'application/json',
+    ...(options.headers || {})
+  };
+
+  try {
+    let res;
+    if (window.apiClient && typeof window.apiClient.fetchWithFailover === 'function') {
+      res = await window.apiClient.fetchWithFailover(endpoint, {
+        ...options,
+        headers
+      });
+    } else {
+      res = await fetch(url, { ...options, headers });
+    }
+
+    if (res.status === 401) {
+      localStorage.removeItem('pos_token');
+      localStorage.removeItem('pos_user');
+      location.href = `index.html?next=drivers.html`;
+      return null;
+    }
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(data.error || `خطأ في الخادم (${res.status})`);
+    }
+    return data;
+  } catch (err) {
+    console.error(`API Error [${endpoint}]:`, err);
+    throw err;
+  }
+}
+
+// ==================== APP INITIALIZATION ====================
+document.addEventListener('DOMContentLoaded', async () => {
+  // 1. Auth check
+  const user = getCurrentUser();
+  const token = getAuthToken();
+  if (!token) {
+    location.href = 'index.html?next=drivers.html';
+    return;
+  }
+
+  if ($('currentUserLabel') && user) {
+    $('currentUserLabel').textContent = user.name || user.username || 'مستخدم POS';
+  }
+
+  updateServerBadgeUi();
+  if (!navigator.onLine) {
+    $('offlineBanner').classList.add('show');
+  }
+
+  // 2. Load cached data for instant zero-latency paint
+  restoreCachedSummary();
+
+  // 3. Register service worker
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/phone/sw_phone.js').catch(() => {});
+  }
+
+  // 4. Handle deep link hash
+  const hash = location.hash.replace('#', '');
+  if (hash === 'settlement') switchTab('tabSettlement');
+  else if (hash === 'statement') switchTab('tabStatement');
+  else if (hash === 'unreceived') switchTab('tabUnreceived');
+
+  // 5. Fetch fresh data
+  await refreshAllData();
+});
+
+function goToHome() {
+  location.href = 'index.html';
+}
+
+function logout() {
+  localStorage.removeItem('pos_token');
+  localStorage.removeItem('pos_user');
+  location.href = 'index.html';
+}
+
+// ==================== TABS SWITCHING ====================
+function switchTab(tabId) {
+  document.querySelectorAll('.tab-section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+
+  const section = $(tabId);
+  const tabBtn = document.querySelector(`.nav-tab[data-tab="${tabId}"]`);
+
+  if (section) section.classList.add('active');
+  if (tabBtn) tabBtn.classList.add('active');
+
+  const fab = $('fabAddDriver');
+  if (fab) fab.style.display = (tabId === 'tabDrivers') ? 'grid' : 'none';
+
+  // Section specific refreshes
+  if (tabId === 'tabUnreceived') {
+    loadUnreceivedOrders();
+  }
+}
+
+// ==================== DATA FETCHING & SUMMARY ====================
+function restoreCachedSummary() {
+  try {
+    const cached = localStorage.getItem('pos_drivers_summary_cache');
+    if (cached) {
+      const data = JSON.parse(cached);
+      driversData = data.drivers || [];
+      renderDriversList();
+      updateTopMetrics();
+      populateDriverDropdowns();
+    }
+  } catch (_) {}
+}
+
+async function refreshAllData(silent = false) {
+  const refreshBtn = $('refreshBtn');
+  if (refreshBtn) refreshBtn.innerHTML = '<i class="fas fa-rotate spin-icon"></i>';
+
+  try {
+    const [summaryRes, walletsRes] = await Promise.all([
+      apiRequest('/drivers/summary').catch(e => {
+        if (!silent) showToast(e.message, 'error');
+        return null;
+      }),
+      apiRequest('/wallets').catch(() => null)
+    ]);
+
+    if (summaryRes && summaryRes.drivers) {
+      driversData = summaryRes.drivers;
+      localStorage.setItem('pos_drivers_summary_cache', JSON.stringify(summaryRes));
+      renderDriversList();
+      updateTopMetrics();
+      populateDriverDropdowns();
+    }
+
+    if (walletsRes) {
+      walletsData = walletsRes.wallets || walletsRes.data || [];
+      populateWalletDropdowns();
+    }
+
+    if (!silent) showToast('✅ تم تحديث بيانات المندوبين بنجاح', 'success');
+  } catch (err) {
+    if (!silent) showToast('تعذر تحديث البيانات: ' + err.message, 'error');
+  } finally {
+    if (refreshBtn) refreshBtn.innerHTML = '<i class="fas fa-rotate"></i>';
+  }
+}
+
+// ==================== TOP METRICS CALCULATION ====================
+function updateTopMetrics() {
+  let dueToShop = 0;
+  let dueToDrivers = 0;
+  let totalUnreceivedCount = 0;
+  let totalFees = 0;
+
+  driversData.forEach(d => {
+    const bal = Number(d.balance || 0);
+    if (bal > 0) dueToShop += bal;
+    else if (bal < 0) dueToDrivers += Math.abs(bal);
+
+    totalUnreceivedCount += Number(d.unreceived_order_count || 0);
+    totalFees += Number(d.total_fees || 0);
+  });
+
+  const activeCount = driversData.filter(d => d.is_active !== 0).length;
+
+  $('statDueToShop').textContent = `${formatNumber(dueToShop)} ريال`;
+  $('statDueToDrivers').textContent = `${formatNumber(dueToDrivers)} ريال`;
+  $('statTotalDrivers').textContent = `${driversData.length} (${activeCount} نشط)`;
+  $('statUnreceivedOrders').textContent = `${totalUnreceivedCount} طلب`;
+  $('statTotalFees').textContent = `${formatNumber(totalFees)} ريال`;
+}
+
+// ==================== DRIVERS LIST RENDERING ====================
+function setDriverFilter(filter) {
+  currentFilter = filter;
+  document.querySelectorAll('.filter-pills .pill-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.filter === filter);
+  });
+  renderDriversList();
+}
+
+function onDriverSearch(query) {
+  searchQuery = (query || '').trim().toLowerCase();
+  const clearBtn = $('driverSearchClear');
+  if (clearBtn) clearBtn.style.display = searchQuery ? 'block' : 'none';
+  renderDriversList();
+}
+
+function clearDriverSearch() {
+  $('driverSearchInput').value = '';
+  onDriverSearch('');
+}
+
+function renderDriversList() {
+  const container = $('driversListContainer');
+  if (!container) return;
+
+  let filtered = driversData.filter(d => {
+    // 1. Text search
+    if (searchQuery) {
+      const name = (d.name || '').toLowerCase();
+      const phone = (d.phone || '').toLowerCase();
+      const username = (d.username || '').toLowerCase();
+      if (!name.includes(searchQuery) && !phone.includes(searchQuery) && !username.includes(searchQuery)) {
+        return false;
+      }
+    }
+
+    // 2. Status pills
+    const bal = Number(d.balance || 0);
+    const unrec = Number(d.unreceived_order_count || 0);
+    const isActive = d.is_active !== 0;
+
+    if (currentFilter === 'has_balance') return bal > 0.01;
+    if (currentFilter === 'unreceived') return unrec > 0;
+    if (currentFilter === 'balanced') return Math.abs(bal) <= 0.01;
+    if (currentFilter === 'inactive') return !isActive;
+
+    return true;
+  });
+
+  $('driversCountBadge').textContent = `${filtered.length} مندوب`;
+
+  if (!filtered.length) {
+    container.innerHTML = `
+      <div class="empty-box">
+        <i class="fas fa-user-slash"></i>
+        <p>لا يوجد مندوبون مطابقون لمعايير البحث</p>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = filtered.map(d => {
+    const bal = Number(d.balance || 0);
+    const absBal = Math.abs(bal);
+    const isActive = d.is_active !== 0;
+    const hasUnreceived = Number(d.unreceived_order_count || 0) > 0;
+    const unreceivedCount = Number(d.unreceived_order_count || 0);
+    const unreceivedTotal = Number(d.unreceived_order_total || 0);
+    const failedCount = Number(d.failed_order_count || 0);
+
+    let cardClass = 'driver-card';
+    let balanceClass = 'driver-balance-row';
+    let balanceValClass = 'balance-value';
+    let balanceLabel = 'متوازن (0.00)';
+    let statusBadge = '<span class="status-badge balanced"><i class="fas fa-check"></i> متوازن</span>';
+
+    if (bal > 0.01) {
+      cardClass += ' has-balance';
+      balanceClass += ' alert';
+      balanceValClass += ' negative';
+      balanceLabel = `عليه للمحل: ${formatNumber(absBal)} ريال`;
+      statusBadge = '<span class="status-badge debt"><i class="fas fa-arrow-down"></i> عليه عهدة</span>';
+    } else if (bal < -0.01) {
+      cardClass += ' is-credited';
+      balanceClass += ' credit';
+      balanceValClass += ' positive';
+      balanceLabel = `له على المحل: ${formatNumber(absBal)} ريال`;
+      statusBadge = '<span class="status-badge credit"><i class="fas fa-arrow-up"></i> له رصيد</span>';
+    }
+
+    const cleanPhone = (d.phone || '').replace(/[^0-9]/g, '');
+
+    return `
+      <article class="${cardClass}" id="driver-card-${d.id}">
+        <div class="driver-head">
+          <div class="driver-title">
+            <h3>
+              <span>${escapeHtml(d.name || 'مندوب')}</span>
+              <span class="status-badge ${isActive ? 'active' : 'inactive'}">${isActive ? 'نشط' : 'معطل'}</span>
+            </h3>
+            <div class="driver-meta">
+              <span><i class="fas fa-id-badge"></i> ID: ${escapeHtml(d.username || d.id)}</span>
+              ${d.phone ? `<span><i class="fas fa-phone"></i> ${escapeHtml(d.phone)}</span>` : ''}
+              ${d.vehicle_info ? `<span><i class="fas fa-car-side"></i> ${escapeHtml(d.vehicle_info)}</span>` : ''}
+            </div>
+          </div>
+          <div class="quick-contact">
+            ${cleanPhone ? `
+              <a href="tel:${cleanPhone}" class="contact-btn call" title="اتصال هاتفي"><i class="fas fa-phone"></i></a>
+              <a href="https://wa.me/${cleanPhone.startsWith('967') ? cleanPhone : '967' + cleanPhone}" target="_blank" class="contact-btn whatsapp" title="واتساب"><i class="fab fa-whatsapp"></i></a>
+            ` : ''}
+          </div>
+        </div>
+
+        <div class="${balanceClass}">
+          <div>
+            <div class="balance-title">${statusBadge}</div>
+            <strong class="${balanceValClass}">${formatNumber(bal)} ريال</strong>
+          </div>
+          <div style="text-align:left;font-size:0.7rem;color:var(--muted);">
+            <span>${balanceLabel}</span>
+          </div>
+        </div>
+
+        <div class="driver-grid-metrics">
+          <div class="mini-metric">
+            <label>طلبات لم تُستلم</label>
+            <strong style="${hasUnreceived ? 'color:var(--amber);' : ''}">${unreceivedCount} (${formatNumber(unreceivedTotal)})</strong>
+          </div>
+          <div class="mini-metric">
+            <label>فشل التوصيل</label>
+            <strong style="${failedCount > 0 ? 'color:var(--red);' : ''}">${failedCount} طلب</strong>
+          </div>
+          <div class="mini-metric">
+            <label>إجمالي التوصيلات</label>
+            <strong>${d.total_deliveries || 0}</strong>
+          </div>
+        </div>
+
+        <div class="driver-actions-grid">
+          <button class="action-btn primary" onclick="startSettlementForDriver(${d.id})">
+            <i class="fas fa-scale-balanced"></i> تسوية
+          </button>
+          <button class="action-btn soft" onclick="openDriverStatementTab(${d.id})">
+            <i class="fas fa-file-invoice"></i> كشف
+          </button>
+          <button class="action-btn warning" onclick="openReceiveOrdersForDriver(${d.id})">
+            <i class="fas fa-box-archive"></i> استلام (${unreceivedCount})
+          </button>
+          <button class="action-btn gray" onclick="openEditDriverModal(${d.id})">
+            <i class="fas fa-pen-to-square"></i> تعديل
+          </button>
+          <button class="action-btn gray" onclick="openChangePasswordModal(${d.id}, '${escapeHtml(d.name || '')}')">
+            <i class="fas fa-key"></i> كلمة المرور
+          </button>
+          <button class="action-btn danger" onclick="deleteDriverPrompt(${d.id}, '${escapeHtml(d.name || '')}')">
+            <i class="fas fa-trash-can"></i> حذف
+          </button>
+        </div>
+      </article>
+    `;
+  }).join('');
+}
+
+// ==================== DROPDOWNS POPULATION ====================
+function populateDriverDropdowns() {
+  const options = driversData.map(d => `<option value="${d.id}">${escapeHtml(d.name || 'مندوب')} (ID: ${escapeHtml(d.username || d.id)})</option>`).join('');
+
+  if ($('settleDriverSelect')) {
+    const current = $('settleDriverSelect').value;
+    $('settleDriverSelect').innerHTML = '<option value="">-- اختر المندوب للتسوية --</option>' + options;
+    if (current) $('settleDriverSelect').value = current;
+  }
+
+  if ($('stmtDriverSelect')) {
+    const current = $('stmtDriverSelect').value;
+    $('stmtDriverSelect').innerHTML = '<option value="">-- اختر المندوب لعرض كشف الحساب --</option>' + options;
+    if (current) $('stmtDriverSelect').value = current;
+  }
+
+  if ($('unreceivedDriverSelect')) {
+    const current = $('unreceivedDriverSelect').value;
+    $('unreceivedDriverSelect').innerHTML = '<option value="">-- كل المندوبين --</option>' + options;
+    if (current) $('unreceivedDriverSelect').value = current;
+  }
+}
+
+function populateWalletDropdowns() {
+  if (!$('settleWalletSelect')) return;
+  const options = walletsData.map(w => `<option value="${w.id}">${escapeHtml(w.name || w.wallet_name || ('محفظة ' + w.id))}</option>`).join('');
+  $('settleWalletSelect').innerHTML = '<option value="">-- اختر المحفظة --</option>' + options;
+}
+
+// ==================== SETTLEMENT LOGIC ====================
+function startSettlementForDriver(driverId) {
+  switchTab('tabSettlement');
+  $('settleDriverSelect').value = String(driverId);
+  onSettleDriverSelect(driverId);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function onSettleDriverSelect(driverId) {
+  const box = $('settleDriverSummaryBox');
+  if (!driverId) {
+    if (box) box.style.display = 'none';
+    updateSettlementCalculation();
+    return;
+  }
+
+  const d = driversData.find(x => String(x.id) === String(driverId));
+  if (!d) return;
+
+  const bal = Number(d.balance || 0);
+  const absBal = Math.abs(bal);
+
+  if ($('settleDriverNameDisplay')) $('settleDriverNameDisplay').textContent = d.name || 'مندوب';
+  if ($('settlePendingCount')) $('settlePendingCount').textContent = `${d.unreceived_order_count || 0} طلب (${formatNumber(d.unreceived_order_total || 0)} ريال)`;
+  if ($('settleFailedCount')) $('settleFailedCount').textContent = `${d.failed_order_count || 0} طلب`;
+
+  const balEl = $('settleDriverCurrentBalance');
+  const badge = $('settleDriverStatusBadge');
+
+  if (bal > 0.01) {
+    balEl.textContent = `عليه: ${formatNumber(absBal)} ريال`;
+    balEl.style.color = 'var(--red)';
+    badge.className = 'status-badge debt';
+    badge.textContent = 'عليه عهدة للمحل';
+    $('settleTypeSelect').value = 'driver_pays_shop';
+    $('settleAmountInput').value = absBal > 0 ? absBal.toFixed(2) : '';
+  } else if (bal < -0.01) {
+    balEl.textContent = `له: ${formatNumber(absBal)} ريال`;
+    balEl.style.color = 'var(--green-dark)';
+    badge.className = 'status-badge credit';
+    badge.textContent = 'له مستحقات على المحل';
+    $('settleTypeSelect').value = 'shop_pays_driver';
+    $('settleAmountInput').value = absBal > 0 ? absBal.toFixed(2) : '';
+  } else {
+    balEl.textContent = '0.00 ريال (متوازن)';
+    balEl.style.color = 'var(--muted)';
+    badge.className = 'status-badge balanced';
+    badge.textContent = 'الحساب متوازن';
+    $('settleTypeSelect').value = 'driver_pays_shop';
+    $('settleAmountInput').value = '';
+  }
+
+  if (box) box.style.display = 'block';
+  updateSettlementCalculation();
+}
+
+function fillFullSettleAmount() {
+  const driverId = $('settleDriverSelect').value;
+  if (!driverId) return showToast('اختر المندوب أولاً', 'warning');
+  const d = driversData.find(x => String(x.id) === String(driverId));
+  if (!d) return;
+
+  const absBal = Math.abs(Number(d.balance || 0));
+  $('settleAmountInput').value = absBal > 0 ? absBal.toFixed(2) : '0.00';
+  if ($('settleCashPart')) $('settleCashPart').value = absBal > 0 ? absBal.toFixed(2) : '0.00';
+  if ($('settleWalletPart')) $('settleWalletPart').value = '0.00';
+  updateSettlementCalculation();
+}
+
+function onSettleMethodChange(method) {
+  const walletGroup = $('settleWalletGroup');
+  const mixedGroup = $('settleMixedGroup');
+
+  if (method === 'cash') {
+    if (walletGroup) walletGroup.style.display = 'none';
+    if (mixedGroup) mixedGroup.style.display = 'none';
+  } else if (method === 'wallet') {
+    if (walletGroup) walletGroup.style.display = 'block';
+    if (mixedGroup) mixedGroup.style.display = 'none';
+  } else if (method === 'mixed') {
+    if (walletGroup) walletGroup.style.display = 'block';
+    if (mixedGroup) mixedGroup.style.display = 'block';
+    const total = parseFloat($('settleAmountInput')?.value || 0) || 0;
+    if (total > 0 && !parseFloat($('settleCashPart').value) && !parseFloat($('settleWalletPart').value)) {
+      $('settleCashPart').value = total.toFixed(2);
+      $('settleWalletPart').value = '0.00';
+    }
+  }
+  updateSettlementCalculation();
+}
+
+function updateSettlementCalculation() {
+  const driverId = $('settleDriverSelect')?.value;
+  const d = driversData.find(x => String(x.id) === String(driverId));
+  const prevBal = d ? Number(d.balance || 0) : 0;
+
+  const type = $('settleTypeSelect')?.value || 'driver_pays_shop';
+  const method = $('settleMethodSelect')?.value || 'cash';
+
+  let amount = 0;
+  if (method === 'mixed') {
+    const cash = parseFloat($('settleCashPart')?.value || 0) || 0;
+    const wallet = parseFloat($('settleWalletPart')?.value || 0) || 0;
+    amount = cash + wallet;
+    if ($('settleAmountInput')) $('settleAmountInput').value = amount > 0 ? amount.toFixed(2) : '';
+  } else {
+    amount = parseFloat($('settleAmountInput')?.value || 0) || 0;
+  }
+
+  let newBal = prevBal;
+  if (type === 'driver_pays_shop') {
+    newBal = prevBal - amount;
+  } else {
+    newBal = prevBal + amount;
+  }
+
+  $('impactPrevBal').textContent = formatNumber(prevBal);
+  $('impactAmount').textContent = formatNumber(amount);
+  $('impactNewBal').textContent = formatNumber(newBal);
+
+  const newBalEl = $('impactNewBal');
+  if (newBal > 0.01) newBalEl.style.color = 'var(--red)';
+  else if (newBal < -0.01) newBalEl.style.color = 'var(--green-dark)';
+  else newBalEl.style.color = 'var(--muted)';
+
+  const typeDesc = type === 'driver_pays_shop' ? 'سداد عهدة من المندوب' : 'صرف أجور للمندوب';
+  $('settleImpactTypeDesc').textContent = typeDesc;
+}
+
+async function submitSettlementForm() {
+  const driverId = $('settleDriverSelect')?.value;
+  if (!driverId) return showToast('يرجى اختيار المندوب', 'warning');
+
+  const type = $('settleTypeSelect')?.value || 'driver_pays_shop';
+  const method = $('settleMethodSelect')?.value || 'cash';
+  const notes = $('settleNotesInput')?.value.trim();
+
+  let amount = 0, cash = 0, wallet = 0;
+  if (method === 'cash') {
+    amount = parseFloat($('settleAmountInput')?.value || 0) || 0;
+    cash = amount;
+    wallet = 0;
+  } else if (method === 'wallet') {
+    amount = parseFloat($('settleAmountInput')?.value || 0) || 0;
+    cash = 0;
+    wallet = amount;
+  } else if (method === 'mixed') {
+    cash = parseFloat($('settleCashPart')?.value || 0) || 0;
+    wallet = parseFloat($('settleWalletPart')?.value || 0) || 0;
+    amount = cash + wallet;
+  }
+
+  if (amount <= 0) return showToast('يرجى إدخال مبلغ صحيح أكبر من الصفر', 'warning');
+
+  const walletId = $('settleWalletSelect')?.value;
+  if ((method === 'wallet' || (method === 'mixed' && wallet > 0)) && !walletId) {
+    return showToast('يرجى اختيار المحفظة الإلكترونية', 'warning');
+  }
+
+  const d = driversData.find(x => String(x.id) === String(driverId));
+  const driverName = d?.name || 'المندوب';
+
+  const confirmed = await showConfirm(
+    `هل أنت متأكد من تسجيل تسوية بمبلغ ${formatNumber(amount)} ريال للمندوب "${driverName}"؟\nطريقة الدفع: ${method === 'cash' ? 'نقدي' : method === 'wallet' ? 'محفظة' : 'مختلط'}`,
+    { title: 'تأكيد التسوية المالية', type: 'warning', okText: 'تأكيد الحفظ' }
+  );
+  if (!confirmed) return;
+
+  const btn = $('btnSubmitSettlement');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner spin-icon"></i> جاري حفظ التسوية...';
+
+  // Driver pays shop = positive amount to reduce debt, Shop pays driver = negative
+  const finalAmount = (type === 'driver_pays_shop') ? amount : -amount;
+
+  try {
+    const payload = {
+      driver_id: Number(driverId),
+      amount: finalAmount,
+      payment_method: method,
+      wallet_id: walletId ? Number(walletId) : null,
+      cash_amount: cash,
+      wallet_amount: wallet,
+      notes: notes || `تسوية عهدة (${type === 'driver_pays_shop' ? 'سداد للمحل' : 'صرف من المحل'})`
+    };
+
+    const res = await apiRequest('/drivers/payment', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+
+    if (res && res.success !== false) {
+      showToast('✅ تم تسجيل التسوية المالية وتحديث العهدة بنجاح', 'success');
+      $('settleAmountInput').value = '';
+      if ($('settleCashPart')) $('settleCashPart').value = '';
+      if ($('settleWalletPart')) $('settleWalletPart').value = '';
+      if ($('settleNotesInput')) $('settleNotesInput').value = '';
+
+      await refreshAllData(true);
+      onSettleDriverSelect(driverId);
+    }
+  } catch (err) {
+    showToast('فشل حفظ التسوية: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-floppy-disk"></i> حفظ وتأكيد التسوية المالية';
+  }
+}
+
+// ==================== STATEMENT LOGIC ====================
+function openDriverStatementTab(driverId) {
+  switchTab('tabStatement');
+  $('stmtDriverSelect').value = String(driverId);
+  onStatementDriverChange(driverId);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function onStatementDriverChange(driverId) {
+  if (!driverId) {
+    $('statementSummaryWrapper').style.display = 'none';
+    $('statementTransactionsList').innerHTML = '<div class="empty-box"><i class="fas fa-hand-pointer"></i><p>اختر مندوباً من الأعلى لعرض كشف حسابه</p></div>';
+    statementState.driverId = null;
+    return;
+  }
+
+  const d = driversData.find(x => String(x.id) === String(driverId));
+  statementState.driverId = Number(driverId);
+  statementState.driverName = d?.name || 'مندوب';
+
+  loadStatementData();
+}
+
+function setStatementPreset(preset) {
+  statementState.preset = preset;
+  document.querySelectorAll('.filter-pills .pill-btn[data-preset]').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.preset === preset);
+  });
+
+  const now = new Date();
+  let from = '', to = '';
+
+  if (preset === 'today') {
+    from = to = now.toISOString().slice(0, 10);
+  } else if (preset === 'yesterday') {
+    const y = new Date(now);
+    y.setDate(y.getDate() - 1);
+    from = to = y.toISOString().slice(0, 10);
+  } else if (preset === 'week') {
+    const w = new Date(now);
+    w.setDate(w.getDate() - 7);
+    from = w.toISOString().slice(0, 10);
+    to = now.toISOString().slice(0, 10);
+  } else if (preset === 'month') {
+    from = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+    to = now.toISOString().slice(0, 10);
+  } else {
+    from = '';
+    to = '';
+  }
+
+  $('stmtDateFrom').value = from;
+  $('stmtDateTo').value = to;
+  statementState.from = from;
+  statementState.to = to;
+
+  if (statementState.driverId) {
+    loadStatementData();
+  }
+}
+
+function applyStatementCustomDates() {
+  statementState.from = $('stmtDateFrom').value;
+  statementState.to = $('stmtDateTo').value;
+  statementState.preset = 'custom';
+  document.querySelectorAll('.filter-pills .pill-btn[data-preset]').forEach(btn => btn.classList.remove('active'));
+
+  if (statementState.driverId) {
+    loadStatementData();
+  }
+}
+
+async function loadStatementData() {
+  if (!statementState.driverId) return;
+
+  const listEl = $('statementTransactionsList');
+  listEl.innerHTML = '<div class="empty-box"><i class="fas fa-spinner spin-icon"></i><p>جاري تحميل كشف الحساب والعمليات...</p></div>';
+
+  try {
+    const res = await apiRequest(`/drivers/transactions?driver_id=${statementState.driverId}`);
+    const txs = res?.transactions || [];
+
+    // Filter by dates locally if needed
+    const from = statementState.from;
+    const to = statementState.to;
+
+    const filtered = txs.filter(t => {
+      if (!from && !to) return true;
+      if (!t.created_at) return false;
+      const day = t.created_at.slice(0, 10);
+      return (!from || day >= from) && (!to || day <= to);
+    }).sort((a, b) => String(a.created_at || '').localeCompare(String(b.created_at || '')));
+
+    let balance = 0, totalDebit = 0, totalCredit = 0, totalFees = 0;
+    const orderIds = new Set();
+
+    const mapped = filtered.map(t => {
+      const amount = Math.abs(Number(t.amount || 0));
+      const type = String(t.type || '').toLowerCase();
+      let debit = 0, credit = 0;
+
+      if (type === 'collection') {
+        debit = amount;
+      } else if (type === 'delivery_fee') {
+        credit = amount;
+        totalFees += amount;
+      } else if (type === 'settlement') {
+        credit = amount;
+      } else {
+        if (Number(t.amount || 0) >= 0) debit = amount;
+        else credit = amount;
+      }
+
+      balance += debit - credit;
+      totalDebit += debit;
+      totalCredit += credit;
+
+      if (t.order_id) orderIds.add(String(t.order_id));
+
+      const typeLabel =
+        type === 'settlement' ? 'تسوية وتوريد' :
+        type === 'collection' ? 'تحصيل من عميل' :
+        type === 'delivery_fee' ? 'رسوم توصيل' : (t.type || 'حركة');
+
+      return {
+        date: formatDate(t.created_at),
+        description: `${typeLabel}${t.order_id ? ' — طلب #' + t.order_id : ''}${t.customer_name ? ' (' + t.customer_name + ')' : ''}`,
+        debit, credit, balance, raw: t, type
+      };
+    });
+
+    const finalBalance = totalDebit - totalCredit;
+
+    statementState.transactions = mapped;
+    statementState.summary = {
+      ordersCount: orderIds.size,
+      totalDebit,
+      totalCredit,
+      totalFees,
+      finalBalance
+    };
+
+    // Render summary box
+    $('stmtDriverNameHeading').textContent = `كشف حركة: ${statementState.driverName}`;
+    $('stmtPeriodHeading').textContent = from && to ? `الفترة: من ${from} إلى ${to}` : 'كافة الحركات المسجلة';
+    $('stmtOrdersCount').textContent = orderIds.size;
+    $('stmtTotalDebit').textContent = `${formatNumber(totalDebit)} ريال`;
+    $('stmtTotalCredit').textContent = `${formatNumber(totalCredit)} ريال`;
+
+    const finalBalEl = $('stmtFinalBalance');
+    finalBalEl.textContent = `${formatNumber(finalBalance)} ريال`;
+    if (finalBalance > 0.01) finalBalEl.style.color = '#fca5a5';
+    else if (finalBalance < -0.01) finalBalEl.style.color = '#86efac';
+    else finalBalEl.style.color = '#fff';
+
+    $('statementSummaryWrapper').style.display = 'block';
+
+    // Render transactions timeline (newest first)
+    if (!mapped.length) {
+      listEl.innerHTML = '<div class="empty-box"><i class="fas fa-file-excel"></i><p>لا توجد حركات مسجلة لهذا المندوب في الفترة المحددة</p></div>';
+      return;
+    }
+
+    listEl.innerHTML = mapped.slice().reverse().map(item => {
+      const isPositive = item.debit > 0;
+      const typeClass = item.type === 'settlement' ? 'settlement' : item.type === 'collection' ? 'collection' : item.type === 'delivery_fee' ? 'delivery_fee' : 'other';
+      const icon = item.type === 'settlement' ? 'fa-handshake' : item.type === 'collection' ? 'fa-money-bill' : item.type === 'delivery_fee' ? 'fa-motorcycle' : 'fa-receipt';
+
+      return `
+        <div class="tx-card">
+          <div class="tx-icon ${typeClass}"><i class="fas ${icon}"></i></div>
+          <div class="tx-details">
+            <strong>${escapeHtml(item.description)}</strong>
+            <small>${escapeHtml(item.date)}</small>
+          </div>
+          <div class="tx-amount">
+            <strong style="color:${isPositive ? 'var(--red)' : 'var(--green-dark)'};">
+              ${isPositive ? '+' : '-'}${formatNumber(isPositive ? item.debit : item.credit)}
+            </strong>
+            <small>الرصيد: ${formatNumber(item.balance)}</small>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+  } catch (err) {
+    listEl.innerHTML = `<div class="empty-box"><i class="fas fa-triangle-exclamation" style="color:var(--red);"></i><p>تعذر تحميل كشف الحساب: ${escapeHtml(err.message)}</p></div>`;
+  }
+}
+
+function shareStatementWhatsApp() {
+  if (!statementState.summary || !statementState.driverName) return showToast('افتح كشف حساب أولاً', 'warning');
+
+  const s = statementState.summary;
+  const from = statementState.from || 'البداية';
+  const to = statementState.to || 'اليوم';
+
+  const d = driversData.find(x => x.id === statementState.driverId);
+  const cleanPhone = (d?.phone || '').replace(/[^0-9]/g, '');
+
+  let text = `*كشف حساب مندوب — متجر ابن المختار*\n`;
+  text += `👤 المندوب: ${statementState.driverName}\n`;
+  text += `📅 الفترة: من ${from} إلى ${to}\n`;
+  text += `--------------------------------\n`;
+  text += `📦 عدد الطلبات: ${s.ordersCount}\n`;
+  text += `💰 إجمالي التحصيلات (مدين): ${formatNumber(s.totalDebit)} ريال\n`;
+  text += `💵 إجمالي التوريدات (دائن): ${formatNumber(s.totalCredit)} ريال\n`;
+  text += `🚚 إجمالي رسوم التوصيل: ${formatNumber(s.totalFees)} ريال\n`;
+  text += `--------------------------------\n`;
+  text += `⚖️ *الرصيد النهائي: ${formatNumber(s.finalBalance)} ريال*`;
+  text += ` (${s.finalBalance > 0 ? 'مستحق على المندوب' : s.finalBalance < 0 ? 'مستحق للمندوب' : 'متوازن'})\n\n`;
+  text += `تم التصدير من نظام POS ابن المختار بتاريخ ${new Date().toLocaleDateString('ar-YE')}`;
+
+  const url = cleanPhone
+    ? `https://wa.me/${cleanPhone.startsWith('967') ? cleanPhone : '967' + cleanPhone}?text=${encodeURIComponent(text)}`
+    : `https://wa.me/?text=${encodeURIComponent(text)}`;
+
+  window.open(url, '_blank');
+}
+
+async function printDriverStatementData() {
+  if (!statementState.summary || !window.POSDocs) {
+    return showToast('قالب الطباعة غير متوفر حالياً', 'warning');
+  }
+
+  const s = statementState.summary;
+  try {
+    await POSDocs.printStatementData({
+      party: statementState.driverName,
+      party_type: 'driver',
+      date_from: statementState.from || '—',
+      date_to: statementState.to || formatDate(new Date().toISOString()),
+      items: statementState.transactions.map(t => ({
+        date: t.date,
+        description: t.description,
+        debit: t.debit,
+        credit: t.credit,
+        balance: t.balance
+      })),
+      total_debit: s.totalDebit,
+      total_credit: s.totalCredit,
+      final_balance: s.finalBalance,
+      orders_count: s.ordersCount,
+      total_delivery_fees: s.totalFees,
+      notes: 'كشف حساب مندوب معتمد من تطبيق POS للجوال'
+    }, { title: 'كشف حركة المندوب — ' + statementState.driverName });
+  } catch (e) {
+    showToast(e.message, 'error');
+  }
+}
+
+async function exportStatementPdfFile() {
+  if (!statementState.summary || !window.POSDocs) {
+    return showToast('قالب التصدير غير متوفر', 'warning');
+  }
+
+  const s = statementState.summary;
+  try {
+    await POSDocs.exportStatementPDF({
+      party: statementState.driverName,
+      party_type: 'driver',
+      date_from: statementState.from || '—',
+      date_to: statementState.to || formatDate(new Date().toISOString()),
+      items: statementState.transactions.map(t => ({
+        date: t.date,
+        description: t.description,
+        debit: t.debit,
+        credit: t.credit,
+        balance: t.balance
+      })),
+      total_debit: s.totalDebit,
+      total_credit: s.totalCredit,
+      final_balance: s.finalBalance,
+      orders_count: s.ordersCount,
+      total_delivery_fees: s.totalFees,
+      notes: 'كشف حركة مندوب معتمد من تطبيق الجوال'
+    }, {
+      title: 'كشف حساب مندوب — ' + statementState.driverName,
+      filename: `كشف-مندوب-${statementState.driverName}-${new Date().toISOString().slice(0, 10)}.pdf`
+    });
+    showToast('✅ تم تصدير كشف الحساب بنجاح', 'success');
+  } catch (e) {
+    showToast(e.message, 'error');
+  }
+}
+
+// ==================== UNRECEIVED ORDERS RECEIPT ====================
+function openReceiveOrdersForDriver(driverId) {
+  switchTab('tabUnreceived');
+  $('unreceivedDriverSelect').value = String(driverId);
+  onUnreceivedDriverChange(driverId);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+async function loadUnreceivedOrders() {
+  const container = $('unreceivedOrdersList');
+  container.innerHTML = '<div class="empty-box"><i class="fas fa-spinner spin-icon"></i><p>جاري فحص الطلبات العالقة...</p></div>';
+
+  const driverFilter = $('unreceivedDriverSelect')?.value;
+
+  try {
+    let orders = [];
+    if (driverFilter) {
+      const res = await apiRequest(`/drivers/unreceived-orders?driver_id=${driverFilter}`);
+      orders = (res?.orders || []).map(o => ({ ...o, driver_name: res.driver?.name }));
+    } else {
+      // Loop drivers with unreceived orders
+      const targetDrivers = driversData.filter(d => Number(d.unreceived_order_count || 0) > 0);
+      const results = await Promise.all(
+        targetDrivers.map(d => apiRequest(`/drivers/unreceived-orders?driver_id=${d.id}`).catch(() => null))
+      );
+      results.forEach((r, idx) => {
+        if (r && r.orders) {
+          r.orders.forEach(o => orders.push({ ...o, driver_id: targetDrivers[idx].id, driver_name: targetDrivers[idx].name }));
+        }
+      });
+    }
+
+    unreceivedOrdersData = orders;
+    renderUnreceivedOrdersList();
+  } catch (err) {
+    container.innerHTML = `<div class="empty-box"><i class="fas fa-triangle-exclamation" style="color:var(--red);"></i><p>تعذر جلب الطلبات: ${escapeHtml(err.message)}</p></div>`;
+  }
+}
+
+function onUnreceivedDriverChange(driverId) {
+  loadUnreceivedOrders();
+}
+
+function renderUnreceivedOrdersList() {
+  const container = $('unreceivedOrdersList');
+  const batchBar = $('unreceivedBatchBar');
+
+  $('unreceivedCountBadge').textContent = `${unreceivedOrdersData.length} طلب`;
+
+  if (!unreceivedOrdersData.length) {
+    container.innerHTML = '<div class="empty-box"><i class="fas fa-circle-check" style="color:var(--green);"></i><p>ممتاز! تم استلام وتوريد كافة عهد الطلبات بالكامل</p></div>';
+    if (batchBar) batchBar.style.display = 'none';
+    return;
+  }
+
+  const totalVal = unreceivedOrdersData.reduce((s, o) => s + Number(o.total_amount || 0), 0);
+  if (batchBar) {
+    batchBar.style.display = 'flex';
+    $('unreceivedBatchCount').textContent = `${unreceivedOrdersData.length} طلب جاهز للاستلام`;
+    $('unreceivedBatchTotal').textContent = `القيمة الإجمالية: ${formatNumber(totalVal)} ريال`;
+  }
+
+  container.innerHTML = unreceivedOrdersData.map(o => {
+    const isFailed = Number(o.is_failed) === 1 || ['فشل التسليم', 'فشل'].includes(o.status);
+    return `
+      <article class="driver-card" style="border-right: 4px solid ${isFailed ? 'var(--red)' : 'var(--amber)'};">
+        <div class="driver-head">
+          <div class="driver-title">
+            <h3>
+              <span>طلب #${o.id}</span>
+              <span class="status-badge ${isFailed ? 'debt' : 'balanced'}">${escapeHtml(o.status || 'معلق')}</span>
+            </h3>
+            <div class="driver-meta">
+              <span><i class="fas fa-user"></i> ${escapeHtml(o.customer_name || 'عميل عام')}</span>
+              ${o.customer_phone ? `<span><i class="fas fa-phone"></i> ${escapeHtml(o.customer_phone)}</span>` : ''}
+              <span><i class="fas fa-motorcycle"></i> ${escapeHtml(o.driver_name || 'مندوب')}</span>
+            </div>
+          </div>
+          <div style="text-align:left;">
+            <strong style="font-size:1.05rem;font-weight:900;color:var(--navy);direction:ltr;display:block;">
+              ${formatNumber(o.total_amount)} ريال
+            </strong>
+            <small style="color:var(--muted);font-size:0.65rem;">رسوم: ${formatNumber(o.delivery_fee || 0)}</small>
+          </div>
+        </div>
+
+        <div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;">
+          <button class="action-btn primary" onclick="receiveSingleOrder(${o.id}, ${o.driver_id || $('unreceivedDriverSelect').value})">
+            <i class="fas fa-check"></i> تأكيد استلام الطلب من المندوب
+          </button>
+        </div>
+      </article>
+    `;
+  }).join('');
+}
+
+async function receiveSingleOrder(orderId, driverId) {
+  if (!driverId) return showToast('تعذر تحديد المندوب لهذا الطلب', 'error');
+
+  const confirmed = await showConfirm(`تأكيد استلام الطلب #${orderId} من المندوب؟`, {
+    title: 'استلام الطلب',
+    type: 'success',
+    okText: 'تأكيد الاستلام'
+  });
+  if (!confirmed) return;
+
+  try {
+    const res = await apiRequest('/drivers/receive-orders', {
+      method: 'POST',
+      body: JSON.stringify({
+        driver_id: Number(driverId),
+        order_ids: [Number(orderId)],
+        note: 'تم تأكيد الاستلام من شاشة إدارة المندوبين بالجوال'
+      })
+    });
+
+    if (res && res.success !== false) {
+      showToast('✅ تم استلام الطلب بنجاح', 'success');
+      await refreshAllData(true);
+      await loadUnreceivedOrders();
+    }
+  } catch (err) {
+    showToast('فشل استلام الطلب: ' + err.message, 'error');
+  }
+}
+
+async function receiveAllFilteredOrders() {
+  const driverId = $('unreceivedDriverSelect')?.value;
+  if (!driverId) {
+    return showToast('يرجى تحديد مندوب معين لاستلام طلباته دفعة واحدة', 'warning');
+  }
+
+  const ids = unreceivedOrdersData.map(o => Number(o.id));
+  if (!ids.length) return;
+
+  const confirmed = await showConfirm(`هل أنت متأكد من استلام ${ids.length} طلب دفعة واحدة من المندوب؟`, {
+    title: 'استلام مجمع للطلبات',
+    type: 'warning',
+    okText: 'استلام كافة الطلبات'
+  });
+  if (!confirmed) return;
+
+  try {
+    const res = await apiRequest('/drivers/receive-orders', {
+      method: 'POST',
+      body: JSON.stringify({
+        driver_id: Number(driverId),
+        order_ids: ids,
+        note: `استلام دفعة واحدة لعدد ${ids.length} طلب عبر الجوال`
+      })
+    });
+
+    if (res && res.success !== false) {
+      showToast(`✅ تم استلام ${ids.length} طلب بنجاح وتوريد العهدة`, 'success');
+      await refreshAllData(true);
+      await loadUnreceivedOrders();
+    }
+  } catch (err) {
+    showToast('فشل الاستلام المجمع: ' + err.message, 'error');
+  }
+}
+
+// ==================== DRIVER CRUD MODALS ====================
+function openModal(id) {
+  const modal = $(id);
+  if (modal) modal.classList.add('open');
+}
+
+function closeModal(id) {
+  const modal = $(id);
+  if (modal) modal.classList.remove('open');
+}
+
+function openAddDriverModal() {
+  $('newDriverName').value = '';
+  $('newDriverPhone').value = '';
+  $('newDriverVehicle').value = '';
+  $('newDriverUsername').value = '';
+  $('newDriverPassword').value = '';
+  $('newDriverWhatsappPhone').value = '';
+  openModal('modalAddDriver');
+  $('newDriverName').focus();
+}
+
+async function handleCreateDriver(e) {
+  e.preventDefault();
+  const name = $('newDriverName')?.value.trim();
+  const phone = $('newDriverPhone')?.value.trim();
+  const vehicle_info = $('newDriverVehicle')?.value.trim();
+  const username = $('newDriverUsername')?.value.trim();
+  const password = $('newDriverPassword')?.value.trim();
+  const whatsapp_phone = $('newDriverWhatsappPhone')?.value.trim();
+
+  if (!name || !username || !password) {
+    return showToast('الاسم واسم المستخدم وكلمة المرور مطلوبة', 'warning');
+  }
+
+  const btn = $('btnSubmitAddDriver');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner spin-icon"></i> جاري الحفظ...';
+
+  try {
+    const res = await apiRequest('/drivers', {
+      method: 'POST',
+      body: JSON.stringify({
+        name, phone, vehicle_info, username, password, whatsapp_phone
+      })
+    });
+
+    if (res && (res.success || res.id)) {
+      showToast('🎉 تمت إضافة المندوب بنجاح!', 'success');
+      closeModal('modalAddDriver');
+      await refreshAllData(true);
+    }
+  } catch (err) {
+    showToast('فشل إضافة المندوب: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = 'حفظ المندوب';
+  }
+}
+
+function openEditDriverModal(driverId) {
+  const d = driversData.find(x => x.id === driverId);
+  if (!d) return showToast('بيانات المندوب غير متوفرة', 'error');
+
+  $('editDriverId').value = d.id;
+  $('editDriverName').value = d.name || '';
+  $('editDriverPhone').value = d.phone || '';
+  $('editDriverVehicle').value = d.vehicle_info || '';
+  $('editDriverPassword').value = '';
+  $('editDriverWhatsappPhone').value = d.whatsapp_phone || '';
+  $('editDriverActive').checked = d.is_active !== 0;
+
+  openModal('modalEditDriver');
+}
+
+async function handleUpdateDriver(e) {
+  e.preventDefault();
+  const id = $('editDriverId')?.value;
+  const name = $('editDriverName')?.value.trim();
+  const phone = $('editDriverPhone')?.value.trim();
+  const vehicle_info = $('editDriverVehicle')?.value.trim();
+  const password = $('editDriverPassword')?.value.trim();
+  const whatsapp_phone = $('editDriverWhatsappPhone')?.value.trim();
+  const is_active = $('editDriverActive')?.checked ? 1 : 0;
+
+  if (!name) return showToast('الاسم مطلوب', 'warning');
+
+  const btn = $('btnSubmitEditDriver');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner spin-icon"></i> جاري الحفظ...';
+
+  const payload = { name, phone, vehicle_info, whatsapp_phone, is_active };
+  if (password) payload.password = password;
+
+  try {
+    const res = await apiRequest(`/drivers/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload)
+    });
+
+    if (res && res.success !== false) {
+      showToast('✅ تم تحديث بيانات المندوب بنجاح', 'success');
+      closeModal('modalEditDriver');
+      await refreshAllData(true);
+    }
+  } catch (err) {
+    showToast('فشل التعديل: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = 'حفظ التعديلات';
+  }
+}
+
+function openChangePasswordModal(driverId, driverName) {
+  $('pwdDriverId').value = driverId;
+  $('pwdDriverNameDisplay').textContent = driverName;
+  $('pwdNewPassword').value = '';
+  openModal('modalChangePassword');
+  $('pwdNewPassword').focus();
+}
+
+async function handleChangePasswordSubmit(e) {
+  e.preventDefault();
+  const id = $('pwdDriverId')?.value;
+  const password = $('pwdNewPassword')?.value.trim();
+
+  if (!password) return showToast('أدخل كلمة المرور الجديدة', 'warning');
+
+  const btn = $('btnSubmitPassword');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner spin-icon"></i> جاري التحديث...';
+
+  try {
+    const res = await apiRequest(`/drivers/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify({ password })
+    });
+
+    if (res && res.success !== false) {
+      showToast('🔑 تم تغيير كلمة مرور المندوب بنجاح', 'success');
+      closeModal('modalChangePassword');
+    }
+  } catch (err) {
+    showToast('فشل تغيير كلمة المرور: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = 'تحديث كلمة المرور';
+  }
+}
+
+async function deleteDriverPrompt(driverId, driverName) {
+  const d = driversData.find(x => x.id === driverId);
+  if (d && Math.abs(Number(d.balance || 0)) > 0.01) {
+    return showToast(`لا يمكن حذف المندوب لأن رصيده غير صفري (${formatNumber(d.balance)} ريال). يرجى تسوية العهدة أولاً.`, 'warning');
+  }
+  if (d && Number(d.unreceived_order_count || 0) > 0) {
+    return showToast(`لا يمكن حذف المندوب لأن لديه ${d.unreceived_order_count} طلب غير مستلم.`, 'warning');
+  }
+
+  const confirmed = await showConfirm(
+    `هل أنت متأكد تماماً من حذف المندوب "${driverName}"؟\nسيتم حذف حسابه نهائياً من النظام.`,
+    { title: 'حذف مندوب', type: 'danger', okText: 'حذف نهائي' }
+  );
+  if (!confirmed) return;
+
+  try {
+    const res = await apiRequest(`/drivers/${driverId}`, { method: 'DELETE' });
+    if (res && res.success !== false) {
+      showToast('🗑️ تم حذف المندوب بنجاح', 'success');
+      await refreshAllData(true);
+    }
+  } catch (err) {
+    showToast('فشل حذف المندوب: ' + err.message, 'error');
+  }
+}
+
+// ==================== UTILITY FORMATTERS ====================
+function formatNumber(n) {
+  const num = Number(n || 0);
+  return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function formatDate(iso) {
+  if (!iso) return '-';
+  try {
+    const d = new Date(iso);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  } catch (_) {
+    return iso;
+  }
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+</script>
+</body>
+</html>

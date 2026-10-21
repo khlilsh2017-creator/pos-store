@@ -3581,7 +3581,7 @@
 
             selectedCustomerData = {
                 mainPhone,
-                name: document.getElementById('modal-customerName')?.value.trim() || '',
+                name: document.getElementById('modal-customerName')?.value.trim() || 'عميل عام',
                 governorate: finalGovernorate,
                 address,
                 deliveryType: deliveryTypeVal,
@@ -4914,7 +4914,7 @@
     }
 
     const payload = {
-        customer_name: selectedCustomerData.name || undefined,
+        customer_name: (selectedCustomerData.name && selectedCustomerData.name.trim()) ? selectedCustomerData.name.trim() : 'عميل عام',
         customer_phones: uniquePhones,
         customer_address: address,
         governorate: selectedCustomerData.governorate || 'صنعاء',

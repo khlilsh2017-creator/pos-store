@@ -1600,7 +1600,7 @@
                 <tr class="clickable" onclick="openDetailModal(${o.id})">
                     <td>${o.id}</td>
                     <td>${formatDate(o.order_date)}</td>
-                    <td>${o.customer_name}</td>
+                    <td>${o.customer_name || 'عميل عام'}</td>
                     <td>${o.customer_phone}</td>
                     <td>${formatNumber(o.total_amount)}</td>
                     <td>${collected > 0 ? formatNumber(collected) : '-'}</td>
@@ -1740,7 +1740,7 @@
         const content = document.getElementById('detailContent');
 
         let html = `
-            <div class="detail-row"><label>العميل:</label><div class="value">${order.customer_name}</div></div>
+            <div class="detail-row"><label>العميل:</label><div class="value">${order.customer_name || 'عميل عام'}</div></div>
             <div class="detail-row"><label>الهاتف:</label><div class="value">${order.customer_phone}</div></div>
             <div class="detail-row"><label>العنوان:</label><div class="value">${order.customer_address || '-'}</div></div>
             <div class="detail-row"><label>المحافظة:</label><div class="value">${formatPosNumber(order.governorate || '-')}</div></div>
@@ -2702,7 +2702,7 @@
         const infoDiv = document.getElementById('returnOrderInfo');
         infoDiv.innerHTML = `
             <div style="display:flex; flex-wrap:wrap; gap:8px; justify-content:space-between;">
-                <span><strong>العميل:</strong> ${order.customer_name}</span>
+                <span><strong>العميل:</strong> ${order.customer_name || 'عميل عام'}</span>
                 <span><strong>الهاتف:</strong> ${order.customer_phone}</span>
                 <span><strong>الحالة:</strong> <span class="status-badge ${statusClass(order.status)}">${order.status}</span></span>
                 <span><strong>الإجمالي:</strong> ${formatNumber(order.total_amount)}</span>

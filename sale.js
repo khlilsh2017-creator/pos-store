@@ -753,10 +753,10 @@
         }
 
         async function quickAddCustomerFromModal() {
-            const name = document.getElementById('modal-customer-name').value.trim();
+            let name = document.getElementById('modal-customer-name').value.trim();
             const phone = document.getElementById('modal-customer-phone').value.trim();
             const address = document.getElementById('modal-customer-address').value.trim();
-            if (!name) return showToast('أدخل اسم العميل', 'warning');
+            if (!name) name = phone ? `عميل ${phone}` : 'عميل عام';
             try {
                 const res = await fetch(`${API}/customers`, {
                     method: 'POST',

@@ -3,10 +3,10 @@
 // ============================================================
 importScripts('/offline-sw-core.js');
 
-const CACHE_NAME = 'ibn-mukhtar-pos-v36';
-const STATIC_CACHE = 'ibn-mukhtar-static-v36';
-const DYNAMIC_CACHE = 'ibn-mukhtar-dynamic-v36';
-const VERSION = '2026-10-15-invoice-discount-v8';
+const CACHE_NAME = 'ibn-mukhtar-pos-v37';
+const STATIC_CACHE = 'ibn-mukhtar-static-v37';
+const DYNAMIC_CACHE = 'ibn-mukhtar-dynamic-v37';
+const VERSION = '2026-10-21-drivers-pwa-v1';
 
 const STATIC_ASSETS = [
     // ===== الصفحات الرئيسية =====
@@ -47,7 +47,9 @@ const STATIC_ASSETS = [
     '/phone/index.html',
     '/phone/add_order_ph.html',
     '/phone/orders.html',
+    '/phone/drivers.html',
     '/phone/manifest.json',
+    '/phone/manifest_drivers.json',
     '/phone/sw_phone.js',
 
     // ===== ملفات JavaScript الأساسية =====

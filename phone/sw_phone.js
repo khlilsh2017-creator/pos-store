@@ -10,14 +10,16 @@ try {
   }
 }
 
-const CACHE_NAME = 'pos-phone-shell-v18-login-upgrade';
+const CACHE_NAME = 'pos-phone-shell-v19-drivers-pwa';
 
 // قائمة الملفات الثابتة لضمان العمل بدون اتصال (تشمل صفحات الجوال)
 const STATIC_FILES = [
   '/phone/orders.html',
   '/phone/add_order_ph.html',
+  '/phone/drivers.html',
   '/phone/index.html',
   '/phone/manifest.json',
+  '/phone/manifest_drivers.json',
   '/phone/sw_phone.js',
   '/api-client.js',
   '/login-helper.js',
