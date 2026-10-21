@@ -4638,13 +4638,19 @@
                         const imgs = typeof order.order_images === 'string' ? JSON.parse(order.order_images) : order.order_images;
                         if (Array.isArray(imgs)) {
                             attachedOrderImages = imgs.slice();
-                            renderOrderImagesPreview();
+                        } else {
+                            attachedOrderImages = [];
                         }
                     } catch (e) {
                         console.warn('فشل تحميل صور الطلب المخزنة:', e);
+                        attachedOrderImages = [];
                     }
                 } else {
                     attachedOrderImages = [];
+                }
+                if (typeof renderAttachedOrderImages === 'function') {
+                    renderAttachedOrderImages();
+                } else if (typeof renderOrderImagesPreview === 'function') {
                     renderOrderImagesPreview();
                 }
                 
@@ -6255,6 +6261,8 @@ function compressImageToWebP(file, maxWidth = 900, maxHeight = 900, quality = 0.
     });
 }
 
+window.renderOrderImagesPreview = function() { renderAttachedOrderImages(); };
+window.renderAttachedOrderImages = renderAttachedOrderImages;
 function renderAttachedOrderImages() {
     const container = document.getElementById('orderImagesPreviewContainer');
     const countBadge = document.getElementById('attachedImagesCount');
