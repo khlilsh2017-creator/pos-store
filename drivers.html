@@ -19,8 +19,8 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
 <!-- Core Architecture Scripts -->
-<script src="/api-client.js?v=1.0.3"></script>
-<script src="/login-helper.js?v=1.0.0"></script>
+<script src="/api-client.js?v=1.0.4"></script>
+<script src="/login-helper.js?v=1.0.1"></script>
 <script src="/date-utils.js"></script>
 <script src="/number-utils.js"></script>
 <script src="/permissions.js"></script>
@@ -1989,17 +1989,26 @@ function updateServerBadgeUi() {
   }
 }
 
-window.addEventListener('api-endpoint-changed', e => {
+window.addEventListener('api-endpoint-changed', async e => {
   updateServerBadgeUi();
   const to = e.detail?.to || '';
   if (to.includes('api2')) {
     showToast('⚡ تم التبديل إلى الخادم الاحتياطي (api2)', 'warning');
+  } else {
+    showToast('✅ تم التبديل إلى الخادم الأساسي (api)', 'success');
   }
+  await refreshAllData(true).catch(() => {});
 });
 
-window.addEventListener('api-endpoint-recovered', () => {
+window.addEventListener('api-server-switched', async () => {
+  updateServerBadgeUi();
+  await refreshAllData(true).catch(() => {});
+});
+
+window.addEventListener('api-endpoint-recovered', async () => {
   updateServerBadgeUi();
   showToast('✅ تم استعادة الاتصال بالخادم الأساسي (api)', 'success');
+  await refreshAllData(true).catch(() => {});
 });
 
 window.addEventListener('online', () => {

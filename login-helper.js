@@ -73,8 +73,8 @@
         inset: 0 !important;
         z-index: 999999 !important;
         background: rgba(10, 27, 51, 0.65) !important;
-        backdrop-filter: blur(6px);
-        -webkit-backdrop-filter: blur(6px);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
         display: none;
         align-items: center;
         justify-content: center;
@@ -89,7 +89,7 @@
         background: #ffffff !important;
         border-radius: 20px !important;
         width: 100% !important;
-        max-width: 440px !important;
+        max-width: 450px !important;
         max-height: 90vh !important;
         overflow-y: auto !important;
         box-shadow: 0 20px 50px rgba(10, 27, 51, 0.35) !important;
@@ -100,6 +100,18 @@
         animation: lhPopIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
         text-align: right;
         color: #152238;
+      }
+      @media (max-width: 600px) {
+        .lh-modal-backdrop {
+          align-items: flex-end !important;
+          padding: 0 !important;
+        }
+        .lh-modal-card {
+          border-radius: 24px 24px 0 0 !important;
+          max-height: 88vh !important;
+          max-width: 100% !important;
+          padding: 20px 18px calc(20px + env(safe-area-inset-bottom, 0px)) !important;
+        }
       }
       @keyframes lhFadeIn { from { opacity: 0; } to { opacity: 1; } }
       @keyframes lhPopIn { from { opacity: 0; transform: scale(0.94) translateY(12px); } to { opacity: 1; transform: scale(1) translateY(0); } }
@@ -121,13 +133,13 @@
         gap: 8px;
       }
       .lh-modal-close {
-        width: 32px;
-        height: 32px;
-        border-radius: 8px;
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
         border: none;
         background: #f1f5f9;
         color: #64748b;
-        font-size: 1.1rem;
+        font-size: 1.2rem;
         cursor: pointer;
         display: grid;
         place-items: center;
@@ -135,55 +147,119 @@
       }
       .lh-modal-close:hover { background: #e2e8f0; color: #0f172a; }
 
-      .lh-server-status-box {
-        background: #f8fafc;
-        border: 1.5px solid #e2e8f0;
-        border-radius: 14px;
-        padding: 12px 14px;
+      /* بطاقات الخوادم المتعددة */
+      .lh-servers-list {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
         margin-bottom: 14px;
       }
-      .lh-server-status-box.primary { border-color: #86efac; background: #f0fdf4; }
-      .lh-server-status-box.backup { border-color: #93c5fd; background: #eff6ff; }
-      .lh-server-badge-row {
+      .lh-server-card {
+        border: 2px solid #e2e8f0;
+        border-radius: 14px;
+        padding: 12px 14px;
+        background: #ffffff;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-align: right;
+      }
+      .lh-server-card:hover {
+        border-color: #cbd5e1;
+        background: #f8fafc;
+      }
+      .lh-server-card.active {
+        border-color: #10b981;
+        background: #f0fdf4;
+        box-shadow: 0 4px 14px rgba(16, 185, 129, 0.12);
+      }
+      .lh-server-card.active.backup {
+        border-color: #3b82f6;
+        background: #eff6ff;
+        box-shadow: 0 4px 14px rgba(59, 130, 246, 0.12);
+      }
+      .lh-server-card-head {
         display: flex;
         align-items: center;
         justify-content: space-between;
         margin-bottom: 6px;
       }
-      .lh-server-name {
+      .lh-server-title {
+        font-size: 0.92rem;
         font-weight: 800;
-        font-size: 0.95rem;
-        color: #123b72;
+        color: #0f172a;
         display: flex;
         align-items: center;
-        gap: 6px;
+        gap: 8px;
       }
+      .lh-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        display: inline-block;
+      }
+      .lh-dot.primary { background: #10b981; }
+      .lh-dot.backup { background: #3b82f6; }
       .lh-server-url {
         font-size: 0.72rem;
         color: #64748b;
         font-family: monospace;
         direction: ltr;
-        display: inline-block;
+        display: block;
       }
-
-      .lh-btn-switch {
-        width: 100%;
-        min-height: 44px;
+      .lh-server-badge {
+        font-size: 0.7rem;
+        font-weight: 700;
+        padding: 3px 10px;
+        border-radius: 20px;
+        background: #f1f5f9;
+        color: #475569;
+        transition: all 0.2s ease;
+      }
+      .lh-server-badge.active {
+        background: #dcfce7;
+        color: #15803d;
+      }
+      .lh-server-badge.active.backup {
+        background: #dbeafe;
+        color: #1e40af;
+      }
+      .lh-server-card-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 0.72rem;
+        color: #475569;
+        padding-top: 6px;
+        border-top: 1px dashed #e2e8f0;
+      }
+      .lh-modal-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-top: 14px;
+      }
+      .lh-btn-action {
+        min-height: 42px;
         border-radius: 12px;
         border: none;
-        background: linear-gradient(135deg, #1d63c6, #123b72);
-        color: #ffffff;
-        font-size: 0.88rem;
+        font-size: 0.82rem;
         font-weight: 700;
         cursor: pointer;
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 8px;
-        transition: 0.2s ease;
-        margin-bottom: 12px;
+        gap: 6px;
+        transition: 0.15s ease;
       }
-      .lh-btn-switch:active { transform: scale(0.98); }
+      .lh-btn-action.primary {
+        background: linear-gradient(135deg, #123b72, #1d63c6);
+        color: #ffffff;
+      }
+      .lh-btn-action.secondary {
+        background: #f1f5f9;
+        color: #334155;
+      }
+      .lh-btn-action:active { transform: scale(0.97); }
 
       .lh-feature-pill {
         display: flex;
@@ -200,20 +276,6 @@
       }
       .lh-feature-pill svg { flex-shrink: 0; margin-top: 2px; }
 
-      .lh-ping-section {
-        background: #f8fafc;
-        border-radius: 12px;
-        padding: 10px 12px;
-        border: 1px solid #eef2f7;
-        margin-bottom: 14px;
-      }
-      .lh-ping-row {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        font-size: 0.75rem;
-        margin: 5px 0;
-      }
       .lh-ping-badge {
         font-size: 0.68rem;
         font-weight: 700;
@@ -594,43 +656,68 @@
       <div class="lh-modal-card">
         <div class="lh-modal-header">
           <h3 class="lh-modal-title">⚙️ إعدادات الخادم والاتصال</h3>
-          <button type="button" class="lh-modal-close" id="lhBtnCloseModal">&times;</button>
+          <button type="button" class="lh-modal-close" id="lhBtnCloseModal" title="إغلاق">&times;</button>
         </div>
         
-        <div id="lhServerStatusBox" class="lh-server-status-box primary">
-          <div class="lh-server-badge-row">
-            <span class="lh-server-name" id="lhCurrentServerTitle">
-              <span id="lhModalDot" style="width:10px;height:10px;border-radius:50%;background:#16a34a;display:inline-block;"></span>
-              الخادم النشط: الأساسي (api)
-            </span>
-            <span style="font-size:0.68rem;padding:2px 8px;border-radius:6px;background:#dcfce7;color:#15803d;font-weight:700;" id="lhServerPill">مباشر</span>
+        <p style="font-size:0.75rem;color:#64748b;margin:0 0 12px;line-height:1.4;">
+          انقر مباشرة على أي خادم للتبديل الفوري إليه، أو اضغط لفحص السرعة:
+        </p>
+
+        <div class="lh-servers-list">
+          <!-- CARD PRIMARY -->
+          <div class="lh-server-card" id="lhCardPrimary">
+            <div class="lh-server-card-head">
+              <div class="lh-server-card-info">
+                <span class="lh-server-title">
+                  <span class="lh-dot primary"></span>
+                  الخادم الأساسي (api)
+                </span>
+                <span class="lh-server-url">https://api.ibnalmukhtar.com</span>
+              </div>
+              <span class="lh-server-badge" id="lhBadgePrimary">تفعيل</span>
+            </div>
+            <div class="lh-server-card-footer">
+              <span>سرعة الاستجابة:</span>
+              <span class="lh-ping-badge" id="lhPingPrimary">—</span>
+            </div>
           </div>
-          <div class="lh-server-url" id="lhCurrentServerUrl">https://api.ibnalmukhtar.com</div>
+
+          <!-- CARD BACKUP -->
+          <div class="lh-server-card" id="lhCardBackup">
+            <div class="lh-server-card-head">
+              <div class="lh-server-card-info">
+                <span class="lh-server-title">
+                  <span class="lh-dot backup"></span>
+                  الخادم الاحتياطي (api2)
+                </span>
+                <span class="lh-server-url">https://api2.ibnalmukhtar.com</span>
+              </div>
+              <span class="lh-server-badge" id="lhBadgeBackup">تفعيل</span>
+            </div>
+            <div class="lh-server-card-footer">
+              <span>سرعة الاستجابة:</span>
+              <span class="lh-ping-badge" id="lhPingBackup">—</span>
+            </div>
+          </div>
         </div>
 
-        <button type="button" class="lh-btn-switch" id="lhBtnSwitchServer">
-          🔄 تبديل إلى الخادم الاحتياطي (api2)
-        </button>
+        <button type="button" class="lh-btn-ping" id="lhBtnRunPing">⚡ فحص سرعة الاتصال بالخادمين</button>
 
-        <div class="lh-feature-pill">
+        <div class="lh-feature-pill" style="margin-top:12px;">
           <svg width="18" height="18" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 1.944A11.954 11.954 0 012.166 5C2.056 5.649 2 6.319 2 7c0 5.225 3.34 9.67 8 11.317C14.66 16.67 18 12.225 18 7c0-.682-.057-1.35-.166-2.001A11.954 11.954 0 0110 1.944zM11 14a1 1 0 11-2 0 1 1 0 012 0zm0-7a1 1 0 10-2 0v3a1 1 0 102 0V7z" clip-rule="evenodd"></path></svg>
           <div>
-            <strong>التبديل التلقائي مفعّل دائماً:</strong><br>
-            إذا حدث انقطاع أو بطء على الخادم الحالي، يُحوّل النظام طلب الدخول والعمليات تلقائياً إلى الخادم الآخر فوراً دون توقف العمل.
+            <strong>التبديل التلقائي الذكي مفعّل دائماً:</strong><br>
+            في حال حدوث بطء أو انقطاع على أي خادم، يتحول النظام تلقائياً وبشكل فوري إلى الخادم الآخر لضمان استمرارية العمل دون توقف.
           </div>
         </div>
 
-        <div class="lh-ping-section">
-          <div style="font-size:0.75rem;font-weight:700;color:#334155;margin-bottom:6px;">📊 قياس سرعة الاستجابة (Ping):</div>
-          <div class="lh-ping-row">
-            <span>الأساسي (api):</span>
-            <span class="lh-ping-badge" id="lhPingPrimary">—</span>
-          </div>
-          <div class="lh-ping-row">
-            <span>الاحتياطي (api2):</span>
-            <span class="lh-ping-badge" id="lhPingBackup">—</span>
-          </div>
-          <button type="button" class="lh-btn-ping" id="lhBtnRunPing">⚡ فحص سرعة الاتصال بالخادمين</button>
+        <div class="lh-modal-actions">
+          <button type="button" class="lh-btn-action primary" id="lhBtnRefreshData">
+            🔄 تحديث البيانات من الخادم النشط
+          </button>
+          <button type="button" class="lh-btn-action secondary" id="lhBtnCloseFooter">
+            إغلاق
+          </button>
         </div>
       </div>
     `;
@@ -638,15 +725,41 @@
 
     // ربط الأحداث
     backdrop.querySelector('#lhBtnCloseModal').addEventListener('click', closeModal);
+    backdrop.querySelector('#lhBtnCloseFooter').addEventListener('click', closeModal);
     backdrop.addEventListener('click', (e) => {
       if (e.target === backdrop) closeModal();
     });
-    backdrop.querySelector('#lhBtnSwitchServer').addEventListener('click', () => {
-      const nextUrl = toggleServer();
-      updateModalUI();
-      showToast(nextUrl.includes('api2') ? '🔄 تم التبديل إلى الخادم الاحتياطي (api2)' : '🔄 تم التبديل إلى الخادم الأساسي (api)', 'info');
+
+    // تبديل بالنقر المباشر على بطاقة الخادم الأساسي
+    backdrop.querySelector('#lhCardPrimary').addEventListener('click', () => {
+      if (isBackupServerActive()) {
+        setActiveServer(false);
+        updateModalUI();
+        showToast('🔄 تم التبديل إلى الخادم الأساسي (api)', 'info');
+        window.dispatchEvent(new CustomEvent('api-server-switched', { detail: { isBackup: false } }));
+      }
     });
+
+    // تبديل بالنقر المباشر على بطاقة الخادم الاحتياطي
+    backdrop.querySelector('#lhCardBackup').addEventListener('click', () => {
+      if (!isBackupServerActive()) {
+        setActiveServer(true);
+        updateModalUI();
+        showToast('🔄 تم التبديل إلى الخادم الاحتياطي (api2)', 'info');
+        window.dispatchEvent(new CustomEvent('api-server-switched', { detail: { isBackup: true } }));
+      }
+    });
+
     backdrop.querySelector('#lhBtnRunPing').addEventListener('click', runPingTest);
+
+    backdrop.querySelector('#lhBtnRefreshData').addEventListener('click', () => {
+      closeModal();
+      showToast('🔄 جاري تحديث البيانات...', 'info', 2000);
+      window.dispatchEvent(new CustomEvent('api-server-switched', { detail: { isBackup: isBackupServerActive() } }));
+      if (typeof window.refreshAllData === 'function') {
+        window.refreshAllData(true);
+      }
+    });
 
     activeModalBackdrop = backdrop;
     return backdrop;
@@ -655,29 +768,29 @@
   function updateModalUI() {
     if (!activeModalBackdrop) return;
     const isBackup = isBackupServerActive();
-    const box = activeModalBackdrop.querySelector('#lhServerStatusBox');
-    const title = activeModalBackdrop.querySelector('#lhCurrentServerTitle');
-    const pill = activeModalBackdrop.querySelector('#lhServerPill');
-    const url = activeModalBackdrop.querySelector('#lhCurrentServerUrl');
-    const dot = activeModalBackdrop.querySelector('#lhModalDot');
-    const switchBtn = activeModalBackdrop.querySelector('#lhBtnSwitchServer');
+    const cardP = activeModalBackdrop.querySelector('#lhCardPrimary');
+    const cardB = activeModalBackdrop.querySelector('#lhCardBackup');
+    const badgeP = activeModalBackdrop.querySelector('#lhBadgePrimary');
+    const badgeB = activeModalBackdrop.querySelector('#lhBadgeBackup');
 
-    if (isBackup) {
-      box.className = 'lh-server-status-box backup';
-      title.innerHTML = '<span id="lhModalDot" style="width:10px;height:10px;border-radius:50%;background:#1d63c6;display:inline-block;margin-left:6px;"></span> الخادم النشط: الاحتياطي (api2)';
-      pill.textContent = 'سحابي متزامن';
-      pill.style.background = '#dbeafe';
-      pill.style.color = '#1e40af';
-      url.textContent = BACKUP_URL;
-      switchBtn.innerHTML = '🔄 تبديل إلى الخادم الأساسي (api)';
-    } else {
-      box.className = 'lh-server-status-box primary';
-      title.innerHTML = '<span id="lhModalDot" style="width:10px;height:10px;border-radius:50%;background:#16a34a;display:inline-block;margin-left:6px;"></span> الخادم النشط: الأساسي (api)';
-      pill.textContent = 'مباشر وسريع';
-      pill.style.background = '#dcfce7';
-      pill.style.color = '#15803d';
-      url.textContent = PRIMARY_URL;
-      switchBtn.innerHTML = '🔄 تبديل إلى الخادم الاحتياطي (api2)';
+    if (cardP && cardB && badgeP && badgeB) {
+      if (isBackup) {
+        cardP.className = 'lh-server-card';
+        badgeP.className = 'lh-server-badge';
+        badgeP.textContent = 'تفعيل';
+
+        cardB.className = 'lh-server-card active backup';
+        badgeB.className = 'lh-server-badge active backup';
+        badgeB.textContent = '✅ نشط حالياً';
+      } else {
+        cardP.className = 'lh-server-card active';
+        badgeP.className = 'lh-server-badge active';
+        badgeP.textContent = '✅ نشط حالياً';
+
+        cardB.className = 'lh-server-card';
+        badgeB.className = 'lh-server-badge';
+        badgeB.textContent = 'تفعيل';
+      }
     }
   }
 
@@ -687,22 +800,27 @@
     const bBadge = activeModalBackdrop.querySelector('#lhPingBackup');
     const btn = activeModalBackdrop.querySelector('#lhBtnRunPing');
 
-    btn.disabled = true;
-    btn.textContent = '⏳ جاري القياس...';
-    pBadge.textContent = '...';
-    pBadge.className = 'lh-ping-badge';
-    bBadge.textContent = '...';
-    bBadge.className = 'lh-ping-badge';
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = '⏳ جاري القياس...';
+    }
+    if (pBadge) { pBadge.textContent = '...'; pBadge.className = 'lh-ping-badge'; }
+    if (bBadge) { bBadge.textContent = '...'; bBadge.className = 'lh-ping-badge'; }
 
     async function pingOne(base) {
       const t0 = performance.now();
       try {
         const c = new AbortController();
-        const tid = setTimeout(() => c.abort(), 4000);
-        await fetch(base + '/currencies', { method: 'HEAD', signal: c.signal, cache: 'no-store' });
+        const tid = setTimeout(() => c.abort(), 3500);
+        const raw = window.apiClient?.rawFetch || window.__rawFetch || window.fetch;
+        await raw(base + '/currencies', {
+          method: 'GET',
+          signal: c.signal,
+          cache: 'no-store'
+        });
         clearTimeout(tid);
         return Math.round(performance.now() - t0);
-      } catch (_) {
+      } catch (err) {
         return -1;
       }
     }
@@ -710,6 +828,7 @@
     const [pMs, bMs] = await Promise.all([pingOne(PRIMARY_URL), pingOne(BACKUP_URL)]);
 
     function renderBadge(badge, ms) {
+      if (!badge) return;
       if (ms === -1) {
         badge.textContent = 'تعذر الاتصال ❌';
         badge.className = 'lh-ping-badge slow';
@@ -724,14 +843,17 @@
     renderBadge(pBadge, pMs);
     renderBadge(bBadge, bMs);
 
-    btn.disabled = false;
-    btn.textContent = '⚡ إعادة فحص سرعة الاتصال';
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = '⚡ إعادة فحص سرعة الاتصال';
+    }
   }
 
   function openModal() {
     const backdrop = ensureModal();
     updateModalUI();
     backdrop.classList.add('open');
+    runPingTest().catch(() => {});
   }
 
   function closeModal() {
@@ -753,10 +875,9 @@
     const dot = document.getElementById('serverDot');
     if (label) {
       label.textContent = isBackup ? 'الاحتياطي (api2)' : 'الأساسي (api)';
-      label.style.color = isBackup ? '#1d63c6' : '#123b72';
     }
     if (dot) {
-      dot.style.background = isBackup ? '#1d63c6' : '#16a34a';
+      dot.className = isBackup ? 'server-dot backup' : 'server-dot';
     }
     updateModalUI();
   }

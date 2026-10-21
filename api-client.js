@@ -265,9 +265,11 @@
             } catch (_) {}
         },
         fetch: (path, init) => fetchWithFailover(path, init),
-        version: '1.0.3'
+        rawFetch: originalFetch,
+        version: '1.0.4'
     };
 
+    window.__rawFetch = originalFetch;
     window.ApiClient = apiClientObj;
     window.apiClient = apiClientObj;
 

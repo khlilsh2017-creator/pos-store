@@ -3,7 +3,7 @@
 // Application: إدارة المندوبين - ابن المختار (Scope: /drivers)
 // ============================================================
 
-const CACHE_NAME = 'drivers-pwa-v2-isolated';
+const CACHE_NAME = 'drivers-pwa-v3-settings-modal-fix';
 
 const STATIC_ASSETS = [
   '/drivers',
