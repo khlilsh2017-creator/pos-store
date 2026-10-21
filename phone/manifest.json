@@ -47,18 +47,6 @@
           "type": "image/png"
         }
       ]
-    },
-    {
-      "name": "إدارة المندوبين",
-      "short_name": "المندوبون",
-      "url": "/phone/drivers.html",
-      "icons": [
-        {
-          "src": "/icon-192x192.png",
-          "sizes": "192x192",
-          "type": "image/png"
-        }
-      ]
     }
   ]
 }

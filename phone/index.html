@@ -39,7 +39,7 @@
     <div class="apps">
       <button class="app-btn" id="btn-open-add-order" onclick="openApp('add_order_ph.html')"><span class="app-icon">＋</span><span><strong>إنشاء طلب إنترنت</strong><small>إضافة وتعديل الطلبات من الجوال</small></span></button>
       <button class="app-btn" id="btn-open-orders" onclick="openApp('orders.html')"><span class="app-icon">☷</span><span><strong>إدارة طلبات الإنترنت</strong><small>المتابعة والحالات والطباعة</small></span></button>
-      <button class="app-btn" id="btn-open-drivers" onclick="openApp('drivers.html')"><span class="app-icon">🚚</span><span><strong>إدارة المندوبين</strong><small>التسوية والكشوفات والحسابات والإحصائيات</small></span></button>
+      <button class="app-btn" id="btn-open-drivers" onclick="openApp('/drivers')"><span class="app-icon">🚚</span><span><strong>إدارة المندوبين</strong><small>التسوية والكشوفات والحسابات والإحصائيات</small></span></button>
     </div>
     <div class="actions"><button class="btn ghost" id="btn-goto-main-session" onclick="goToMain()">العودة إلى النظام الرئيسي</button></div>
   </section>
@@ -136,7 +136,9 @@ let token = localStorage.getItem('pos_token') || '';
 
 function nextPage() {
   const value = new URLSearchParams(location.search).get('next');
-  return value === 'orders.html' || value === 'add_order_ph.html' || value === 'drivers.html' ? value : '';
+  if (value === 'orders.html' || value === 'add_order_ph.html') return value;
+  if (value === 'drivers.html' || value === 'drivers' || value === '/drivers') return '/drivers';
+  return '';
 }
 function openApp(page) { location.href = page; }
 function goToMain() { location.href = '../index.html'; }

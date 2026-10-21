@@ -3,10 +3,10 @@
 // ============================================================
 importScripts('/offline-sw-core.js');
 
-const CACHE_NAME = 'ibn-mukhtar-pos-v38';
-const STATIC_CACHE = 'ibn-mukhtar-static-v38';
-const DYNAMIC_CACHE = 'ibn-mukhtar-dynamic-v38';
-const VERSION = '2026-10-21-invoice-pdf-fix';
+const CACHE_NAME = 'ibn-mukhtar-pos-v39';
+const STATIC_CACHE = 'ibn-mukhtar-static-v39';
+const DYNAMIC_CACHE = 'ibn-mukhtar-dynamic-v39';
+const VERSION = '2026-10-21-drivers-standalone-pwa-v2';
 
 const STATIC_ASSETS = [
     // ===== الصفحات الرئيسية =====
@@ -49,7 +49,6 @@ const STATIC_ASSETS = [
     '/phone/orders.html',
     '/phone/drivers.html',
     '/phone/manifest.json',
-    '/phone/manifest_drivers.json',
     '/phone/sw_phone.js',
 
     // ===== ملفات JavaScript الأساسية =====
@@ -157,7 +156,10 @@ self.addEventListener('fetch', event => {
         event.respondWith(offlineHandleApiRequest(request));
         return;
     }
-    if (url.pathname.includes('/api/') ||
+    if (url.pathname.startsWith('/drivers') ||
+        url.pathname === '/manifest_drivers.json' ||
+        url.pathname === '/sw_drivers.js' ||
+        url.pathname.includes('/api/') ||
         url.pathname.includes('analytics') ||
         url.pathname.includes('google-analytics') ||
         url.pathname.includes('doubleclick.net')) {

@@ -1,0 +1,29 @@
+{
+  "id": "com.pos.ibnalmukhtar.drivers.standalone.pwa.v2",
+  "name": "إدارة المندوبين - ابن المختار",
+  "short_name": "إدارة المندوبين",
+  "description": "تطبيق إدارة المندوبين المستقل لابن المختار: تسوية العهدة، كشوفات الحساب، ومتابعة التحصيلات.",
+  "start_url": "/drivers",
+  "scope": "/drivers",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#123b72",
+  "orientation": "portrait",
+  "dir": "rtl",
+  "lang": "ar",
+  "icons": [
+    {
+      "src": "/icon-192x192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512x512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "maskable"
+    }
+  ],
+  "categories": ["business", "finance", "productivity"]
+}
