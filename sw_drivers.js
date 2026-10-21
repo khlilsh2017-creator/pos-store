@@ -10,6 +10,7 @@ const STATIC_ASSETS = [
   '/drivers',
   '/manifest_drivers.json',
   '/api-client.js',
+  '/phone-nav.js',
   '/login-helper.js',
   '/date-utils.js',
   '/number-utils.js',

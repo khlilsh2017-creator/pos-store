@@ -20,6 +20,7 @@
 
 <!-- Core Architecture Scripts -->
 <script src="/api-client.js?v=1.0.4"></script>
+<script src="/phone-nav.js"></script>
 <script src="/login-helper.js?v=1.0.1"></script>
 <script src="/date-utils.js"></script>
 <script src="/number-utils.js"></script>
@@ -1276,6 +1277,7 @@ button {
 <!-- Header -->
 <header class="topbar">
   <div class="topbar-main">
+    <button type="button" class="phone-nav-btn" onclick="PhoneNav.toggle()" title="القائمة الجانبية" aria-label="القائمة الجانبية"><i class="fas fa-bars"></i></button>
     <button class="icon-btn" onclick="goToHome()" title="الرجوع للرئيسية"><i class="fas fa-arrow-right"></i></button>
     <div class="brand-col">
       <h1><i class="fas fa-id-card-clip"></i> إدارة المندوبين</h1>

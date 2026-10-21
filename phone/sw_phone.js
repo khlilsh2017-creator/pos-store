@@ -19,6 +19,8 @@ const STATIC_FILES = [
   '/phone/drivers.html',
   '/phone/index.html',
   '/phone/manifest.json',
+  '/phone/prep.html',
+  '/phone-nav.js',
   '/phone/sw_phone.js',
   '/api-client.js',
   '/login-helper.js',

@@ -17,6 +17,7 @@
 
 <!-- Core Architecture Scripts -->
 <script src="/api-client.js?v=1.0.4"></script>
+<script src="/phone-nav.js"></script>
 <script src="/login-helper.js?v=1.0.1"></script>
 <script src="/date-utils.js"></script>
 <script src="/number-utils.js"></script>
@@ -661,12 +662,17 @@ button { cursor: pointer; border: 0; outline: 0; }
   <!-- Topbar -->
   <header class="nav-header">
     <div class="nav-header-row">
-      <div class="brand-title">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <button type="button" class="phone-nav-btn" onclick="PhoneNav.toggle()" title="القائمة الجانبية" aria-label="القائمة الجانبية">
+          <i class="fas fa-bars"></i>
+        </button>
+        <div class="brand-title">
         <div class="brand-icon">📦</div>
         <div class="brand-text">
           <h1>تجهيز الطلبات والتغليف</h1>
           <p>ابن المختار · تحضير وتأكيد الأشكال والموديلات</p>
         </div>
+      </div>
       </div>
       <div class="header-actions">
         <button type="button" class="header-btn" onclick="refreshPrepOrders()" title="تحديث فوري">

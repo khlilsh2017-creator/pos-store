@@ -3,6 +3,7 @@
 <head>
     <!-- مكتبة تحويل الفاتورة إلى صورة، يجب تحميلها قبل html2pdf -->
     <script src="/api-client.js?v=1.0.3"></script>
+    <script src="/phone-nav.js"></script>
     <script src="../html2canvas.min.js"></script>
     <!-- استدعاء مكتبة PDF من جهازك / سيرفرك مباشرة -->
     <script src="../html2pdf.bundle.min.js"></script>
@@ -1514,9 +1515,13 @@
 
     <!-- ===== HEADER ===== -->
     <header class="app-header">
-        <div>
-            <div class="title">
-                <i class="fas fa-globe"></i> طلب إنترنت
+        <div style="display:flex; align-items:center; gap:8px;">
+            <button type="button" class="phone-nav-btn" onclick="PhoneNav.toggle()" title="القائمة الجانبية" aria-label="القائمة الجانبية">
+                <i class="fas fa-bars"></i>
+            </button>
+            <div>
+                <div class="title">
+                    <i class="fas fa-globe"></i> طلب إنترنت
                 <span class="sub" id="page-subtitle">جديد</span>
             </div>
             <div class="order-ids" style="margin-top:2px;">
