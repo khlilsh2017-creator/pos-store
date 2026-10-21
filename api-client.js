@@ -265,6 +265,7 @@
             } catch (_) {}
         },
         fetch: (path, init) => fetchWithFailover(path, init),
+        fetchWithFailover: (path, init) => fetchWithFailover(path, init),
         rawFetch: originalFetch,
         version: '1.0.4'
     };

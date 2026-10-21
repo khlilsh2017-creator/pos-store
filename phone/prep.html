@@ -654,9 +654,83 @@ button { cursor: pointer; border: 0; outline: 0; }
   align-items: center;
   justify-content: center;
 }
+
+/* --- تنبيهات وإشعارات الطلبات الجديدة والمعدلة --- */
+@keyframes orderPulseGreen {
+  0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+  70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+@keyframes orderPulseBlue {
+  0% { box-shadow: 0 0 0 0 rgba(29, 99, 198, 0.7); }
+  70% { box-shadow: 0 0 0 10px rgba(29, 99, 198, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(29, 99, 198, 0); }
+}
+.order-card-new-alert {
+  animation: orderPulseGreen 2s infinite;
+  border: 2px solid #10b981 !important;
+}
+.order-card-modified-alert {
+  animation: orderPulseBlue 2s infinite;
+  border: 2px solid #1d63c6 !important;
+}
+.order-alert-pill {
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.order-alert-pill.new { background: #dcfce7; color: #15803d; }
+.order-alert-pill.modified { background: #dbeafe; color: #1e40af; }
+
+.prep-notif-toast-container {
+  position: fixed;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 999999;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: min(92vw, 420px);
+  pointer-events: none;
+}
+.prep-notif-toast {
+  background: #0f172a;
+  color: #ffffff;
+  padding: 12px 16px;
+  border-radius: 14px;
+  box-shadow: 0 12px 36px rgba(0,0,0,0.3);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  pointer-events: auto;
+  border-right: 4px solid #10b981;
+  animation: slideDownToast 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  direction: rtl;
+  font-family: inherit;
+}
+.prep-notif-toast.modified {
+  border-right-color: #3b82f6;
+}
+@keyframes slideDownToast {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.header-btn.notif-active {
+  color: #10b981;
+  border-color: #10b981;
+  background: #ecfdf5;
+}
+
 </style>
 </head>
 <body>
+<div class="prep-notif-toast-container" id="prepNotifToastContainer"></div>
 
 <div class="app-container">
   <!-- Topbar -->
@@ -675,6 +749,9 @@ button { cursor: pointer; border: 0; outline: 0; }
       </div>
       </div>
       <div class="header-actions">
+        <button type="button" class="header-btn" id="prepNotifBellBtn" onclick="requestPrepNotificationPermission()" title="تفعيل إشعارات الطلبات اللحظية">
+          <i class="fas fa-bell"></i>
+        </button>
         <button type="button" class="header-btn" onclick="refreshPrepOrders()" title="تحديث فوري">
           <i class="fas fa-rotate"></i>
         </button>
@@ -879,8 +956,133 @@ async function loadDrivers() {
   } catch (e) {}
 }
 
+// Tracking & Notification State
+let knownOrdersMap = new Map();
+let isInitialPrepLoad = true;
+let newAlertOrderIds = new Set();
+let modifiedAlertOrderIds = new Set();
+
+function playNotificationChime(type = 'new') {
+  try {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) return;
+    const ctx = new AudioContext();
+    const now = ctx.currentTime;
+
+    const osc1 = ctx.createOscillator();
+    const gain1 = ctx.createGain();
+    osc1.type = 'sine';
+    osc1.frequency.setValueAtTime(type === 'modified' ? 523.25 : 587.33, now); // C5 or D5
+    gain1.gain.setValueAtTime(0.25, now);
+    gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+    osc1.connect(gain1);
+    gain1.connect(ctx.destination);
+    osc1.start(now);
+    osc1.stop(now + 0.3);
+
+    const osc2 = ctx.createOscillator();
+    const gain2 = ctx.createGain();
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(type === 'modified' ? 783.99 : 880, now + 0.12); // G5 or A5
+    gain2.gain.setValueAtTime(0.3, now + 0.12);
+    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+    osc2.connect(gain2);
+    gain2.connect(ctx.destination);
+    osc2.start(now + 0.12);
+    osc2.stop(now + 0.5);
+  } catch (e) {}
+}
+
+function showPrepToast(title, body, type = 'new', targetOrderId = null) {
+  const container = $('prepNotifToastContainer');
+  if (!container) return;
+
+  const toast = document.createElement('div');
+  toast.className = 'prep-notif-toast ' + (type === 'modified' ? 'modified' : '');
+  toast.innerHTML = `
+    <div style="display:flex; align-items:center; gap:10px; cursor:pointer;" onclick="scrollToOrderCard(${targetOrderId})">
+      <span style="font-size:1.3rem;">${type === 'modified' ? '✏️' : '🔔'}</span>
+      <div>
+        <strong style="display:block; font-size:0.85rem;">${title}</strong>
+        <span style="font-size:0.72rem; opacity:0.85;">${body}</span>
+      </div>
+    </div>
+    <button type="button" onclick="this.parentElement.remove()" style="background:transparent; border:none; color:#94a3b8; font-size:1rem; cursor:pointer;">✕</button>
+  `;
+
+  container.appendChild(toast);
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transition = 'opacity 0.3s ease';
+    setTimeout(() => toast.remove(), 300);
+  }, 7000);
+}
+
+function scrollToOrderCard(orderId) {
+  if (!orderId) return;
+  const el = $(`order-card-${orderId}`);
+  if (el) {
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    newAlertOrderIds.delete(orderId);
+    modifiedAlertOrderIds.delete(orderId);
+    el.classList.remove('order-card-new-alert', 'order-card-modified-alert');
+  }
+}
+
+async function requestPrepNotificationPermission() {
+  if (!('Notification' in window)) {
+    alert('متصفحك لا يدعم إشعارات النظام، لكن الإشعارات الصوتية والمباشرة تعمل داخل التطبيق.');
+    return;
+  }
+  try {
+    const res = await Notification.requestPermission();
+    updateNotifBellIcon();
+    if (res === 'granted') {
+      showPrepToast('تم تفعيل الإشعارات بنجاح', 'ستصلك تنبيهات لحظية فور إضافة أو تعديل أي طلب', 'new');
+      playNotificationChime('new');
+    }
+  } catch (e) {}
+}
+
+function updateNotifBellIcon() {
+  const btn = $('prepNotifBellBtn');
+  if (!btn) return;
+  if ('Notification' in window && Notification.permission === 'granted') {
+    btn.classList.add('notif-active');
+    btn.title = 'الإشعارات مفعلة ✅';
+  } else {
+    btn.classList.remove('notif-active');
+  }
+}
+
+function triggerBrowserNotification(title, body) {
+  if ('Notification' in window && Notification.permission === 'granted' && document.hidden) {
+    try {
+      new Notification(title, {
+        body,
+        icon: '/icon-192x192.png',
+        badge: '/icon-192x192.png',
+        tag: 'prep-order-alert',
+        renotify: true
+      });
+    } catch (e) {}
+  }
+}
+
+function isOrderReadyPrep(order) {
+  const s = String(order.prep_status || '').toLowerCase();
+  const localStatus = localStorage.getItem(`prep_status_${order.id}`) || '';
+  return s === 'ready' || s === 'تم التجهيز' || localStatus === 'ready';
+}
+
+function isOrderPendingPrep(order) {
+  const mainStatus = String(order.status || '');
+  if (['تم التسليم', 'ملغي', 'فشل التسليم', 'مرتجع كلي'].includes(mainStatus)) return false;
+  return !isOrderReadyPrep(order);
+}
+
 // Fetch Orders
-async function loadPrepOrders() {
+async function loadPrepOrders(isSilent = false) {
   if (!checkAuth()) return;
   const listEl = $('prepOrdersList');
   if (listEl && allOrders.length === 0) {
@@ -917,7 +1119,59 @@ async function loadPrepOrders() {
     }
     const data = await res.json().catch(() => ({}));
     if (data.orders) {
-      allOrders = data.orders;
+      const incoming = data.orders;
+
+      if (!isInitialPrepLoad) {
+        let hasNew = false;
+        let hasModified = false;
+        let lastNotifTitle = '';
+        let lastNotifBody = '';
+        let targetId = null;
+
+        for (const order of incoming) {
+          const prev = knownOrdersMap.get(order.id);
+          if (!prev) {
+            hasNew = true;
+            targetId = order.id;
+            lastNotifTitle = `📦 طلب جديد بانتظار التجهيز #${order.id}`;
+            lastNotifBody = `العميل: ${order.customer_name || 'عام'} (${(order.items||[]).length} أصناف)`;
+            newAlertOrderIds.add(order.id);
+          } else {
+            const prevImgs = String(prev.order_images || '');
+            const newImgs = String(order.order_images || '');
+            const prevNotes = String(prev.notes || '');
+            const newNotes = String(order.notes || '');
+            const prevItemsCount = (prev.items || []).length;
+            const newItemsCount = (order.items || []).length;
+            const prevTotal = Number(prev.total_amount) || 0;
+            const newTotal = Number(order.total_amount) || 0;
+
+            if (prevImgs !== newImgs || prevNotes !== newNotes || prevItemsCount !== newItemsCount || prevTotal !== newTotal) {
+              hasModified = true;
+              targetId = order.id;
+              lastNotifTitle = `✏️ تم تعديل الطلب #${order.id}`;
+              lastNotifBody = `تم تحديث الموديلات أو الأصناف من قِبل الإدارة`;
+              modifiedAlertOrderIds.add(order.id);
+            }
+          }
+        }
+
+        if (hasNew) {
+          playNotificationChime('new');
+          showPrepToast(lastNotifTitle, lastNotifBody, 'new', targetId);
+          triggerBrowserNotification(lastNotifTitle, lastNotifBody);
+        } else if (hasModified) {
+          playNotificationChime('modified');
+          showPrepToast(lastNotifTitle, lastNotifBody, 'modified', targetId);
+          triggerBrowserNotification(lastNotifTitle, lastNotifBody);
+        }
+      }
+
+      knownOrdersMap.clear();
+      incoming.forEach(o => knownOrdersMap.set(o.id, JSON.parse(JSON.stringify(o))));
+      isInitialPrepLoad = false;
+
+      allOrders = incoming;
       updateStats();
       applyFilters();
     }
@@ -1037,11 +1291,18 @@ function renderOrderCardHtml(order) {
     } catch(e) {}
   }
 
-  // Parse Prepared Items
+  // Parse Prepared Items with local fallback
   let preparedMap = {};
   try {
     preparedMap = typeof order.prepared_items === 'string' ? JSON.parse(order.prepared_items) : (order.prepared_items || {});
   } catch(e) { preparedMap = {}; }
+
+  if (!preparedMap || Object.keys(preparedMap).length === 0) {
+    try {
+      const cached = localStorage.getItem(`prep_items_${order.id}`);
+      if (cached) preparedMap = JSON.parse(cached);
+    } catch(e) {}
+  }
 
   const totalItemsCount = items.length;
   const checkedItemsCount = items.filter(it => preparedMap[it.id] === true).length;
@@ -1098,7 +1359,7 @@ function renderOrderCardHtml(order) {
   }).join('');
 
   return `
-    <article class="prep-order-card ${isReady ? 'ready' : ''}" id="order-card-${order.id}">
+    <article class="prep-order-card ${isReady ? 'ready' : ''} ${newAlertOrderIds.has(order.id) ? 'order-card-new-alert' : ''} ${modifiedAlertOrderIds.has(order.id) ? 'order-card-modified-alert' : ''}" id="order-card-${order.id}" onclick="newAlertOrderIds.delete(${order.id}); modifiedAlertOrderIds.delete(${order.id}); this.classList.remove('order-card-new-alert', 'order-card-modified-alert');">
       <div class="card-header">
         <div class="order-badge-row">
           <span class="order-number">📦 طلب #${order.id}</span>
@@ -1172,9 +1433,20 @@ async function toggleItemCheck(orderId, itemId, event) {
   try {
     preparedMap = typeof order.prepared_items === 'string' ? JSON.parse(order.prepared_items) : (order.prepared_items || {});
   } catch(e) { preparedMap = {}; }
+  if (!preparedMap || Object.keys(preparedMap).length === 0) {
+    try {
+      const cached = localStorage.getItem(`prep_items_${orderId}`);
+      if (cached) preparedMap = JSON.parse(cached);
+    } catch(e) {}
+  }
 
   preparedMap[itemId] = !preparedMap[itemId];
   order.prepared_items = preparedMap;
+
+  // Persist locally immediately
+  try {
+    localStorage.setItem(`prep_items_${orderId}`, JSON.stringify(preparedMap));
+  } catch(e) {}
 
   if (preparedMap[itemId]) playCheckSound();
 
@@ -1196,12 +1468,18 @@ async function toggleItemCheck(orderId, itemId, event) {
   const ratio = $(`prep-ratio-${orderId}`);
   if (ratio) ratio.textContent = `مُجهز ${checkedCount} من ${items.length}`;
 
-  // Sync to backend silently
+  // Sync to backend
   syncOrderPrepState(orderId, preparedMap);
 }
 
 async function syncOrderPrepState(orderId, preparedMap, newPrepStatus = null) {
   try {
+    // 1. Persist locally first so reload never loses changes
+    try {
+      localStorage.setItem(`prep_items_${orderId}`, JSON.stringify(preparedMap));
+      if (newPrepStatus) localStorage.setItem(`prep_status_${orderId}`, newPrepStatus);
+    } catch(e) {}
+
     const payload = {
       order_id: orderId,
       prepared_items: preparedMap
@@ -1211,18 +1489,39 @@ async function syncOrderPrepState(orderId, preparedMap, newPrepStatus = null) {
       payload.new_status = 'جاهز للتوصيل';
     }
 
-    if (window.apiClient && typeof window.apiClient.fetchWithFailover === 'function') {
-      await window.apiClient.fetchWithFailover('/online-orders/update-status', {
+    const token = getAuthToken();
+    const headers = {
+      'Authorization': 'Bearer ' + token,
+      'Content-Type': 'application/json'
+    };
+
+    let res;
+    if (window.apiClient && typeof window.apiClient.fetch === 'function') {
+      res = await window.apiClient.fetch('/online-orders/update-status', {
         method: 'POST',
-        headers: {
-          'Authorization': 'Bearer ' + getAuthToken(),
-          'Content-Type': 'application/json'
-        },
+        headers,
+        body: JSON.stringify(payload)
+      });
+    } else if (window.apiClient && typeof window.apiClient.fetchWithFailover === 'function') {
+      res = await window.apiClient.fetchWithFailover('/online-orders/update-status', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(payload)
+      });
+    } else {
+      const base = (window.apiClient?.baseUrl || localStorage.getItem('posApiBase') || 'https://api.ibnalmukhtar.com').replace(/\/$/, '');
+      res = await fetch(`${base}/online-orders/update-status`, {
+        method: 'POST',
+        headers,
         body: JSON.stringify(payload)
       });
     }
+    const data = await res.json().catch(() => ({}));
+    if (data.success) {
+      console.log('✅ تم حفظ حالة التجهيز في الخادم بنجاح للطلب #' + orderId);
+    }
   } catch(e) {
-    console.warn('Sync prep failed:', e);
+    console.warn('Sync prep failed, saved to local cache:', e);
   }
 }
 
@@ -1233,15 +1532,16 @@ async function completeOrderPackaging(orderId) {
 
   const items = order.items || [];
   let preparedMap = {};
-  try {
-    preparedMap = typeof order.prepared_items === 'string' ? JSON.parse(order.prepared_items) : (order.prepared_items || {});
-  } catch(e) { preparedMap = {}; }
-
-  // Mark all items as prepared
   items.forEach(it => { preparedMap[it.id] = true; });
+
   order.prepared_items = preparedMap;
   order.prep_status = 'ready';
   order.status = 'جاهز للتوصيل';
+
+  try {
+    localStorage.setItem(`prep_items_${orderId}`, JSON.stringify(preparedMap));
+    localStorage.setItem(`prep_status_${orderId}`, 'ready');
+  } catch(e) {}
 
   playCompleteSound();
 
@@ -1329,10 +1629,22 @@ document.addEventListener('DOMContentLoaded', async () => {
   await loadDrivers();
   await loadPrepOrders();
 
-  // Auto-refresh every 25 seconds
+  updateNotifBellIcon();
+
+  // Real-time polling every 8 seconds for new and modified orders
   setInterval(() => {
-    if (!document.hidden) loadPrepOrders();
-  }, 25000);
+    if (!document.hidden && navigator.onLine) {
+      loadPrepOrders(true);
+    }
+  }, 8000);
+
+  // Auto-check on tab focus / visibility
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && navigator.onLine) loadPrepOrders(true);
+  });
+  window.addEventListener('focus', () => {
+    if (navigator.onLine) loadPrepOrders(true);
+  });
 });
 </script>
 
