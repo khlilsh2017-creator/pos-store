@@ -184,6 +184,11 @@ async function validateSession() {
       return;
     }
     showSession(data.user);
+    const pinned = localStorage.getItem('pos_pinned_page');
+    if (pinned && !new URLSearchParams(location.search).has('noredirect') && !new URLSearchParams(location.search).get('next')) {
+      location.replace(pinned);
+      return;
+    }
   } catch (_) {
     const saved = localStorage.getItem('pos_user');
     if (saved) {
@@ -250,7 +255,9 @@ $('loginForm').addEventListener('submit', async e => {
     }
 
     const target = nextPage();
+    const pinned = localStorage.getItem('pos_pinned_page');
     if (target) location.href = target;
+    else if (pinned && !new URLSearchParams(location.search).has('noredirect')) location.href = pinned;
     else showSession(data.user || {});
   } catch (err) {
     showNotice(err.message || 'فشل تسجيل الدخول', 'error');

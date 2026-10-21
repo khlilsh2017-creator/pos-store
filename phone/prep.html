@@ -727,6 +727,194 @@ button { cursor: pointer; border: 0; outline: 0; }
   background: #ecfdf5;
 }
 
+
+/* --- زر إظهار باقي الأصناف مثل تطبيق المندوب --- */
+.btn-more-items-prep {
+  width: 100%;
+  padding: 8px 12px;
+  background: #eff6ff;
+  border: 1px dashed #3b82f6;
+  border-radius: 10px;
+  color: #1d63c6;
+  font-family: inherit;
+  font-size: 0.76rem;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+.btn-more-items-prep:hover {
+  background: #dbeafe;
+}
+.btn-more-items-prep.expanded {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #475569;
+}
+
+/* --- زر طباعة كشف البوالص المجهزة A4 --- */
+.btn-batch-a4-print {
+  width: 100%;
+  padding: 10px 14px;
+  background: #123b72;
+  color: #ffffff;
+  border: none;
+  border-radius: 12px;
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 800;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 4px 12px rgba(18, 59, 114, 0.2);
+  transition: all 0.15s ease;
+  margin-top: 8px;
+}
+.btn-batch-a4-print:hover {
+  background: #1d63c6;
+  transform: translateY(-1px);
+}
+
+/* --- تنسيقات طباعة A4 المجمعة للبوالص --- */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 8mm;
+  }
+  body * {
+    visibility: hidden;
+  }
+  #batchA4PrintSection, #batchA4PrintSection * {
+    visibility: visible;
+  }
+  #batchA4PrintSection {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    background: #ffffff;
+    direction: rtl;
+    font-family: 'Cairo', Arial, sans-serif;
+    color: #0f172a;
+    padding: 0;
+  }
+  .a4-page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid #0f172a;
+    padding-bottom: 8px;
+    margin-bottom: 12px;
+  }
+  .a4-header-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .a4-logo {
+    width: 38px;
+    height: 38px;
+    background: #123b72;
+    color: #fff;
+    border-radius: 8px;
+    display: grid;
+    place-items: center;
+    font-size: 1.3rem;
+  }
+  .a4-meta-box {
+    text-align: left;
+    font-size: 0.72rem;
+    line-height: 1.6;
+  }
+  .a4-slips-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6mm;
+  }
+  .a4-slip-card {
+    border: 1.5px dashed #475569;
+    border-radius: 8px;
+    padding: 9px 11px;
+    break-inside: avoid;
+    page-break-inside: avoid;
+    background: #ffffff;
+    font-size: 0.74rem;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .slip-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #cbd5e1;
+    padding-bottom: 4px;
+  }
+  .slip-id {
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: #0f172a;
+  }
+  .slip-badge {
+    font-size: 0.66rem;
+    font-weight: 700;
+    background: #f1f5f9;
+    padding: 2px 7px;
+    border-radius: 4px;
+  }
+  .slip-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    margin: 3px 0;
+  }
+  .slip-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .slip-lbl { color: #64748b; font-size: 0.68rem; }
+  .slip-val { font-size: 0.75rem; font-weight: 700; }
+  .slip-count-banner {
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 6px;
+    padding: 5px 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 2px 0;
+  }
+  .slip-notes-box {
+    background: #fefce8;
+    border: 1px solid #fef08a;
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 0.7rem;
+    color: #854d0e;
+    min-height: 22px;
+  }
+  .slip-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.66rem;
+    color: #475569;
+    border-top: 1px dashed #cbd5e1;
+    padding-top: 4px;
+    margin-top: 3px;
+  }
+}
+
 </style>
 </head>
 <body>
@@ -1333,8 +1521,8 @@ function renderOrderCardHtml(order) {
     `;
   }
 
-  // Items Checklist
-  let itemsChecklistHtml = items.map(item => {
+  // Items Checklist (مع خاصية إظهار أول 3 أصناف وزر إظهار الباقي إذا زادت عن 3)
+  const itemsChecklistRows = items.map(item => {
     const isChecked = !!preparedMap[item.id];
     const itemName = item.product_name || item.catalog_name || `صنف #${item.product_id}`;
     const variantTag = item.variant_label ? `<span class="item-note-tag">${item.variant_label}</span>` : '';
@@ -1356,7 +1544,27 @@ function renderOrderCardHtml(order) {
         </div>
       </div>
     `;
-  }).join('');
+  });
+
+  let itemsChecklistHtml = '';
+  if (itemsChecklistRows.length === 0) {
+    itemsChecklistHtml = '<div style="padding:10px;text-align:center;font-size:0.75rem;color:#94a3b8;">لا توجد أصناف</div>';
+  } else if (itemsChecklistRows.length <= 3) {
+    itemsChecklistHtml = itemsChecklistRows.join('');
+  } else {
+    const first3Html = itemsChecklistRows.slice(0, 3).join('');
+    const extraHtml = itemsChecklistRows.slice(3).join('');
+    const remainingCount = itemsChecklistRows.length - 3;
+    itemsChecklistHtml = `
+      ${first3Html}
+      <div id="extra-items-${order.id}" class="extra-prep-items" style="display:none;">
+        ${extraHtml}
+      </div>
+      <button type="button" class="btn-more-items-prep" id="toggle-items-btn-${order.id}" onclick="event.stopPropagation(); togglePrepExtraItems(${order.id}, ${remainingCount})">
+        <span>▼ إظهار باقي الأصناف (${remainingCount} أصناف إضافية)</span>
+      </button>
+    `;
+  }
 
   return `
     <article class="prep-order-card ${isReady ? 'ready' : ''} ${newAlertOrderIds.has(order.id) ? 'order-card-new-alert' : ''} ${modifiedAlertOrderIds.has(order.id) ? 'order-card-modified-alert' : ''}" id="order-card-${order.id}" onclick="newAlertOrderIds.delete(${order.id}); modifiedAlertOrderIds.delete(${order.id}); this.classList.remove('order-card-new-alert', 'order-card-modified-alert');">
@@ -1556,6 +1764,130 @@ async function completeOrderPackaging(orderId) {
 
   updateStats();
   await syncOrderPrepState(orderId, preparedMap, 'ready');
+}
+
+function togglePrepExtraItems(orderId, remainingCount) {
+  const container = document.getElementById(`extra-items-${orderId}`);
+  const btn = document.getElementById(`toggle-items-btn-${orderId}`);
+  if (!container || !btn) return;
+  const isHidden = container.style.display === 'none';
+  if (isHidden) {
+    container.style.display = 'block';
+    btn.innerHTML = `<span>▲ إخفاء باقي الأصناف</span>`;
+    btn.classList.add('expanded');
+  } else {
+    container.style.display = 'none';
+    btn.innerHTML = `<span>▼ إظهار باقي الأصناف (${remainingCount} أصناف إضافية)</span>`;
+    btn.classList.remove('expanded');
+  }
+}
+
+// طباعة كل بوالص الطلبات المجهزة في صفحة A4 مجمعة
+function printAllReadySlipsA4() {
+  const readyOrders = allOrders.filter(o => isOrderReadyPrep(o));
+  if (readyOrders.length === 0) {
+    showPrepToast('لا توجد طلبات مُجهزة حالياً', 'قم باعتماد وتجهيز طلبات أولاً لتتمكن من طباعة كشف بوالصها المجمعة', 'modified');
+    return;
+  }
+
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('ar-SA', { year: 'numeric', month: 'long', day: 'numeric' });
+  const timeStr = now.toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit', hour12: true });
+
+  const slipsHtml = readyOrders.map((order) => {
+    const itemsCount = (order.items || []).length;
+    const customerName = order.customer_name || 'عميل عام';
+    const customerPhone = order.customer_phone || 'لا يوجد';
+    const address = order.customer_address || 'غير محدد';
+    const driverName = order.driver_name || 'بدون مندوب';
+    const paymentMethod = order.payment_method || 'عند الاستلام';
+    const totalAmount = Number(order.total_amount || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+    const notes = order.notes ? `📌 ${order.notes}` : 'لا توجد ملاحظات خاصة';
+
+    let orderTimeDisplay = '';
+    if (order.order_date || order.created_at) {
+      try {
+        const d = new Date((order.order_date || order.created_at).replace(' ', 'T'));
+        orderTimeDisplay = d.toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit', hour12: true });
+      } catch(e) {}
+    }
+
+    return `
+      <div class="a4-slip-card">
+        <div class="slip-header">
+          <div class="slip-id">📦 طلب #${order.id}</div>
+          <div class="slip-badge">${orderTimeDisplay || 'جاهز للتوصيل'}</div>
+        </div>
+        
+        <div class="slip-grid">
+          <div class="slip-row">
+            <span class="slip-lbl">👤 العميل:</span>
+            <strong class="slip-val">${customerName}</strong>
+          </div>
+          <div class="slip-row">
+            <span class="slip-lbl">📞 الهاتف:</span>
+            <span class="slip-val dir-ltr" style="font-family:monospace; font-weight:700;">${customerPhone}</span>
+          </div>
+          <div class="slip-row" style="grid-column: span 2;">
+            <span class="slip-lbl">📍 العنوان:</span>
+            <span class="slip-val">${address}</span>
+          </div>
+          <div class="slip-row">
+            <span class="slip-lbl">🛵 المندوب:</span>
+            <strong class="slip-val" style="color:#123b72;">${driverName}</strong>
+          </div>
+          <div class="slip-row">
+            <span class="slip-lbl">💵 الإجمالي:</span>
+            <strong class="slip-val" style="color:#16a34a;">${totalAmount} ريال (${paymentMethod})</strong>
+          </div>
+        </div>
+
+        <div class="slip-count-banner">
+          <span style="font-size:0.75rem; font-weight:700; color:#1e40af;">📦 عدد المنتجات في الطرد:</span>
+          <strong style="font-size:0.95rem; color:#1e3a8a; background:#dbeafe; padding:2px 8px; border-radius:6px;">${itemsCount} أصناف</strong>
+        </div>
+
+        <div class="slip-notes-box">
+          <strong>الملاحظات:</strong> ${notes}
+        </div>
+
+        <div class="slip-footer">
+          <span>✓ تم التجهيز والتغليف بالكامل</span>
+          <span>توقيع الاستلام: _________________</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  const printContainer = document.createElement('div');
+  printContainer.id = 'batchA4PrintSection';
+  printContainer.innerHTML = `
+    <div class="a4-print-page">
+      <div class="a4-page-header">
+        <div class="a4-header-brand">
+          <div class="a4-logo">📦</div>
+          <div>
+            <h2 style="margin:0; font-size:1.25rem;">متجر ابن المختار للأدوات المنزلية</h2>
+            <p style="margin:2px 0 0; font-size:0.75rem; color:#475569;">كشف بوالص وتسليم الطلبات والطرود المجهزة للتوصيل</p>
+          </div>
+        </div>
+        <div class="a4-meta-box">
+          <div><strong>تاريخ الطباعة:</strong> ${dateStr} - ${timeStr}</div>
+          <div><strong>إجمالي الطرود المجهزة:</strong> <span style="font-size:1rem; font-weight:800; color:#1d63c6;">${readyOrders.length} طلبات</span></div>
+        </div>
+      </div>
+
+      <div class="a4-slips-container">
+        ${slipsHtml}
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(printContainer);
+  window.print();
+  setTimeout(() => {
+    printContainer.remove();
+  }, 1200);
 }
 
 // Print Slip

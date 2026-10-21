@@ -1,12 +1,49 @@
 /**
  * phone-nav.js - القائمة الجانبية الموحدة لتطبيقات الجوال (ابن المختار)
  * يوفر شريط تنقل جانبي (Drawer) سلس وسريع وسهل اللمس للتنقل بين شاشات الجوال
+ * مع ميزة تثبيت صفحة البداية الافتراضية (Pin Starting Page)
  */
 (function() {
   'use strict';
 
   const PhoneNav = {
     isOpen: false,
+
+    getPinnedPage() {
+      try {
+        return localStorage.getItem('pos_pinned_page') || '';
+      } catch (e) {
+        return '';
+      }
+    },
+
+    setPinnedPage(url, e) {
+      if (e) e.stopPropagation();
+      const current = this.getPinnedPage();
+      if (current === url) {
+        localStorage.removeItem('pos_pinned_page');
+        this.showToast('تم إلغاء تثبيت صفحة البداية');
+      } else {
+        localStorage.setItem('pos_pinned_page', url);
+        this.showToast('📌 تم تثبيت الصفحة كصفحة بداية افتراضية للتطبيق');
+      }
+      this.refreshDrawer();
+    },
+
+    showToast(msg) {
+      const existing = document.getElementById('phone-nav-toast');
+      if (existing) existing.remove();
+
+      const t = document.createElement('div');
+      t.id = 'phone-nav-toast';
+      t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0f172a;color:#fff;padding:10px 18px;border-radius:12px;font-size:0.78rem;font-weight:700;z-index:999999;box-shadow:0 8px 24px rgba(0,0,0,0.3);direction:rtl;font-family:inherit;pointer-events:none;transition:opacity 0.3s;';
+      t.textContent = msg;
+      document.body.appendChild(t);
+      setTimeout(() => {
+        t.style.opacity = '0';
+        setTimeout(() => t.remove(), 300);
+      }, 3000);
+    },
 
     getItems() {
       return [
@@ -163,6 +200,52 @@
           border-color: #334155;
         }
 
+        /* --- زر تثبيت الصفحة (Pin) --- */
+        .phone-nav-pin-btn {
+          background: transparent;
+          border: none;
+          cursor: pointer;
+          font-size: 0.95rem;
+          padding: 4px;
+          border-radius: 8px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          opacity: 0.35;
+          transition: all 0.2s ease;
+          flex-shrink: 0;
+          -webkit-tap-highlight-color: transparent;
+        }
+        .phone-nav-pin-btn:hover {
+          opacity: 0.8;
+          transform: scale(1.15);
+        }
+        .phone-nav-pin-btn.pinned {
+          opacity: 1 !important;
+          transform: scale(1.1);
+          filter: drop-shadow(0 0 4px #fbbf24);
+        }
+        .phone-nav-pinned-banner {
+          background: rgba(254, 243, 199, 0.25);
+          border: 1px solid rgba(245, 158, 11, 0.4);
+          border-radius: 10px;
+          padding: 6px 10px;
+          font-size: 0.72rem;
+          color: #fef3c7;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-top: 4px;
+          cursor: pointer;
+        }
+        .phone-nav-pinned-banner button {
+          background: transparent;
+          border: none;
+          color: #fca5a5;
+          font-size: 0.8rem;
+          cursor: pointer;
+        }
+
         /* --- خلفية التعتيم --- */
         .phone-nav-overlay {
           position: fixed;
@@ -214,7 +297,7 @@
           padding: calc(16px + env(safe-area-inset-top, 0px)) 16px 16px 16px;
           display: flex;
           flex-direction: column;
-          gap: 12px;
+          gap: 10px;
           position: relative;
         }
         .phone-nav-brand-row {
@@ -309,7 +392,7 @@
         .phone-nav-item {
           display: flex;
           align-items: center;
-          gap: 12px;
+          gap: 10px;
           padding: 10px 12px;
           border-radius: 12px;
           color: #1e293b;
@@ -427,7 +510,20 @@
     buildDrawerHTML() {
       const user = this.getUserInfo();
       const currentId = this.getCurrentId();
+      const pinnedPage = this.getPinnedPage();
       const sections = this.getItems();
+
+      let pinnedBannerHtml = '';
+      if (pinnedPage) {
+        let pinnedTitle = 'صفحة البداية';
+        sections.forEach(s => s.items.forEach(it => { if (it.url === pinnedPage) pinnedTitle = it.title; }));
+        pinnedBannerHtml = `
+          <div class="phone-nav-pinned-banner" onclick="PhoneNav.navigate('${pinnedPage}')">
+            <span>📌 صفحة البداية المثبتة: <strong>${pinnedTitle}</strong></span>
+            <button type="button" onclick="PhoneNav.setPinnedPage('${pinnedPage}', event)" title="إلغاء التثبيت">✕</button>
+          </div>
+        `;
+      }
 
       let sectionsHtml = '';
       sections.forEach(sec => {
@@ -444,6 +540,18 @@
             clickHandler = `onclick="PhoneNav.navigate('${item.url}')"`;
           }
 
+          let pinBtnHtml = '';
+          if (item.url) {
+            const isPinned = pinnedPage === item.url;
+            pinBtnHtml = `
+              <button type="button" class="phone-nav-pin-btn ${isPinned ? 'pinned' : ''}" 
+                      onclick="PhoneNav.setPinnedPage('${item.url}', event)" 
+                      title="${isPinned ? 'صفحة البداية الافتراضية المثبتة (انقر للإلغاء)' : 'تثبيت كصفحة بداية للتطبيق'}">
+                📌
+              </button>
+            `;
+          }
+
           sectionsHtml += `
             <div class="phone-nav-item ${activeClass}" ${clickHandler}>
               <div class="phone-nav-item-icon" style="background:${item.iconBg}; color:${item.iconColor};">
@@ -456,6 +564,7 @@
                 </div>
                 <div class="phone-nav-item-sub">${item.sub}</div>
               </div>
+              ${pinBtnHtml}
             </div>
           `;
         });
@@ -482,6 +591,7 @@
               </div>
               <div class="phone-nav-user-role">${user.role}</div>
             </div>
+            ${pinnedBannerHtml}
           </header>
           <div class="phone-nav-body">
             ${sectionsHtml}
@@ -494,6 +604,19 @@
           </footer>
         </aside>
       `;
+    },
+
+    refreshDrawer() {
+      const c = document.getElementById('phoneNavContainer');
+      if (c) {
+        c.innerHTML = this.buildDrawerHTML();
+        if (this.isOpen) {
+          const overlay = document.getElementById('phoneNavOverlay');
+          const drawer = document.getElementById('phoneNavDrawer');
+          if (overlay) overlay.classList.add('open');
+          if (drawer) drawer.classList.add('open');
+        }
+      }
     },
 
     init() {
