@@ -11060,7 +11060,8 @@ async function updateOnlineOrder(request, env, ctx, headers, orderId, userId) {
     discount = 0,
     discount_amount = 0,
     discount_type = 'fixed',
-    order_date
+    order_date,
+    order_images
   } = await request.json();
 
   if (!orderId) {
@@ -11342,11 +11343,31 @@ async function updateOnlineOrder(request, env, ctx, headers, orderId, userId) {
       total_amount = ?, payment_method = ?, cash_paid = ?, wallet_paid = ?, wallet_id = ?, 
       paid_amount = ?, status = ?, note = ?, discount = ?, discount_type = ? WHERE id = ?`,
       [total, salePaymentMethod, cashPaid, walletPaid, walletId, isPrepaid ? total : (isMixedUpdate ? paidAmount : 0), saleStatus, `طلب إنترنت #${orderId}`, discount_amount, discount_type, sale.id]);
-    await dbRun(tx, `UPDATE online_orders SET 
-      customer_name = ?, customer_phone = ?, customer_address = ?, governorate = ?, 
-      delivery_type = ?, payment_method = ?, total_amount = ?, notes = ?, 
-      delivery_fee = ?, delivery_fee_payment = ?, order_date = COALESCE(?, order_date) WHERE id = ?`,
-      [customer_name, mainPhone, customer_address, governorate, delivery_type, normalizedPaymentMethod, total, notes, delivery_fee, delivery_fee_payment, order_date || null, orderId]);
+    let orderImagesJson = undefined;
+    if (order_images !== undefined) {
+      if (Array.isArray(order_images)) {
+        orderImagesJson = order_images.length > 0 ? JSON.stringify(order_images) : null;
+      } else if (typeof order_images === 'string') {
+        orderImagesJson = order_images.trim() ? order_images : null;
+      } else if (order_images === null) {
+        orderImagesJson = null;
+      }
+    }
+
+    if (orderImagesJson !== undefined) {
+      await dbRun(tx, `UPDATE online_orders SET 
+        customer_name = ?, customer_phone = ?, customer_address = ?, governorate = ?, 
+        delivery_type = ?, payment_method = ?, total_amount = ?, notes = ?, 
+        delivery_fee = ?, delivery_fee_payment = ?, order_date = COALESCE(?, order_date),
+        order_images = ? WHERE id = ?`,
+        [customer_name, mainPhone, customer_address, governorate, delivery_type, normalizedPaymentMethod, total, notes, delivery_fee, delivery_fee_payment, order_date || null, orderImagesJson, orderId]);
+    } else {
+      await dbRun(tx, `UPDATE online_orders SET 
+        customer_name = ?, customer_phone = ?, customer_address = ?, governorate = ?, 
+        delivery_type = ?, payment_method = ?, total_amount = ?, notes = ?, 
+        delivery_fee = ?, delivery_fee_payment = ?, order_date = COALESCE(?, order_date) WHERE id = ?`,
+        [customer_name, mainPhone, customer_address, governorate, delivery_type, normalizedPaymentMethod, total, notes, delivery_fee, delivery_fee_payment, order_date || null, orderId]);
+    }
 
     // ===== حذف عناصر الطلب والفواتير القديمة =====
     await dbRun(tx, "DELETE FROM sale_items WHERE sale_id = ?", [sale.id]);

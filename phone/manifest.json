@@ -10,7 +10,7 @@
   "orientation": "portrait",
   "dir": "rtl",
   "lang": "ar",
-  "scope": "/phone/add_order_ph.html",
+  "scope": "/phone/",
   "icons": [
     {
       "src": "/icon-192x192.png",
@@ -25,7 +25,10 @@
       "purpose": "maskable"
     }
   ],
-  "categories": ["shopping", "productivity"],
+  "categories": [
+    "shopping",
+    "productivity"
+  ],
   "screenshots": [
     {
       "src": "/icon-512x512.png",

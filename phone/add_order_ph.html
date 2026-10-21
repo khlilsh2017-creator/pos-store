@@ -7,7 +7,8 @@
     <!-- استدعاء مكتبة PDF من جهازك / سيرفرك مباشرة -->
     <script src="../html2pdf.bundle.min.js"></script>
     <script src="../document-utils.js?v=20261021-2"></script>
-    <script>if(location.protocol==='http:'||location.protocol==='https:'){const m=document.createElement('link');m.rel='manifest';m.href='manifest.json';document.head.appendChild(m);}</script>
+    <link rel="manifest" href="manifest.json" />
+    <meta name="apple-mobile-web-app-title" content="انشاء طلب انترنت" />
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <meta name="theme-color" content="#1a56db" />
@@ -4631,6 +4632,21 @@
         console.error('خطأ في تحويل وقت الطلب إلى توقيت اليمن', e);
     }
 }
+                // تحميل وتعبئة صور الطلب المرفقة للتعديل أو الحذف أو الإضافة
+                if (order.order_images) {
+                    try {
+                        const imgs = typeof order.order_images === 'string' ? JSON.parse(order.order_images) : order.order_images;
+                        if (Array.isArray(imgs)) {
+                            attachedOrderImages = imgs.slice();
+                            renderOrderImagesPreview();
+                        }
+                    } catch (e) {
+                        console.warn('فشل تحميل صور الطلب المخزنة:', e);
+                    }
+                } else {
+                    attachedOrderImages = [];
+                    renderOrderImagesPreview();
+                }
                 
                 if (currenciesCache.length === 0) { await loadCurrencies(); populateCurrencySelects(); }
                 if (walletsCache.length === 0) { await loadWalletsFromServer(); populateWalletSelects(); }
@@ -4950,7 +4966,7 @@
         cash_currency_id: cash_currency_id ? parseInt(cash_currency_id) : undefined,
         wallet_currency_id: wallet_currency_id ? parseInt(wallet_currency_id) : undefined,
         items: items,
-        order_images: (Array.isArray(attachedOrderImages) && attachedOrderImages.length > 0) ? attachedOrderImages : undefined,
+        order_images: Array.isArray(attachedOrderImages) ? attachedOrderImages : [],
         notes: document.getElementById('notes')?.value.trim() || '',
         driver_id: document.getElementById('driverSelect')?.value ? parseInt(document.getElementById('driverSelect').value) : undefined,
         total_amount: total,

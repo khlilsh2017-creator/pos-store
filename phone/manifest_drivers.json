@@ -4,7 +4,7 @@
   "short_name": "إدارة المندوبين",
   "description": "تطبيق إدارة المندوبين المستقل لابن المختار: تسوية العهدة، كشوفات الحساب، ومتابعة التحصيلات.",
   "start_url": "/drivers",
-  "scope": "/drivers",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#0f172a",
   "theme_color": "#123b72",
@@ -25,5 +25,9 @@
       "purpose": "maskable"
     }
   ],
-  "categories": ["business", "finance", "productivity"]
+  "categories": [
+    "business",
+    "finance",
+    "productivity"
+  ]
 }
