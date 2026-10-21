@@ -4965,8 +4965,9 @@ async function createDriver(request, env, headers) {
   }
 }
 async function updateDriver(request, env, headers) {
-  const id = parseInt(request.url.split('/').pop());
-  const { name, phone, vehicle_info, is_active, password } = await request.json();
+  const url = new URL(request.url);
+  const id = parseInt(url.pathname.split('/').pop());
+  const { name, phone, vehicle_info, username, is_active, password } = await request.json();
   const client = getTursoClient(env);
   const driver = await dbFirst(client, "SELECT id FROM drivers WHERE id = ?", [id]);
   if (!driver) return jsonResponse({ error: 'المندوب غير موجود' }, 404, headers);
@@ -4974,6 +4975,11 @@ async function updateDriver(request, env, headers) {
   if (name !== undefined) { fields.push('name = ?'); values.push(name); }
   if (phone !== undefined) { fields.push('phone = ?'); values.push(phone); }
   if (vehicle_info !== undefined) { fields.push('vehicle_info = ?'); values.push(vehicle_info); }
+  if (username !== undefined && String(username).trim() !== '') {
+    const existing = await dbFirst(client, "SELECT id FROM drivers WHERE username = ? AND id != ?", [String(username).trim(), id]);
+    if (existing) return jsonResponse({ error: 'اسم المستخدم مسجل لمندوب آخر' }, 409, headers);
+    fields.push('username = ?'); values.push(String(username).trim());
+  }
   if (is_active !== undefined) { fields.push('is_active = ?'); values.push(is_active ? 1 : 0); }
   if (password) {
     const salt = crypto.randomUUID();
@@ -4983,29 +4989,41 @@ async function updateDriver(request, env, headers) {
   }
   if (fields.length === 0) return jsonResponse({ error: 'لا توجد بيانات للتحديث' }, 400, headers);
   values.push(id);
-  await dbRun(client, `UPDATE drivers SET ${fields.join(', ')} WHERE id = ?`, values);
+  await dbRun(client, `UPDATE drivers SET ${fields.join(", ")} WHERE id = ?`, values);
+  invalidateDriversCache();
+  await kvDelete(env, 'cache:drivers');
   return jsonResponse({ success: true }, 200, headers);
 }
 async function deleteDriver(request, env, headers) {
-  const id = parseInt(request.url.split('/').pop());
+  const url = new URL(request.url);
+  const id = parseInt(url.pathname.split('/').pop());
+  const force = url.searchParams.get('force') === 'true' || url.searchParams.get('force') === '1';
   const client = getTursoClient(env);
   const driver = await dbFirst(client, "SELECT id FROM drivers WHERE id = ?", [id]);
   if (!driver) return jsonResponse({ error: 'المندوب غير موجود' }, 404, headers);
   const account = await dbFirst(client, "SELECT balance FROM driver_accounts WHERE driver_id = ?", [id]);
-  if (account && Math.abs(account.balance) > 0.001) {
+  if (!force && account && Math.abs(account.balance) > 0.001) {
     return jsonResponse({ error: 'لا يمكن حذف المندوب لأن رصيده غير صفري' }, 400, headers);
   }
   const pendingOrders = await dbFirst(client,
     "SELECT COUNT(*) as cnt FROM online_orders WHERE assigned_driver_id = ? AND status NOT IN ('تم التسليم', 'فشل التسليم', 'مرتجع')",
     [id]
   );
-  if (pendingOrders && pendingOrders.cnt > 0) {
+  if (!force && pendingOrders && pendingOrders.cnt > 0) {
     return jsonResponse({ error: 'لا يمكن حذف المندوب لأنه لديه طلبات معلقة' }, 400, headers);
+  }
+  if (force) {
+    await dbRun(client, "UPDATE online_orders SET assigned_driver_id = NULL WHERE assigned_driver_id = ?", [id]);
+    await dbRun(client, "DELETE FROM driver_transactions WHERE driver_id = ?", [id]);
+    await dbRun(client, "DELETE FROM driver_order_receipts WHERE driver_id = ?", [id]);
   }
   await dbRun(client, "DELETE FROM drivers WHERE id = ?", [id]);
   await dbRun(client, "DELETE FROM driver_accounts WHERE driver_id = ?", [id]);
+  invalidateDriversCache();
+  await kvDelete(env, 'cache:drivers');
   return jsonResponse({ success: true }, 200, headers);
 }
+
 async function getDriverUnreceivedOrders(request, env, headers) {
   const url = new URL(request.url);
   const driverId = Number(url.searchParams.get('driver_id') || 0);

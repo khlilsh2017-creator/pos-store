@@ -1,16 +1,16 @@
 {
-  "id": "com.pos.ibnalmukhtar.drivers",
+  "id": "com.pos.ibnalmukhtar.drivers.standalone",
   "name": "إدارة المندوبين - ابن المختار",
   "short_name": "إدارة المندوبين",
-  "description": "تطبيق إدارة المندوبين المتكامل لابن المختار: تسوية العهدة، كشوفات الحساب، متابعة التوصيلات والتحصيلات، والطباعة بلمسة واحدة.",
+  "description": "تطبيق إدارة المندوبين المستقل لابن المختار: تسوية العهدة، كشوفات الحساب، ومتابعة التحصيلات.",
   "start_url": "/phone/drivers.html",
+  "scope": "/phone/drivers.html",
   "display": "standalone",
   "background_color": "#0f172a",
   "theme_color": "#123b72",
   "orientation": "portrait",
   "dir": "rtl",
   "lang": "ar",
-  "scope": "/phone/",
   "icons": [
     {
       "src": "/icon-192x192.png",
@@ -23,27 +23,6 @@
       "type": "image/png",
       "sizes": "512x512",
       "purpose": "maskable"
-    }
-  ],
-  "categories": ["business", "finance", "productivity"],
-  "shortcuts": [
-    {
-      "name": "تسوية العهدة",
-      "short_name": "التسوية",
-      "url": "/phone/drivers.html#settlement",
-      "icons": [{ "src": "/icon-192x192.png", "sizes": "192x192", "type": "image/png" }]
-    },
-    {
-      "name": "كشف الحساب",
-      "short_name": "كشف الحساب",
-      "url": "/phone/drivers.html#statement",
-      "icons": [{ "src": "/icon-192x192.png", "sizes": "192x192", "type": "image/png" }]
-    },
-    {
-      "name": "إدارة طلبات الإنترنت",
-      "short_name": "الطلبات",
-      "url": "/phone/orders.html",
-      "icons": [{ "src": "/icon-192x192.png", "sizes": "192x192", "type": "image/png" }]
     }
   ]
 }

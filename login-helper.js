@@ -69,30 +69,34 @@
 
       /* نافذة إعدادات الخادم Modal */
       .lh-modal-backdrop {
-        position: fixed;
-        inset: 0;
-        z-index: 10050;
-        background: rgba(10, 27, 51, 0.55);
-        backdrop-filter: blur(4px);
-        -webkit-backdrop-filter: blur(4px);
+        position: fixed !important;
+        inset: 0 !important;
+        z-index: 999999 !important;
+        background: rgba(10, 27, 51, 0.65) !important;
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
         display: none;
         align-items: center;
         justify-content: center;
         padding: 16px;
         direction: rtl;
+        box-sizing: border-box !important;
         font-family: 'Cairo', system-ui, -apple-system, sans-serif;
         animation: lhFadeIn 0.2s ease;
       }
-      .lh-modal-backdrop.open { display: flex; }
+      .lh-modal-backdrop.open { display: flex !important; }
       .lh-modal-card {
-        background: #ffffff;
-        border-radius: 20px;
-        width: 100%;
-        max-width: 440px;
-        box-shadow: 0 18px 45px rgba(10, 27, 51, 0.25);
-        border: 1px solid #e2e8f0;
-        padding: 22px 20px;
-        position: relative;
+        background: #ffffff !important;
+        border-radius: 20px !important;
+        width: 100% !important;
+        max-width: 440px !important;
+        max-height: 90vh !important;
+        overflow-y: auto !important;
+        box-shadow: 0 20px 50px rgba(10, 27, 51, 0.35) !important;
+        border: 1px solid #e2e8f0 !important;
+        padding: 22px 20px !important;
+        position: relative !important;
+        box-sizing: border-box !important;
         animation: lhPopIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
         text-align: right;
         color: #152238;
@@ -581,6 +585,7 @@
   let activeModalBackdrop = null;
 
   function ensureModal() {
+    injectStyles();
     if (activeModalBackdrop) return activeModalBackdrop;
     const backdrop = document.createElement('div');
     backdrop.className = 'lh-modal-backdrop';
@@ -782,6 +787,7 @@
     passwordInputId = 'password',
     rememberContainerId = null,
     savedAccountsContainerId = null,
+    showSettingsButton = true,
     settingsButtonTarget = null,
     rememberCheckboxId = 'lhRememberMe'
   } = {}) {
@@ -791,12 +797,12 @@
     const usernameInput = document.getElementById(usernameInputId);
     const passwordInput = document.getElementById(passwordInputId);
 
-    // 1. حقن زر الإعدادات في طرف الصفحة
+    // 1. حقن زر الإعدادات في طرف الصفحة (إذا لم يكن هناك زر مسبقاً وكان الخيار مفعلاً)
     const targetParent = settingsButtonTarget 
       ? (typeof settingsButtonTarget === 'string' ? document.querySelector(settingsButtonTarget) : settingsButtonTarget) 
       : document.body;
 
-    if (targetParent && !document.querySelector('.lh-settings-btn')) {
+    if (showSettingsButton && targetParent && !document.querySelector('.lh-settings-btn')) {
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'lh-settings-btn';
@@ -924,6 +930,15 @@
         return cb ? cb.checked : true;
       }
     };
+  }
+
+  // حقن الأنماط تلقائياً فور تحميل السكربت لضمان ظهور النوافذ بشكل صحيح
+  if (typeof document !== 'undefined') {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', injectStyles);
+    } else {
+      injectStyles();
+    }
   }
 
   // التصدير إلى window

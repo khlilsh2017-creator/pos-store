@@ -399,20 +399,35 @@
                     <th style="width:20%;text-align:center;">الإجمالي (${currency})</th>
                 </tr>`;
 
-    return `<div class="pos-unified-invoice pos-doc">
-        ${renderBrandHeader(identity, title, data, options)}
+    let metaHtml = '';
+    if (isOnlineOrder) {
+      const custName = data.party || data.customer_name || 'عميل عام';
+      const custPhone = data.customer_phone ? `<span dir="ltr">${esc(data.customer_phone)}</span>` : '';
+      const deliveryInfo = [data.governorate, data.delivery_type].filter(Boolean).join(' - ');
+
+      metaHtml = `
+        <section class="pos-invoice-meta pos-online-meta">
+            <div><strong>العميل:</strong> ${esc(custName)}</div>
+            <div><strong>الهاتف:</strong> ${custPhone || '-'}</div>
+            <div><strong>طريقة الدفع:</strong> ${esc(data.payment_method || 'عند الاستلام')}${paymentDetails}</div>
+            <div><strong>الحالة:</strong> ${esc(data.status || (data.is_draft ? 'مسودة' : 'مكتملة'))}</div>
+            ${deliveryInfo ? `<div><strong>التوصيل:</strong> ${esc(deliveryInfo)}</div>` : ''}
+            <div><strong>المندوب:</strong> ${esc(data.driver_name || 'غير مسند')}</div>
+            ${data.customer_address ? `<div class="pos-online-address"><strong>العنوان:</strong> ${esc(data.customer_address)}</div>` : ''}
+        </section>`;
+    } else {
+      metaHtml = `
         <section class="pos-invoice-meta">
-            <div><strong>نوع المستند:</strong> ${purchase ? 'فاتورة شراء' : (isOnlineOrder ? 'طلب إنترنت' : 'بيع عادي')}</div>
-            <div><strong>${partyLabel}:</strong> ${esc(data.party || data.customer_name || data.supplier_name || 'غير محدد')}</div>
+            <div><strong>نوع المستند:</strong> ${purchase ? 'فاتورة شراء' : 'بيع عادي'}</div>
+            <div><strong>${partyLabel}:</strong> ${esc(data.party || data.customer_name || data.supplier_name || 'عميل عام')}</div>
             <div><strong>طريقة الدفع:</strong> ${esc(data.payment_method || 'غير محددة')}${paymentDetails}</div>
             <div><strong>الحالة:</strong> ${esc(data.status || (data.is_draft ? 'مسودة' : 'مكتملة'))}</div>
-            ${isOnlineOrder && (data.order_number || data.online_order_id || data.order_id) ? `<div><strong>رقم طلب الإنترنت:</strong> <span dir="ltr">${esc(data.order_number || data.online_order_id || data.order_id)}</span></div>` : ''}
-            ${isOnlineOrder && data.customer_phone ? `<div><strong>هاتف العميل:</strong> <span dir="ltr">${esc(data.customer_phone)}</span></div>` : ''}
-            ${isOnlineOrder && data.governorate ? `<div><strong>المحافظة:</strong> ${esc(data.governorate)}</div>` : ''}
-            ${isOnlineOrder && data.delivery_type ? `<div><strong>نوع التوصيل:</strong> ${esc(data.delivery_type)}</div>` : ''}
-            ${isOnlineOrder && data.driver_name ? `<div><strong>المندوب:</strong> ${esc(data.driver_name)}</div>` : ''}
-            ${isOnlineOrder && data.customer_address ? `<div class="pos-online-address"><strong>العنوان:</strong> ${esc(data.customer_address)}</div>` : ''}
-        </section>
+        </section>`;
+    }
+
+    return `<div class="pos-unified-invoice pos-doc">
+        ${renderBrandHeader(identity, title, data, options)}
+        ${metaHtml}
         <table>
             <thead>
                 ${theadHtml}
@@ -634,7 +649,7 @@
   }
 
   function unifiedCss() {
-    return `.pos-unified-invoice,.pos-unified-report{direction:rtl;color:var(--pos-brand-text,#0f172a);background:#fff;font-family:'Cairo',Arial,sans-serif}.pos-unified-invoice{max-width:100%;overflow:hidden}.pos-invoice-header{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:14px;border-bottom:3px solid var(--pos-brand-primary,#1d4ed8);padding-bottom:10px;margin-bottom:12px}.pos-brand-block{display:flex;align-items:center;gap:10px;min-width:0}.pos-brand-info{min-width:0}.pos-brand-logo{width:30mm;max-width:105px;max-height:18mm;object-fit:contain}.pos-brand-block h1{margin:0 0 4px;font-size:19px;color:var(--pos-brand-primary,#1d4ed8);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pos-brand-contact{display:flex;flex-wrap:wrap;gap:3px 12px;color:#475569;font-size:11px;line-height:1.45}.pos-invoice-title{text-align:left;white-space:nowrap;font-size:11px;color:#475569}.pos-invoice-title h2{margin:0 0 5px;font-size:17px;color:var(--pos-brand-primary,#1d4ed8)}.pos-doc-number{font-size:12px}.pos-invoice-meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:9px 10px;margin-bottom:10px;font-size:12px;line-height:1.55}.pos-invoice-meta>div{min-width:0;overflow-wrap:anywhere}.pos-invoice-meta .pos-online-address{grid-column:1/-1}.pos-invoice-totals{margin-top:10px;margin-right:auto;width:min(330px,100%);border-top:2px solid var(--pos-brand-primary,#1d4ed8);padding-top:8px;display:grid;gap:5px}.pos-invoice-totals>div{display:flex;justify-content:space-between;gap:12px;font-size:13px}.pos-invoice-totals .grand{font-size:17px;border-top:1px solid #cbd5e1;padding-top:6px;color:var(--pos-brand-secondary,#9a7714);font-weight:bold}.pos-invoice-totals .due{color:#b91c1c}.pos-item-discount{color:#dc2626;font-size:.82em}.pos-item-note{display:block;color:#475569;font-size:.82em;background:#fffbeb;border-radius:4px;padding:1px 4px;margin-top:2px}.pos-voucher-reason{border:1px solid #cbd5e1;border-radius:8px;padding:18px;margin-top:18px}.pos-report-title{margin:0 0 12px;text-align:center;font-size:18px;color:#334155}.pos-report-content{margin-top:4px}.pos-report-source{width:100%!important;min-height:0!important;background:#fff!important;color:inherit!important}.pos-report-source .topbar,.pos-report-source .top-bar,.pos-report-source .page-title,.pos-report-source .actions,.pos-report-source .no-print,.pos-report-source button,.pos-report-source input,.pos-report-source select,.pos-report-source textarea{display:none!important}.pos-report-source .content,.pos-report-source main,.pos-report-source.content,.pos-report-source.main-content{padding:0!important;margin:0!important}.pos-report-source .panel,.pos-report-source .card,.pos-report-source .card-section,.pos-report-source .table-wrap,.pos-report-source .table-wrapper{box-shadow:none!important}.pos-report-source .table-wrap,.pos-report-source .table-wrapper{overflow:visible!important}.pos-report-source table{min-width:0!important;width:100%!important}.pos-report-source .toast-container,.pos-report-source .sidebar,.pos-report-source #sidebar-container,.pos-report-source .overlay{display:none!important}.pos-unified-invoice footer,.pos-unified-report footer{text-align:center;border-top:1px solid #e2e8f0;margin-top:16px;padding-top:8px;color:#64748b;font-size:11px}@media(max-width:600px){.pos-invoice-header,.pos-invoice-meta{display:block}.pos-invoice-title{text-align:right;margin-top:8px;white-space:normal}.pos-brand-logo{width:24mm}.pos-invoice-totals{width:100%}}`;
+    return `.pos-unified-invoice,.pos-unified-report{direction:rtl;color:var(--pos-brand-text,#0f172a);background:#fff;font-family:'Cairo',Arial,sans-serif}.pos-unified-invoice{max-width:100%;overflow:hidden}.pos-invoice-header{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:14px;border-bottom:3px solid var(--pos-brand-primary,#1d4ed8);padding-bottom:10px;margin-bottom:12px}.pos-brand-block{display:flex;align-items:center;gap:10px;min-width:0}.pos-brand-info{min-width:0}.pos-brand-logo{width:30mm;max-width:105px;max-height:18mm;object-fit:contain}.pos-brand-block h1{margin:0 0 4px;font-size:19px;color:var(--pos-brand-primary,#1d4ed8);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pos-brand-contact{display:flex;flex-wrap:wrap;gap:3px 12px;color:#475569;font-size:11px;line-height:1.45}.pos-invoice-title{text-align:left;white-space:nowrap;font-size:11px;color:#475569}.pos-invoice-title h2{margin:0 0 5px;font-size:17px;color:var(--pos-brand-primary,#1d4ed8)}.pos-doc-number{font-size:12px}.pos-invoice-meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:5px 10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:7px 9px;margin-bottom:10px;font-size:11.5px;line-height:1.45}.pos-invoice-meta>div{min-width:0;overflow-wrap:anywhere}.pos-invoice-meta .pos-online-address{grid-column:1/-1}.pos-online-meta{background:#f8fafc;border:1px solid #cbd5e1;grid-template-columns:repeat(2,minmax(0,1fr))}.pos-invoice-totals{margin-top:10px;margin-right:auto;width:min(330px,100%);border-top:2px solid var(--pos-brand-primary,#1d4ed8);padding-top:8px;display:grid;gap:5px}.pos-invoice-totals>div{display:flex;justify-content:space-between;gap:12px;font-size:13px}.pos-invoice-totals .grand{font-size:17px;border-top:1px solid #cbd5e1;padding-top:6px;color:var(--pos-brand-secondary,#9a7714);font-weight:bold}.pos-invoice-totals .due{color:#b91c1c}.pos-item-discount{color:#dc2626;font-size:.82em}.pos-item-note{display:block;color:#475569;font-size:.82em;background:#fffbeb;border-radius:4px;padding:1px 4px;margin-top:2px}.pos-voucher-reason{border:1px solid #cbd5e1;border-radius:8px;padding:18px;margin-top:18px}.pos-report-title{margin:0 0 12px;text-align:center;font-size:18px;color:#334155}.pos-report-content{margin-top:4px}.pos-report-source{width:100%!important;min-height:0!important;background:#fff!important;color:inherit!important}.pos-report-source .topbar,.pos-report-source .top-bar,.pos-report-source .page-title,.pos-report-source .actions,.pos-report-source .no-print,.pos-report-source button,.pos-report-source input,.pos-report-source select,.pos-report-source textarea{display:none!important}.pos-report-source .content,.pos-report-source main,.pos-report-source.content,.pos-report-source.main-content{padding:0!important;margin:0!important}.pos-report-source .panel,.pos-report-source .card,.pos-report-source .card-section,.pos-report-source .table-wrap,.pos-report-source .table-wrapper{box-shadow:none!important}.pos-report-source .table-wrap,.pos-report-source .table-wrapper{overflow:visible!important}.pos-report-source table{min-width:0!important;width:100%!important}.pos-report-source .toast-container,.pos-report-source .sidebar,.pos-report-source #sidebar-container,.pos-report-source .overlay{display:none!important}.pos-unified-invoice footer,.pos-unified-report footer{text-align:center;border-top:1px solid #e2e8f0;margin-top:16px;padding-top:8px;color:#64748b;font-size:11px}@media(max-width:600px){.pos-invoice-header{display:block}.pos-invoice-meta{display:grid;grid-template-columns:1fr 1fr;gap:4px 8px;font-size:11px;padding:6px 8px}.pos-invoice-title{text-align:right;margin-top:8px;white-space:normal}.pos-brand-logo{width:24mm}.pos-invoice-totals{width:100%}}`;
   }
 
   function target() {

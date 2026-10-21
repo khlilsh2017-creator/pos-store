@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="إدارة المندوبين">
 <title>إدارة المندوبين - ابن المختار</title>
 
-<link rel="manifest" href="manifest_drivers.json">
+<link rel="manifest" href="manifest_drivers.json?v=1.1.0">
 <link rel="apple-touch-icon" href="/icon-192x192.png">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -521,6 +521,58 @@ button {
 
 .driver-card.is-credited::before {
   background: var(--green);
+}
+
+.driver-card.is-pinned::before {
+  background: var(--amber) !important;
+  width: 5px;
+}
+
+.driver-card.is-pinned {
+  border-color: #fde68a !important;
+  background: linear-gradient(180deg, #fffdf7 0%, #ffffff 100%);
+  box-shadow: 0 4px 16px rgba(245, 158, 11, 0.12);
+}
+
+.pin-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  font-size: 0.85rem;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  color: var(--muted);
+  cursor: pointer;
+  transition: all .15s ease;
+}
+
+.pin-btn:active {
+  transform: scale(0.92);
+}
+
+.pin-btn.pinned {
+  background: #fef3c7;
+  color: #b45309;
+  border-color: #f59e0b;
+}
+
+.pin-btn.pinned i {
+  transform: rotate(45deg);
+}
+
+.pinned-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: #fef3c7;
+  color: #92400e;
+  font-size: 0.62rem;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 6px;
+  border: 1px solid #fde68a;
 }
 
 .driver-head {
@@ -1467,8 +1519,8 @@ button {
 
       <!-- Quick Date Presets -->
       <div class="filter-pills" style="margin-bottom:8px;">
-        <button class="pill-btn active" data-preset="all" onclick="setStatementPreset('all')">الكل</button>
-        <button class="pill-btn" data-preset="today" onclick="setStatementPreset('today')">اليوم</button>
+        <button class="pill-btn" data-preset="all" onclick="setStatementPreset('all')">الكل</button>
+        <button class="pill-btn active" data-preset="today" onclick="setStatementPreset('today')">اليوم</button>
         <button class="pill-btn" data-preset="yesterday" onclick="setStatementPreset('yesterday')">أمس</button>
         <button class="pill-btn" data-preset="week" onclick="setStatementPreset('week')">آخر 7 أيام</button>
         <button class="pill-btn" data-preset="month" onclick="setStatementPreset('month')">هذا الشهر</button>
@@ -1655,6 +1707,10 @@ button {
         <input type="text" id="editDriverVehicle" class="input-field">
       </div>
       <div class="form-group">
+        <label>اسم المستخدم (لتسجيل الدخول)</label>
+        <input type="text" id="editDriverUsername" class="input-field" dir="ltr" placeholder="اسم المستخدم (اختياري)...">
+      </div>
+      <div class="form-group">
         <label>كلمة مرور جديدة (اتركه فارغاً للإبقاء على الحالية)</label>
         <input type="password" id="editDriverPassword" class="input-field" placeholder="كلمة مرور جديدة..." dir="ltr">
       </div>
@@ -1724,9 +1780,9 @@ let statementState = {
   driverName: '',
   transactions: [],
   summary: null,
-  preset: 'all',
-  from: '',
-  to: ''
+  preset: 'today',
+  from: new Date().toISOString().slice(0, 10),
+  to: new Date().toISOString().slice(0, 10)
 };
 
 let currentFilter = 'all';
@@ -2015,6 +2071,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   // 4. Handle deep link hash
+  setStatementPreset('today');
   const hash = location.hash.replace('#', '');
   if (hash === 'settlement') switchTab('tabSettlement');
   else if (hash === 'statement') switchTab('tabStatement');
@@ -2049,7 +2106,11 @@ function switchTab(tabId) {
   if (fab) fab.style.display = (tabId === 'tabDrivers') ? 'grid' : 'none';
 
   // Section specific refreshes
-  if (tabId === 'tabUnreceived') {
+  if (tabId === 'tabStatement') {
+    if (!statementState.preset || statementState.preset === 'all') {
+      setStatementPreset('today');
+    }
+  } else if (tabId === 'tabUnreceived') {
     loadUnreceivedOrders();
   }
 }
@@ -2148,6 +2209,31 @@ function clearDriverSearch() {
   onDriverSearch('');
 }
 
+// ==================== DRIVER PINNING LOGIC ====================
+function getPinnedDrivers() {
+  try {
+    return JSON.parse(localStorage.getItem('pos_pinned_drivers') || '[]');
+  } catch (e) {
+    return [];
+  }
+}
+
+function togglePinDriver(driverId, e) {
+  if (e) e.stopPropagation();
+  let pinned = getPinnedDrivers();
+  const id = Number(driverId);
+  const idx = pinned.indexOf(id);
+  if (idx !== -1) {
+    pinned.splice(idx, 1);
+    showToast('📌 تم إلغاء تثبيت المندوب', 'info');
+  } else {
+    pinned.unshift(id);
+    showToast('📌 تم تثبيت المندوب في أعلى القائمة', 'success');
+  }
+  localStorage.setItem('pos_pinned_drivers', JSON.stringify(pinned));
+  renderDriversList();
+}
+
 function renderDriversList() {
   const container = $('driversListContainer');
   if (!container) return;
@@ -2176,6 +2262,16 @@ function renderDriversList() {
     return true;
   });
 
+  // Sort pinned drivers to the top
+  const pinnedList = getPinnedDrivers();
+  filtered.sort((a, b) => {
+    const aPinned = pinnedList.includes(Number(a.id));
+    const bPinned = pinnedList.includes(Number(b.id));
+    if (aPinned && !bPinned) return -1;
+    if (!aPinned && bPinned) return 1;
+    return 0;
+  });
+
   $('driversCountBadge').textContent = `${filtered.length} مندوب`;
 
   if (!filtered.length) {
@@ -2196,8 +2292,10 @@ function renderDriversList() {
     const unreceivedCount = Number(d.unreceived_order_count || 0);
     const unreceivedTotal = Number(d.unreceived_order_total || 0);
     const failedCount = Number(d.failed_order_count || 0);
+    const isPinned = pinnedList.includes(Number(d.id));
 
     let cardClass = 'driver-card';
+    if (isPinned) cardClass += ' is-pinned';
     let balanceClass = 'driver-balance-row';
     let balanceValClass = 'balance-value';
     let balanceLabel = 'متوازن (0.00)';
@@ -2226,6 +2324,7 @@ function renderDriversList() {
             <h3>
               <span>${escapeHtml(d.name || 'مندوب')}</span>
               <span class="status-badge ${isActive ? 'active' : 'inactive'}">${isActive ? 'نشط' : 'معطل'}</span>
+              ${isPinned ? '<span class="pinned-tag"><i class="fas fa-thumbtack"></i> مثبت</span>' : ''}
             </h3>
             <div class="driver-meta">
               <span><i class="fas fa-id-badge"></i> ID: ${escapeHtml(d.username || d.id)}</span>
@@ -2234,6 +2333,9 @@ function renderDriversList() {
             </div>
           </div>
           <div class="quick-contact">
+            <button class="pin-btn ${isPinned ? 'pinned' : ''}" onclick="togglePinDriver(${d.id}, event)" title="${isPinned ? 'إلغاء التثبيت من الأعلى' : 'تثبيت المندوب في أعلى القائمة'}">
+              <i class="fas fa-thumbtack"></i>
+            </button>
             ${cleanPhone ? `
               <a href="tel:${cleanPhone}" class="contact-btn call" title="اتصال هاتفي"><i class="fas fa-phone"></i></a>
               <a href="https://wa.me/${cleanPhone.startsWith('967') ? cleanPhone : '967' + cleanPhone}" target="_blank" class="contact-btn whatsapp" title="واتساب"><i class="fab fa-whatsapp"></i></a>
@@ -2532,6 +2634,7 @@ async function submitSettlementForm() {
 // ==================== STATEMENT LOGIC ====================
 function openDriverStatementTab(driverId) {
   switchTab('tabStatement');
+  setStatementPreset('today');
   $('stmtDriverSelect').value = String(driverId);
   onStatementDriverChange(driverId);
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -3045,6 +3148,7 @@ function openEditDriverModal(driverId) {
   $('editDriverName').value = d.name || '';
   $('editDriverPhone').value = d.phone || '';
   $('editDriverVehicle').value = d.vehicle_info || '';
+  if ($('editDriverUsername')) $('editDriverUsername').value = d.username || '';
   $('editDriverPassword').value = '';
   $('editDriverWhatsappPhone').value = d.whatsapp_phone || '';
   $('editDriverActive').checked = d.is_active !== 0;
@@ -3058,6 +3162,7 @@ async function handleUpdateDriver(e) {
   const name = $('editDriverName')?.value.trim();
   const phone = $('editDriverPhone')?.value.trim();
   const vehicle_info = $('editDriverVehicle')?.value.trim();
+  const username = $('editDriverUsername')?.value.trim();
   const password = $('editDriverPassword')?.value.trim();
   const whatsapp_phone = $('editDriverWhatsappPhone')?.value.trim();
   const is_active = $('editDriverActive')?.checked ? 1 : 0;
@@ -3069,6 +3174,7 @@ async function handleUpdateDriver(e) {
   btn.innerHTML = '<i class="fas fa-spinner spin-icon"></i> جاري الحفظ...';
 
   const payload = { name, phone, vehicle_info, whatsapp_phone, is_active };
+  if (username !== undefined) payload.username = username;
   if (password) payload.password = password;
 
   try {
@@ -3129,23 +3235,33 @@ async function handleChangePasswordSubmit(e) {
 
 async function deleteDriverPrompt(driverId, driverName) {
   const d = driversData.find(x => x.id === driverId);
-  if (d && Math.abs(Number(d.balance || 0)) > 0.01) {
-    return showToast(`لا يمكن حذف المندوب لأن رصيده غير صفري (${formatNumber(d.balance)} ريال). يرجى تسوية العهدة أولاً.`, 'warning');
-  }
-  if (d && Number(d.unreceived_order_count || 0) > 0) {
-    return showToast(`لا يمكن حذف المندوب لأن لديه ${d.unreceived_order_count} طلب غير مستلم.`, 'warning');
+  const bal = Number(d?.balance || 0);
+  const unrec = Number(d?.unreceived_order_count || 0);
+
+  let confirmMsg = `هل أنت متأكد تماماً من حذف المندوب "${driverName}"؟\nسيتم حذف حسابه نهائياً من النظام.`;
+  if (Math.abs(bal) > 0.01 || unrec > 0) {
+    confirmMsg = `⚠️ تنبيه هام:\nالمندوب "${driverName}" لديه ` +
+      (Math.abs(bal) > 0.01 ? `رصيد/عهدة بقيمة (${formatNumber(bal)} ريال) ` : '') +
+      (unrec > 0 ? `و (${unrec}) طلبات غير مستلمة ` : '') +
+      `.\n\nهل تريد فرض الحذف النهائي؟ سيتم إلغاء إسناد الطلبات وحذف الحساب نهائياً.`;
   }
 
   const confirmed = await showConfirm(
-    `هل أنت متأكد تماماً من حذف المندوب "${driverName}"؟\nسيتم حذف حسابه نهائياً من النظام.`,
-    { title: 'حذف مندوب', type: 'danger', okText: 'حذف نهائي' }
+    confirmMsg,
+    { title: 'حذف مندوب نهائياً', type: 'danger', okText: 'حذف نهائي' }
   );
   if (!confirmed) return;
 
   try {
-    const res = await apiRequest(`/drivers/${driverId}`, { method: 'DELETE' });
+    const res = await apiRequest(`/drivers/${driverId}?force=true`, { method: 'DELETE' });
     if (res && res.success !== false) {
       showToast('🗑️ تم حذف المندوب بنجاح', 'success');
+      // If pinned, remove from pinned list
+      let pinned = getPinnedDrivers();
+      if (pinned.includes(Number(driverId))) {
+        pinned = pinned.filter(x => x !== Number(driverId));
+        localStorage.setItem('pos_pinned_drivers', JSON.stringify(pinned));
+      }
       await refreshAllData(true);
     }
   } catch (err) {

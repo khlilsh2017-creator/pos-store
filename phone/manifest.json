@@ -10,7 +10,7 @@
   "orientation": "portrait",
   "dir": "rtl",
   "lang": "ar",
-  "scope": "/phone/",
+  "scope": "/phone/add_order_ph.html",
   "icons": [
     {
       "src": "/icon-192x192.png",
