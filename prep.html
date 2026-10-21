@@ -1,0 +1,1334 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#123b72">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="تجهيز الطلبات">
+<title>تجهيز وتغليف الطلبات - ابن المختار</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+<!-- Core Architecture Scripts -->
+<script src="/api-client.js?v=1.0.4"></script>
+<script src="/login-helper.js?v=1.0.1"></script>
+<script src="/date-utils.js"></script>
+<script src="/number-utils.js"></script>
+<script src="/permissions.js"></script>
+<script src="/document-utils.js?v=20261021-2"></script>
+<script src="/offline-sync.js"></script>
+
+<style>
+:root {
+  --primary: #1d63c6;
+  --primary-dark: #123b72;
+  --primary-light: #eaf3ff;
+  --success: #10b981;
+  --success-dark: #059669;
+  --success-light: #ecfdf5;
+  --danger: #ef4444;
+  --danger-light: #fef2f2;
+  --warning: #f59e0b;
+  --warning-dark: #d97706;
+  --warning-light: #fffbeb;
+  --bg: #f0f4ff;
+  --surface: #ffffff;
+  --surface-secondary: #f8fafc;
+  --text-primary: #1e293b;
+  --text-secondary: #64748b;
+  --text-muted: #94a3b8;
+  --border: #e2e8f0;
+  --shadow: 0 4px 20px rgba(0,0,0,0.06);
+  --shadow-lg: 0 10px 30px rgba(18,59,114,0.12);
+  --radius: 18px;
+  --radius-sm: 12px;
+  --radius-xs: 8px;
+  --transition: 0.2s ease;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+  font-family: 'Cairo', system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text-primary);
+  overflow-x: hidden;
+}
+
+body {
+  padding-bottom: calc(75px + var(--safe-bottom));
+}
+
+button, input, select, textarea { font: inherit; }
+button { cursor: pointer; border: 0; outline: 0; }
+
+.app-container {
+  max-width: 520px;
+  margin: 0 auto;
+  min-height: 100vh;
+  background: var(--surface-secondary);
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+/* Header & Topbar */
+.nav-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: linear-gradient(135deg, var(--primary-dark) 0%, #174a8b 50%, var(--primary) 100%);
+  color: #fff;
+  padding: calc(12px + var(--safe-top)) 16px 14px;
+  box-shadow: 0 4px 20px rgba(18,59,114,0.25);
+}
+
+.nav-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.brand-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brand-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.18);
+  display: grid;
+  place-items: center;
+  font-size: 1.3rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+.brand-text h1 {
+  font-size: 1.05rem;
+  margin: 0;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.brand-text p {
+  margin: 2px 0 0;
+  font-size: 0.68rem;
+  opacity: 0.85;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.header-btn {
+  background: rgba(255,255,255,0.15);
+  color: #fff;
+  border-radius: 10px;
+  padding: 6px 10px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: var(--transition);
+}
+.header-btn:active { transform: scale(0.96); background: rgba(255,255,255,0.25); }
+
+.user-status-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 10px;
+  padding: 6px 10px;
+  background: rgba(255,255,255,0.12);
+  border-radius: 10px;
+  font-size: 0.72rem;
+}
+
+.server-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+.server-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 6px #22c55e;
+}
+.server-dot.offline { background: #ef4444; box-shadow: 0 0 6px #ef4444; }
+
+/* Main Content */
+.main-content {
+  flex: 1;
+  padding: 14px;
+}
+
+/* Stats Cards */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 8px;
+  text-align: center;
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  transition: var(--transition);
+}
+.stat-card:active { transform: scale(0.97); }
+.stat-card.active { border-color: var(--primary); background: #f0f7ff; }
+
+.stat-icon { font-size: 1.2rem; margin-bottom: 3px; display: block; }
+.stat-label { font-size: 0.65rem; color: var(--text-secondary); font-weight: 600; }
+.stat-value { font-size: 1.15rem; font-weight: 800; color: var(--text-primary); margin-top: 2px; }
+.stat-card.pending .stat-value { color: var(--warning-dark); }
+.stat-card.ready .stat-value { color: var(--success); }
+.stat-card.total .stat-value { color: var(--primary); }
+
+/* Filter & Search Bar */
+.filter-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+  margin-bottom: 14px;
+  box-shadow: var(--shadow);
+}
+
+.search-box {
+  position: relative;
+  margin-bottom: 8px;
+}
+.search-input {
+  width: 100%;
+  height: 42px;
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  padding: 8px 36px 8px 12px;
+  font-size: 0.82rem;
+  background: var(--surface-secondary);
+  color: var(--text-primary);
+  outline: none;
+  transition: var(--transition);
+}
+.search-input:focus { border-color: var(--primary); background: #fff; box-shadow: 0 0 0 3px rgba(29,99,198,0.12); }
+.search-icon {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  pointer-events: none;
+}
+
+.filter-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.filter-select {
+  flex: 1;
+  height: 38px;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  padding: 6px 10px;
+  font-size: 0.75rem;
+  background: var(--surface-secondary);
+  color: var(--text-primary);
+  outline: none;
+  cursor: pointer;
+}
+
+/* Orders List */
+.orders-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Order Card - Same style as Driver Card with Prep Enhancements */
+.prep-order-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  box-shadow: var(--shadow);
+  transition: var(--transition);
+  position: relative;
+  border-right: 5px solid var(--warning);
+}
+
+.prep-order-card.ready {
+  border-right: 5px solid var(--success);
+  background: linear-gradient(to left, rgba(236,253,245,0.4), var(--surface) 35%);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.order-badge-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.order-number {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.order-time {
+  font-size: 0.7rem;
+  color: var(--primary);
+  font-weight: 600;
+  background: #eff6ff;
+  padding: 3px 8px;
+  border-radius: 8px;
+}
+
+.status-tag {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 20px;
+}
+.status-tag.pending { background: #fef3c7; color: #92400e; }
+.status-tag.ready { background: #dcfce7; color: #166534; }
+.status-tag.delivered { background: #e0f2fe; color: #075985; }
+
+/* Customer & Delivery Info */
+.order-customer-box {
+  background: var(--surface-secondary);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  font-size: 0.78rem;
+}
+
+.customer-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+.customer-row:last-child { margin-bottom: 0; }
+.customer-row i { width: 16px; color: var(--primary); font-size: 0.8rem; text-align: center; }
+
+.customer-phone-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+.phone-action-btn {
+  padding: 3px 8px;
+  border-radius: 8px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.phone-action-btn.call { background: #e0f2fe; color: #0369a1; }
+.phone-action-btn.wa { background: #dcfce7; color: #15803d; }
+
+/* Order Images Section (الصور المطلوبة لتأكيد الأشكال والألوان) */
+.order-images-panel {
+  background: #eff6ff;
+  border: 1.5px solid #bfdbfe;
+  border-radius: 12px;
+  padding: 9px 12px;
+  margin-bottom: 12px;
+}
+
+.images-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+.images-panel-title {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: #1e40af;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.images-count-badge {
+  background: #dbeafe;
+  color: #1e3a8a;
+  padding: 1px 7px;
+  border-radius: 10px;
+  font-size: 0.65rem;
+  font-weight: 800;
+}
+.images-zoom-hint {
+  font-size: 0.65rem;
+  color: #2563eb;
+  font-weight: 700;
+}
+
+.images-strip {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+.images-strip img {
+  width: 58px;
+  height: 58px;
+  border-radius: 10px;
+  object-fit: cover;
+  border: 1.5px solid #93c5fd;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: transform 0.15s ease;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+.images-strip img:active { transform: scale(0.95); }
+
+/* Checklist / Items Table */
+.prep-checklist-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: #fff;
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+
+.checklist-header {
+  background: #f1f5f9;
+  padding: 8px 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.prep-progress-bar {
+  height: 4px;
+  background: #e2e8f0;
+  width: 100%;
+}
+.prep-progress-fill {
+  height: 100%;
+  background: var(--success);
+  transition: width 0.3s ease;
+}
+
+.checklist-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid #f1f5f9;
+  transition: background 0.15s ease;
+}
+.checklist-item:last-child { border-bottom: none; }
+.checklist-item.is-checked { background: #f0fdf4; }
+
+.prep-checkbox-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 2px solid #cbd5e1;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  color: transparent;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+.prep-checkbox-btn.checked {
+  background: var(--success);
+  border-color: var(--success);
+  color: #fff;
+  transform: scale(1.05);
+  box-shadow: 0 2px 6px rgba(16,185,129,0.3);
+}
+
+.item-details {
+  flex: 1;
+  min-width: 0;
+}
+.item-name {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.3;
+}
+.checklist-item.is-checked .item-name {
+  text-decoration: line-through;
+  opacity: 0.65;
+}
+
+.item-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  margin-top: 3px;
+  flex-wrap: wrap;
+}
+.item-qty-badge {
+  background: #e0e7ff;
+  color: #3730a3;
+  padding: 1px 7px;
+  border-radius: 6px;
+  font-weight: 800;
+  font-size: 0.72rem;
+}
+.item-note-tag {
+  background: #fffbeb;
+  color: #b45309;
+  padding: 1px 6px;
+  border-radius: 6px;
+  font-size: 0.68rem;
+}
+
+/* Card Actions */
+.card-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.btn-complete-prep {
+  flex: 2;
+  height: 44px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--success), var(--success-dark));
+  color: #fff;
+  font-weight: 800;
+  font-size: 0.82rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  box-shadow: 0 4px 14px rgba(16,185,129,0.25);
+  transition: var(--transition);
+}
+.btn-complete-prep:active { transform: scale(0.97); }
+
+.btn-print-prep {
+  flex: 1;
+  height: 44px;
+  border-radius: 12px;
+  background: #fff;
+  border: 1.5px solid var(--border);
+  color: var(--text-secondary);
+  font-weight: 700;
+  font-size: 0.78rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+.btn-print-prep:active { background: #f8fafc; }
+
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-muted);
+}
+.empty-icon { font-size: 2.5rem; margin-bottom: 10px; opacity: 0.6; display: block; }
+
+/* Bottom Nav */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 520px;
+  width: 100%;
+  background: var(--surface);
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding: 8px 0 calc(8px + var(--safe-bottom));
+  box-shadow: 0 -4px 20px rgba(0,0,0,0.05);
+  border-top: 1px solid var(--border);
+  z-index: 100;
+}
+.nav-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 5px 12px;
+  gap: 3px;
+  font-weight: 600;
+  transition: var(--transition);
+  position: relative;
+}
+.nav-tab i { font-size: 1.15rem; }
+.nav-tab.active { color: var(--primary); font-weight: 800; }
+.nav-tab.active::before {
+  content: '';
+  position: absolute;
+  top: -8px;
+  width: 24px;
+  height: 3px;
+  background: var(--primary);
+  border-radius: 0 0 4px 4px;
+}
+
+/* Lightbox Modal */
+.prep-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background: rgba(0,0,0,0.9);
+  backdrop-filter: blur(4px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+.prep-lightbox img {
+  max-width: 95vw;
+  max-height: 85vh;
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+  object-fit: contain;
+}
+.prep-lightbox-close {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  background: rgba(255,255,255,0.25);
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  font-size: 1.3rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+</style>
+</head>
+<body>
+
+<div class="app-container">
+  <!-- Topbar -->
+  <header class="nav-header">
+    <div class="nav-header-row">
+      <div class="brand-title">
+        <div class="brand-icon">📦</div>
+        <div class="brand-text">
+          <h1>تجهيز الطلبات والتغليف</h1>
+          <p>ابن المختار · تحضير وتأكيد الأشكال والموديلات</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button type="button" class="header-btn" onclick="refreshPrepOrders()" title="تحديث فوري">
+          <i class="fas fa-rotate"></i>
+        </button>
+        <button type="button" class="header-btn" onclick="LoginHelper?.openSettingsModal()" title="إعدادات الخادم">
+          <i class="fas fa-gear"></i>
+        </button>
+      </div>
+    </div>
+
+    <div class="user-status-strip">
+      <div class="server-indicator" onclick="switchServerManual()">
+        <span class="server-dot" id="serverDot"></span>
+        <span id="serverNameLabel">الخادم الأساسي</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span id="currentUserLabel" style="font-weight:700;">الموظف</span>
+        <button type="button" onclick="logoutPrep()" style="background:transparent; color:#fca5a5; font-size:0.7rem; font-weight:700; cursor:pointer;">خروج 🚪</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <!-- Stats Cards -->
+    <div class="stats-grid">
+      <div class="stat-card pending active" id="statPendingCard" onclick="setFilterStatus('pending')">
+        <span class="stat-icon">⏳</span>
+        <span class="stat-label">بانتظار التجهيز</span>
+        <div class="stat-value" id="statPendingCount">0</div>
+      </div>
+      <div class="stat-card ready" id="statReadyCard" onclick="setFilterStatus('ready')">
+        <span class="stat-icon">✅</span>
+        <span class="stat-label">تم التجهيز</span>
+        <div class="stat-value" id="statReadyCount">0</div>
+      </div>
+      <div class="stat-card total" id="statTotalCard" onclick="setFilterStatus('all')">
+        <span class="stat-icon">📦</span>
+        <span class="stat-label">إجمالي الطلبات</span>
+        <div class="stat-value" id="statTotalCount">0</div>
+      </div>
+    </div>
+
+    <!-- Search & Filter -->
+    <div class="filter-section">
+      <div class="search-box">
+        <input type="text" id="prepSearchInput" class="search-input" placeholder="ابحث برقم الطلب، اسم العميل، الهاتف أو الصنف..." oninput="handleSearchInput()" />
+        <i class="fas fa-search search-icon"></i>
+      </div>
+      <div class="filter-row">
+        <select id="periodFilter" class="filter-select" onchange="loadPrepOrders()">
+          <option value="today" selected>📅 طلبات اليوم</option>
+          <option value="last2days">طلبات آخر يومين</option>
+          <option value="week">طلبات هذا الأسبوع</option>
+          <option value="all">كل الفترات</option>
+        </select>
+        <select id="driverFilter" class="filter-select" onchange="applyFilters()">
+          <option value="">🛵 جميع المندوبين</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Orders Cards Container -->
+    <div class="orders-list" id="prepOrdersList">
+      <div class="empty-state">
+        <span class="empty-icon"><i class="fas fa-spinner fa-spin"></i></span>
+        <span>جاري تحميل طلبات التجهيز...</span>
+      </div>
+    </div>
+  </main>
+
+  <!-- Bottom Navigation -->
+  <nav class="bottom-nav">
+    <div class="nav-tab active" id="tabPending" onclick="setFilterStatus('pending')">
+      <i class="fas fa-box-open"></i>
+      <span>بانتظار التجهيز</span>
+    </div>
+    <div class="nav-tab" id="tabReady" onclick="setFilterStatus('ready')">
+      <i class="fas fa-check-double"></i>
+      <span>المُجهزة</span>
+    </div>
+    <div class="nav-tab" id="tabAll" onclick="setFilterStatus('all')">
+      <i class="fas fa-list-check"></i>
+      <span>جميع الطلبات</span>
+    </div>
+    <div class="nav-tab" onclick="location.href='/phone/orders.html'">
+      <i class="fas fa-arrow-left"></i>
+      <span>إدارة الطلبات</span>
+    </div>
+  </nav>
+</div>
+
+<!-- Image Lightbox Modal -->
+<div class="prep-lightbox" id="prepLightbox" onclick="closePrepLightbox()">
+  <img id="prepLightboxImg" onclick="event.stopPropagation()" />
+  <button type="button" class="prep-lightbox-close" onclick="closePrepLightbox()">✕</button>
+</div>
+
+<script>
+// ==================== APP STATE ====================
+let allOrders = [];
+let filteredOrders = [];
+let currentFilterStatus = 'pending'; // 'pending' | 'ready' | 'all'
+let currentSearchQuery = '';
+let isRefreshing = false;
+let audioCtx = null;
+
+// Sound Feedback
+function playCheckSound() {
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(587.33, audioCtx.currentTime); // D5
+    osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.1); // A5
+    gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.15);
+  } catch (e) {}
+}
+
+function playCompleteSound() {
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const now = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(523.25, now); // C5
+    osc.frequency.setValueAtTime(659.25, now + 0.08); // E5
+    osc.frequency.setValueAtTime(783.99, now + 0.16); // G5
+    gain.gain.setValueAtTime(0.2, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(now + 0.35);
+  } catch (e) {}
+}
+
+// Authentication
+function getAuthToken() {
+  return localStorage.getItem('pos_token') || localStorage.getItem('token') || '';
+}
+
+function checkAuth() {
+  const token = getAuthToken();
+  if (!token) {
+    location.href = '/phone/index.html?next=' + encodeURIComponent(location.pathname + location.search);
+    return false;
+  }
+  const user = JSON.parse(localStorage.getItem('pos_user') || '{}');
+  if ($('currentUserLabel') && user) {
+    $('currentUserLabel').textContent = user.name || user.username || 'موظف التجهيز';
+  }
+  return true;
+}
+
+function logoutPrep() {
+  localStorage.removeItem('pos_token');
+  localStorage.removeItem('pos_user');
+  location.href = '/phone/index.html?next=/prep.html';
+}
+
+function $(id) { return document.getElementById(id); }
+
+// Server status & Badge
+function updateServerBadgeUi() {
+  const dot = $('serverDot');
+  const label = $('serverNameLabel');
+  if (!dot || !label) return;
+  const current = (window.apiClient?.baseUrl || localStorage.getItem('posApiBase') || '').toLowerCase();
+  if (current.includes('api2')) {
+    dot.style.background = '#1d63c6';
+    label.textContent = 'الاحتياطي (api2)';
+  } else {
+    dot.style.background = '#22c55e';
+    label.textContent = 'الأساسي (api)';
+  }
+}
+
+function switchServerManual() {
+  if (window.apiClient && typeof window.apiClient.toggleEndpoint === 'function') {
+    window.apiClient.toggleEndpoint();
+    updateServerBadgeUi();
+    refreshPrepOrders();
+  }
+}
+
+// Load Drivers for Filter
+async function loadDrivers() {
+  try {
+    const res = await (window.apiClient?.fetchWithFailover ? window.apiClient.fetchWithFailover('/drivers') : fetch('/drivers'));
+    const data = await res.json().catch(() => ({}));
+    const list = data.drivers || [];
+    const select = $('driverFilter');
+    if (!select) return;
+    select.innerHTML = '<option value="">🛵 جميع المندوبين</option>' + list.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
+  } catch (e) {}
+}
+
+// Fetch Orders
+async function loadPrepOrders() {
+  if (!checkAuth()) return;
+  const listEl = $('prepOrdersList');
+  if (listEl && allOrders.length === 0) {
+    listEl.innerHTML = '<div class="empty-state"><span class="empty-icon"><i class="fas fa-spinner fa-spin"></i></span><span>جاري تحميل طلبات التجهيز...</span></div>';
+  }
+
+  const period = $('periodFilter')?.value || 'today';
+  let dateQuery = '';
+  const now = new Date();
+  if (period === 'today') {
+    const todayStr = now.toISOString().split('T')[0];
+    dateQuery = `&date_from=${todayStr}`;
+  } else if (period === 'last2days') {
+    const d = new Date(now);
+    d.setDate(now.getDate() - 2);
+    dateQuery = `&date_from=${d.toISOString().split('T')[0]}`;
+  } else if (period === 'week') {
+    const d = new Date(now);
+    d.setDate(now.getDate() - 7);
+    dateQuery = `&date_from=${d.toISOString().split('T')[0]}`;
+  }
+
+  try {
+    const endpoint = `/online-orders?limit=50&include_items=1${dateQuery}`;
+    let res;
+    if (window.apiClient && typeof window.apiClient.fetchWithFailover === 'function') {
+      res = await window.apiClient.fetchWithFailover(endpoint, {
+        headers: { 'Authorization': 'Bearer ' + getAuthToken() }
+      });
+    } else {
+      res = await fetch((window.apiClient?.baseUrl || '') + endpoint, {
+        headers: { 'Authorization': 'Bearer ' + getAuthToken() }
+      });
+    }
+    const data = await res.json().catch(() => ({}));
+    if (data.orders) {
+      allOrders = data.orders;
+      updateStats();
+      applyFilters();
+    }
+  } catch (err) {
+    console.error('Failed to load orders:', err);
+    if (listEl && allOrders.length === 0) {
+      listEl.innerHTML = `<div class="empty-state text-danger"><span class="empty-icon">⚠️</span><span>تعذر جلب الطلبات: ${err.message || 'خطأ في الاتصال'}</span></div>`;
+    }
+  } finally {
+    updateServerBadgeUi();
+  }
+}
+
+async function refreshPrepOrders() {
+  if (isRefreshing) return;
+  isRefreshing = true;
+  await loadPrepOrders();
+  isRefreshing = false;
+}
+
+// Stats Calculation
+function updateStats() {
+  const pending = allOrders.filter(o => isOrderPendingPrep(o)).length;
+  const ready = allOrders.filter(o => isOrderReadyPrep(o)).length;
+  const total = allOrders.length;
+
+  if ($('statPendingCount')) $('statPendingCount').textContent = pending;
+  if ($('statReadyCount')) $('statReadyCount').textContent = ready;
+  if ($('statTotalCount')) $('statTotalCount').textContent = total;
+}
+
+function isOrderPendingPrep(order) {
+  const s = String(order.prep_status || '').toLowerCase();
+  const mainStatus = String(order.status || '');
+  if (['تم التسليم', 'ملغي', 'فشل التسليم', 'مرتجع كلي'].includes(mainStatus)) return false;
+  return s !== 'ready' && s !== 'تم التجهيز';
+}
+
+function isOrderReadyPrep(order) {
+  const s = String(order.prep_status || '').toLowerCase();
+  return s === 'ready' || s === 'تم التجهيز';
+}
+
+// Filtering
+function setFilterStatus(status) {
+  currentFilterStatus = status;
+  $('statPendingCard')?.classList.toggle('active', status === 'pending');
+  $('statReadyCard')?.classList.toggle('active', status === 'ready');
+  $('statTotalCard')?.classList.toggle('active', status === 'all');
+
+  $('tabPending')?.classList.toggle('active', status === 'pending');
+  $('tabReady')?.classList.toggle('active', status === 'ready');
+  $('tabAll')?.classList.toggle('active', status === 'all');
+
+  applyFilters();
+}
+
+function handleSearchInput() {
+  currentSearchQuery = ($('prepSearchInput')?.value || '').trim().toLowerCase();
+  applyFilters();
+}
+
+function applyFilters() {
+  const driverId = $('driverFilter')?.value || '';
+  
+  filteredOrders = allOrders.filter(order => {
+    // Status Filter
+    if (currentFilterStatus === 'pending' && !isOrderPendingPrep(order)) return false;
+    if (currentFilterStatus === 'ready' && !isOrderReadyPrep(order)) return false;
+
+    // Driver Filter
+    if (driverId && String(order.assigned_driver_id) !== String(driverId)) return false;
+
+    // Search Query
+    if (currentSearchQuery) {
+      const matchId = String(order.id).includes(currentSearchQuery);
+      const matchCust = (order.customer_name || '').toLowerCase().includes(currentSearchQuery);
+      const matchPhone = (order.customer_phone || '').includes(currentSearchQuery);
+      const matchAddress = (order.customer_address || '').toLowerCase().includes(currentSearchQuery);
+      const matchItems = (order.items || []).some(i => (i.product_name || i.catalog_name || '').toLowerCase().includes(currentSearchQuery));
+      if (!matchId && !matchCust && !matchPhone && !matchAddress && !matchItems) return false;
+    }
+    return true;
+  });
+
+  renderOrders();
+}
+
+// Rendering
+function renderOrders() {
+  const container = $('prepOrdersList');
+  if (!container) return;
+
+  if (filteredOrders.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <span class="empty-icon">📦</span>
+        <strong>لا توجد طلبات تطابق الفلتر الحالي</strong>
+        <p style="font-size:0.75rem; margin-top:4px;">يمكنك تغيير الفلتر أو البحث عن طلب آخر</p>
+      </div>`;
+    return;
+  }
+
+  container.innerHTML = filteredOrders.map(order => renderOrderCardHtml(order)).join('');
+}
+
+function renderOrderCardHtml(order) {
+  const isReady = isOrderReadyPrep(order);
+  const items = order.items || [];
+  
+  // Format Date
+  let dateDisplay = 'اليوم';
+  if (order.order_date || order.created_at) {
+    try {
+      const d = new Date((order.order_date || order.created_at).replace(' ', 'T'));
+      dateDisplay = d.toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit', hour12: true });
+    } catch(e) {}
+  }
+
+  // Parse Prepared Items
+  let preparedMap = {};
+  try {
+    preparedMap = typeof order.prepared_items === 'string' ? JSON.parse(order.prepared_items) : (order.prepared_items || {});
+  } catch(e) { preparedMap = {}; }
+
+  const totalItemsCount = items.length;
+  const checkedItemsCount = items.filter(it => preparedMap[it.id] === true).length;
+  const progressPercent = totalItemsCount > 0 ? Math.round((checkedItemsCount / totalItemsCount) * 100) : 0;
+
+  // Order Images
+  let imgs = [];
+  try {
+    imgs = typeof order.order_images === 'string' ? JSON.parse(order.order_images) : (order.order_images || []);
+  } catch(e) { imgs = []; }
+
+  let imagesHtml = '';
+  if (Array.isArray(imgs) && imgs.length > 0) {
+    imagesHtml = `
+      <div class="order-images-panel">
+        <div class="images-panel-header">
+          <div class="images-panel-title">
+            <i class="fas fa-camera"></i>
+            <span>صور الأشكال والموديلات المطلوبة</span>
+            <span class="images-count-badge">${imgs.length} صور</span>
+          </div>
+          <span class="images-zoom-hint">انقر للتكبير 🔍</span>
+        </div>
+        <div class="images-strip">
+          ${imgs.map(img => `<img src="${img}" onclick="openPrepLightbox('${img}')" title="انقر لتكبير صورة الموديل" />`).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  // Items Checklist
+  let itemsChecklistHtml = items.map(item => {
+    const isChecked = !!preparedMap[item.id];
+    const itemName = item.product_name || item.catalog_name || `صنف #${item.product_id}`;
+    const variantTag = item.variant_label ? `<span class="item-note-tag">${item.variant_label}</span>` : '';
+    const noteTag = item.note || item.notes ? `<span class="item-note-tag">📌 ${item.note || item.notes}</span>` : '';
+
+    return `
+      <div class="checklist-item ${isChecked ? 'is-checked' : ''}" id="item-row-${order.id}-${item.id}">
+        <button type="button" class="prep-checkbox-btn ${isChecked ? 'checked' : ''}" 
+                onclick="toggleItemCheck(${order.id}, ${item.id}, event)" title="تعليم الصنف">
+          ✓
+        </button>
+        <div class="item-details">
+          <div class="item-name">${itemName}</div>
+          <div class="item-meta">
+            <span class="item-qty-badge">الكمية: ${item.quantity}</span>
+            ${variantTag}
+            ${noteTag}
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  return `
+    <article class="prep-order-card ${isReady ? 'ready' : ''}" id="order-card-${order.id}">
+      <div class="card-header">
+        <div class="order-badge-row">
+          <span class="order-number">📦 طلب #${order.id}</span>
+          <span class="order-time"><i class="fas fa-clock"></i> ${dateDisplay}</span>
+          ${order.driver_name ? `<span style="font-size:0.7rem; color:#4338ca; background:#e0e7ff; padding:2px 8px; border-radius:8px; font-weight:700;">🛵 ${order.driver_name}</span>` : '<span style="font-size:0.7rem; color:#64748b; background:#f1f5f9; padding:2px 8px; border-radius:8px;">بدون مندوب</span>'}
+        </div>
+        <span class="status-tag ${isReady ? 'ready' : 'pending'}">
+          ${isReady ? '✅ مُجهز بالكامل' : '⏳ قيد التجهيز'}
+        </span>
+      </div>
+
+      <!-- بيانات العميل والتوصيل -->
+      <div class="order-customer-box">
+        <div class="customer-row">
+          <i class="fas fa-user"></i>
+          <strong>${order.customer_name || 'عميل عام'}</strong>
+        </div>
+        <div class="customer-row">
+          <i class="fas fa-map-marker-alt"></i>
+          <span>${order.customer_address || 'عنوان غير محدد'}</span>
+        </div>
+        ${order.notes ? `<div class="customer-row" style="color:#b45309;"><i class="fas fa-sticky-note"></i> <span>ملاحظات: ${order.notes}</span></div>` : ''}
+        ${order.customer_phone ? `
+          <div class="customer-phone-actions">
+            <a href="tel:${order.customer_phone}" class="phone-action-btn call"><i class="fas fa-phone"></i> ${order.customer_phone}</a>
+            <a href="https://wa.me/${order.customer_phone.replace(/\\D/g,'')}" target="_blank" class="phone-action-btn wa"><i class="fab fa-whatsapp"></i> واتساب</a>
+          </div>` : ''}
+      </div>
+
+      <!-- صور الأشكال المطلوبة (البند الجوهري) -->
+      ${imagesHtml}
+
+      <!-- قائمة بنود التجهيز -->
+      <div class="prep-checklist-card">
+        <div class="checklist-header">
+          <span>قائمة الأصناف (${totalItemsCount} أصناف)</span>
+          <span id="prep-ratio-${order.id}" style="color:${isReady ? 'var(--success)' : 'var(--warning-dark)'};">
+            مُجهز ${checkedItemsCount} من ${totalItemsCount}
+          </span>
+        </div>
+        <div class="prep-progress-bar">
+          <div class="prep-progress-fill" id="prep-bar-${order.id}" style="width: ${progressPercent}%;"></div>
+        </div>
+        <div class="checklist-items">
+          ${itemsChecklistHtml || '<div style="padding:10px;text-align:center;font-size:0.75rem;color:#94a3b8;">لا توجد أصناف</div>'}
+        </div>
+      </div>
+
+      <!-- أزرار الإجراءات -->
+      <div class="card-actions">
+        <button type="button" class="btn-complete-prep" onclick="completeOrderPackaging(${order.id})">
+          <i class="fas fa-box"></i>
+          <span>${isReady ? 'تحديث الاعتماد والتجهيز' : '✅ تم التجهيز والتغليف بالكامل'}</span>
+        </button>
+        <button type="button" class="btn-print-prep" onclick="printPrepSlip(${order.id})">
+          <i class="fas fa-print"></i>
+          <span>طباعة</span>
+        </button>
+      </div>
+    </article>
+  `;
+}
+
+// Item Check Toggle
+async function toggleItemCheck(orderId, itemId, event) {
+  event?.stopPropagation();
+  const order = allOrders.find(o => o.id === orderId);
+  if (!order) return;
+
+  let preparedMap = {};
+  try {
+    preparedMap = typeof order.prepared_items === 'string' ? JSON.parse(order.prepared_items) : (order.prepared_items || {});
+  } catch(e) { preparedMap = {}; }
+
+  preparedMap[itemId] = !preparedMap[itemId];
+  order.prepared_items = preparedMap;
+
+  if (preparedMap[itemId]) playCheckSound();
+
+  // Update UI row directly
+  const row = $(`item-row-${orderId}-${itemId}`);
+  const btn = row?.querySelector('.prep-checkbox-btn');
+  if (row && btn) {
+    row.classList.toggle('is-checked', preparedMap[itemId]);
+    btn.classList.toggle('checked', preparedMap[itemId]);
+  }
+
+  // Update Progress Bar & Ratio
+  const items = order.items || [];
+  const checkedCount = items.filter(it => preparedMap[it.id] === true).length;
+  const percent = items.length > 0 ? Math.round((checkedCount / items.length) * 100) : 0;
+  
+  const bar = $(`prep-bar-${orderId}`);
+  if (bar) bar.style.width = percent + '%';
+  const ratio = $(`prep-ratio-${orderId}`);
+  if (ratio) ratio.textContent = `مُجهز ${checkedCount} من ${items.length}`;
+
+  // Sync to backend silently
+  syncOrderPrepState(orderId, preparedMap);
+}
+
+async function syncOrderPrepState(orderId, preparedMap, newPrepStatus = null) {
+  try {
+    const payload = {
+      order_id: orderId,
+      prepared_items: preparedMap
+    };
+    if (newPrepStatus) {
+      payload.prep_status = newPrepStatus;
+      payload.new_status = 'جاهز للتوصيل';
+    }
+
+    if (window.apiClient && typeof window.apiClient.fetchWithFailover === 'function') {
+      await window.apiClient.fetchWithFailover('/online-orders/update-status', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + getAuthToken(),
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+    }
+  } catch(e) {
+    console.warn('Sync prep failed:', e);
+  }
+}
+
+// Complete Packaging
+async function completeOrderPackaging(orderId) {
+  const order = allOrders.find(o => o.id === orderId);
+  if (!order) return;
+
+  const items = order.items || [];
+  let preparedMap = {};
+  try {
+    preparedMap = typeof order.prepared_items === 'string' ? JSON.parse(order.prepared_items) : (order.prepared_items || {});
+  } catch(e) { preparedMap = {}; }
+
+  // Mark all items as prepared
+  items.forEach(it => { preparedMap[it.id] = true; });
+  order.prepared_items = preparedMap;
+  order.prep_status = 'ready';
+  order.status = 'جاهز للتوصيل';
+
+  playCompleteSound();
+
+  // Re-render card
+  const card = $(`order-card-${orderId}`);
+  if (card) {
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = renderOrderCardHtml(order);
+    const newCard = tempDiv.firstElementChild;
+    card.replaceWith(newCard);
+  }
+
+  updateStats();
+  await syncOrderPrepState(orderId, preparedMap, 'ready');
+}
+
+// Print Slip
+async function printPrepSlip(orderId) {
+  const order = allOrders.find(o => o.id === orderId);
+  if (!order) return;
+
+  const items = order.items || [];
+  let slipHtml = `
+    <div dir="rtl" style="font-family:'Cairo',Arial,sans-serif; padding:15px; max-width:320px; margin:auto; border:1px dashed #000;">
+      <div style="text-align:center; border-bottom:1px dashed #000; padding-bottom:8px; margin-bottom:8px;">
+        <h3 style="margin:0;">بوليصة تجهيز طلب #${order.id}</h3>
+        <p style="margin:4px 0 0; font-size:12px;">تجهيز وتغليف ابن المختار</p>
+      </div>
+      <div style="font-size:12px; margin-bottom:8px;">
+        <div><strong>العميل:</strong> ${order.customer_name || 'عميل'}</div>
+        <div><strong>العنوان:</strong> ${order.customer_address || '-'}</div>
+        <div><strong>الهاتف:</strong> ${order.customer_phone || '-'}</div>
+        <div><strong>المندوب:</strong> ${order.driver_name || 'غير مسند'}</div>
+        ${order.notes ? `<div><strong>ملاحظات:</strong> ${order.notes}</div>` : ''}
+      </div>
+      <table style="width:100%; border-collapse:collapse; font-size:12px; margin-bottom:8px;">
+        <thead>
+          <tr style="border-bottom:1px solid #000;">
+            <th style="text-align:right;">الصنف</th>
+            <th style="text-align:center;">الكمية</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${items.map(it => `
+            <tr style="border-bottom:0.5px dashed #ccc;">
+              <td style="padding:4px 0;">${it.product_name || it.catalog_name}${it.variant_label ? ` (${it.variant_label})` : ''}</td>
+              <td style="text-align:center; font-weight:bold;">${it.quantity}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+      <div style="text-align:center; font-size:11px; border-top:1px dashed #000; padding-top:6px;">
+        تم التجهيز والمطابقة بواسطة: ${$('currentUserLabel')?.textContent || 'الموظف'}
+      </div>
+    </div>
+  `;
+
+  const printWin = window.open('', '_blank');
+  if (printWin) {
+    printWin.document.write(`<html><head><title>بوليصة #${order.id}</title><style>@page{size:80mm auto;margin:2mm;}body{margin:0;padding:4px;}</style></head><body>${slipHtml}</body></html>`);
+    printWin.document.close();
+    printWin.focus();
+    setTimeout(() => { printWin.print(); printWin.close(); }, 350);
+  }
+}
+
+// Lightbox
+function openPrepLightbox(src) {
+  const modal = $('prepLightbox');
+  const img = $('prepLightboxImg');
+  if (!modal || !img || !src) return;
+  img.src = src;
+  modal.style.display = 'flex';
+}
+
+function closePrepLightbox() {
+  const modal = $('prepLightbox');
+  if (modal) modal.style.display = 'none';
+}
+
+// Init
+document.addEventListener('DOMContentLoaded', async () => {
+  checkAuth();
+  updateServerBadgeUi();
+  await loadDrivers();
+  await loadPrepOrders();
+
+  // Auto-refresh every 25 seconds
+  setInterval(() => {
+    if (!document.hidden) loadPrepOrders();
+  }, 25000);
+});
+</script>
+
+</body>
+</html>

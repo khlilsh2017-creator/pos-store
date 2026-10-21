@@ -38,7 +38,9 @@
     <div class="session"><span id="userLabel">تم تسجيل الدخول</span><button id="btn-phone-logout" onclick="logout()">تسجيل الخروج</button></div>
     <div class="apps">
       <button class="app-btn" id="btn-open-add-order" onclick="openApp('add_order_ph.html')"><span class="app-icon">＋</span><span><strong>إنشاء طلب إنترنت</strong><small>إضافة وتعديل الطلبات من الجوال</small></span></button>
-      <button class="app-btn" id="btn-open-orders" onclick="openApp('orders.html')"><span class="app-icon">☷</span><span><strong>إدارة طلبات الإنترنت</strong><small>المتابعة والحالات والطباعة</small></span></button>
+      <button class="app-btn" id="btn-open-orders" onclick="openApp('orders.html')">
+      <button class="app-btn" id="btn-open-prep" onclick="openApp('prep.html')"><span class="app-icon">📦</span><span><strong>تجهيز وتغليف الطلبات</strong><small>فحص المنتجات والموديلات وتأكيد التجهيز</small></span></button>
+      <span class="app-icon">☷</span><span><strong>إدارة طلبات الإنترنت</strong><small>المتابعة والحالات والطباعة</small></span></button>
       <button class="app-btn" id="btn-open-drivers" onclick="openApp('/drivers')"><span class="app-icon">🚚</span><span><strong>إدارة المندوبين</strong><small>التسوية والكشوفات والحسابات والإحصائيات</small></span></button>
     </div>
     <div class="actions"><button class="btn ghost" id="btn-goto-main-session" onclick="goToMain()">العودة إلى النظام الرئيسي</button></div>
@@ -136,7 +138,7 @@ let token = localStorage.getItem('pos_token') || '';
 
 function nextPage() {
   const value = new URLSearchParams(location.search).get('next');
-  if (value === 'orders.html' || value === 'add_order_ph.html') return value;
+  if (value === 'orders.html' || value === 'add_order_ph.html' || value === 'prep.html') return value;
   if (value === 'drivers.html' || value === 'drivers' || value === '/drivers' || value === '/') {
     return (location.hostname.startsWith('drivers') || value === '/') ? '/' : '/drivers';
   }

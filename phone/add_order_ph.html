@@ -1697,6 +1697,23 @@
                     <option value="">بدون مندوب</option>
                 </select>
             </div>
+
+            <!-- صور توضيحية للطلب (للأشكال / الألوان المطلوبة) -->
+            <div style="margin-top:10px; padding:10px 12px; background:#f0f7ff; border:1.5px dashed #93c5fd; border-radius:14px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                    <label style="font-size:0.75rem; font-weight:700; color:#1e3a8a; display:flex; align-items:center; gap:6px; margin:0;">
+                        <span>📷 صور الأشكال / الألوان للمندوب وموظف التجهيز</span>
+                        <span id="attachedImagesCount" style="background:#dbeafe; color:#1e40af; padding:1px 7px; border-radius:12px; font-size:0.68rem; font-weight:800;">0</span>
+                    </label>
+                    <button type="button" class="btn btn-sm" onclick="document.getElementById('orderImagesInput').click()" style="padding:5px 12px; font-size:0.72rem; border-radius:8px; display:inline-flex; align-items:center; gap:5px; background:linear-gradient(135deg, #2563eb, #1d4ed8); color:#fff; font-weight:700; cursor:pointer; border:none;">
+                        <i class="fas fa-camera"></i> إرفاق صور
+                    </button>
+                    <input type="file" id="orderImagesInput" accept="image/*" multiple style="display:none;" onchange="handleOrderImagesSelected(event)" />
+                </div>
+                <div id="orderImagesPreviewContainer" style="display:flex; gap:8px; overflow-x:auto; padding-top:4px; min-height:48px; align-items:center;">
+                    <span style="font-size:0.68rem; color:#64748b;">لم يتم إرفاق صور بعد (يمكنك اختيار صور من المعرض أو التقاط صور بالكاميرا للأشكال المطلوبة)</span>
+                </div>
+            </div>
         </div>
 
         <!-- ===== PRODUCTS SECTION (مع زر إخفاء/إظهار) ===== -->
@@ -4419,6 +4436,8 @@
             draftSaveTimer = null;
             cart = [];
             safeRemoveItem('pos_cart_online');
+            attachedOrderImages = [];
+            if (typeof renderAttachedOrderImages === 'function') renderAttachedOrderImages();
             setElementValue('cart-discount', 0);
             selectedCustomerData = null;
             lastSearchedPhone = '';
@@ -4931,6 +4950,7 @@
         cash_currency_id: cash_currency_id ? parseInt(cash_currency_id) : undefined,
         wallet_currency_id: wallet_currency_id ? parseInt(wallet_currency_id) : undefined,
         items: items,
+        order_images: (Array.isArray(attachedOrderImages) && attachedOrderImages.length > 0) ? attachedOrderImages : undefined,
         notes: document.getElementById('notes')?.value.trim() || '',
         driver_id: document.getElementById('driverSelect')?.value ? parseInt(document.getElementById('driverSelect').value) : undefined,
         total_amount: total,
@@ -6152,5 +6172,109 @@
 
         console.log('📱 واجهة الجوال جاهزة (بدون تعليق بحث أو تخريب التخزين)');
     </script>
+
+<!-- نافذة عرض وتكبير صور الطلب (Lightbox) -->
+<div id="imageLightboxModal" style="position:fixed; inset:0; z-index:99999; background:rgba(0,0,0,0.88); backdrop-filter:blur(4px); display:none; align-items:center; justify-content:center; padding:15px;" onclick="closeImageLightbox()">
+    <img id="lightboxImg" style="max-width:95vw; max-height:85vh; border-radius:12px; box-shadow:0 10px 40px rgba(0,0,0,0.6); object-fit:contain;" onclick="event.stopPropagation()" />
+    <button type="button" onclick="closeImageLightbox()" style="position:absolute; top:18px; left:18px; background:rgba(255,255,255,0.25); color:#fff; border:none; border-radius:50%; width:44px; height:44px; font-size:1.4rem; cursor:pointer; display:flex; align-items:center; justify-content:center;">✕</button>
+</div>
+
+<script>
+// ==================== مصفوفة ودوال صور الطلب التوضيحية ====================
+let attachedOrderImages = [];
+
+async function handleOrderImagesSelected(event) {
+    const files = Array.from(event.target.files || []);
+    if (!files.length) return;
+    if (typeof showToast === 'function') showToast('⏳ جاري ضغط الصور وتحضيرها...', 'info');
+
+    for (const file of files) {
+        if (!file.type.startsWith('image/')) continue;
+        try {
+            const compressed = await compressImageToWebP(file, 900, 900, 0.75);
+            attachedOrderImages.push(compressed);
+        } catch (e) {
+            console.error('فشل ضغط الصورة:', e);
+        }
+    }
+    event.target.value = '';
+    renderAttachedOrderImages();
+    if (typeof showToast === 'function') showToast(`✅ تم إرفاق ${attachedOrderImages.length} صور للطلب`, 'success');
+}
+
+function compressImageToWebP(file, maxWidth = 900, maxHeight = 900, quality = 0.75) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = e => {
+            const img = new Image();
+            img.onload = () => {
+                let width = img.width;
+                let height = img.height;
+                if (width > maxWidth || height > maxHeight) {
+                    if (width / height > maxWidth / maxHeight) {
+                        height = Math.round((height * maxWidth) / width);
+                        width = maxWidth;
+                    } else {
+                        width = Math.round((width * maxHeight) / height);
+                        height = maxHeight;
+                    }
+                }
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+
+                let dataUrl = canvas.toDataURL('image/webp', quality);
+                if (!dataUrl || !dataUrl.startsWith('data:image/webp')) {
+                    dataUrl = canvas.toDataURL('image/jpeg', quality);
+                }
+                resolve(dataUrl);
+            };
+            img.onerror = reject;
+            img.src = e.target.result;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+}
+
+function renderAttachedOrderImages() {
+    const container = document.getElementById('orderImagesPreviewContainer');
+    const countBadge = document.getElementById('attachedImagesCount');
+    if (!container) return;
+    if (countBadge) countBadge.textContent = attachedOrderImages.length;
+
+    if (!attachedOrderImages.length) {
+        container.innerHTML = '<span style="font-size:0.68rem; color:#64748b;">لم يتم إرفاق صور بعد (يمكنك اختيار صور من المعرض أو التقاط صور بالكاميرا للأشكال المطلوبة)</span>';
+        return;
+    }
+
+    container.innerHTML = attachedOrderImages.map((imgData, idx) => `
+        <div style="position:relative; flex-shrink:0; width:58px; height:58px; border-radius:10px; overflow:hidden; border:1.5px solid #93c5fd; box-shadow:0 2px 6px rgba(0,0,0,0.08);">
+            <img src="${imgData}" style="width:100%; height:100%; object-fit:cover; cursor:pointer;" onclick="openImageLightbox(${idx})" title="انقر للتكبير" />
+            <button type="button" onclick="removeAttachedOrderImage(${idx})" style="position:absolute; top:2px; right:2px; width:20px; height:20px; border-radius:50%; background:rgba(239,68,68,0.92); color:#fff; border:none; display:flex; align-items:center; justify-content:center; font-size:11px; cursor:pointer; padding:0; box-shadow:0 1px 3px rgba(0,0,0,0.3);">✕</button>
+        </div>
+    `).join('');
+}
+
+function removeAttachedOrderImage(index) {
+    attachedOrderImages.splice(index, 1);
+    renderAttachedOrderImages();
+}
+
+function openImageLightbox(index) {
+    const modal = document.getElementById('imageLightboxModal');
+    const img = document.getElementById('lightboxImg');
+    if (!modal || !img || !attachedOrderImages[index]) return;
+    img.src = attachedOrderImages[index];
+    modal.style.display = 'flex';
+}
+
+function closeImageLightbox() {
+    const modal = document.getElementById('imageLightboxModal');
+    if (modal) modal.style.display = 'none';
+}
+</script>
 </body>
 </html>

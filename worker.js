@@ -10,6 +10,11 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Sync-Token, X-Store-ID, X-Page-Name, X-Offline-Operation-Id',
 };
+
+// ==================== إصدار مخطط قاعدة البيانات ====================
+// ⚠️ مهم: عند أي تغيير في الجداول/الفهارس/الأعمدة، ارفع هذا الرقم
+// (مثال: v3.2.0 → v3.3.0) وسيُعاد تشغيل التهيئة مرة واحدة تلقائياً
+const SCHEMA_VERSION = 'v3.2.0';
 // ==================== كاش توكن Firebase ======================
 let fcmTokenCache = {
   token: null,
@@ -34,20 +39,89 @@ function getTursoClient(env) {
   return cachedClient;
 }
 
-// ==================== كاش الإعدادات ========================
-// يبقى الكاش صالحًا طوال عمر الـ Worker، ولا يُعاد تحميله إلا بعد إبطال صريح.
+// ==================== كاش الإعدادات (طبقتان: In-Memory + KV) ========================
 let settingsCache = null;
 
+// ==================== Cloudflare KV Cache Helpers ====================
+const KV_TTL = {
+  settings: 3600,        // 1 ساعة
+  currencies: 86400,     // 24 ساعة
+  categories: 86400,     // 24 ساعة
+  wallets: 60,           // 60 ثانية (الأرصدة تتغير)
+  drivers: 86400         // 24 ساعة
+};
+
+async function kvGet(env, key) {
+  if (!env?.CONFIG_CACHE) return null;
+  try {
+    return await env.CONFIG_CACHE.get(key, { type: 'json' });
+  } catch (e) {
+    console.warn(`KV get failed [${key}]:`, e.message);
+    return null;
+  }
+}
+
+async function kvPut(env, key, value, ttl) {
+  if (!env?.CONFIG_CACHE) return;
+  try {
+    await env.CONFIG_CACHE.put(key, JSON.stringify(value), { expirationTtl: ttl });
+  } catch (e) {
+    console.warn(`KV put failed [${key}]:`, e.message);
+  }
+}
+
+async function kvDelete(env, ...keys) {
+  if (!env?.CONFIG_CACHE) return;
+  await Promise.all(keys.map(k => 
+    env.CONFIG_CACHE.delete(k).catch(e => console.warn(`KV delete failed [${k}]:`, e.message))
+  ));
+}
+
+/**
+ * نمط موحّد: اقرأ من KV أو نفّذ الدالة ثم خزّن
+ */
+async function kvCachedFetch(env, cacheKey, ttlSeconds, fetchFn) {
+  if (!env?.CONFIG_CACHE) return await fetchFn();
+  const cached = await kvGet(env, cacheKey);
+  if (cached !== null && cached !== undefined) return cached;
+  const fresh = await fetchFn();
+  // Fire and forget — لا ننتظر كتابة KV لتعود بالرد
+  kvPut(env, cacheKey, fresh, ttlSeconds);
+  return fresh;
+}
+
+// ============ إبطال الإعدادات (In-Memory + KV) ============
 function invalidateSettingsCache() {
   settingsCache = null;
 }
 
-async function getSettingsCached(conn) {
+async function invalidateSettingsCacheKV(env) {
+  settingsCache = null;
+  await kvDelete(env, 'cache:settings');
+}
+
+async function getSettingsCached(conn, env = null) {
+  // 1. In-Memory (الأسرع)
   if (settingsCache !== null) return settingsCache;
+  
+  // 2. KV (مشترك بين النسخ)
+  if (env) {
+    const cached = await kvGet(env, 'cache:settings');
+    if (cached && typeof cached === 'object') {
+      settingsCache = cached;
+      return settingsCache;
+    }
+  }
+  
+  // 3. قاعدة البيانات (المصدر الحقيقي)
   const rows = await dbAll(conn, "SELECT key, value FROM settings");
   const settings = {};
   rows.forEach(row => settings[row.key] = row.value);
   settingsCache = settings;
+  
+  // 4. خزّن في KV (لا ننتظر)
+  if (env) kvPut(env, 'cache:settings', settings, KV_TTL.settings);
+  
   return settingsCache;
 }
 
@@ -95,6 +169,24 @@ async function ensureInitialized(env) {
 async function initializeDatabase(env) {
   const client = getTursoClient(env);
 
+  // ═══════════════════════════════════════════════════════════════
+  // ✅ الفحص الحاسم: هل المخطط محدّث بالفعل؟
+  // إذا نعم → اخرج فوراً (استعلام واحد بدل 150+ أمر SQL)
+  // ═══════════════════════════════════════════════════════════════
+  try {
+    const versionCheck = await dbFirst(client,
+      `SELECT value FROM settings WHERE key = 'schema_version' LIMIT 1`
+    );
+    if (versionCheck?.value === SCHEMA_VERSION) {
+      console.log(`✅ المخطط محدّث (${SCHEMA_VERSION}) — تخطي التهيئة`);
+      return;
+    }
+    console.log(`🔧 مخطط قديم (${versionCheck?.value || 'none'}) → ترقية إلى ${SCHEMA_VERSION}`);
+  } catch (e) {
+    // جدول settings غير موجود → استمر بالتهيئة الكاملة (أول تشغيل)
+    console.log('⚠️ جدول settings غير موجود — تشغيل التهيئة الأولية');
+  }
+
   // 1. تجميع كل أوامر إنشاء الجداول والفهارس والإعدادات في دفعة واحدة (Batch)
   const createBatch = [
     `CREATE TABLE IF NOT EXISTS daily_product_stats (
@@ -124,10 +216,35 @@ async function initializeDatabase(env) {
       response_body TEXT NOT NULL,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`,
+    `CREATE TABLE IF NOT EXISTS online_customer_phones (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      customer_id INTEGER NOT NULL,
+      phone TEXT NOT NULL,
+      UNIQUE(customer_id, phone)
+    )`,
     `CREATE INDEX IF NOT EXISTS idx_offline_idempotency_created ON offline_idempotency(created_at)`,
     `CREATE INDEX IF NOT EXISTS idx_sales_created_status ON sales(created_at, status)`,
     `CREATE INDEX IF NOT EXISTS idx_sales_status_created_id ON sales(status, created_at, id)`,
     `CREATE INDEX IF NOT EXISTS idx_sale_items_product ON sale_items(product_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_sale_items_sale_id ON sale_items(sale_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_sale_items_sale_product ON sale_items(sale_id, product_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_online_order_items_order_id ON online_order_items(order_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_online_order_items_product_id ON online_order_items(product_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_online_order_items_order_product ON online_order_items(order_id, product_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_purchase_invoice_items_invoice_id ON purchase_invoice_items(invoice_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_purchase_invoice_items_product_id ON purchase_invoice_items(product_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_purchase_items_invoice_product ON purchase_invoice_items(invoice_id, product_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_online_customer_phones_customer_id ON online_customer_phones(customer_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_online_customer_phones_phone ON online_customer_phones(phone)`,
+    `CREATE INDEX IF NOT EXISTS idx_online_orders_accounting_invoice_id ON online_orders(accounting_invoice_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_online_orders_status_date ON online_orders(status, order_date DESC)`,
+    `CREATE INDEX IF NOT EXISTS idx_pss_prod_qty_sup ON product_supplier_stock(product_id, quantity DESC, supplier_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_order_status_log_order_id ON order_status_log(order_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_online_order_returns_order ON online_order_returns(order_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_customers_phone ON customers(phone)`,
+    `CREATE INDEX IF NOT EXISTS idx_customers_name ON customers(name)`,
+    `CREATE INDEX IF NOT EXISTS idx_online_customers_name ON online_customers(name)`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS idx_wallet_balances_wallet_currency ON wallet_balances(wallet_id, currency_id)`,
     `CREATE INDEX IF NOT EXISTS idx_sales_customer ON sales(customer_id)`,
     `CREATE INDEX IF NOT EXISTS idx_purchase_invoices_status_created_id ON purchase_invoices(status, created_at, id)`,
     `CREATE INDEX IF NOT EXISTS idx_expenses_created_id ON expenses(created_at, id)`,
@@ -473,6 +590,17 @@ async function initializeDatabase(env) {
     .filter(row => Number(row.variant_count) > 0)
     .map(row => ({ sql: 'UPDATE product_variants SET cost = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', args: [(Number(row.parent_cost) || 0) / Number(row.variant_count), row.id] }));
   if (variantCostUpdates.length) await client.batch(variantCostUpdates, 'write');
+
+  // ═══════════════════════════════════════════════════════════════
+  // ✅ تسجيل إصدار المخطط — لن تتكرر التهيئة حتى نغيّر SCHEMA_VERSION
+  // ═══════════════════════════════════════════════════════════════
+  await dbRun(client,
+    `INSERT INTO settings (key, value) VALUES ('schema_version', ?)
+     ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
+    [SCHEMA_VERSION]
+  );
+  invalidateSettingsCache();
+  console.log(`✅ اكتملت التهيئة، تم حفظ الإصدار: ${SCHEMA_VERSION}`);
 }
 // ==================== دوال FCM (إشعارات) ====================
 // ==================== دوال الإشعارات (FCM) ====================
@@ -1052,6 +1180,16 @@ async function getStockSyncStatus(env) {
 async function scheduled(event, env, ctx) {
   console.log("⏰ تم تشغيل المجدول في:", new Date().toISOString());
   ctx.waitUntil((async () => {
+    // ✅ تنظيف offline_idempotency مرة واحدة يومياً (بدل كل طلب)
+    try {
+      const client = getTursoClient(env);
+      const result = await dbRun(client,
+        "DELETE FROM offline_idempotency WHERE created_at < datetime('now', '-90 days')"
+      );
+      console.log(`🧹 تم حذف ${result.changes} سجل idempotency قديم`);
+    } catch (e) {
+      console.error('فشل تنظيف idempotency:', e.message);
+    }
     await sendDailySummary(env);
     try { const c = getTursoClient(env); await updateDailyProductStats(c); await updateMonthlySummary(c); await updateAgingSummary(c); } catch (e) { console.error('فشل تحديث الجداول الملخصة:', e.message); }
     try { const result = await syncLinkedStock(env); console.log('✅ نتيجة مزامنة المخزون:', JSON.stringify({ updated: result.updated, unchanged: result.unchanged, unlinked: result.unlinked, errors: result.errors, skipped: result.skipped })); } catch (e) { console.error('❌ فشل مزامنة مخزون المتجر:', e.message); }
@@ -1461,12 +1599,16 @@ async function permissionResponse(data, request, env, headers, status = 200, cos
 const cache = {
   accounts: new Map(),
   baseCurrency: null,
-  currencyRates: new Map()
+  currencyRates: new Map(),
+  currenciesList: null,
+  currenciesTime: 0
 };
 
 function invalidateCurrencyCache() {
   cache.baseCurrency = null;
   cache.currencyRates.clear();
+  cache.currenciesList = null;
+  cache.currenciesTime = 0;
 }
 
 async function getCurrencyRate(conn, currencyId) {
@@ -1618,10 +1760,17 @@ async function updateWalletBalance(conn, walletId, currencyId, amount, operation
 // ================================================================
 
 // ---- العملات ----
+const CURRENCY_CACHE_TTL = 300000; // 5 دقائق
+
 async function getCurrencies(request, env, headers) {
-  const client = getTursoClient(env);
-  const rows = await dbAll(client, "SELECT * FROM currencies ORDER BY code");
-  return jsonResponse({ currencies: rows }, 200, headers);
+  const currencies = await kvCachedFetch(env, 'cache:currencies', KV_TTL.currencies, async () => {
+    const client = getTursoClient(env);
+    return await dbAll(client, "SELECT * FROM currencies ORDER BY code");
+  });
+  return jsonResponse({ currencies }, 200, {
+    ...headers,
+    'Cache-Control': 'public, max-age=300, stale-while-revalidate=3600'
+  });
 }
 async function createCurrency(request, env, headers) {
   const { code, name, rate_to_base, is_base } = await request.json();
@@ -1636,6 +1785,7 @@ async function createCurrency(request, env, headers) {
     [String(code).trim().toUpperCase(), String(name).trim(), numericRate, is_base ? 1 : 0]
   );
   invalidateCurrencyCache();
+  await kvDelete(env, 'cache:currencies');
   return jsonResponse({ success: true, id: result.lastInsertRowid }, 200, headers);
 }
 async function updateCurrency(request, env, headers) {
@@ -1652,6 +1802,7 @@ async function updateCurrency(request, env, headers) {
     [numericRate, is_base ? 1 : 0, id]
   );
   invalidateCurrencyCache();
+  await kvDelete(env, 'cache:currencies');
   return jsonResponse({ success: true }, 200, headers);
 }
 async function deleteCurrency(request, env, headers) {
@@ -1674,6 +1825,7 @@ async function deleteCurrency(request, env, headers) {
   if (Number(usage?.total_usage || 0) > 0) return jsonResponse({ error: 'لا يمكن حذف عملة مرتبطة بحركات أو أرصدة تاريخية' }, 409, headers);
   await dbRun(client, "DELETE FROM currencies WHERE id = ?", [id]);
   invalidateCurrencyCache();
+  await kvDelete(env, 'cache:currencies');
   return jsonResponse({ success: true }, 200, headers);
 }
 
@@ -1803,24 +1955,42 @@ async function syncOfflineData(request, env, headers) {
 }
 
 // ---- التصنيفات ----
+let categoriesTreeCache = null;
+let categoriesFlatCache = null;
+let categoriesCacheTime = 0;
+const CATEGORIES_CACHE_TTL = 300000; // 5 دقائق
+
+function invalidateCategoriesCache() {
+  categoriesTreeCache = null;
+  categoriesFlatCache = null;
+  categoriesCacheTime = 0;
+}
+
 async function getCategories(request, env, headers) {
-  const client = getTursoClient(env);
   const url = new URL(request.url);
   const flat = url.searchParams.get('flat');
-  if (flat === '1') {
-    const rows = await dbAll(client, "SELECT * FROM categories ORDER BY name");
-    return jsonResponse({ categories: rows }, 200, headers);
-  }
-  const rows = await dbAll(client, `
-    WITH RECURSIVE tree AS (
-      SELECT id, name, parent_id, 0 AS level FROM categories WHERE parent_id IS NULL
-      UNION ALL
-      SELECT c.id, c.name, c.parent_id, t.level + 1
-      FROM categories c JOIN tree t ON c.parent_id = t.id
-    )
-    SELECT * FROM tree ORDER BY level, name
-  `);
-  return jsonResponse({ categories: rows }, 200, headers);
+  const cacheKey = flat === '1' ? 'cache:categories:flat' : 'cache:categories:tree';
+  
+  const rows = await kvCachedFetch(env, cacheKey, KV_TTL.categories, async () => {
+    const client = getTursoClient(env);
+    if (flat === '1') {
+      return await dbAll(client, "SELECT * FROM categories ORDER BY name");
+    }
+    return await dbAll(client, `
+      WITH RECURSIVE tree AS (
+        SELECT id, name, parent_id, 0 AS level FROM categories WHERE parent_id IS NULL
+        UNION ALL
+        SELECT c.id, c.name, c.parent_id, t.level + 1
+        FROM categories c JOIN tree t ON c.parent_id = t.id
+      )
+      SELECT * FROM tree ORDER BY level, name
+    `);
+  });
+  
+  return jsonResponse({ categories: rows }, 200, {
+    ...headers,
+    'Cache-Control': 'public, max-age=300, stale-while-revalidate=3600'
+  });
 }
 async function createCategory(request, env, headers) {
   const { name, parent_id } = await request.json();
@@ -1829,6 +1999,8 @@ async function createCategory(request, env, headers) {
   const parentId = parent_id ? Number(parent_id) : null;
   if (parentId !== null && !await dbFirst(client, 'SELECT id FROM categories WHERE id = ?', [parentId])) return jsonResponse({ error: 'التصنيف الأب غير موجود' }, 400, headers);
   const result = await dbRun(client, "INSERT INTO categories (name, parent_id) VALUES (?, ?)", [name, parentId]);
+  invalidateCategoriesCache();
+  await kvDelete(env, 'cache:categories:flat', 'cache:categories:tree');
   return jsonResponse({ success: true, id: result.lastInsertRowid }, 200, headers);
 }
 async function updateCategory(request, env, headers) {
@@ -1846,6 +2018,8 @@ async function updateCategory(request, env, headers) {
     if (cycle) return jsonResponse({ error: 'لا يمكن نقل التصنيف تحت أحد تصنيفاته الفرعية' }, 400, headers);
   }
   await dbRun(client, "UPDATE categories SET name = ?, parent_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", [name || cat.name, nextParentId, id]);
+  invalidateCategoriesCache();
+  await kvDelete(env, 'cache:categories:flat', 'cache:categories:tree');
   return jsonResponse({ success: true }, 200, headers);
 }
 async function deleteCategory(request, env, headers) {
@@ -1856,6 +2030,8 @@ async function deleteCategory(request, env, headers) {
   const children = await dbFirst(client, "SELECT COUNT(*) as cnt FROM categories WHERE parent_id = ?", [id]);
   if (children.cnt > 0) return jsonResponse({ error: 'لا يمكن حذف تصنيف يحتوي على تصنيفات فرعية' }, 400, headers);
   await dbRun(client, "DELETE FROM categories WHERE id = ?", [id]);
+  invalidateCategoriesCache();
+  await kvDelete(env, 'cache:categories:flat', 'cache:categories:tree');
   return jsonResponse({ success: true }, 200, headers);
 }
 
@@ -1894,12 +2070,7 @@ async function getProducts(request, env, headers) {
   if (positiveOnly) {
     conditions += ' AND COALESCE(p.stock_quantity, 0) > 0';
   }
-  const mainSupplierSubquery = `
-    (SELECT s.name FROM product_supplier_stock pss
-     JOIN suppliers s ON s.id = pss.supplier_id
-     WHERE pss.product_id = p.id
-     ORDER BY pss.quantity DESC LIMIT 1) as main_supplier_name
-  `;
+  const mainSupplierSubquery = `main_supplier.name as main_supplier_name`;
 
   let orderBy = '';
   switch (sort) {
@@ -1926,16 +2097,31 @@ async function getProducts(request, env, headers) {
     SELECT p.*, c.name as category_name, ${mainSupplierSubquery}
     FROM products p
     LEFT JOIN categories c ON c.id = p.category_id
+    LEFT JOIN (
+      SELECT pss.product_id, s.name,
+             ROW_NUMBER() OVER (PARTITION BY pss.product_id ORDER BY pss.quantity DESC) AS rn
+      FROM product_supplier_stock pss
+      JOIN suppliers s ON s.id = pss.supplier_id
+      WHERE pss.quantity > 0
+    ) main_supplier ON main_supplier.product_id = p.id AND main_supplier.rn = 1
     WHERE ${conditions}
     ${orderBy}
     LIMIT ? OFFSET ?
   `;
   args.push(limit, offset);
 
-  const countArgs = args.slice(0, -2);
-  const countRow = await dbFirst(client, `SELECT COUNT(*) AS total FROM products p WHERE ${conditions}`, countArgs);
   const rows = await dbAll(client, sql, args);
-  return await permissionResponse({ products: rows, total: Number(countRow?.total || 0), page, limit }, request, env, headers);
+  let total;
+  if (page === 1 && rows.length < limit) {
+    total = rows.length;
+  } else if (page === 1 && rows.length === 0) {
+    total = 0;
+  } else {
+    const countArgs = args.slice(0, -2);
+    const countRow = await dbFirst(client, `SELECT COUNT(*) AS total FROM products p WHERE ${conditions}`, countArgs);
+    total = Number(countRow?.total || 0);
+  }
+  return await permissionResponse({ products: rows, total, page, limit }, request, env, headers);
 }
 
 async function getProductSuppliers(request, env, headers) {
@@ -2373,6 +2559,7 @@ async function addCustomerPayment(request, env, headers) {
     await dbRun(tx, `UPDATE customers SET balance = balance ${isPayment ? '+' : '-'} ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`, [totalBase, customerId]);
     checkBalance(details); await createJournalEntry(tx, entryDate, desc, details, 'customer_payment', paymentId);
     await tx.commit(); committed = true;
+    await kvDelete(env, 'cache:wallets:full');
     return jsonResponse({ success: true, payment_id: paymentId, type, total_base_amount: totalBase }, 200, headers);
   } catch (error) { if (!committed) { try { await tx.rollback(); } catch (_) {} } return jsonResponse({ error: error.message }, 400, headers); }
 }
@@ -2777,6 +2964,7 @@ async function addSupplierPayment(request, env, headers) {
     await createJournalEntry(tx, businessISODate(), `${isPayment ? 'سداد' : 'استلام'} للمورد ${supplier.name}${transferFee > 0 ? ` (رسوم تحويل: ${transferFee}${feeDeducted ? ', مخصومة من المبلغ' : ''})` : ''}`, journalDetails, 'supplier_payment', paymentId);
     await tx.commit();
     committed = true;
+    await kvDelete(env, 'cache:wallets:full');
     return jsonResponse({ success: true, payment_id: paymentId, total_base_amount: supplierBaseAmount, transfer_fee: transferFee, fee_deducted_from_amount: feeDeducted, cash_paid: cashComponent, wallet_paid: walletComponent }, 200, headers);
   } catch (error) {
     if (!committed) { try { await tx.rollback(); } catch (_) {} }
@@ -3055,6 +3243,13 @@ async function getSupplierFinancialBalance(request, env, headers) {
 
 // ---- المحافظ ----
 async function getWallets(request, env, headers) {
+  // Wallets مع الأرصدة → TTL قصير (60s) لأن الأرصدة تتغير مع كل عملية
+  return await kvCachedFetch(env, 'cache:wallets:full', KV_TTL.wallets, async () => {
+    return await buildWalletsResponse(env, request, headers);
+  }).then(data => walletResponse(data, request, env, headers));
+}
+
+async function buildWalletsResponse(env, request, headers) {
   const client = getTursoClient(env);
   const wallets = await dbAll(client, "SELECT * FROM wallets ORDER BY name");
   
@@ -3117,7 +3312,7 @@ async function getWallets(request, env, headers) {
     balances: (updatedMap[wallet.id] || []).sort((a, b) => a.code.localeCompare(b.code))
   }));
 
-  return await walletResponse({ wallets: result }, request, env, headers);
+  return { wallets: result };
 }
 async function createWallet(request, env, headers) {
   const { name } = await request.json();
@@ -3134,6 +3329,7 @@ async function createWallet(request, env, headers) {
       args: [walletId, cur.id]
     })), 'write');
     await tx.commit();
+    await kvDelete(env, 'cache:wallets:full');
     return jsonResponse({ success: true, id: walletId }, 200, headers);
   } catch (error) {
     try { await tx.rollback(); } catch (_) {}
@@ -3172,6 +3368,7 @@ async function exchangeCurrency(request, env, headers) {
     checkBalance(journalDetails);
     await createJournalEntry(tx, businessISODate(), `مصارفة محفظة ${walletId} من ${fromCurrencyId} إلى ${toCurrencyId}`, journalDetails, 'exchange', null);
     await tx.commit();
+    await kvDelete(env, 'cache:wallets:full');
     return jsonResponse({ success: true, from_amount: sourceAmount, to_amount: destinationAmount, fee: 0 }, 200, headers);
   } catch (error) {
     try { await tx.rollback(); } catch (_) {}
@@ -3258,7 +3455,9 @@ async function transferBetweenWallets(request, env, headers) {
       await createJournalEntry(tx, businessISODate(), `تحويل بين المحافظ ${fromWalletId} -> ${toWalletId}`, journalDetails, 'transfer', null);
       response.from_amount = sourceTotal; response.to_amount = destinationAmount;
     }
-    await tx.commit(); return jsonResponse(response, 200, headers);
+    await tx.commit();
+    await kvDelete(env, 'cache:wallets:full');
+    return jsonResponse(response, 200, headers);
   } catch (error) { try { await tx.rollback(); } catch (_) {} return jsonResponse({ error: error.message }, 400, headers); }
 }
 async function getWalletTransactions(request, env, headers) {
@@ -3579,6 +3778,7 @@ async function addExpense(request, env, headers) {
     }
     
     await tx.commit();
+    await kvDelete(env, 'cache:wallets:full');
     let walletName = null;
     if (wallet_id) { const w = await dbFirst(client, "SELECT name FROM wallets WHERE id = ?", [wallet_id]); walletName = w ? w.name : null; }
     return jsonResponse({ success: true, expense_id: expenseResult.lastInsertRowid, wallet_name: walletName }, 200, headers);
@@ -3684,10 +3884,8 @@ function parseListQuery(request, defaults = {}) {
   return { url, from, to, page, limit, offset: (page - 1) * limit };
 }
 function appendDateRange(conditions, args, field, from, to) {
-  // تواريخ الواجهة هي تواريخ محلية (GMT+03). سجلات SQLite created_at/order_date
-  // تُحفظ غالبًا بـ CURRENT_TIMESTAMP بصيغة UTC، لذلك يجب تحويل حدود اليوم قبل المقارنة.
-  // تطبيع العمود أيضًا مهم لأن بعض السجلات القديمة قد تكون بصيغة ISO وبها حرف T أو Z.
-  const comparableField = `datetime(${field})`;
+  // استخدام اسم العمود مباشرة دون لفه بدالة datetime(...) لتمكين SQLite من استخدام الفهارس (Index Seek)
+  const comparableField = field;
   if (from) { conditions.push(`${comparableField} >= datetime(?, '${POS_SQL_UTC_SHIFT}')`); args.push(`${from} 00:00:00`); }
   if (to) { conditions.push(`${comparableField} < datetime(?, '${POS_SQL_UTC_SHIFT}')`); args.push(`${nextISODate(to)} 00:00:00`); }
 }
@@ -3786,7 +3984,7 @@ async function initializeSystem(request, env, headers, userId = null) {
     const entryId = await createJournalEntry(tx, entryDate, description, details, 'initialization', null);
     await dbRun(tx, "UPDATE settings SET value = '1' WHERE key = 'system_initialized'");
     await tx.commit();
-    invalidateSettingsCache();
+    await invalidateSettingsCacheKV(env);
     return jsonResponse({
       success: true,
       entry_id: entryId,
@@ -4082,7 +4280,7 @@ async function closeAccountingYear(request, env, headers, userId) {
     await dbRun(tx, "INSERT INTO accounting_closures (closing_date, entry_id, retained_earnings, closed_by, status) VALUES (?, ?, ?, ?, 'active')", [closingDate, entryId, netIncome, userId || null]);
     await dbRun(tx, "INSERT INTO settings (key, value) VALUES ('closed_until_date', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value", [closingDate]);
     await tx.commit();
-    invalidateSettingsCache();
+    await invalidateSettingsCacheKV(env);
     return jsonResponse({ success: true, entry_id: entryId, retained_earnings: netIncome, closing_date: closingDate }, 200, headers);
   } catch (error) {
     try { await tx.rollback(); } catch (_) {}
@@ -4108,7 +4306,7 @@ async function reopenAccounting(request, env, headers, userId) {
     await dbRun(tx, "UPDATE accounting_closures SET status = 'reopened', reopened_at = CURRENT_TIMESTAMP, reopened_by = ? WHERE id = ?", [userId || null, closure.id]);
     await dbRun(tx, "INSERT INTO settings (key,value) VALUES ('closed_until_date','') ON CONFLICT(key) DO UPDATE SET value=''", []);
     await tx.commit();
-    invalidateSettingsCache();
+    await invalidateSettingsCacheKV(env);
     return jsonResponse({ success: true, message: 'تم فتح السنة المالية بقيد عكسي', reversal_entry_id: reversalEntryId }, 200, headers);
   } catch (error) {
     try { await tx.rollback(); } catch (_) {}
@@ -4360,10 +4558,11 @@ async function exportReport(request, env, headers) {
 // ---- الإعدادات ----
 async function getSettings(request, env, headers) {
   const client = getTursoClient(env);
-  const rows = await dbAll(client, "SELECT * FROM settings");
-  const settings = {};
-  rows.forEach(row => settings[row.key] = row.value);
-  return jsonResponse({ settings }, 200, headers);
+  const settings = await getSettingsCached(client);
+  return jsonResponse({ settings }, 200, {
+    ...headers,
+    'Cache-Control': 'public, max-age=60, stale-while-revalidate=300'
+  });
 }
 async function updateSettings(request, env, headers) {
   const data = await request.json();
@@ -4395,7 +4594,7 @@ async function updateSettings(request, env, headers) {
   }
   if (statements.length > 0) {
     await client.batch(statements);
-    invalidateSettingsCache();
+    await invalidateSettingsCacheKV(env);
   }
   return jsonResponse({ success: true }, 200, headers);
 }
@@ -4929,10 +5128,24 @@ async function getInventoryByCategory(request, env, headers) {
 }
 
 // ---- المندوبين ----
+let driversCache = null;
+let driversCacheTime = 0;
+const DRIVERS_CACHE_TTL = 60000; // دقيقة واحدة
+
+function invalidateDriversCache() {
+  driversCache = null;
+  driversCacheTime = 0;
+}
+
 async function getDrivers(request, env, headers) {
-  const client = getTursoClient(env);
-  const rows = await dbAll(client, "SELECT id, name, phone, vehicle_info, is_active, username FROM drivers");
-  return jsonResponse({ drivers: rows }, 200, headers);
+  const drivers = await kvCachedFetch(env, 'cache:drivers', KV_TTL.drivers, async () => {
+    const client = getTursoClient(env);
+    return await dbAll(client, "SELECT id, name, phone, vehicle_info, is_active, username FROM drivers");
+  });
+  return jsonResponse({ drivers }, 200, {
+    ...headers,
+    'Cache-Control': 'public, max-age=300, stale-while-revalidate=3600'
+  });
 }
 async function createDriver(request, env, headers) {
   const { name, phone, vehicle_info, username, password } = await request.json();
@@ -4951,6 +5164,8 @@ async function createDriver(request, env, headers) {
       "INSERT INTO driver_accounts (driver_id, balance, total_deliveries, total_collected, total_fees, total_paid_to_shop) VALUES (?, 0, 0, 0, 0, 0)",
       [result.lastInsertRowid]
     );
+    invalidateDriversCache();
+    await kvDelete(env, 'cache:drivers');
     return jsonResponse({ success: true, id: result.lastInsertRowid }, 200, headers);
   } else {
     const result = await dbRun(client,
@@ -4961,6 +5176,8 @@ async function createDriver(request, env, headers) {
       "INSERT INTO driver_accounts (driver_id, balance, total_deliveries, total_collected, total_fees, total_paid_to_shop) VALUES (?, 0, 0, 0, 0, 0)",
       [result.lastInsertRowid]
     );
+    invalidateDriversCache();
+    await kvDelete(env, 'cache:drivers');
     return jsonResponse({ success: true, id: result.lastInsertRowid }, 200, headers);
   }
 }
@@ -7255,6 +7472,55 @@ async function updateDeliveryStatus(request, env, ctx, headers, userId) {
     const order = await qFirst(tx, "SELECT * FROM online_orders WHERE id = ?", [order_id]);
     if (!order) throw new Error('الطلب غير موجود');
 
+    driverId = order.assigned_driver_id;
+
+    // ===== حماية صارمة ضد تكرار التوصيل/الفشل وحماية كشف حساب المندوب من القيود المكررة =====
+    const targetFinalStatus = delivery_status === 'تم التوصيل'
+      ? 'تم التسليم'
+      : (delivery_status === 'فشل' ? 'فشل التسليم' : delivery_status);
+
+    if (order.status === targetFinalStatus) {
+      await tx.rollback();
+      const existingItems = await dbAll(client, "SELECT * FROM online_order_items WHERE order_id = ?", [order_id]);
+      let existingDriverAccount = null;
+      if (driverId) {
+        existingDriverAccount = await dbFirst(client, "SELECT balance, last_settlement_date FROM driver_accounts WHERE driver_id = ?", [driverId]);
+      }
+      console.log(`ℹ️ [Idempotency] الطلب #${order_id} يحمل بالفعل الحالة (${order.status}) — تم تجاهل التكرار بأمان.`);
+      return jsonResponse({
+        success: true,
+        already_processed: true,
+        order: { ...order, items: existingItems },
+        account: existingDriverAccount || { balance: 0, last_settlement_date: null }
+      }, 200, headers);
+    }
+
+    if (['تم التسليم', 'فشل التسليم', 'ملغي', 'مرتجع كلي'].includes(order.status)) {
+      await tx.rollback();
+      return jsonResponse({
+        error: `لا يمكن تغيير حالة الطلب #${order_id} لأنه في حالة نهائية (${order.status})`
+      }, 409, headers);
+    }
+
+    if (delivery_status === 'تم التوصيل' && driverId) {
+      const existingTx = await qFirst(tx,
+        "SELECT id FROM driver_transactions WHERE order_id = ? AND type IN ('collection', 'delivery_fee') LIMIT 1",
+        [order_id]
+      );
+      if (existingTx) {
+        await tx.rollback();
+        const existingItems = await dbAll(client, "SELECT * FROM online_order_items WHERE order_id = ?", [order_id]);
+        const existingDriverAccount = await dbFirst(client, "SELECT balance, last_settlement_date FROM driver_accounts WHERE driver_id = ?", [driverId]);
+        console.warn(`⚠️ [Idempotency] الطلب #${order_id} مسجل له حركات مالية مسبقة للمندوب — تم منع التكرار.`);
+        return jsonResponse({
+          success: true,
+          already_processed: true,
+          order: { ...order, status: 'تم التسليم', items: existingItems },
+          account: existingDriverAccount || { balance: 0, last_settlement_date: null }
+        }, 200, headers);
+      }
+    }
+
     // ===== تحميل كل الحسابات والعملات دفعة واحدة (بدل استعلام منفصل لكل حساب/عملة) =====
     const accountsRows = await qAll(tx, "SELECT id, name FROM accounts");
     const accountsMap = Object.fromEntries(accountsRows.map(a => [a.name, a.id]));
@@ -8793,7 +9059,7 @@ async function createSale(request, env, ctx, headers, userId) {
 
 async function getSales(request, env, headers) {
   const client = getTursoClient(env);
-  const query = parseListQuery(request);
+  const query = parseListQuery(request, { limit: 25 });
   const conditions = ['1=1'], args = [];
   appendDateRange(conditions, args, 's.created_at', query.from, query.to);
   const status = query.url.searchParams.get('status') || '';
@@ -9639,7 +9905,7 @@ async function createPurchase(request, env, headers, userId) {
 
 async function getPurchases(request, env, headers) {
   const client = getTursoClient(env);
-  const query = parseListQuery(request);
+  const query = parseListQuery(request, { limit: 25 });
   const conditions = ['1=1'], args = [];
   appendDateRange(conditions, args, 'pi.created_at', query.from, query.to);
   const status = query.url.searchParams.get('status') || '';
@@ -9976,7 +10242,7 @@ async function getOnlineOrders(request, env, headers) {
   const date_from = url.searchParams.get('date_from') || url.searchParams.get('from') || '';
   const date_to = url.searchParams.get('date_to') || url.searchParams.get('to') || '';
   const page = parseInt(url.searchParams.get('page')) || 1;
-  const pageSize = Math.min(Math.max(parseInt(url.searchParams.get('page_size') || url.searchParams.get('limit')) || 20, 1), 100);
+  const pageSize = Math.min(Math.max(parseInt(url.searchParams.get('page_size') || url.searchParams.get('limit')) || 20, 1), 50);
 
   const offset = (page - 1) * pageSize;
 
@@ -9998,6 +10264,11 @@ async function getOnlineOrders(request, env, headers) {
     sql += " AND o.payment_method = ?"; args.push(payment_method);
     countSql += " AND payment_method = ?"; countArgs.push(payment_method);
   }
+  const prep_status = url.searchParams.get('prep_status') || '';
+  if (prep_status) {
+    sql += " AND o.prep_status = ?"; args.push(prep_status);
+    countSql += " AND prep_status = ?"; countArgs.push(prep_status);
+  }
   if (search) {
     sql += " AND (o.customer_name LIKE ? OR o.customer_phone LIKE ? OR CAST(o.id AS TEXT) LIKE ? OR COALESCE(o.invoice_number, '') LIKE ?)";
     args.push(`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`);
@@ -10005,19 +10276,19 @@ async function getOnlineOrders(request, env, headers) {
     countArgs.push(`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`);
   }
   if (date_from && date_to) {
-    sql += ` AND datetime(o.order_date) >= datetime(?, '${POS_SQL_UTC_SHIFT}') AND datetime(o.order_date) < datetime(?, '${POS_SQL_UTC_SHIFT}')`;
+    sql += ` AND o.order_date >= datetime(?, '${POS_SQL_UTC_SHIFT}') AND o.order_date < datetime(?, '${POS_SQL_UTC_SHIFT}')`;
     args.push(`${date_from} 00:00:00`, `${nextISODate(date_to)} 00:00:00`);
-    countSql += ` AND datetime(order_date) >= datetime(?, '${POS_SQL_UTC_SHIFT}') AND datetime(order_date) < datetime(?, '${POS_SQL_UTC_SHIFT}')`;
+    countSql += ` AND order_date >= datetime(?, '${POS_SQL_UTC_SHIFT}') AND order_date < datetime(?, '${POS_SQL_UTC_SHIFT}')`;
     countArgs.push(`${date_from} 00:00:00`, `${nextISODate(date_to)} 00:00:00`);
   } else if (date_from) {
-    sql += ` AND datetime(o.order_date) >= datetime(?, '${POS_SQL_UTC_SHIFT}')`;
+    sql += ` AND o.order_date >= datetime(?, '${POS_SQL_UTC_SHIFT}')`;
     args.push(`${date_from} 00:00:00`);
-    countSql += ` AND datetime(order_date) >= datetime(?, '${POS_SQL_UTC_SHIFT}')`;
+    countSql += ` AND order_date >= datetime(?, '${POS_SQL_UTC_SHIFT}')`;
     countArgs.push(`${date_from} 00:00:00`);
   } else if (date_to) {
-    sql += ` AND datetime(o.order_date) < datetime(?, '${POS_SQL_UTC_SHIFT}')`;
+    sql += ` AND o.order_date < datetime(?, '${POS_SQL_UTC_SHIFT}')`;
     args.push(`${nextISODate(date_to)} 00:00:00`);
-    countSql += ` AND datetime(order_date) < datetime(?, '${POS_SQL_UTC_SHIFT}')`;
+    countSql += ` AND order_date < datetime(?, '${POS_SQL_UTC_SHIFT}')`;
     countArgs.push(`${nextISODate(date_to)} 00:00:00`);
   }
 
@@ -10025,10 +10296,35 @@ async function getOnlineOrders(request, env, headers) {
   args.push(pageSize, offset);
 
   const rows = await dbAll(client, sql, args);
-  const totalResult = await dbFirst(client, countSql, countArgs);
-  const totalCount = totalResult ? totalResult.total : 0;
+  let totalCount;
+  if (page === 1 && rows.length < pageSize) {
+    totalCount = rows.length;
+  } else if (page === 1 && rows.length === 0) {
+    totalCount = 0;
+  } else {
+    const totalResult = await dbFirst(client, countSql, countArgs);
+    totalCount = totalResult ? totalResult.total : 0;
+  }
 
   const orders = rows.map(o => ({ ...o, is_prepaid: isPrepaidOrder(o) ? 1 : 0, expected_cash: getExpectedCashForOrder(o) }));
+
+  if (url.searchParams.get('include_items') === '1' && orders.length > 0) {
+    const orderIds = orders.map(o => o.id);
+    const placeholders = orderIds.map(() => '?').join(',');
+    const allItems = await dbAll(client, `
+      SELECT ooi.*, p.name as catalog_name, p.barcode as catalog_barcode
+      FROM online_order_items ooi
+      LEFT JOIN products p ON p.id = ooi.product_id
+      WHERE ooi.order_id IN (${placeholders})
+    `, orderIds);
+    const itemsByOrder = {};
+    for (const item of allItems) {
+      (itemsByOrder[item.order_id] ||= []).push(item);
+    }
+    for (const order of orders) {
+      order.items = itemsByOrder[order.id] || [];
+    }
+  }
   
   return jsonResponse({ 
     orders, 
@@ -10101,9 +10397,9 @@ async function assignDriverToOrder(request, env, ctx, headers) {
 }
 
 async function updateOrderStatus(request, env, ctx, headers) {
-  const { order_id, new_status, notes } = await request.json();
-  if (!order_id || !new_status) {
-    return jsonResponse({ error: 'بيانات غير مكتملة' }, 400, headers);
+  const { order_id, new_status, notes, prepared_items, prep_status } = await request.json();
+  if (!order_id) {
+    return jsonResponse({ error: 'معرف الطلب مطلوب' }, 400, headers);
   }
 
   const client = getTursoClient(env);
@@ -10113,14 +10409,28 @@ async function updateOrderStatus(request, env, ctx, headers) {
   }
 
   const old_status = order.status;
+  const statusToSet = new_status || old_status;
+
+  const setFields = ["status = ?"];
+  const setVals = [statusToSet];
+  if (prepared_items !== undefined) {
+    setFields.push("prepared_items = ?");
+    setVals.push(typeof prepared_items === 'string' ? prepared_items : JSON.stringify(prepared_items));
+  }
+  if (prep_status !== undefined) {
+    setFields.push("prep_status = ?");
+    setVals.push(prep_status);
+  }
+  setVals.push(order_id);
 
   // تحديث حالة الطلب
-  await dbRun(client, "UPDATE online_orders SET status = ? WHERE id = ?", [new_status, order_id]);
-  await dbRun(client, "INSERT INTO order_status_log (order_id, old_status, new_status, status, notes) VALUES (?, ?, ?, ?, ?)",
-    [order_id, old_status, new_status, new_status, notes || '']);
+  await dbRun(client, `UPDATE online_orders SET ${setFields.join(', ')} WHERE id = ?`, setVals);
+  if (new_status && new_status !== old_status) {
+    await dbRun(client, "INSERT INTO order_status_log (order_id, old_status, new_status, status, notes) VALUES (?, ?, ?, ?, ?)",
+      [order_id, old_status, new_status, new_status, notes || '']);
+  }
 
- 
-  if (order.assigned_driver_id) {
+  if (order.assigned_driver_id && new_status && new_status !== old_status) {
     ctx.waitUntil(sendAdminFCMNotification(
       env,
       `🔄 تغيير حالة الطلب #${order_id}`,
@@ -10128,7 +10438,7 @@ async function updateOrderStatus(request, env, ctx, headers) {
     ));
   }
 
-  return jsonResponse({ success: true }, 200, headers);
+  return jsonResponse({ success: true, status: statusToSet, prep_status: prep_status || order.prep_status }, 200, headers);
 }
 
 // ================================================================
@@ -10159,7 +10469,8 @@ async function createOnlineOrder(request, env, ctx, headers, userId) {
     discount = 0,
     discount_amount = 0,
     discount_type = 'fixed',
-    order_date
+    order_date,
+    order_images
   } = await request.json();
 
   customer_name = (customer_name && String(customer_name).trim()) ? String(customer_name).trim() : 'عميل عام';
@@ -10430,16 +10741,21 @@ async function createOnlineOrder(request, env, ctx, headers, userId) {
     }
 
     // --- إنشاء الطلب والفاتورة ---
+    let orderImagesJson = null;
+    if (order_images) {
+      if (typeof order_images === 'string') orderImagesJson = order_images;
+      else if (Array.isArray(order_images)) orderImagesJson = JSON.stringify(order_images);
+    }
     const invoiceNumber = `INV-WEB-${await getNextInvoiceNumber(tx, 'online')}`;
     const orderResult = await dbRun(tx, `
       INSERT INTO online_orders 
         (customer_name, customer_phone, customer_address, governorate, delivery_type, 
          payment_method, total_amount, notes, created_by_user, delivery_fee, delivery_fee_payment,
-         actual_payment_details, online_customer_id, order_date)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, CURRENT_TIMESTAMP))
+         actual_payment_details, online_customer_id, order_date, order_images, prep_status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, CURRENT_TIMESTAMP), ?, 'pending')
      `, [customer_name, mainPhone, customer_address, governorate || null, delivery_type || null,
          normalizedPaymentMethod, total, notes || '', 1, delivery_fee, delivery_fee_payment,
-         JSON.stringify(prepaidDetails), onlineCustomerId, order_date || null]);
+         JSON.stringify(prepaidDetails), onlineCustomerId, order_date || null, orderImagesJson]);
     const orderId = orderResult.lastInsertRowid;
 
     const saleResult = await dbRun(tx, `
@@ -11399,6 +11715,7 @@ async function handleRequest(request, env, ctx) {
         }
         const client = getTursoClient(env);
         await setInitialInvoiceNumber(client, type, start_number);
+        await invalidateSettingsCacheKV(env);
         return jsonResponse({ success: true, message: `تم تعيين رقم البداية للـ ${type} إلى ${start_number}` }, 200, corsHeaders);
       }
 
@@ -11965,7 +12282,6 @@ async function saveOfflineIdempotency(env, operationId, request, response) {
   if (body.length > 2 * 1024 * 1024) return;
   const client = getTursoClient(env);
   await dbRun(client, `INSERT OR IGNORE INTO offline_idempotency (operation_id, method, path, response_status, response_body) VALUES (?, ?, ?, ?, ?)`, [String(operationId).slice(0, 180), request.method, new URL(request.url).pathname, response.status, body]);
-  await dbRun(client, "DELETE FROM offline_idempotency WHERE created_at < datetime('now', '-90 days')");
 }
 function offlineStoredResponse(row) {
   return new Response(row.response_body || '', { status: Number(row.response_status || 200), headers: { ...corsHeaders, 'Content-Type': 'application/json; charset=utf-8', 'X-Idempotent-Replay': '1' } });
@@ -11975,7 +12291,11 @@ export default {
   async fetch(request, env, ctx) {
     try {
       const method = request.method.toUpperCase();
-      const operationId = !['GET','HEAD','OPTIONS'].includes(method) ? request.headers.get('X-Offline-Operation-Id') : null;
+      const bodyPromise = ['GET','HEAD','OPTIONS'].includes(method) ? Promise.resolve(null) : request.clone().json().catch(() => null);
+      const body = await bodyPromise;
+      const operationId = !['GET','HEAD','OPTIONS'].includes(method)
+        ? (request.headers.get('X-Offline-Operation-Id') || (body && body.operation_id ? String(body.operation_id) : null))
+        : null;
       const requestPath = new URL(request.url).pathname;
       if (operationId && !requestPath.startsWith('/auth/')) {
         try {
@@ -11985,8 +12305,6 @@ export default {
           console.error('فشل فحص idempotency:', e);
         }
       }
-      const bodyPromise = ['GET','HEAD','OPTIONS'].includes(method) ? Promise.resolve(null) : request.clone().json().catch(() => null);
-      const body = await bodyPromise;
       const response = await handleRequest(request, env, ctx);
       if (operationId && !requestPath.startsWith('/auth/')) {
         try {
@@ -12091,7 +12409,7 @@ async function cloudSyncPull(request, env) {
     });
     return jsonResponse({ events, next_cursor: since }, 200, corsHeaders);
   }
-  const sourceEvents = customersOnly ? [] : await dbAll(client, `SELECT event_id, entity_type, cloud_id, event_type, payload_json, created_at FROM sync_outbox WHERE datetime(created_at) > datetime(?) ORDER BY created_at ASC, id ASC LIMIT ?`, [since, limit]);
+  const sourceEvents = customersOnly ? [] : await dbAll(client, `SELECT event_id, entity_type, cloud_id, event_type, payload_json, created_at FROM sync_outbox WHERE created_at > ? ORDER BY created_at ASC, id ASC LIMIT ?`, [since, limit]);
   const events = [...sourceEvents];
   if (url.searchParams.get('include_customers') === '1') {
     const snapshotCustomers = await dbAll(client, 'SELECT * FROM online_customers ORDER BY id LIMIT 500');

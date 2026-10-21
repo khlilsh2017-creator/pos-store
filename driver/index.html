@@ -2626,6 +2626,26 @@ function renderOrders(orders) {
             `;
         }
 
+        let orderImgs = [];
+        try { orderImgs = typeof order.order_images === 'string' ? JSON.parse(order.order_images) : (order.order_images || []); } catch(e){}
+        let orderImgsHtml = '';
+        if (Array.isArray(orderImgs) && orderImgs.length > 0) {
+            orderImgsHtml = `
+                <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:12px; padding:8px 10px; margin:8px 0;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                        <span style="font-size:0.75rem; font-weight:800; color:#1e40af; display:flex; align-items:center; gap:5px;">
+                            <span>🖼️ أشكال وموديلات الطلب المطلوبة</span>
+                            <span style="background:#dbeafe; color:#1e3a8a; padding:1px 6px; border-radius:10px; font-size:0.65rem; font-weight:800;">${orderImgs.length} صور</span>
+                        </span>
+                        <span style="font-size:0.65rem; color:#2563eb; font-weight:700;">انقر للتكبير 🔍</span>
+                    </div>
+                    <div style="display:flex; gap:6px; overflow-x:auto; padding-bottom:3px;">
+                        ${orderImgs.map(img => `<img src="${img}" style="width:52px; height:52px; border-radius:8px; object-fit:cover; border:1.5px solid #93c5fd; cursor:pointer; flex-shrink:0;" onclick="event.stopPropagation();openDriverImageLightbox('${img}')" />`).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
         html += `
             <div class="order-card ${finalCardClassWithPrepared}" data-order-id="${order.id}">
                 <div style="font-size: 0.75rem; color: var(--primary); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; font-weight: 600; background: var(--surface-secondary); padding: 4px 10px; border-radius: 8px; width: fit-content;">
@@ -2658,6 +2678,7 @@ function renderOrders(orders) {
                     </div>
                 </div>
                 ${noteHtml}
+                ${orderImgsHtml}
                 <div class="order-items-preview">
                     <table><thead><tr><th>المنتج</th><th>الكمية</th><th>السعر</th><th>الإجمالي</th><th>ملاحظة</th></tr></thead>
                     <tbody>${itemsHtml}${moreItemsRowHtml}</tbody></table>
@@ -2847,6 +2868,7 @@ function renderOrders(orders) {
                     <div style="margin-bottom:6px;"><strong>👤 العميل:</strong> ${order.customer_name || 'غير محدد'}</div>
                     <div style="margin-bottom:6px;"><strong>📍 العنوان:</strong> ${addressText}</div>
                     ${renderOrderNoteHtml(orderNote)}
+                    ${renderInvoiceOrderImgs(order)}
                     ${phoneButtonsHtml || mapButtonHtml ? `
                         <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:10px;">
                             ${phoneButtonsHtml}
@@ -5268,5 +5290,41 @@ function renderOrders(orders) {
         `;
         document.head.appendChild(styleEl);
     </script>
+
+<!-- نافذة عرض وتكبير صور الطلب للمندوب (Lightbox) -->
+<div id="driverImageLightboxModal" style="position:fixed; inset:0; z-index:99999; background:rgba(0,0,0,0.88); backdrop-filter:blur(4px); display:none; align-items:center; justify-content:center; padding:15px;" onclick="closeDriverImageLightbox()">
+    <img id="driverLightboxImg" style="max-width:95vw; max-height:85vh; border-radius:12px; box-shadow:0 10px 40px rgba(0,0,0,0.6); object-fit:contain;" onclick="event.stopPropagation()" />
+    <button type="button" onclick="closeDriverImageLightbox()" style="position:absolute; top:18px; left:18px; background:rgba(255,255,255,0.25); color:#fff; border:none; border-radius:50%; width:44px; height:44px; font-size:1.4rem; cursor:pointer; display:flex; align-items:center; justify-content:center;">✕</button>
+</div>
+
+<script>
+function renderInvoiceOrderImgs(order) {
+    let imgs = [];
+    try { imgs = typeof order.order_images === 'string' ? JSON.parse(order.order_images) : (order.order_images || []); } catch(e){}
+    if (!Array.isArray(imgs) || !imgs.length) return '';
+    return `<div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:10px; padding:8px 10px; margin:10px 0;">
+        <div style="font-size:0.75rem; font-weight:800; color:#1e40af; margin-bottom:6px; display:flex; justify-content:space-between; align-items:center;">
+            <span>📷 صور الأشكال والموديلات المطلوبة (${imgs.length})</span>
+            <span style="font-size:0.65rem; color:#2563eb;">انقر للتكبير 🔍</span>
+        </div>
+        <div style="display:flex; gap:8px; overflow-x:auto; padding-bottom:4px;">
+            ${imgs.map(img => `<img src="${img}" style="width:60px; height:60px; border-radius:8px; object-fit:cover; border:1.5px solid #93c5fd; cursor:pointer;" onclick="openDriverImageLightbox('${img}')" />`).join('')}
+        </div>
+    </div>`;
+}
+
+function openDriverImageLightbox(src) {
+    const modal = document.getElementById('driverImageLightboxModal');
+    const img = document.getElementById('driverLightboxImg');
+    if (!modal || !img || !src) return;
+    img.src = src;
+    modal.style.display = 'flex';
+}
+
+function closeDriverImageLightbox() {
+    const modal = document.getElementById('driverImageLightboxModal');
+    if (modal) modal.style.display = 'none';
+}
+</script>
 </body>
 </html>
