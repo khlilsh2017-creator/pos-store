@@ -3,10 +3,10 @@
 // ============================================================
 importScripts('/offline-sw-core.js');
 
-const CACHE_NAME = 'ibn-mukhtar-pos-v37';
-const STATIC_CACHE = 'ibn-mukhtar-static-v37';
-const DYNAMIC_CACHE = 'ibn-mukhtar-dynamic-v37';
-const VERSION = '2026-10-21-drivers-pwa-v1';
+const CACHE_NAME = 'ibn-mukhtar-pos-v38';
+const STATIC_CACHE = 'ibn-mukhtar-static-v38';
+const DYNAMIC_CACHE = 'ibn-mukhtar-dynamic-v38';
+const VERSION = '2026-10-21-invoice-pdf-fix';
 
 const STATIC_ASSETS = [
     // ===== الصفحات الرئيسية =====

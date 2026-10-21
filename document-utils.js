@@ -12,9 +12,10 @@
 
   // ==== مسارات المكتبات المحلية (عدّل حسب هيكل مشروعك) ====
   const LOCAL_LIBS = {
-    html2pdf: '/libs/html2pdf.bundle.min.js',
-    html2canvas: '/libs/html2canvas.min.js',
-    xlsx: '/libs/xlsx.full.min.js'
+    html2pdf: '/html2pdf.bundle.min.js',
+    html2canvas: '/html2canvas.min.js',
+    jspdf: '/html2pdf.bundle.min.js',
+    xlsx: '/xlsx.full.min.js'
   };
 
   const PAPERS = {
@@ -182,14 +183,17 @@
 
   async function exportPDF(element, options = {}) {
     if (!element) throw new Error('لا توجد بيانات لتصديرها');
+    await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js',
+                     () => typeof global.html2canvas === 'function',
+                     LOCAL_LIBS.html2canvas);
     await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js',
-                     () => typeof global.html2pdf === 'function',
+                     () => typeof global.html2pdf === 'function' || typeof (global.jspdf?.jsPDF || global.jsPDF) === 'function',
                      LOCAL_LIBS.html2pdf);
     const p = PAPERS[options.paper || paper()] || PAPERS.a4;
     const identity = getIdentity();
     
     const holder = document.createElement('div');
-    holder.style.cssText = `position: fixed; left: 0; top: 0; width: ${p.width}; min-height: 20px; background: #fff; z-index: -1; opacity: 1; pointer-events: none;`;
+    holder.style.cssText = `position: fixed; left: 0; top: 0; width: ${p.width}; min-height: 20px; background: #fff; z-index: 99999; pointer-events: none;`;
     
     const clone = cloneClean(element);
     clone.classList.add('pos-doc');
@@ -206,13 +210,53 @@
       let fileName = options.filename || 'document.pdf';
       if (!fileName.endsWith('.pdf')) fileName += '.pdf';
 
-      await global.html2pdf().set({
-        margin: p.margin,
-        filename: fileName,
-        image: { type:'jpeg', quality: 1 },
-        html2canvas: { scale: 2, useCORS: true, allowTaint: false, backgroundColor: '#ffffff', scrollY: 0, scrollX: 0 },
-        jsPDF: { unit:'mm', format: p.format, orientation:'portrait' }
-      }).from(holder).save();
+      const canvas = await global.html2canvas(holder, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: false,
+        backgroundColor: '#ffffff',
+        logging: false
+      });
+
+      const jsPdfClass = global.jspdf?.jsPDF || global.jsPDF;
+      if (jsPdfClass) {
+        const pdf = new jsPdfClass({
+          unit: 'mm',
+          format: p.format,
+          orientation: 'portrait'
+        });
+
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const pageHeight = pdf.internal.pageSize.getHeight();
+        const margin = p.margin || 8;
+        const printWidth = pageWidth - (margin * 2);
+        const printHeight = (canvas.height * printWidth) / canvas.width;
+        const imgData = canvas.toDataURL('image/jpeg', 0.98);
+
+        if (printHeight <= pageHeight - (margin * 2)) {
+          pdf.addImage(imgData, 'JPEG', margin, margin, printWidth, printHeight);
+        } else {
+          let heightLeft = printHeight;
+          let position = margin;
+          pdf.addImage(imgData, 'JPEG', margin, position, printWidth, printHeight);
+          heightLeft -= (pageHeight - (margin * 2));
+          while (heightLeft > 0) {
+            position = heightLeft - printHeight + margin;
+            pdf.addPage();
+            pdf.addImage(imgData, 'JPEG', margin, position, printWidth, printHeight);
+            heightLeft -= (pageHeight - (margin * 2));
+          }
+        }
+        pdf.save(fileName);
+      } else if (global.html2pdf) {
+        await global.html2pdf().set({
+          margin: p.margin,
+          filename: fileName,
+          image: { type:'jpeg', quality: 1 },
+          html2canvas: { scale: 2, useCORS: true, allowTaint: false, backgroundColor: '#ffffff', scrollY: 0, scrollX: 0 },
+          jsPDF: { unit:'mm', format: p.format, orientation:'portrait' }
+        }).from(holder).save();
+      }
     } finally {
       holder.remove();
       window.scrollTo(0, originalScroll);
@@ -229,7 +273,7 @@
     const identity = getIdentity();
     
     const holder = document.createElement('div');
-    holder.style.cssText = `position: fixed; left: 0; top: 0; width: ${p.width}; min-height: 20px; background: #fff; z-index: -1; opacity: 1; pointer-events: none;`;
+    holder.style.cssText = `position: fixed; left: 0; top: 0; width: ${p.width}; min-height: 20px; background: #fff; z-index: 99999; pointer-events: none;`;
     
     const clone = cloneClean(element);
     clone.classList.add('pos-doc');
@@ -245,6 +289,7 @@
       const canvas = await global.html2canvas(holder, {
         scale: 2,
         useCORS: true,
+        allowTaint: false,
         backgroundColor: '#ffffff',
         logging: false
       });
@@ -406,18 +451,18 @@
       const deliveryInfo = [data.governorate, data.delivery_type].filter(Boolean).join(' - ');
 
       metaHtml = `
-        <section class="pos-invoice-meta pos-online-meta">
-            <div><strong>العميل:</strong> ${esc(custName)}</div>
-            <div><strong>الهاتف:</strong> ${custPhone || '-'}</div>
-            <div><strong>طريقة الدفع:</strong> ${esc(data.payment_method || 'عند الاستلام')}${paymentDetails}</div>
-            <div><strong>الحالة:</strong> ${esc(data.status || (data.is_draft ? 'مسودة' : 'مكتملة'))}</div>
-            ${deliveryInfo ? `<div><strong>التوصيل:</strong> ${esc(deliveryInfo)}</div>` : ''}
-            <div><strong>المندوب:</strong> ${esc(data.driver_name || 'غير مسند')}</div>
-            ${data.customer_address ? `<div class="pos-online-address"><strong>العنوان:</strong> ${esc(data.customer_address)}</div>` : ''}
+        <section class="pos-invoice-meta pos-online-meta" style="display:grid !important; grid-template-columns:1fr 1fr !important; gap:5px 12px !important; background:#f8fafc !important; border:1px solid #cbd5e1 !important; border-radius:8px !important; padding:8px 10px !important; margin-bottom:12px !important; font-size:11.5px !important; line-height:1.45 !important;">
+            <div style="min-width:0; overflow-wrap:anywhere;"><strong>العميل:</strong> ${esc(custName)}</div>
+            <div style="min-width:0; overflow-wrap:anywhere;"><strong>الهاتف:</strong> ${custPhone || '-'}</div>
+            <div style="min-width:0; overflow-wrap:anywhere;"><strong>طريقة الدفع:</strong> ${esc(data.payment_method || 'عند الاستلام')}${paymentDetails}</div>
+            <div style="min-width:0; overflow-wrap:anywhere;"><strong>الحالة:</strong> ${esc(data.status || (data.is_draft ? 'مسودة' : 'مكتملة'))}</div>
+            ${deliveryInfo ? `<div style="min-width:0; overflow-wrap:anywhere;"><strong>التوصيل:</strong> ${esc(deliveryInfo)}</div>` : ''}
+            <div style="min-width:0; overflow-wrap:anywhere;"><strong>المندوب:</strong> ${esc(data.driver_name || 'غير مسند')}</div>
+            ${data.customer_address ? `<div class="pos-online-address" style="grid-column:1/-1 !important; min-width:0; overflow-wrap:anywhere;"><strong>العنوان:</strong> ${esc(data.customer_address)}</div>` : ''}
         </section>`;
     } else {
       metaHtml = `
-        <section class="pos-invoice-meta">
+        <section class="pos-invoice-meta" style="display:grid !important; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)) !important; gap:5px 10px !important; background:#f8fafc !important; border:1px solid #e2e8f0 !important; border-radius:8px !important; padding:7px 9px !important; margin-bottom:10px !important; font-size:11.5px !important; line-height:1.45 !important;">
             <div><strong>نوع المستند:</strong> ${purchase ? 'فاتورة شراء' : 'بيع عادي'}</div>
             <div><strong>${partyLabel}:</strong> ${esc(data.party || data.customer_name || data.supplier_name || 'عميل عام')}</div>
             <div><strong>طريقة الدفع:</strong> ${esc(data.payment_method || 'غير محددة')}${paymentDetails}</div>

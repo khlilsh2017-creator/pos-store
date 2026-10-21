@@ -10,7 +10,7 @@ try {
   }
 }
 
-const CACHE_NAME = 'pos-phone-shell-v20-drivers-isolated-pwa';
+const CACHE_NAME = 'pos-phone-shell-v21-drivers-invoice-pdf-fix';
 
 // قائمة الملفات الثابتة لضمان العمل بدون اتصال (تشمل صفحات الجوال)
 const STATIC_FILES = [
