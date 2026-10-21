@@ -2026,7 +2026,8 @@ window.addEventListener('offline', () => {
 async function apiRequest(endpoint, options = {}) {
   const token = getAuthToken();
   if (!token) {
-    location.href = `/phone/index.html?next=/drivers`;
+    const nextTarget = (location.hostname.startsWith('drivers') || location.pathname === '/') ? '/' : '/drivers';
+    location.href = `/phone/index.html?next=${encodeURIComponent(nextTarget)}`;
     return null;
   }
 
@@ -2051,7 +2052,8 @@ async function apiRequest(endpoint, options = {}) {
     if (res.status === 401) {
       localStorage.removeItem('pos_token');
       localStorage.removeItem('pos_user');
-      location.href = `/phone/index.html?next=/drivers`;
+      const nextTarget = (location.hostname.startsWith('drivers') || location.pathname === '/') ? '/' : '/drivers';
+      location.href = `/phone/index.html?next=${encodeURIComponent(nextTarget)}`;
       return null;
     }
 
@@ -2072,7 +2074,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   const user = getCurrentUser();
   const token = getAuthToken();
   if (!token) {
-    location.href = '/phone/index.html?next=/drivers';
+    const nextTarget = (location.hostname.startsWith('drivers') || location.pathname === '/') ? '/' : '/drivers';
+    location.href = `/phone/index.html?next=${encodeURIComponent(nextTarget)}`;
     return;
   }
 
@@ -2090,7 +2093,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // 3. Register isolated service worker for Driver Management PWA
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw_drivers.js', { scope: '/drivers' }).catch(() => {});
+    const swScope = (location.hostname.startsWith('drivers') || location.pathname === '/') ? '/' : '/drivers';
+    navigator.serviceWorker.register('/sw_drivers.js', { scope: swScope }).catch(() => {});
   }
 
   // 4. Handle deep link hash

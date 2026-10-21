@@ -137,7 +137,9 @@ let token = localStorage.getItem('pos_token') || '';
 function nextPage() {
   const value = new URLSearchParams(location.search).get('next');
   if (value === 'orders.html' || value === 'add_order_ph.html') return value;
-  if (value === 'drivers.html' || value === 'drivers' || value === '/drivers') return '/drivers';
+  if (value === 'drivers.html' || value === 'drivers' || value === '/drivers' || value === '/') {
+    return (location.hostname.startsWith('drivers') || value === '/') ? '/' : '/drivers';
+  }
   return '';
 }
 function openApp(page) { location.href = page; }

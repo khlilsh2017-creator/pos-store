@@ -3,9 +3,10 @@
 // Application: إدارة المندوبين - ابن المختار (Scope: /drivers)
 // ============================================================
 
-const CACHE_NAME = 'drivers-pwa-v3-settings-modal-fix';
+const CACHE_NAME = 'drivers-pwa-v4-subdomain-root';
 
 const STATIC_ASSETS = [
+  '/',
   '/drivers',
   '/manifest_drivers.json',
   '/api-client.js',
@@ -60,7 +61,7 @@ self.addEventListener('fetch', event => {
           }
           return res;
         })
-        .catch(() => caches.match(req).then(cached => cached || caches.match('/drivers')))
+        .catch(() => caches.match(req).then(cached => cached || caches.match('/') || caches.match('/drivers')))
     );
     return;
   }
