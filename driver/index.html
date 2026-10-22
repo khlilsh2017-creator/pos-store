@@ -96,8 +96,14 @@
         .order-card.completed { border-right:4px solid var(--success); }
         .order-card.failed { border-right:4px solid var(--danger); }
         .order-card.returned { border-right:4px solid var(--warning); }
+        .order-card.ready,
+        .order-card.is-fully-prepared {
+            background: linear-gradient(to left, rgba(34,197,94,0.12), var(--surface) 35%) !important;
+            border-right: 5px solid #22c55e !important;
+            box-shadow: 0 0 0 1.5px #86efac, 0 4px 16px rgba(34,197,94,0.15) !important;
+        }
         .order-card.has-many-items { border-color:#f59e0b; background:linear-gradient(to left, rgba(254, 243, 199, 0.28), var(--surface) 35%); }
-        .order-card.has-many-items:not(.completed):not(.failed):not(.returned) { border-right:5px solid #f59e0b; }
+        .order-card.has-many-items:not(.completed):not(.failed):not(.returned):not(.ready):not(.is-fully-prepared) { border-right:5px solid #f59e0b; }
         .badge-items-count { font-size:0.72rem; padding:3px 9px; border-radius:12px; font-weight:700; display:inline-flex; align-items:center; gap:5px; white-space:nowrap; }
         .badge-items-normal { background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; }
         .badge-items-many { background:#fef3c7; color:#92400e; border:1.5px solid #f59e0b; box-shadow:0 1px 4px rgba(245, 158, 11, 0.22); animation:pulseBadgeMany 2.5s infinite ease-in-out; }
@@ -114,6 +120,7 @@
         .badge-new { background:#e0f2fe; color:#0284c7; }
         .badge-progress { background:#fef3c7; color:#b45309; }
         .badge-delivered { background:#dcfce7; color:#166534; }
+        .badge-ready { background:#ecfdf5 !important; color:#059669 !important; border:1px solid #a7f3d0 !important; font-weight:700 !important; }
         .badge-failed { background:#fee2e2; color:#991b1b; }
         .badge-returned { background:#f3e8ff; color:#6b21a8; }
         .badge-prepaid { background:#dbeafe; color:#1e40af; }
@@ -558,17 +565,21 @@
         }
 
         /* تمييز بطاقة الطلب المُجهز كاملاً */
+        .order-card.ready,
         .order-card.is-fully-prepared {
-            background: linear-gradient(to left, rgba(34,197,94,0.09), var(--surface) 32%);
-            box-shadow: 0 0 0 2px #86efac, 0 4px 16px rgba(34,197,94,0.18);
+            background: linear-gradient(to left, rgba(34,197,94,0.12), var(--surface) 35%) !important;
+            border-right: 5px solid #22c55e !important;
+            box-shadow: 0 0 0 1.5px #86efac, 0 4px 16px rgba(34,197,94,0.15) !important;
         }
+        .order-card.ready .order-id,
         .order-card.is-fully-prepared .order-id { color: #15803d; }
 
         /* تمييز بطاقة السوايب المُجهزة كاملاً */
+        .swipe-card-slide.ready,
         .swipe-card-slide.is-fully-prepared {
-            border-color: #22c55e;
-            box-shadow: 0 6px 20px rgba(34,197,94,0.2);
-            background: linear-gradient(to bottom, rgba(34,197,94,0.07), var(--surface) 22%);
+            border-color: #22c55e !important;
+            box-shadow: 0 6px 20px rgba(34,197,94,0.2) !important;
+            background: linear-gradient(to bottom, rgba(34,197,94,0.1), var(--surface) 25%) !important;
         }
 
         /* صف الصنف داخل جدول الفاتورة (بدون شطب على الاسم) */
@@ -1918,9 +1929,17 @@
             });
         }
 
+        function matchesDriverStatusFilter(order, filter) {
+            if (!filter) return true;
+            if (filter === 'جاهز للتوصيل' || filter === 'جاهز') {
+                return order.status === 'جاهز للتوصيل' || order.status === 'جاهز' || isOrderFullyPrepared(order);
+            }
+            return order.status === filter;
+        }
+
         function applyFiltersAndRender() {
             const filteredFinal = filterOrdersByPeriod(currentOrders, currentPeriod)
-                .filter(order => currentStatusFilter ? order.status === currentStatusFilter : true);
+                .filter(order => matchesDriverStatusFilter(order, currentStatusFilter));
             renderOrders(filteredFinal);
             updateWelcomeModalIfOpen();
         }
@@ -2003,6 +2022,7 @@
                         <select id="statusFilter" onchange="applyFilters()">
                             <option value="">الكل</option>
                             <option value="جديد">جديد</option>
+                            <option value="جاهز للتوصيل">جاهز للتوصيل</option>
                             <option value="قيد التوصيل">قيد التوصيل</option>
                             <option value="تم التسليم">تم التسليم</option>
                             <option value="فشل التسليم">فشل التسليم</option>
@@ -2096,15 +2116,51 @@
             if (orderId === undefined || orderId === null) return [];
             const map = getPreparedMap();
             const entry = map[String(orderId)];
-            return (entry && Array.isArray(entry.items)) ? entry.items : [];
+            const localItems = (entry && Array.isArray(entry.items)) ? entry.items : [];
+            
+            // تحقق أيضاً من الأصناف المجهزة القادمة من السيرفر
+            const order = (window.currentOrders || []).find(o => String(o.id) === String(orderId));
+            if (order && order.prepared_items) {
+                try {
+                    const parsed = typeof order.prepared_items === 'string' ? JSON.parse(order.prepared_items) : order.prepared_items;
+                    if (parsed && typeof parsed === 'object') {
+                        const serverItems = Object.keys(parsed).filter(k => parsed[k] === true);
+                        return Array.from(new Set([...localItems, ...serverItems]));
+                    }
+                } catch(e) {}
+            }
+            return localItems;
         }
 
         function getPreparedCount(orderId) {
+            const order = (window.currentOrders || []).find(o => String(o.id) === String(orderId));
+            if (order) {
+                const s = String(order.status || '').trim();
+                const prepS = String(order.prep_status || '').trim().toLowerCase();
+                const items = order.items || [];
+                if (s === 'جاهز للتوصيل' || s === 'جاهز' || s === 'ready' || prepS === 'ready' || prepS === 'تم التجهيز') {
+                    return items.length;
+                }
+            }
             return getOrderPreparedItems(orderId).length;
         }
 
         function isItemPrepared(orderId, itemId) {
             if (itemId === undefined || itemId === null) return false;
+            const order = (window.currentOrders || []).find(o => String(o.id) === String(orderId));
+            if (order) {
+                const s = String(order.status || '').trim();
+                const prepS = String(order.prep_status || '').trim().toLowerCase();
+                if (s === 'جاهز للتوصيل' || s === 'جاهز' || s === 'ready' || prepS === 'ready' || prepS === 'تم التجهيز') {
+                    return true;
+                }
+                if (order.prepared_items) {
+                    try {
+                        const parsed = typeof order.prepared_items === 'string' ? JSON.parse(order.prepared_items) : order.prepared_items;
+                        if (parsed && (parsed[itemId] === true || parsed[String(itemId)] === true)) return true;
+                    } catch(e) {}
+                }
+            }
             return getOrderPreparedItems(orderId).includes(String(itemId));
         }
 
@@ -2142,10 +2198,19 @@
         }
 
         /**
-         * هل الطلب مُجهز كاملاً؟ (كل الأصناف محددة)
+         * هل الطلب مُجهز كاملاً؟ (كل الأصناف محددة أو تم تحديث حالته إلى جاهز)
          */
         function isOrderFullyPrepared(order) {
             if (!order) return false;
+            const s = String(order.status || '').trim();
+            const prepS = String(order.prep_status || '').trim().toLowerCase();
+            if (s === 'جاهز للتوصيل' || s === 'جاهز' || s === 'ready' || prepS === 'ready' || prepS === 'تم التجهيز') {
+                return true;
+            }
+            try {
+                if (localStorage.getItem(`prep_status_${order.id}`) === 'ready') return true;
+            } catch (e) {}
+
             const items = order.items || [];
             if (items.length === 0) return getPreparedCount(order.id) > 0;
             return getPreparedCount(order.id) >= items.length;
@@ -2474,8 +2539,15 @@ function renderOrders(orders) {
         const isFailed = order.status === 'فشل التسليم';
         const isReturned = order.status === 'مرتجع جزئي' || order.status === 'مرتجع كلي';
         const isCancelled = order.status === 'ملغي';
-        const cardClass = isCompleted ? 'completed' : (isFailed ? 'failed' : (isReturned ? 'returned' : ''));
-        const statusText = order.status || 'جديد';
+        const isOrderReadyStatus = order.status === 'جاهز للتوصيل' || order.status === 'جاهز' || order.status === 'ready' || String(order.prep_status || '').toLowerCase() === 'ready';
+        const isFullyPrepared = isOrderFullyPrepared(order) || isOrderReadyStatus;
+        const isReady = isFullyPrepared;
+        const isFinished = isCompleted || isFailed || isReturned || isCancelled;
+        const cardClass = isCompleted ? 'completed' : (isFailed ? 'failed' : (isReturned ? 'returned' : (isReady ? 'ready' : '')));
+        let statusText = order.status || 'جديد';
+        if (isReady && !isFinished && (statusText === 'جديد' || statusText === 'قيد المعالجة' || !statusText)) {
+            statusText = 'جاهز للتوصيل';
+        }
         const items = [...(order.items || [])].sort((a, b) => (b.id || 0) - (a.id || 0));
         
         const dueAmount = getOrderDueAmount(order);
@@ -2540,18 +2612,23 @@ function renderOrders(orders) {
             case 'تم التسليم': statusBadgeClass = 'badge-delivered'; break;
             case 'فشل التسليم': statusBadgeClass = 'badge-failed'; break;
             case 'قيد التوصيل': statusBadgeClass = 'badge-progress'; break;
+            case 'جاهز للتوصيل':
+            case 'جاهز':
+            case 'ready':
+                statusBadgeClass = 'badge-ready'; break;
             case 'مرتجع جزئي':
             case 'مرتجع كلي': statusBadgeClass = 'badge-returned'; break;
             case 'ملغي': statusBadgeClass = 'badge-failed'; break;
+            default:
+                if (isReady && !isFinished) statusBadgeClass = 'badge-ready';
+                break;
         }
-        const isFinished = ['تم التسليم', 'فشل التسليم', 'ملغي', 'مرتجع جزئي', 'مرتجع كلي'].includes(statusText);
-        
+
         const hasManyItems = items.length > 3;
         const remainingCount = Math.max(0, items.length - 3);
         const finalCardClass = [cardClass, hasManyItems ? 'has-many-items' : ''].filter(Boolean).join(' ');
-        const isFullyPrepared = isOrderFullyPrepared(order);
         const preparedCount = getPreparedCount(order.id);
-        const finalCardClassWithPrepared = [finalCardClass, isFullyPrepared ? 'is-fully-prepared' : ''].filter(Boolean).join(' ');
+        const finalCardClassWithPrepared = [finalCardClass, isReady ? 'is-fully-prepared ready' : ''].filter(Boolean).join(' ');
 
         let itemsBadgeHtml = '';
         if (items.length > 0) {
@@ -3152,7 +3229,7 @@ function renderOrders(orders) {
                     }
 
                     const filteredFinal = filterOrdersByPeriod(currentOrders, currentPeriod)
-                        .filter(o => currentStatusFilter ? o.status === currentStatusFilter : true);
+                        .filter(o => matchesDriverStatusFilter(o, currentStatusFilter));
                     renderDashboard(account, totalBalance, filteredFinal, filteredFinal.length);
                     await loadPeriodSummary(driverId, currentPeriod);
                     hideOfflineNotice();
@@ -3201,7 +3278,7 @@ function renderOrders(orders) {
                     ? lastAccountData
                     : JSON.parse(localStorage.getItem('lastAccountData') || '{}');
                 const filteredFinal = filterOrdersByPeriod(currentOrders, currentPeriod)
-                    .filter(o => currentStatusFilter ? o.status === currentStatusFilter : true);
+                    .filter(o => matchesDriverStatusFilter(o, currentStatusFilter));
                 renderDashboard(cachedAccount, savedBalance, filteredFinal, filteredFinal.length);
                 showOfflineNotice();
             });
@@ -3327,7 +3404,7 @@ function renderOrders(orders) {
                                 ? lastAccountData
                                 : JSON.parse(localStorage.getItem('lastAccountData') || '{}');
                             const filteredFinal = filterOrdersByPeriod(currentOrders, currentPeriod)
-                                .filter(o => currentStatusFilter ? o.status === currentStatusFilter : true);
+                                .filter(o => matchesDriverStatusFilter(o, currentStatusFilter));
                             renderDashboard(cachedAccount, savedBalance, filteredFinal, filteredFinal.length);
                             if (navigator.onLine) refreshOrders().catch(console.warn);
                         } else {
@@ -4284,7 +4361,7 @@ function renderOrders(orders) {
                         ? lastAccountData
                         : JSON.parse(localStorage.getItem('lastAccountData') || '{}');
                     const filteredFinal = filterOrdersByPeriod(currentOrders, currentPeriod)
-                        .filter(o => currentStatusFilter ? o.status === currentStatusFilter : true);
+                        .filter(o => matchesDriverStatusFilter(o, currentStatusFilter));
                     renderDashboard(cachedAccount, savedBalance, filteredFinal, filteredFinal.length);
                     const name = getDriverName();
                     const driverNameEl = document.getElementById('driverNameDisplay');
@@ -4538,7 +4615,7 @@ function renderOrders(orders) {
             } else {
                 const periodOrders = filterOrdersByPeriod(currentOrders || [], activePeriod);
                 if (currentStatusFilter) {
-                    ordersForCards = periodOrders.filter(o => o.status === currentStatusFilter);
+                    ordersForCards = periodOrders.filter(o => matchesDriverStatusFilter(o, currentStatusFilter));
                 } else {
                     const pending = periodOrders.filter(isOrderActivePending);
                     ordersForCards = pending.length > 0 ? pending : periodOrders;
@@ -4592,7 +4669,14 @@ function renderOrders(orders) {
                 const isFailed = order.status === 'فشل التسليم';
                 const isReturned = order.status === 'مرتجع جزئي' || order.status === 'مرتجع كلي';
                 const isCancelled = order.status === 'ملغي';
-                const statusText = order.status || 'جديد';
+                const isOrderReadyStatus = order.status === 'جاهز للتوصيل' || order.status === 'جاهز' || order.status === 'ready' || String(order.prep_status || '').toLowerCase() === 'ready';
+                const isFullyPreparedSwipe = isOrderFullyPrepared(order) || isOrderReadyStatus;
+                const isReadySwipe = isFullyPreparedSwipe;
+                const isFinished = isCompleted || isFailed || isReturned || isCancelled;
+                let statusText = order.status || 'جديد';
+                if (isReadySwipe && !isFinished && (statusText === 'جديد' || statusText === 'قيد المعالجة' || !statusText)) {
+                    statusText = 'جاهز للتوصيل';
+                }
                 const items = [...(order.items || [])].sort((a, b) => (b.id || 0) - (a.id || 0));
                 const dueAmount = getOrderDueAmount(order);
 
@@ -4642,9 +4726,16 @@ function renderOrders(orders) {
                     case 'تم التسليم': statusBadgeClass = 'badge-delivered'; break;
                     case 'فشل التسليم': statusBadgeClass = 'badge-failed'; break;
                     case 'قيد التوصيل': statusBadgeClass = 'badge-progress'; break;
+                    case 'جاهز للتوصيل':
+                    case 'جاهز':
+                    case 'ready':
+                        statusBadgeClass = 'badge-ready'; break;
                     case 'مرتجع جزئي':
                     case 'مرتجع كلي': statusBadgeClass = 'badge-returned'; break;
                     case 'ملغي': statusBadgeClass = 'badge-failed'; break;
+                    default:
+                        if (isReadySwipe && !isFinished) statusBadgeClass = 'badge-ready';
+                        break;
                 }
 
                 const isFinished = ['تم التسليم', 'فشل التسليم', 'ملغي', 'مرتجع جزئي', 'مرتجع كلي'].includes(statusText);
@@ -4694,7 +4785,7 @@ function renderOrders(orders) {
                 const totalItemsSwipe = items.length;
 
                 slidesHtml += `
-                    <div class="swipe-card-slide ${hasManyItems ? 'has-many-items' : ''} ${isFullyPreparedSwipe ? 'is-fully-prepared' : ''}" data-index="${idx}" data-order-id="${order.id}">
+                    <div class="swipe-card-slide ${hasManyItems ? 'has-many-items' : ''} ${isReadySwipe ? 'is-fully-prepared ready' : ''}" data-index="${idx}" data-order-id="${order.id}">
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
                             <div style="font-size:0.72rem; color:var(--primary); font-weight:600; background:var(--surface-secondary); padding:3px 8px; border-radius:6px;">
                                 🕒 ${formattedDate}

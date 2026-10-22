@@ -937,6 +937,9 @@ button { cursor: pointer; border: 0; outline: 0; }
       </div>
       </div>
       <div class="header-actions">
+        <button type="button" class="header-btn" onclick="printAllReadySlipsA4()" title="🖨️ طباعة كشف وبوالص الطلبات المجهزة (A4)">
+          <i class="fas fa-print"></i>
+        </button>
         <button type="button" class="header-btn" id="prepNotifBellBtn" onclick="requestPrepNotificationPermission()" title="تفعيل إشعارات الطلبات اللحظية">
           <i class="fas fa-bell"></i>
         </button>
@@ -999,6 +1002,10 @@ button { cursor: pointer; border: 0; outline: 0; }
           <option value="">🛵 جميع المندوبين</option>
         </select>
       </div>
+      <button type="button" class="btn-batch-a4-print" onclick="printAllReadySlipsA4()" title="طباعة بوالص وكشف الطلبات المجهزة في صفحة A4 مجمعة">
+        <i class="fas fa-print"></i>
+        <span>🖨️ طباعة كشف وبوالص الطلبات المجهزة (A4)</span>
+      </button>
     </div>
 
     <!-- Orders Cards Container -->
@@ -1258,9 +1265,31 @@ function triggerBrowserNotification(title, body) {
 }
 
 function isOrderReadyPrep(order) {
-  const s = String(order.prep_status || '').toLowerCase();
+  if (!order) return false;
+  const s = String(order.prep_status || '').toLowerCase().trim();
+  const mainStatus = String(order.status || '').trim();
   const localStatus = localStorage.getItem(`prep_status_${order.id}`) || '';
-  return s === 'ready' || s === 'تم التجهيز' || localStatus === 'ready';
+  if (s === 'ready' || s === 'تم التجهيز' || mainStatus === 'جاهز للتوصيل' || mainStatus === 'جاهز' || localStatus === 'ready') {
+    return true;
+  }
+  const items = order.items || [];
+  if (items.length > 0) {
+    let prepMap = null;
+    try {
+      prepMap = typeof order.prepared_items === 'string' ? JSON.parse(order.prepared_items) : order.prepared_items;
+    } catch(e) {}
+    if (!prepMap) {
+      try {
+        const cached = localStorage.getItem(`prep_items_${order.id}`);
+        if (cached) prepMap = JSON.parse(cached);
+      } catch(e) {}
+    }
+    if (prepMap && typeof prepMap === 'object') {
+      const allChecked = items.every(it => prepMap[it.id] === true);
+      if (allChecked) return true;
+    }
+  }
+  return false;
 }
 
 function isOrderPendingPrep(order) {

@@ -1,4 +1,4 @@
-﻿// ==================== worker.js (المعدل بالكامل) ====================
+// ==================== worker.js (المعدل بالكامل) ====================
 import { createClient } from '@libsql/client/web';
 
 // ==================== المتغيرات العامة والأمان ====================
@@ -10435,6 +10435,15 @@ async function updateOrderStatus(request, env, ctx, headers) {
       env,
       `🔄 تغيير حالة الطلب #${order_id}`,
       `الحالة الجديدة: ${new_status}`
+    ));
+    ctx.waitUntil(sendFCMNotification(
+      env,
+      `📦 طلبك #${order_id} أصبح (${new_status})`,
+      new_status === 'جاهز للتوصيل' ? `تم تجهيز وتغليف طلبك #${order_id} وهو جاهز للتوصيل الآن!` : `تم تحديث حالة طلبك #${order_id} إلى ${new_status}`,
+      null,
+      `https://pos.ibnalmukhtar.com/driver/?order=${order_id}`,
+      order.assigned_driver_id,
+      order_id
     ));
   }
 
