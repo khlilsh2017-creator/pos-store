@@ -994,6 +994,8 @@ button { cursor: pointer; border: 0; outline: 0; }
     opacity: 0.3 !important;
     pointer-events: none;
     z-index: 0;
+    border: 0 !important;
+    outline: 0 !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
@@ -1228,8 +1230,40 @@ let isRefreshing = false;
 let audioCtx = null;
 
 // Store identity cache (fast local retrieval & background sync)
-let currentShopName = localStorage.getItem('prep_shop_name') || 'متجر ابن المختار للأدوات المنزلية';
-let currentShopLogo = localStorage.getItem('prep_shop_logo') || '/icon-192x192.png';
+let currentShopName = localStorage.getItem('prep_shop_name')
+  || (window.POSDocs?.getIdentity()?.shop_name)
+  || 'لمسات منزلية ابن المختار';
+
+let currentShopLogo = localStorage.getItem('prep_shop_logo_base64')
+  || localStorage.getItem('prep_shop_logo')
+  || (window.POSDocs?.getIdentity()?.shop_logo)
+  || 'https://pos.ibnalmukhtar.com/icon-512x512.png';
+
+async function cacheLogoAsBase64(url) {
+  if (!url || url.startsWith('data:')) return url;
+  try {
+    const res = await fetch(url, { mode: 'cors' }).catch(() => null);
+    if (!res || !res.ok) return url;
+    const blob = await res.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64data = reader.result;
+        if (base64data && typeof base64data === 'string' && base64data.startsWith('data:image')) {
+          try { localStorage.setItem('prep_shop_logo_base64', base64data); } catch(_) {}
+          currentShopLogo = base64data;
+          resolve(base64data);
+        } else {
+          resolve(url);
+        }
+      };
+      reader.onerror = () => resolve(url);
+      reader.readAsDataURL(blob);
+    });
+  } catch(e) {
+    return url;
+  }
+}
 
 async function loadStoreSettings() {
   try {
@@ -1239,7 +1273,8 @@ async function loadStoreSettings() {
     if (window.apiClient && typeof window.apiClient.fetchWithFailover === 'function') {
       res = await window.apiClient.fetchWithFailover('/settings', { headers });
     } else {
-      res = await fetch((window.apiClient?.baseUrl || '') + '/settings', { headers });
+      const base = (window.apiClient?.baseUrl || localStorage.getItem('posApiBase') || 'https://api.ibnalmukhtar.com').replace(/\/$/, '');
+      res = await fetch(`${base}/settings`, { headers });
     }
     if (res && res.ok) {
       const data = await res.json().catch(() => ({}));
@@ -1249,10 +1284,16 @@ async function loadStoreSettings() {
           localStorage.setItem('prep_shop_name', currentShopName);
         }
         if (data.settings.shop_logo && typeof data.settings.shop_logo === 'string' && data.settings.shop_logo.trim()) {
-          currentShopLogo = data.settings.shop_logo.trim();
-          localStorage.setItem('prep_shop_logo', currentShopLogo);
+          const logoUrl = data.settings.shop_logo.trim();
+          localStorage.setItem('prep_shop_logo', logoUrl);
+          currentShopLogo = logoUrl;
+          await cacheLogoAsBase64(logoUrl);
         }
       }
+    }
+    // If not cached as base64 yet, cache current logo in background
+    if (!localStorage.getItem('prep_shop_logo_base64') && currentShopLogo && !currentShopLogo.startsWith('data:')) {
+      cacheLogoAsBase64(currentShopLogo);
     }
   } catch (e) {
     console.warn('Failed to load store settings:', e);
@@ -2184,7 +2225,7 @@ function togglePrepExtraItems(orderId, remainingCount) {
 }
 
 // طباعة كل بوالص الطلبات الحالية (المجهزة وغير المجهزة) - مقاس A4 مقسم 8 بوالص بالورقة بدون صفحات فارغة
-function printAllSlipsA4() {
+async function printAllSlipsA4() {
   const driverId = $('driverFilter')?.value || '';
   
   // تصفية الطلبات المطبوعة حسب الفترة والمندوب والبحث إن وجد (تشمل المجهز وغير المجهز حسب طلب المستخدم)
@@ -2228,12 +2269,12 @@ function printAllSlipsA4() {
       } catch(e) {}
     }
 
-    const storeName = currentShopName || 'متجر ابن المختار للأدوات المنزلية';
-    const storeLogo = currentShopLogo || '/icon-192x192.png';
+    const storeName = currentShopName || 'لمسات منزلية ابن المختار';
+    const storeLogo = currentShopLogo || 'https://pos.ibnalmukhtar.com/icon-512x512.png';
 
     return `
       <div class="a4-slip-card">
-        ${storeLogo ? `<img src="${storeLogo}" class="slip-watermark" alt="" onerror="this.style.display='none'" />` : ''}
+        ${storeLogo ? `<img src="${storeLogo}" class="slip-watermark" alt="" onerror="this.style.opacity='0'" />` : ''}
         <div class="slip-store-title">${storeName}</div>
         
         <div class="slip-header">
@@ -2299,6 +2340,23 @@ function printAllSlipsA4() {
   document.body.classList.add('a4-printing-mode');
   document.body.appendChild(printContainer);
 
+  // Pre-decode and ensure all watermark images are fully loaded before opening print preview
+  const imgs = Array.from(printContainer.querySelectorAll('img'));
+  await Promise.all(imgs.map(img => {
+    if (img.complete && img.naturalWidth > 0) return Promise.resolve();
+    if (typeof img.decode === 'function') {
+      return img.decode().catch(() => {});
+    }
+    return new Promise(resolve => {
+      img.onload = resolve;
+      img.onerror = resolve;
+      setTimeout(resolve, 800);
+    });
+  }));
+
+  // Settle time for rendering engine
+  await new Promise(r => setTimeout(r, 200));
+
   const cleanup = () => {
     document.body.classList.remove('a4-printing-mode');
     if (printContainer.parentNode) printContainer.remove();
@@ -2307,7 +2365,7 @@ function printAllSlipsA4() {
 
   window.addEventListener('afterprint', cleanup);
   window.print();
-  setTimeout(cleanup, 2500);
+  setTimeout(cleanup, 5000);
 }
 
 // دالة بديلة للتوافق
@@ -2319,47 +2377,54 @@ async function printPrepSlip(orderId) {
   if (!order) return;
 
   const items = order.items || [];
+  const storeName = currentShopName || 'لمسات منزلية ابن المختار';
+  const storeLogo = currentShopLogo || 'https://pos.ibnalmukhtar.com/icon-512x512.png';
+
   let slipHtml = `
-    <div dir="rtl" style="font-family:'Cairo',Arial,sans-serif; padding:15px; max-width:320px; margin:auto; border:1px dashed #000;">
-      <div style="text-align:center; border-bottom:1px dashed #000; padding-bottom:8px; margin-bottom:8px;">
-        <h3 style="margin:0;">بوليصة تجهيز طلب #${order.id}</h3>
-        <p style="margin:4px 0 0; font-size:12px;">تجهيز وتغليف ابن المختار</p>
-      </div>
-      <div style="font-size:12px; margin-bottom:8px;">
-        <div><strong>العميل:</strong> ${order.customer_name || 'عميل'}</div>
-        <div><strong>العنوان:</strong> ${order.customer_address || '-'}</div>
-        <div><strong>الهاتف:</strong> ${order.customer_phone || '-'}</div>
-        <div><strong>المندوب:</strong> ${order.driver_name || 'غير مسند'}</div>
-        ${order.notes ? `<div><strong>ملاحظات:</strong> ${order.notes}</div>` : ''}
-      </div>
-      <table style="width:100%; border-collapse:collapse; font-size:12px; margin-bottom:8px;">
-        <thead>
-          <tr style="border-bottom:1px solid #000;">
-            <th style="text-align:right;">الصنف</th>
-            <th style="text-align:center;">الكمية</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${items.map(it => `
-            <tr style="border-bottom:0.5px dashed #ccc;">
-              <td style="padding:4px 0;">${it.product_name || it.catalog_name}${it.variant_label ? ` (${it.variant_label})` : ''}</td>
-              <td style="text-align:center; font-weight:bold;">${it.quantity}</td>
+    <div dir="rtl" style="position:relative; font-family:'Cairo',Arial,sans-serif; padding:15px; max-width:320px; margin:auto; border:1px dashed #000; overflow:hidden;">
+      ${storeLogo ? `<img src="${storeLogo}" style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); width:140px; height:140px; object-fit:contain; opacity:0.18; pointer-events:none; z-index:0; -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important;" alt="" onerror="this.style.opacity='0'" />` : ''}
+      <div style="position:relative; z-index:1;">
+        <div style="text-align:center; border-bottom:1px dashed #000; padding-bottom:8px; margin-bottom:8px;">
+          ${storeLogo ? `<img src="${storeLogo}" style="max-height:44px; max-width:130px; object-fit:contain; display:block; margin:0 auto 4px; -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important;" alt="" onerror="this.style.display='none'" />` : ''}
+          <h3 style="margin:0; font-size:16px;">${storeName}</h3>
+          <p style="margin:4px 0 0; font-size:12px; font-weight:700;">بوليصة تجهيز طلب #${order.id}</p>
+        </div>
+        <div style="font-size:12px; margin-bottom:8px;">
+          <div><strong>العميل:</strong> ${order.customer_name || 'عميل'}</div>
+          <div><strong>العنوان:</strong> ${order.customer_address || '-'}</div>
+          <div><strong>الهاتف:</strong> ${order.customer_phone || '-'}</div>
+          <div><strong>المندوب:</strong> ${order.driver_name || 'غير مسند'}</div>
+          ${order.notes ? `<div><strong>ملاحظات:</strong> ${order.notes}</div>` : ''}
+        </div>
+        <table style="width:100%; border-collapse:collapse; font-size:12px; margin-bottom:8px;">
+          <thead>
+            <tr style="border-bottom:1px solid #000;">
+              <th style="text-align:right;">الصنف</th>
+              <th style="text-align:center;">الكمية</th>
             </tr>
-          `).join('')}
-        </tbody>
-      </table>
-      <div style="text-align:center; font-size:11px; border-top:1px dashed #000; padding-top:6px;">
-        تم التجهيز والمطابقة بواسطة: ${$('currentUserLabel')?.textContent || 'الموظف'}
+          </thead>
+          <tbody>
+            ${items.map(it => `
+              <tr style="border-bottom:0.5px dashed #ccc;">
+                <td style="padding:4px 0;">${it.product_name || it.catalog_name}${it.variant_label ? ` (${it.variant_label})` : ''}</td>
+                <td style="text-align:center; font-weight:bold;">${it.quantity}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+        <div style="text-align:center; font-size:11px; border-top:1px dashed #000; padding-top:6px;">
+          تم التجهيز والمطابقة بواسطة: ${$('currentUserLabel')?.textContent || 'الموظف'}
+        </div>
       </div>
     </div>
   `;
 
   const printWin = window.open('', '_blank');
   if (printWin) {
-    printWin.document.write(`<html><head><title>بوليصة #${order.id}</title><style>@page{size:80mm auto;margin:2mm;}body{margin:0;padding:4px;}</style></head><body>${slipHtml}</body></html>`);
+    const sTag = '<' + 'script>';
+    const eTag = '<' + '/script>';
+    printWin.document.write(`<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>بوليصة #${order.id}</title><style>@page{size:80mm auto;margin:2mm;}body{margin:0;padding:4px;}img{-webkit-print-color-adjust:exact !important; print-color-adjust:exact !important;}</style></head><body>${slipHtml}` + sTag + `window.onload=function(){setTimeout(function(){window.print();},250);};` + eTag + `</body></html>`);
     printWin.document.close();
-    printWin.focus();
-    setTimeout(() => { printWin.print(); printWin.close(); }, 350);
   }
 }
 
