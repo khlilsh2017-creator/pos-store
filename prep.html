@@ -781,137 +781,130 @@ button { cursor: pointer; border: 0; outline: 0; }
   transform: translateY(-1px);
 }
 
-/* --- تنسيقات طباعة A4 المجمعة للبوالص --- */
+/* --- تنسيقات طباعة A4 المجمعة للبوالص (8 بوالص بالضبط في كل ورقة A4 بدون صفحات فارغة) --- */
 @media print {
   @page {
     size: A4 portrait;
-    margin: 8mm;
+    margin: 4mm 5mm;
   }
-  body * {
-    visibility: hidden;
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
   }
-  #batchA4PrintSection, #batchA4PrintSection * {
-    visibility: visible;
+  body.a4-printing-mode > *:not(#batchA4PrintSection) {
+    display: none !important;
   }
   #batchA4PrintSection {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
-    background: #ffffff;
-    direction: rtl;
-    font-family: 'Cairo', Arial, sans-serif;
-    color: #0f172a;
-    padding: 0;
+    display: block !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    direction: rtl !important;
+    font-family: 'Cairo', Arial, sans-serif !important;
+    color: #0f172a !important;
   }
-  .a4-page-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 2px solid #0f172a;
-    padding-bottom: 8px;
-    margin-bottom: 12px;
-  }
-  .a4-header-brand {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-  .a4-logo {
-    width: 38px;
-    height: 38px;
-    background: #123b72;
-    color: #fff;
-    border-radius: 8px;
+  .a4-sheet-page {
+    width: 200mm;
+    height: 288mm;
+    max-height: 288mm;
+    margin: 0 auto;
+    box-sizing: border-box;
     display: grid;
-    place-items: center;
-    font-size: 1.3rem;
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: repeat(4, 70mm);
+    gap: 2.5mm;
+    page-break-after: always;
+    break-after: page;
+    overflow: hidden;
   }
-  .a4-meta-box {
-    text-align: left;
-    font-size: 0.72rem;
-    line-height: 1.6;
-  }
-  .a4-slips-container {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 6mm;
+  .a4-sheet-page:last-child {
+    page-break-after: avoid !important;
+    break-after: avoid !important;
   }
   .a4-slip-card {
-    border: 1.5px dashed #475569;
-    border-radius: 8px;
-    padding: 9px 11px;
-    break-inside: avoid;
-    page-break-inside: avoid;
+    height: 70mm;
+    max-height: 70mm;
+    box-sizing: border-box;
+    border: 1.2px dashed #475569;
+    border-radius: 6px;
+    padding: 4px 7px;
     background: #ffffff;
-    font-size: 0.74rem;
+    font-size: 0.68rem;
     display: flex;
     flex-direction: column;
-    gap: 5px;
+    justify-content: space-between;
+    overflow: hidden;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .slip-store-title {
+    text-align: center;
+    font-size: 0.72rem;
+    font-weight: 800;
+    color: #123b72;
+    border-bottom: 1px solid #cbd5e1;
+    padding-bottom: 2px;
+    margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .slip-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-bottom: 1px solid #cbd5e1;
-    padding-bottom: 4px;
+    border-bottom: 1px dashed #e2e8f0;
+    padding-bottom: 2px;
+    margin-bottom: 2px;
   }
   .slip-id {
-    font-size: 1.05rem;
+    font-size: 0.88rem;
     font-weight: 800;
     color: #0f172a;
   }
   .slip-badge {
-    font-size: 0.66rem;
+    font-size: 0.62rem;
     font-weight: 700;
     background: #f1f5f9;
-    padding: 2px 7px;
+    padding: 1px 5px;
     border-radius: 4px;
+    color: #334155;
   }
   .slip-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 4px;
-    margin: 3px 0;
+    gap: 2px 4px;
+    margin: 1px 0;
+    font-size: 0.66rem;
+    line-height: 1.35;
   }
   .slip-row {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 3px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
-  .slip-lbl { color: #64748b; font-size: 0.68rem; }
-  .slip-val { font-size: 0.75rem; font-weight: 700; }
+  .slip-lbl { color: #64748b; font-size: 0.62rem; flex-shrink: 0; }
+  .slip-val { font-size: 0.67rem; font-weight: 700; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .slip-count-banner {
     background: #eff6ff;
     border: 1px solid #bfdbfe;
-    border-radius: 6px;
-    padding: 5px 8px;
+    border-radius: 4px;
+    padding: 2px 6px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin: 2px 0;
-  }
-  .slip-notes-box {
-    background: #fefce8;
-    border: 1px solid #fef08a;
-    border-radius: 6px;
-    padding: 4px 8px;
-    font-size: 0.7rem;
-    color: #854d0e;
-    min-height: 22px;
-  }
-  .slip-footer {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 0.66rem;
-    color: #475569;
-    border-top: 1px dashed #cbd5e1;
-    padding-top: 4px;
-    margin-top: 3px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: #1e40af;
+    margin-top: 1px;
   }
 }
 
@@ -937,7 +930,7 @@ button { cursor: pointer; border: 0; outline: 0; }
       </div>
       </div>
       <div class="header-actions">
-        <button type="button" class="header-btn" onclick="printAllReadySlipsA4()" title="🖨️ طباعة كشف وبوالص الطلبات المجهزة (A4)">
+        <button type="button" class="header-btn" onclick="printAllSlipsA4()" title="🖨️ طباعة كشف وبوالص الطلبات (A4) - 8 بالصفحة">
           <i class="fas fa-print"></i>
         </button>
         <button type="button" class="header-btn" id="prepNotifBellBtn" onclick="requestPrepNotificationPermission()" title="تفعيل إشعارات الطلبات اللحظية">
@@ -992,19 +985,19 @@ button { cursor: pointer; border: 0; outline: 0; }
         <i class="fas fa-search search-icon"></i>
       </div>
       <div class="filter-row">
-        <select id="periodFilter" class="filter-select" onchange="loadPrepOrders()">
+        <select id="periodFilter" class="filter-select" onchange="handlePeriodFilterChange()">
           <option value="today" selected>📅 طلبات اليوم</option>
           <option value="last2days">طلبات آخر يومين</option>
           <option value="week">طلبات هذا الأسبوع</option>
           <option value="all">كل الفترات</option>
         </select>
-        <select id="driverFilter" class="filter-select" onchange="applyFilters()">
+        <select id="driverFilter" class="filter-select" onchange="handleDriverFilterChange()">
           <option value="">🛵 جميع المندوبين</option>
         </select>
       </div>
-      <button type="button" class="btn-batch-a4-print" onclick="printAllReadySlipsA4()" title="طباعة بوالص وكشف الطلبات المجهزة في صفحة A4 مجمعة">
+      <button type="button" class="btn-batch-a4-print" onclick="printAllSlipsA4()" title="طباعة كشف وبوالص الطلبات الحالية مقاس A4 (8 بوالص بكل ورقة بدون صفحات فارغة)">
         <i class="fas fa-print"></i>
-        <span>🖨️ طباعة كشف وبوالص الطلبات المجهزة (A4)</span>
+        <span>🖨️ طباعة كشف وبوالص الطلبات (A4)</span>
       </button>
     </div>
 
@@ -1148,6 +1141,12 @@ async function loadDrivers() {
     const select = $('driverFilter');
     if (!select) return;
     select.innerHTML = '<option value="">🛵 جميع المندوبين</option>' + list.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
+    try {
+      const savedDriver = localStorage.getItem('prep_driver_filter');
+      if (savedDriver && select.querySelector(`option[value="${savedDriver}"]`)) {
+        select.value = savedDriver;
+      }
+    } catch(e) {}
   } catch (e) {}
 }
 
@@ -1435,6 +1434,7 @@ function isOrderReadyPrep(order) {
 // Filtering
 function setFilterStatus(status) {
   currentFilterStatus = status;
+  try { localStorage.setItem('prep_filter_status', status); } catch(e) {}
   $('statPendingCard')?.classList.toggle('active', status === 'pending');
   $('statReadyCard')?.classList.toggle('active', status === 'ready');
   $('statTotalCard')?.classList.toggle('active', status === 'all');
@@ -1444,6 +1444,38 @@ function setFilterStatus(status) {
   $('tabAll')?.classList.toggle('active', status === 'all');
 
   applyFilters();
+}
+
+function handlePeriodFilterChange() {
+  const val = $('periodFilter')?.value || 'today';
+  try { localStorage.setItem('prep_period_filter', val); } catch(e) {}
+  loadPrepOrders();
+}
+
+function handleDriverFilterChange() {
+  const val = $('driverFilter')?.value || '';
+  try { localStorage.setItem('prep_driver_filter', val); } catch(e) {}
+  applyFilters();
+}
+
+function restoreSavedPrepFilters() {
+  try {
+    const savedPeriod = localStorage.getItem('prep_period_filter');
+    if (savedPeriod && $('periodFilter')) {
+      $('periodFilter').value = savedPeriod;
+    }
+    const savedStatus = localStorage.getItem('prep_filter_status');
+    if (savedStatus && ['pending', 'ready', 'all'].includes(savedStatus)) {
+      currentFilterStatus = savedStatus;
+      $('statPendingCard')?.classList.toggle('active', savedStatus === 'pending');
+      $('statReadyCard')?.classList.toggle('active', savedStatus === 'ready');
+      $('statTotalCard')?.classList.toggle('active', savedStatus === 'all');
+
+      $('tabPending')?.classList.toggle('active', savedStatus === 'pending');
+      $('tabReady')?.classList.toggle('active', savedStatus === 'ready');
+      $('tabAll')?.classList.toggle('active', savedStatus === 'all');
+    }
+  } catch(e) {}
 }
 
 function handleSearchInput() {
@@ -1811,27 +1843,42 @@ function togglePrepExtraItems(orderId, remainingCount) {
   }
 }
 
-// طباعة كل بوالص الطلبات المجهزة في صفحة A4 مجمعة
-function printAllReadySlipsA4() {
-  const readyOrders = allOrders.filter(o => isOrderReadyPrep(o));
-  if (readyOrders.length === 0) {
-    showPrepToast('لا توجد طلبات مُجهزة حالياً', 'قم باعتماد وتجهيز طلبات أولاً لتتمكن من طباعة كشف بوالصها المجمعة', 'modified');
+// طباعة كل بوالص الطلبات الحالية (المجهزة وغير المجهزة) - مقاس A4 مقسم 8 بوالص بالورقة بدون صفحات فارغة
+function printAllSlipsA4() {
+  const driverId = $('driverFilter')?.value || '';
+  
+  // تصفية الطلبات المطبوعة حسب الفترة والمندوب والبحث إن وجد (تشمل المجهز وغير المجهز حسب طلب المستخدم)
+  const ordersToPrint = allOrders.filter(order => {
+    if (driverId && String(order.assigned_driver_id) !== String(driverId)) return false;
+    if (['ملغي', 'تم التسليم', 'فشل التسليم', 'مرتجع كلي'].includes(order.status)) return false;
+    if (currentSearchQuery) {
+      const matchId = String(order.id).includes(currentSearchQuery);
+      const matchCust = (order.customer_name || '').toLowerCase().includes(currentSearchQuery);
+      const matchPhone = (order.customer_phone || '').includes(currentSearchQuery);
+      const matchAddress = (order.customer_address || '').toLowerCase().includes(currentSearchQuery);
+      if (!matchId && !matchCust && !matchPhone && !matchAddress) return false;
+    }
+    return true;
+  });
+
+  if (ordersToPrint.length === 0) {
+    showPrepToast('لا توجد طلبات للطباعة', 'لا توجد طلبات تطابق الفلترة الحالية لطباعتها', 'modified');
     return;
   }
 
-  const now = new Date();
-  const dateStr = now.toLocaleDateString('ar-SA', { year: 'numeric', month: 'long', day: 'numeric' });
-  const timeStr = now.toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit', hour12: true });
-
-  const slipsHtml = readyOrders.map((order) => {
+  // دالة توليد بطاقة البوليصة المفردة
+  const renderSingleSlipHtml = (order) => {
     const itemsCount = (order.items || []).length;
     const customerName = order.customer_name || 'عميل عام';
     const customerPhone = order.customer_phone || 'لا يوجد';
     const address = order.customer_address || 'غير محدد';
     const driverName = order.driver_name || 'بدون مندوب';
     const paymentMethod = order.payment_method || 'عند الاستلام';
+    const deliveryFee = Number(order.delivery_fee || 0);
+    const deliveryFeeDisplay = deliveryFee > 0 ? `${deliveryFee.toLocaleString('en-US')} ريال` : 'مجاناً';
     const totalAmount = Number(order.total_amount || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
-    const notes = order.notes ? `📌 ${order.notes}` : 'لا توجد ملاحظات خاصة';
+    const isReady = isOrderReadyPrep(order);
+    const statusDisplay = isReady ? 'جاهز للتوصيل' : (order.status || 'قيد التجهيز');
 
     let orderTimeDisplay = '';
     if (order.order_date || order.created_at) {
@@ -1843,9 +1890,11 @@ function printAllReadySlipsA4() {
 
     return `
       <div class="a4-slip-card">
+        <div class="slip-store-title">متجر ابن المختار للأدوات المنزلية</div>
+        
         <div class="slip-header">
           <div class="slip-id">📦 طلب #${order.id}</div>
-          <div class="slip-badge">${orderTimeDisplay || 'جاهز للتوصيل'}</div>
+          <div class="slip-badge">${orderTimeDisplay || statusDisplay}</div>
         </div>
         
         <div class="slip-grid">
@@ -1866,58 +1915,59 @@ function printAllReadySlipsA4() {
             <strong class="slip-val" style="color:#123b72;">${driverName}</strong>
           </div>
           <div class="slip-row">
+            <span class="slip-lbl">💳 طريقة الدفع:</span>
+            <strong class="slip-val">${paymentMethod}</strong>
+          </div>
+          <div class="slip-row">
+            <span class="slip-lbl">🚚 رسوم التوصيل:</span>
+            <strong class="slip-val">${deliveryFeeDisplay}</strong>
+          </div>
+          <div class="slip-row">
             <span class="slip-lbl">💵 الإجمالي:</span>
-            <strong class="slip-val" style="color:#16a34a;">${totalAmount} ريال (${paymentMethod})</strong>
+            <strong class="slip-val" style="color:#16a34a;">${totalAmount} ريال</strong>
           </div>
         </div>
 
         <div class="slip-count-banner">
-          <span style="font-size:0.75rem; font-weight:700; color:#1e40af;">📦 عدد المنتجات في الطرد:</span>
-          <strong style="font-size:0.95rem; color:#1e3a8a; background:#dbeafe; padding:2px 8px; border-radius:6px;">${itemsCount} أصناف</strong>
-        </div>
-
-        <div class="slip-notes-box">
-          <strong>الملاحظات:</strong> ${notes}
-        </div>
-
-        <div class="slip-footer">
-          <span>✓ تم التجهيز والتغليف بالكامل</span>
-          <span>توقيع الاستلام: _________________</span>
+          <span>📦 عدد المنتجات في الطرد:</span>
+          <strong>${itemsCount} أصناف</strong>
         </div>
       </div>
     `;
-  }).join('');
+  };
+
+  // تقسيم الطلبات إلى مجموعات كل مجموعة 8 بوالص بالضبط في كل ورقة A4
+  const chunks = [];
+  for (let i = 0; i < ordersToPrint.length; i += 8) {
+    chunks.push(ordersToPrint.slice(i, i + 8));
+  }
+
+  const pagesHtml = chunks.map(chunk => `
+    <div class="a4-sheet-page">
+      ${chunk.map(renderSingleSlipHtml).join('')}
+    </div>
+  `).join('');
 
   const printContainer = document.createElement('div');
   printContainer.id = 'batchA4PrintSection';
-  printContainer.innerHTML = `
-    <div class="a4-print-page">
-      <div class="a4-page-header">
-        <div class="a4-header-brand">
-          <div class="a4-logo">📦</div>
-          <div>
-            <h2 style="margin:0; font-size:1.25rem;">متجر ابن المختار للأدوات المنزلية</h2>
-            <p style="margin:2px 0 0; font-size:0.75rem; color:#475569;">كشف بوالص وتسليم الطلبات والطرود المجهزة للتوصيل</p>
-          </div>
-        </div>
-        <div class="a4-meta-box">
-          <div><strong>تاريخ الطباعة:</strong> ${dateStr} - ${timeStr}</div>
-          <div><strong>إجمالي الطرود المجهزة:</strong> <span style="font-size:1rem; font-weight:800; color:#1d63c6;">${readyOrders.length} طلبات</span></div>
-        </div>
-      </div>
+  printContainer.innerHTML = pagesHtml;
 
-      <div class="a4-slips-container">
-        ${slipsHtml}
-      </div>
-    </div>
-  `;
-
+  document.body.classList.add('a4-printing-mode');
   document.body.appendChild(printContainer);
+
+  const cleanup = () => {
+    document.body.classList.remove('a4-printing-mode');
+    if (printContainer.parentNode) printContainer.remove();
+    window.removeEventListener('afterprint', cleanup);
+  };
+
+  window.addEventListener('afterprint', cleanup);
   window.print();
-  setTimeout(() => {
-    printContainer.remove();
-  }, 1200);
+  setTimeout(cleanup, 2500);
 }
+
+// دالة بديلة للتوافق
+window.printAllReadySlipsA4 = printAllSlipsA4;
 
 // Print Slip
 async function printPrepSlip(orderId) {
@@ -1987,6 +2037,7 @@ function closePrepLightbox() {
 document.addEventListener('DOMContentLoaded', async () => {
   checkAuth();
   updateServerBadgeUi();
+  restoreSavedPrepFilters();
   await loadDrivers();
   await loadPrepOrders();
 
