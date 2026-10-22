@@ -686,6 +686,138 @@ button { cursor: pointer; border: 0; outline: 0; }
 .order-alert-pill.new { background: #dcfce7; color: #15803d; }
 .order-alert-pill.modified { background: #dbeafe; color: #1e40af; }
 
+/* Styling for Modified Orders in Preparation */
+.prep-order-card.is-modified {
+  border-right: 5px solid #f59e0b !important;
+}
+.prep-mod-alert-box {
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  border-radius: 10px;
+  padding: 8px 12px;
+  margin: 8px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.prep-mod-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.prep-mod-title {
+  color: #b45309;
+  font-weight: 800;
+  font-size: 0.82rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.prep-mod-time {
+  font-size: 0.7rem;
+  color: #92400e;
+}
+.prep-mod-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.pmod-chip {
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+.pmod-add { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
+.pmod-inc { background: #dbeafe; color: #1d4ed8; border: 1px solid #93c5fd; }
+.pmod-dec { background: #fef3c7; color: #b45309; border: 1px solid #fde68a; }
+.pmod-rem { background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; }
+
+/* Checklist Item Modification Highlights */
+.checklist-item.is-mod-added {
+  background: #f0fdf4 !important;
+  border-right: 5px solid #22c55e !important;
+}
+.checklist-item.is-mod-increased {
+  background: #eff6ff !important;
+  border-right: 5px solid #3b82f6 !important;
+}
+.checklist-item.is-mod-decreased {
+  background: #fffbeb !important;
+  border-right: 5px solid #f59e0b !important;
+}
+.mod-item-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  margin-top: 3px;
+  width: fit-content;
+}
+.mod-item-tag.tag-added {
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+.mod-item-tag.tag-increased {
+  background: #dbeafe;
+  color: #1e40af;
+  border: 1px solid #bfdbfe;
+}
+.mod-item-tag.tag-decreased {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+
+/* Removed Items Box */
+.prep-removed-items-block {
+  background: #fff1f2;
+  border: 1.5px dashed #f43f5e;
+  border-radius: 10px;
+  padding: 10px;
+  margin-top: 10px;
+}
+.prep-removed-title {
+  color: #be123c;
+  font-size: 0.8rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+.prep-removed-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.prep-removed-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #fecdd3;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+}
+.prep-removed-name {
+  font-weight: 700;
+  color: #9f1239;
+  text-decoration: line-through;
+}
+.prep-removed-qty {
+  color: #e11d48;
+  font-weight: 800;
+  background: #ffe4e6;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
 .prep-notif-toast-container {
   position: fixed;
   top: 14px;
@@ -1263,10 +1395,44 @@ function triggerBrowserNotification(title, body) {
   }
 }
 
+function getOrderModifications(order) {
+  if (!order || !order.order_modifications) return null;
+  if (typeof order.order_modifications === 'object') return order.order_modifications;
+  try {
+    return JSON.parse(order.order_modifications);
+  } catch(e) {
+    return null;
+  }
+}
+
+function getItemModification(mod, item) {
+  if (!mod || !mod.has_changes) return null;
+  const pId = item.product_id ? Number(item.product_id) : null;
+  const pName = (item.product_name || item.catalog_name || '').trim();
+
+  // 1. فحص المضاف
+  if (Array.isArray(mod.added)) {
+    const found = mod.added.find(m => (pId && Number(m.product_id) === pId) || (pName && m.product_name && m.product_name.trim() === pName));
+    if (found) return { type: 'added', ...found };
+  }
+  // 2. فحص الزيادة
+  if (Array.isArray(mod.increased)) {
+    const found = mod.increased.find(m => (pId && Number(m.product_id) === pId) || (pName && m.product_name && m.product_name.trim() === pName));
+    if (found) return { type: 'increased', ...found };
+  }
+  // 3. فحص الإنقاص
+  if (Array.isArray(mod.decreased)) {
+    const found = mod.decreased.find(m => (pId && Number(m.product_id) === pId) || (pName && m.product_name && m.product_name.trim() === pName));
+    if (found) return { type: 'decreased', ...found };
+  }
+  return null;
+}
+
 function isOrderReadyPrep(order) {
   if (!order) return false;
   const s = String(order.prep_status || '').toLowerCase().trim();
   const mainStatus = String(order.status || '').trim();
+  if (s === 'pending') return false;
   const localStatus = localStorage.getItem(`prep_status_${order.id}`) || '';
   if (s === 'ready' || s === 'تم التجهيز' || mainStatus === 'جاهز للتوصيل' || mainStatus === 'جاهز' || localStatus === 'ready') {
     return true;
@@ -1540,6 +1706,20 @@ function renderOrderCardHtml(order) {
     } catch(e) {}
   }
 
+  // Modification awareness
+  const mod = getOrderModifications(order);
+  const hasMod = mod && mod.has_changes;
+
+  // If order was modified or pending on server, remove stale local cache
+  if (hasMod && (!order.prepared_items || order.prep_status === 'pending')) {
+    try {
+      localStorage.removeItem(`prep_status_${order.id}`);
+      if (!order.prepared_items) {
+        localStorage.removeItem(`prep_items_${order.id}`);
+      }
+    } catch(e) {}
+  }
+
   // Parse Prepared Items with local fallback
   let preparedMap = {};
   try {
@@ -1582,15 +1762,31 @@ function renderOrderCardHtml(order) {
     `;
   }
 
-  // Items Checklist (مع خاصية إظهار أول 3 أصناف وزر إظهار الباقي إذا زادت عن 3)
+  // Items Checklist (مع تمييز الأصناف المضافة والزيادة والنقصان)
   const itemsChecklistRows = items.map(item => {
     const isChecked = !!preparedMap[item.id];
     const itemName = item.product_name || item.catalog_name || `صنف #${item.product_id}`;
     const variantTag = item.variant_label ? `<span class="item-note-tag">${item.variant_label}</span>` : '';
     const noteTag = item.note || item.notes ? `<span class="item-note-tag">📌 ${item.note || item.notes}</span>` : '';
 
+    const itemMod = getItemModification(mod, item);
+    let modTag = '';
+    let itemModClass = '';
+    if (itemMod) {
+      if (itemMod.type === 'added') {
+        itemModClass = 'is-mod-added';
+        modTag = `<span class="mod-item-tag tag-added"><i class="fas fa-plus-circle"></i> 🆕 صنف مضاف جديد (+${item.quantity})</span>`;
+      } else if (itemMod.type === 'increased') {
+        itemModClass = 'is-mod-increased';
+        modTag = `<span class="mod-item-tag tag-increased"><i class="fas fa-arrow-up"></i> ⬆️ زادت الكمية من ${itemMod.old_quantity} إلى ${itemMod.new_quantity} (+${itemMod.diff})</span>`;
+      } else if (itemMod.type === 'decreased') {
+        itemModClass = 'is-mod-decreased';
+        modTag = `<span class="mod-item-tag tag-decreased"><i class="fas fa-arrow-down"></i> ⬇️ نَقَصت الكمية من ${itemMod.old_quantity} إلى ${itemMod.new_quantity} (-${itemMod.diff})</span>`;
+      }
+    }
+
     return `
-      <div class="checklist-item ${isChecked ? 'is-checked' : ''}" id="item-row-${order.id}-${item.id}">
+      <div class="checklist-item ${itemModClass} ${isChecked ? 'is-checked' : ''}" id="item-row-${order.id}-${item.id}">
         <button type="button" class="prep-checkbox-btn ${isChecked ? 'checked' : ''}" 
                 onclick="toggleItemCheck(${order.id}, ${item.id}, event)" title="تعليم الصنف">
           ✓
@@ -1602,6 +1798,7 @@ function renderOrderCardHtml(order) {
             ${variantTag}
             ${noteTag}
           </div>
+          ${modTag}
         </div>
       </div>
     `;
@@ -1627,11 +1824,69 @@ function renderOrderCardHtml(order) {
     `;
   }
 
+  // تنبيه تعديل الطلب الذكي (Alert Banner)
+  let modAlertHtml = '';
+  if (hasMod) {
+    const addedCount = (mod.added || []).length;
+    const increasedCount = (mod.increased || []).length;
+    const decreasedCount = (mod.decreased || []).length;
+    const removedCount = (mod.removed || []).length;
+
+    let timeText = '';
+    if (mod.modified_at) {
+      try {
+        const md = new Date(mod.modified_at);
+        timeText = md.toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' });
+      } catch(e) {}
+    }
+
+    modAlertHtml = `
+      <div class="prep-mod-alert-box">
+        <div class="prep-mod-header">
+          <div class="prep-mod-title">
+            <i class="fas fa-exclamation-triangle"></i>
+            <span>⚠️ تنبيه ذكي: تم تعديل هذا الطلب</span>
+          </div>
+          ${timeText ? `<span class="prep-mod-time"><i class="fas fa-history"></i> تم التعديل: ${timeText}</span>` : ''}
+        </div>
+        <div class="prep-mod-badges">
+          ${addedCount > 0 ? `<span class="pmod-chip pmod-add">🆕 مضاف جديد (${addedCount})</span>` : ''}
+          ${increasedCount > 0 ? `<span class="pmod-chip pmod-inc">⬆️ زيادة كمية (${increasedCount})</span>` : ''}
+          ${decreasedCount > 0 ? `<span class="pmod-chip pmod-dec">⬇️ إنقاص كمية (${decreasedCount})</span>` : ''}
+          ${removedCount > 0 ? `<span class="pmod-chip pmod-rem">❌ صنف ملغي (${removedCount})</span>` : ''}
+        </div>
+      </div>
+    `;
+  }
+
+  // أصناف تم حذفها (قائمة حمراء خاصة للمجهّز كي يُخرجها من الصندوق إن وُجدت)
+  let removedItemsHtml = '';
+  if (hasMod && Array.isArray(mod.removed) && mod.removed.length > 0) {
+    removedItemsHtml = `
+      <div class="prep-removed-items-block">
+        <div class="prep-removed-title">
+          <i class="fas fa-trash-alt"></i>
+          <span>❌ أصناف تم حذفها وإلغاؤها من الطلب (أعدها إلى الرف):</span>
+        </div>
+        <div class="prep-removed-list">
+          ${mod.removed.map(rem => `
+            <div class="prep-removed-row">
+              <span class="prep-removed-name">🗑️ ${rem.product_name || `صنف #${rem.product_id}`}</span>
+              <span class="prep-removed-qty">الكمية الملغاة: <strong>${rem.quantity}</strong></span>
+              ${rem.variant_label ? `<span class="prep-removed-variant">${rem.variant_label}</span>` : ''}
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }
+
   return `
-    <article class="prep-order-card ${isReady ? 'ready' : ''} ${newAlertOrderIds.has(order.id) ? 'order-card-new-alert' : ''} ${modifiedAlertOrderIds.has(order.id) ? 'order-card-modified-alert' : ''}" id="order-card-${order.id}" onclick="newAlertOrderIds.delete(${order.id}); modifiedAlertOrderIds.delete(${order.id}); this.classList.remove('order-card-new-alert', 'order-card-modified-alert');">
+    <article class="prep-order-card ${isReady ? 'ready' : ''} ${hasMod ? 'is-modified' : ''} ${newAlertOrderIds.has(order.id) ? 'order-card-new-alert' : ''} ${modifiedAlertOrderIds.has(order.id) ? 'order-card-modified-alert' : ''}" id="order-card-${order.id}" onclick="newAlertOrderIds.delete(${order.id}); modifiedAlertOrderIds.delete(${order.id}); this.classList.remove('order-card-new-alert', 'order-card-modified-alert');">
       <div class="card-header">
         <div class="order-badge-row">
           <span class="order-number">📦 طلب #${order.id}</span>
+          ${hasMod ? '<span class="order-alert-pill modified"><i class="fas fa-edit"></i> معدل</span>' : ''}
           <span class="order-time"><i class="fas fa-clock"></i> ${dateDisplay}</span>
           ${order.driver_name ? `<span style="font-size:0.7rem; color:#4338ca; background:#e0e7ff; padding:2px 8px; border-radius:8px; font-weight:700;">🛵 ${order.driver_name}</span>` : '<span style="font-size:0.7rem; color:#64748b; background:#f1f5f9; padding:2px 8px; border-radius:8px;">بدون مندوب</span>'}
         </div>
@@ -1639,6 +1894,9 @@ function renderOrderCardHtml(order) {
           ${isReady ? '✅ مُجهز بالكامل' : '⏳ قيد التجهيز'}
         </span>
       </div>
+
+      <!-- تنبيه تعديل أصناف الطلب الذكي -->
+      ${modAlertHtml}
 
       <!-- بيانات العميل والتوصيل -->
       <div class="order-customer-box">
@@ -1675,6 +1933,7 @@ function renderOrderCardHtml(order) {
         <div class="checklist-items">
           ${itemsChecklistHtml || '<div style="padding:10px;text-align:center;font-size:0.75rem;color:#94a3b8;">لا توجد أصناف</div>'}
         </div>
+        ${removedItemsHtml}
       </div>
 
       <!-- أزرار الإجراءات -->

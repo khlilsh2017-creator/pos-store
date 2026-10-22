@@ -14,7 +14,7 @@ const corsHeaders = {
 // ==================== إصدار مخطط قاعدة البيانات ====================
 // ⚠️ مهم: عند أي تغيير في الجداول/الفهارس/الأعمدة، ارفع هذا الرقم
 // (مثال: v3.2.0 → v3.3.0) وسيُعاد تشغيل التهيئة مرة واحدة تلقائياً
-const SCHEMA_VERSION = 'v3.2.0';
+const SCHEMA_VERSION = 'v3.2.1';
 // ==================== كاش توكن Firebase ======================
 let fcmTokenCache = {
   token: null,
@@ -494,6 +494,7 @@ async function initializeDatabase(env) {
     { table: 'product_variants', col: 'barcode', type: 'TEXT' },
     { table: 'online_orders', col: 'actual_collected', type: 'REAL DEFAULT 0' },
     { table: 'online_orders', col: 'order_date', type: 'DATETIME' },
+    { table: 'online_orders', col: 'order_modifications', type: 'TEXT' },
     { table: 'online_order_items', col: 'discount', type: 'REAL DEFAULT 0' },
     { table: 'online_order_items', col: 'note', type: 'TEXT' },
     { table: 'online_order_items', col: 'variant_id', type: 'INTEGER' },
@@ -11363,19 +11364,145 @@ async function updateOnlineOrder(request, env, ctx, headers, orderId, userId) {
       }
     }
 
+    // ===== تتبع التعديلات على أصناف الطلب (Added, Increased, Decreased, Removed) =====
+    const prevOrderItems = await dbAll(tx, "SELECT id, product_id, product_name, quantity, unit_price, variant_id, variant_label FROM online_order_items WHERE order_id = ?", [orderId]);
+
+    const prevMap = new Map();
+    for (const it of prevOrderItems) {
+      const pId = it.product_id ? Number(it.product_id) : null;
+      const vId = it.variant_id ? `_v${it.variant_id}` : '';
+      const key = pId ? `id_${pId}${vId}` : `name_${(it.product_name || '').trim()}${vId}`;
+      const prevEntry = prevMap.get(key) || {
+        product_id: pId,
+        product_name: it.product_name,
+        variant_id: it.variant_id || null,
+        variant_label: it.variant_label || '',
+        quantity: 0,
+        unit_price: Number(it.unit_price) || 0
+      };
+      prevEntry.quantity += Number(it.quantity) || 0;
+      prevMap.set(key, prevEntry);
+    }
+
+    const newMap = new Map();
+    for (const it of items) {
+      const pId = it.product_id ? Number(it.product_id) : null;
+      const vId = it.variant_id ? `_v${it.variant_id}` : '';
+      const key = pId ? `id_${pId}${vId}` : `name_${(it.product_name || '').trim()}${vId}`;
+      const newEntry = newMap.get(key) || {
+        product_id: pId,
+        product_name: it.product_name,
+        variant_id: it.variant_id || null,
+        variant_label: it.variant_label || '',
+        quantity: 0,
+        unit_price: Number(it.unit_price) || 0
+      };
+      newEntry.quantity += Number(it.quantity) || 0;
+      newMap.set(key, newEntry);
+    }
+
+    const addedMod = [];
+    const increasedMod = [];
+    const decreasedMod = [];
+    const removedMod = [];
+
+    // فحص الأصناف الجديدة أو التي تغيرت كمياتها
+    for (const [key, newEntry] of newMap.entries()) {
+      const prevEntry = prevMap.get(key);
+      if (!prevEntry || prevEntry.quantity <= 0) {
+        addedMod.push({
+          product_id: newEntry.product_id,
+          product_name: newEntry.product_name,
+          variant_id: newEntry.variant_id,
+          variant_label: newEntry.variant_label,
+          quantity: newEntry.quantity,
+          diff: newEntry.quantity,
+          type: 'added'
+        });
+      } else {
+        const oldQty = prevEntry.quantity;
+        const newQty = newEntry.quantity;
+        if (newQty > oldQty) {
+          increasedMod.push({
+            product_id: newEntry.product_id,
+            product_name: newEntry.product_name,
+            variant_id: newEntry.variant_id,
+            variant_label: newEntry.variant_label,
+            old_quantity: oldQty,
+            new_quantity: newQty,
+            quantity: newQty,
+            diff: newQty - oldQty,
+            type: 'increased'
+          });
+        } else if (newQty < oldQty) {
+          decreasedMod.push({
+            product_id: newEntry.product_id,
+            product_name: newEntry.product_name,
+            variant_id: newEntry.variant_id,
+            variant_label: newEntry.variant_label,
+            old_quantity: oldQty,
+            new_quantity: newQty,
+            quantity: newQty,
+            diff: oldQty - newQty,
+            type: 'decreased'
+          });
+        }
+      }
+    }
+
+    // فحص الأصناف المحذوفة
+    for (const [key, prevEntry] of prevMap.entries()) {
+      if (!newMap.has(key) || newMap.get(key).quantity <= 0) {
+        removedMod.push({
+          product_id: prevEntry.product_id,
+          product_name: prevEntry.product_name,
+          variant_id: prevEntry.variant_id,
+          variant_label: prevEntry.variant_label,
+          quantity: prevEntry.quantity,
+          diff: prevEntry.quantity,
+          type: 'removed'
+        });
+      }
+    }
+
+    const hasItemChanges = (addedMod.length > 0 || increasedMod.length > 0 || decreasedMod.length > 0 || removedMod.length > 0);
+    let orderModificationsJson = existingOrder.order_modifications || null;
+    if (hasItemChanges) {
+      orderModificationsJson = JSON.stringify({
+        modified_at: new Date().toISOString(),
+        has_changes: true,
+        summary: `تم تعديل الأصناف: ${addedMod.length ? `+${addedMod.length} مضاف ` : ''}${increasedMod.length ? `⬆️ ${increasedMod.length} زيادة ` : ''}${decreasedMod.length ? `⬇️ ${decreasedMod.length} إنقاص ` : ''}${removedMod.length ? `❌ ${removedMod.length} محذوف` : ''}`.trim(),
+        added: addedMod,
+        increased: increasedMod,
+        decreased: decreasedMod,
+        removed: removedMod
+      });
+    }
+
+    try {
+      await dbRun(tx, "ALTER TABLE online_orders ADD COLUMN order_modifications TEXT");
+    } catch (_) {}
+
     if (orderImagesJson !== undefined) {
       await dbRun(tx, `UPDATE online_orders SET 
         customer_name = ?, customer_phone = ?, customer_address = ?, governorate = ?, 
         delivery_type = ?, payment_method = ?, total_amount = ?, notes = ?, 
         delivery_fee = ?, delivery_fee_payment = ?, order_date = COALESCE(?, order_date),
-        order_images = ? WHERE id = ?`,
-        [customer_name, mainPhone, customer_address, governorate, delivery_type, normalizedPaymentMethod, total, notes, delivery_fee, delivery_fee_payment, order_date || null, orderImagesJson, orderId]);
+        order_images = ?, order_modifications = ?,
+        prep_status = CASE WHEN ? = 1 AND prep_status = 'ready' THEN 'pending' ELSE prep_status END,
+        prepared_items = CASE WHEN ? = 1 THEN NULL ELSE prepared_items END
+        WHERE id = ?`,
+        [customer_name, mainPhone, customer_address, governorate, delivery_type, normalizedPaymentMethod, total, notes, delivery_fee, delivery_fee_payment, order_date || null, orderImagesJson, orderModificationsJson, hasItemChanges ? 1 : 0, hasItemChanges ? 1 : 0, orderId]);
     } else {
       await dbRun(tx, `UPDATE online_orders SET 
         customer_name = ?, customer_phone = ?, customer_address = ?, governorate = ?, 
         delivery_type = ?, payment_method = ?, total_amount = ?, notes = ?, 
-        delivery_fee = ?, delivery_fee_payment = ?, order_date = COALESCE(?, order_date) WHERE id = ?`,
-        [customer_name, mainPhone, customer_address, governorate, delivery_type, normalizedPaymentMethod, total, notes, delivery_fee, delivery_fee_payment, order_date || null, orderId]);
+        delivery_fee = ?, delivery_fee_payment = ?, order_date = COALESCE(?, order_date),
+        order_modifications = ?,
+        prep_status = CASE WHEN ? = 1 AND prep_status = 'ready' THEN 'pending' ELSE prep_status END,
+        prepared_items = CASE WHEN ? = 1 THEN NULL ELSE prepared_items END
+        WHERE id = ?`,
+        [customer_name, mainPhone, customer_address, governorate, delivery_type, normalizedPaymentMethod, total, notes, delivery_fee, delivery_fee_payment, order_date || null, orderModificationsJson, hasItemChanges ? 1 : 0, hasItemChanges ? 1 : 0, orderId]);
     }
 
     // ===== حذف عناصر الطلب والفواتير القديمة =====
@@ -11553,10 +11680,11 @@ async function updateOnlineOrder(request, env, ctx, headers, orderId, userId) {
 
     try {
       // إرسال إشعارات
+      const modAlertText = hasItemChanges ? ' (تم تعديل الأصناف)' : '';
       ctx.waitUntil(sendAdminFCMNotification(
         env,
         `✏️ تعديل الطلب #${orderId}`,
-        `تم تعديل بيانات الطلب #${orderId}`
+        `تم تعديل بيانات الطلب #${orderId}${modAlertText}`
       ));
 
       const targetDriverId = driver_id || existingOrder.assigned_driver_id;
@@ -11564,7 +11692,7 @@ async function updateOnlineOrder(request, env, ctx, headers, orderId, userId) {
         ctx.waitUntil(sendFCMNotification(
           env,
           `✏️ تعديل الطلب #${orderId}`,
-          `تم تعديل بيانات الطلب #${orderId}، يرجى مراجعة التفاصيل`,
+          `تم تعديل بيانات الطلب #${orderId}${modAlertText}، يرجى مراجعة التفاصيل`,
           null,
           `https://pos.ibnalmukhtar.com/driver/?order=${orderId}`,
           targetDriverId,
@@ -11576,6 +11704,7 @@ async function updateOnlineOrder(request, env, ctx, headers, orderId, userId) {
         success: true,
         order_id: orderId,
         sale_id: sale.id,
+        order_modifications: orderModificationsJson ? JSON.parse(orderModificationsJson) : null,
         message: 'تم تحديث الطلب'
       }, 200, headers);
     } catch (postCommitError) {
