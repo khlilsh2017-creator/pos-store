@@ -508,45 +508,44 @@
         }
 
         .main-content {
-            padding: 12px;
-            padding-bottom: calc(150px + var(--safe-bottom, 0px));
+            padding: 10px;
+            padding-bottom: calc(100px + var(--safe-bottom, 0px));
         }
 
         /* --- NEW TOP SEARCH BAR --- */
         .top-search-bar {
             background: var(--card);
             border-radius: var(--radius);
-            padding: 8px 12px;
-            margin-bottom: 12px;
+            padding: 6px 10px;
+            margin-bottom: 8px;
             border: 1px solid var(--border);
             box-shadow: var(--shadow);
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
             position: sticky;
-            top: calc(var(--nav-height) + 8px);
+            top: calc(var(--nav-height) + 4px);
             z-index: 40;
             transition: background 0.3s;
         }
         .top-search-bar .search-row {
             display: flex;
             align-items: center;
-            gap: 8px;
-            flex-wrap: wrap;
+            gap: 6px;
+            flex-wrap: nowrap;
         }
         .top-search-bar .search-row input {
             flex: 1;
-            min-width: 140px;
+            min-width: 0;
+            min-height: 38px;
+            font-size: 0.85rem;
         }
         .top-search-bar .search-row .btn {
             width: auto;
-            min-height: 40px;
-            padding: 8px 14px;
+            min-height: 38px;
+            padding: 6px 10px;
+            font-size: 0.8rem;
+            flex-shrink: 0;
         }
         .top-search-bar .search-hint {
-            font-size: 0.65rem;
-            color: var(--muted);
-            white-space: nowrap;
+            display: none;
         }
 
         /* --- DROPDOWN SEARCH RESULTS --- */
@@ -554,13 +553,16 @@
             background: var(--card);
             border: 1px solid var(--border);
             border-radius: var(--radius-sm);
-            max-height: 300px;
+            max-height: 280px;
             overflow-y: auto;
-            box-shadow: var(--shadow-lg);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
             display: none;
-            position: relative;
-            z-index: 45;
-            margin-top: 4px;
+            position: absolute;
+            top: calc(100% + 4px);
+            left: 0;
+            right: 0;
+            z-index: 9999;
+            margin-top: 0;
         }
         .search-dropdown .dropdown-item {
             display: flex;
@@ -593,17 +595,9 @@
             font-size: 0.8rem;
         }
 
-        /* --- SETTINGS INFO --- */
+        /* --- SETTINGS INFO (نقل للإعدادات) --- */
         .settings-info {
-            font-size: 0.65rem;
-            color: var(--muted);
-            padding: 4px 8px;
-            background: var(--bg);
-            border-radius: 6px;
-            margin: 4px 0;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
+            display: none !important;
         }
 
         /* --- CUSTOMER SUMMARY --- */
@@ -662,11 +656,10 @@
 
         /* --- CART ITEMS with SWIPE --- */
         .cart-items {
-            max-height: 48vh;
-            min-height: 140px;
+            max-height: 38vh;
             overflow-y: auto;
-            margin: 6px 0;
-            padding-top: 4px;
+            margin: 4px 0;
+            padding-top: 2px;
             border-top: 1px solid var(--border);
         }
         .cart-item-wrapper {
@@ -1130,197 +1123,96 @@
             background: #0f172a;
         }
 
-        /* --- BOTTOM ACTIONS (Modern Floating Bar with Frosted Glass & Responsive Buttons) --- */
+        /* --- BOTTOM ACTIONS (Clean Single-Row Floating Bar) --- */
         .bottom-actions {
             position: fixed;
             bottom: 0;
             left: 0;
             right: 0;
-            background: rgba(255, 255, 255, 0.94);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
+            background: rgba(255, 255, 255, 0.96);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
             padding: 8px 10px;
-            padding-bottom: max(10px, var(--safe-bottom, 0px));
+            padding-bottom: max(8px, var(--safe-bottom, 0px));
             border-top: 1px solid rgba(226, 232, 240, 0.9);
-            box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.08);
+            box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.08);
             z-index: 40;
             display: flex;
-            flex-direction: column;
-            gap: 6px;
+            align-items: center;
+            gap: 5px;
             transition: background 0.3s, border-color 0.3s;
         }
 
         .dark-mode .bottom-actions, [data-theme="dark"] .bottom-actions {
-            background: rgba(15, 23, 42, 0.94);
+            background: rgba(15, 23, 42, 0.96);
             border-top: 1px solid rgba(51, 65, 85, 0.9);
-            box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.45);
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.45);
         }
 
-        .bottom-bar-top-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 5px;
-            font-size: 0.72rem;
-            width: 100%;
-        }
-
-        .draft-status-pill {
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            font-size: 0.65rem;
-            color: var(--muted);
-            background: var(--bg);
-            padding: 3px 6px;
-            border-radius: 12px;
-            border: 1px solid var(--border);
-            white-space: nowrap;
-            flex-shrink: 0;
-        }
-
-        .bottom-util-group {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            flex: 1;
-            justify-content: flex-end;
-            min-width: 0;
-        }
-
-        .bottom-util-btn {
-            background: var(--bg);
-            border: 1px solid var(--border);
-            color: var(--text-secondary);
-            border-radius: 8px;
-            padding: 5px 6px;
-            font-size: 0.68rem;
-            font-weight: 600;
-            cursor: pointer;
+        .bottom-actions .btn {
+            min-height: 40px;
+            font-size: 0.85rem;
+            padding: 0 8px;
+            border-radius: var(--radius-sm);
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            gap: 3px;
-            transition: var(--transition);
-            font-family: inherit;
-            flex: 1;
-            min-width: 0;
+            gap: 4px;
+            cursor: pointer;
             white-space: nowrap;
         }
 
-        .bottom-util-btn span {
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-
-        .bottom-util-btn:hover {
-            border-color: var(--primary);
-            color: var(--primary);
-            background: rgba(26, 86, 219, 0.06);
-        }
-
-        .dark-mode .bottom-util-btn, [data-theme="dark"] .bottom-util-btn {
-            background: #1e293b;
-            border-color: #334155;
-            color: #94a3b8;
-        }
-        .dark-mode .bottom-util-btn:hover, [data-theme="dark"] .bottom-util-btn:hover {
-            border-color: #60a5fa;
-            color: #60a5fa;
-            background: rgba(59, 130, 246, 0.12);
-        }
-
-        .bottom-bar-main-row {
-            display: flex;
-            gap: 8px;
-            align-items: stretch;
-            width: 100%;
-        }
-
-        .btn-save-main {
-            flex: 1.6;
-            min-width: 0;
+        .bottom-actions .btn-save-main {
+            flex: 2;
             background: linear-gradient(135deg, #16a34a 0%, #15803d 100%) !important;
             color: #fff !important;
             border: none;
-            border-radius: var(--radius-sm);
-            padding: 10px 10px;
-            font-size: 0.90rem;
             font-weight: 800;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-            cursor: pointer;
-            box-shadow: 0 4px 14px rgba(22, 163, 74, 0.35);
-            transition: var(--transition);
-            white-space: nowrap;
+            box-shadow: 0 2px 8px rgba(22, 163, 74, 0.3);
         }
 
-        .btn-save-main:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 6px 18px rgba(22, 163, 74, 0.45);
-        }
-
-        .btn-quick-main {
-            flex: 1;
-            min-width: 0;
+        .bottom-actions .btn-quick-main {
+            flex: 1.4;
             background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
             color: #fff !important;
             border: none;
-            border-radius: var(--radius-sm);
-            padding: 10px 8px;
-            font-size: 0.85rem;
             font-weight: 700;
+            box-shadow: 0 2px 8px rgba(245, 158, 11, 0.25);
+        }
+
+        .bottom-actions .btn-draft-main {
+            flex: 1.2;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        .bottom-actions .btn-icon-only {
+            flex: 0 0 38px;
+            width: 38px;
+            min-height: 40px;
+            padding: 0;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            font-size: 0.92rem;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            gap: 5px;
-            cursor: pointer;
-            box-shadow: 0 4px 14px rgba(245, 158, 11, 0.3);
-            transition: var(--transition);
-            white-space: nowrap;
         }
 
-        .btn-quick-main:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 6px 18px rgba(245, 158, 11, 0.4);
+        .dark-mode .bottom-actions .btn-draft-main,
+        .dark-mode .bottom-actions .btn-icon-only,
+        [data-theme="dark"] .bottom-actions .btn-draft-main,
+        [data-theme="dark"] .bottom-actions .btn-icon-only {
+            background: #1e293b;
+            border-color: #334155;
+            color: #cbd5e1;
         }
 
-        @media (max-width: 360px) {
-            .bottom-actions {
-                padding: 6px 6px;
-                gap: 5px;
-            }
-            .draft-status-pill .draft-label-text {
-                display: none;
-            }
-            .bottom-util-btn {
-                padding: 4px 3px;
-                font-size: 0.63rem;
-                gap: 2px;
-            }
-            .btn-save-main, .btn-quick-main {
-                padding: 8px 6px;
-                font-size: 0.82rem;
-            }
-        }
-
-        /* --- OFFLINE BANNER --- */
-        .offline-banner {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-            color: #fff;
-            padding: 9px 12px;
-            border-radius: var(--radius-sm);
-            font-size: 0.74rem;
-            font-weight: 700;
-            margin-bottom: 10px;
-            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25);
-            animation: fadeIn 0.3s ease;
+        .draft-status-indicator {
+            display: none;
         }
 
         /* --- TOAST (Appears at TOP of screen) --- */
@@ -1375,9 +1267,6 @@
             }
             to {
                 opacity: 1;
-                transform: translateY(0);
-            }
-        }
                 transform: translateY(0);
             }
         }
@@ -1895,26 +1784,18 @@
     <!-- ===== TOP SEARCH BAR ===== -->
     <div class="top-search-bar" id="top-search-bar">
         <div class="search-row">
-            <input type="text" id="top-search-input" class="input-field input-field-sm" placeholder="🔍 بحث عن منتج أو باركود..." autocomplete="off" />
+            <input type="text" id="top-search-input" class="input-field input-field-sm" placeholder="🔍 بحث عن منتج أو باركود (3 أحرف)..." autocomplete="off" />
             <button class="btn btn-sm btn-primary" id="btn-search-trigger-ph" onclick="triggerSearch()" title="بحث"><i class="fas fa-search"></i></button>
             <button class="btn btn-sm btn-outline" id="btn-clear-search-ph" onclick="clearSearch()" title="مسح"><i class="fas fa-times"></i></button>
             <button class="btn btn-sm btn-success" id="btn-open-add-product-modal-top" onclick="openAddProductModal()" style="width:auto; font-weight:700; white-space:nowrap;" title="إضافة منتج جديد"><i class="fas fa-plus"></i> إضافة صنف</button>
         </div>
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:2px; padding:0 2px;">
-            <span class="search-hint" id="search-hint" style="font-size:0.65rem; color:var(--muted);">(ابحث بـ 3 أحرف فأكثر تلقائياً)</span>
-        </div>
+        <span id="search-hint" style="display:none;"></span>
         <!-- القائمة المنسدلة لنتائج البحث -->
         <div class="search-dropdown" id="search-dropdown"></div>
     </div>
 
     <!-- ===== MAIN ===== -->
     <main class="main-content" id="main-content">
-
-        <!-- تنبيه عدم وجود إنترنت (أوفلاين) -->
-        <div id="offline-network-banner" class="offline-banner" style="display:none;">
-            <i class="fas fa-wifi-slash"></i>
-            <span>أنت غير متصل بالإنترنت حالياً (أوفلاين) - سيتم حفظ الطلبات محلياً ومزامنتها فور عودة الاتصال.</span>
-        </div>
 
         <!-- شريط حالة الطلب -->
         <div id="order-status-bar" class="order-status-bar" style="display:none;">
@@ -1924,10 +1805,7 @@
             <span style="font-size:0.65rem;color:var(--muted);margin-right:auto;">لا يمكن تعديل بعض الحقول</span>
         </div>
 
-        <!-- عرض الإعدادات -->
-        <div class="settings-info" id="settings-info">
-            ⚙️ جاري تحميل الإعدادات...
-        </div>
+        <div class="settings-info" id="settings-info" style="display:none;"></div>
 
         <!-- ===== CUSTOMER ROW ===== -->
         <div class="customer-row" id="customer-row" onclick="openCustomerModal()">
@@ -2112,42 +1990,30 @@
             <div class="products-count" id="products-count-label">عدد المنتجات: --</div>
         </div>
 
-        <!-- مسافة أمان لمنع تغطية الشريط السفلي على المحتوى -->
-        <div style="height: 40px; width: 100%;"></div>
+        <!-- مسافة أمان للشريط السفلي -->
+        <div style="height: 30px; width: 100%;"></div>
 
-        <!-- ===== BOTTOM ACTIONS (الشريط السفلي الاحترافي) ===== -->
+        <!-- ===== BOTTOM ACTIONS (الشريط السفلي الموحد والأنيق) ===== -->
         <div class="bottom-actions">
-            <!-- السطر العلوي للأدوات وحالة المسودة (متجاوب مع مختلف الشاشات) -->
-            <div class="bottom-bar-top-row">
-                <span id="draft-status" class="draft-status-pill">
-                    <i class="fas fa-cloud"></i>
-                    <span class="draft-label-text">حفظ تلقائي</span>
-                </span>
-                <div class="bottom-util-group">
-                    <button type="button" class="bottom-util-btn" id="btn-save-draft-ph" onclick="saveDraft()" title="حفظ المسودة">
-                        <i class="fas fa-download"></i> <span>مسودة</span>
-                    </button>
-                    <button type="button" class="bottom-util-btn" id="btn-open-drafts-modal-ph" onclick="openDraftsModal()" title="المسودات المحفوظة">
-                        <i class="fas fa-folder-open"></i> <span>المسودات</span>
-                    </button>
-                    <button type="button" class="bottom-util-btn" id="btn-open-edit-orders-modal-ph" onclick="openEditOrdersModal()" title="تعديل طلب سابق">
-                        <i class="fas fa-edit"></i> <span>تعديل</span>
-                    </button>
-                    <button type="button" class="bottom-util-btn" id="btn-reset-order-form-ph" onclick="resetOrderForm()" title="طلب جديد">
-                        <i class="fas fa-redo"></i> <span>جديد</span>
-                    </button>
-                </div>
-            </div>
-
-            <!-- السطر الأساسي للأزرار الكبيرة -->
-            <div class="bottom-bar-main-row">
-                <button type="button" id="btn-phone-submit-order" class="btn btn-success btn-save-main" onclick="submitOrder(false)">
-                    <i class="fas fa-check-circle"></i> <span>حفظ وتأكيد الطلب</span>
-                </button>
-                <button type="button" id="btn-phone-quick-order" class="btn btn-warning btn-quick-main" onclick="submitOrder(false, true)">
-                    <i class="fas fa-bolt"></i> <span>طلب سريع</span>
-                </button>
-            </div>
+            <button type="button" id="btn-phone-submit-order" class="btn btn-success btn-save-main" onclick="submitOrder(false)" title="حفظ وتأكيد الطلب">
+                <i class="fas fa-check-circle"></i> <span>حفظ</span>
+            </button>
+            <button type="button" id="btn-phone-quick-order" class="btn btn-warning btn-quick-main" onclick="submitOrder(false, true)" title="طلب سريع">
+                <i class="fas fa-bolt"></i> <span>سريع</span>
+            </button>
+            <button type="button" class="btn btn-outline btn-draft-main" id="btn-save-draft-ph" onclick="saveDraft()" title="حفظ كمسودة">
+                <i class="fas fa-download"></i> <span>مسودة</span>
+            </button>
+            <button type="button" class="btn btn-outline btn-icon-only" id="btn-open-drafts-modal-ph" onclick="openDraftsModal()" title="المسودات المحفوظة">
+                <i class="fas fa-folder-open"></i>
+            </button>
+            <button type="button" class="btn btn-outline btn-icon-only" id="btn-open-edit-orders-modal-ph" onclick="openEditOrdersModal()" title="تعديل طلب سابق">
+                <i class="fas fa-edit"></i>
+            </button>
+            <button type="button" class="btn btn-outline btn-icon-only" id="btn-reset-order-form-ph" onclick="resetOrderForm()" title="طلب جديد">
+                <i class="fas fa-redo"></i>
+            </button>
+            <span id="draft-status" class="draft-status-indicator" style="display:none;"></span>
         </div>
 
         <!-- مودال قائمة المسودات -->
@@ -2504,6 +2370,21 @@
         function isValidYemeniPhone(input) {
             const digits = normalizeYemeniPhone(input);
             return /^[0-9]{9}$/.test(digits);  // 9 أرقام بالضبط
+        }
+
+        // ================================================================
+        //  تطبيع النصوص العربية للبحث (إزالة التشكيل وتوحيد الألف والتاء والياء)
+        // ================================================================
+        function normalizeArabic(text) {
+            if (!text) return '';
+            return String(text)
+                .toLowerCase()
+                .replace(/[\u064B-\u065F\u0670]/g, '')
+                .replace(/[إأآا]/g, 'ا')
+                .replace(/ة/g, 'ه')
+                .replace(/ى/g, 'ي')
+                .replace(/[\s\-_]+/g, ' ')
+                .trim();
         }
 
         // ================================================================
@@ -3221,13 +3102,9 @@
         function updateOnlineStatus() {
             isOnline = navigator.onLine;
             const indicator = document.getElementById('online-indicator');
-            const banner = document.getElementById('offline-network-banner');
             if (indicator) {
                 indicator.style.color = isOnline ? 'var(--success)' : 'var(--danger)';
                 indicator.title = isOnline ? 'متصل بالإنترنت' : 'غير متصل بالإنترنت (أوفلاين)';
-            }
-            if (banner) {
-                banner.style.display = isOnline ? 'none' : 'flex';
             }
         }
 
@@ -3730,11 +3607,21 @@
             // --- 3. حالة وجود بحث فعلي: البحث محلي بالكامل ---
             {
                 const localProducts = productsCache.length ? productsCache : await getLocalProducts();
-                let filtered = localProducts.filter(p =>
-                    (p.name && p.name.toLowerCase().includes(currentSearch.toLowerCase())) ||
-                    (p.barcode && p.barcode.includes(currentSearch))
-                );
-                if (selectedCategoryId) filtered = filtered.filter(p => p.category_id == selectedCategoryId);
+                if (productsCache.length === 0 && localProducts.length > 0) {
+                    productsCache = localProducts;
+                }
+                const normSearch = normalizeArabic(currentSearch);
+                const rawSearch = currentSearch.toLowerCase();
+                let filtered = localProducts.filter(p => {
+                    const normName = normalizeArabic(p.name || '');
+                    const barcode = (p.barcode || '').toLowerCase();
+                    const sku = (p.sku || '').toLowerCase();
+                    return normName.includes(normSearch) || barcode.includes(rawSearch) || sku.includes(rawSearch);
+                });
+                if (selectedCategoryId) {
+                    const catFiltered = filtered.filter(p => p.category_id == selectedCategoryId);
+                    if (catFiltered.length > 0) filtered = catFiltered;
+                }
                 renderSearchDropdown(filtered);
                 if (countLabel) countLabel.textContent = `عدد المنتجات: ${formatPosQuantity(filtered.length)} (بحث محلي)`;
                 setProgress(100); setTimeout(() => setProgress(0), 500);
@@ -3795,8 +3682,13 @@
             }).join('');
         }
 
-        function quickAddToCart(productId) {
-            const product = productsCache.find(p => p.id === productId);
+        async function quickAddToCart(productId) {
+            let product = productsCache.find(p => p.id == productId);
+            if (!product) {
+                const local = await getLocalProducts();
+                product = local.find(p => p.id == productId);
+                if (product) productsCache = local;
+            }
             if (!product) return showToast('المنتج غير موجود', 'error');
             if (Number(product.is_set) === 1) return openAddToCartModal(productId);
             const stock = product.stock_quantity || 0;
@@ -6460,7 +6352,6 @@
 
         window.addEventListener('offline', () => { 
             updateOnlineStatus();
-            showToast('📴 غير متصل بالإنترنت (وضع أوفلاين)', 'warning');
         });
 
         // الاستماع لتنبيهات اكتمال مزامنة Service Worker
