@@ -521,6 +521,38 @@ button { cursor: pointer; border: 0; outline: 0; }
   font-weight: 800;
   font-size: 0.72rem;
 }
+.item-price-badge {
+  background: #f0fdf4;
+  color: #15803d;
+  padding: 1px 7px;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 0.72rem;
+  border: 1px solid #bbf7d0;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+.item-total-badge {
+  background: #ecfdf5;
+  color: #047857;
+  padding: 1px 6px;
+  border-radius: 6px;
+  font-weight: 800;
+  font-size: 0.70rem;
+}
+.order-total-pill {
+  font-size: 0.72rem;
+  color: #166534;
+  background: #dcfce7;
+  padding: 2px 8px;
+  border-radius: 8px;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid #86efac;
+}
 .item-note-tag {
   background: #fffbeb;
   color: #b45309;
@@ -1884,12 +1916,19 @@ function renderOrderCardHtml(order) {
     `;
   }
 
-  // Items Checklist (مع تمييز الأصناف المضافة والزيادة والنقصان)
+  // Items Checklist (مع تمييز الأصناف المضافة والزيادة والنقصان وعرض الأسعار)
   const itemsChecklistRows = items.map(item => {
     const isChecked = !!preparedMap[item.id];
     const itemName = item.product_name || item.catalog_name || `صنف #${item.product_id}`;
     const variantTag = item.variant_label ? `<span class="item-note-tag">${item.variant_label}</span>` : '';
     const noteTag = item.note || item.notes ? `<span class="item-note-tag">📌 ${item.note || item.notes}</span>` : '';
+
+    // Unit price and Line total calculation
+    const unitPrice = Number(item.unit_price ?? item.price ?? 0);
+    const itemQty = Number(item.quantity ?? 1);
+    const lineTotal = Number(item.line_total ?? (unitPrice * itemQty));
+    const unitPriceStr = unitPrice.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+    const lineTotalStr = lineTotal.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 
     const itemMod = getItemModification(mod, item);
     let modTag = '';
@@ -1917,6 +1956,8 @@ function renderOrderCardHtml(order) {
           <div class="item-name">${itemName}</div>
           <div class="item-meta">
             <span class="item-qty-badge">الكمية: ${item.quantity}</span>
+            <span class="item-price-badge"><i class="fas fa-tag"></i> السعر: ${unitPriceStr} ريال</span>
+            ${itemQty > 1 ? `<span class="item-total-badge">(الإجمالي: ${lineTotalStr} ريال)</span>` : ''}
             ${variantTag}
             ${noteTag}
           </div>
@@ -2010,6 +2051,7 @@ function renderOrderCardHtml(order) {
           <span class="order-number">📦 طلب #${order.id}</span>
           ${hasMod ? '<span class="order-alert-pill modified"><i class="fas fa-edit"></i> معدل</span>' : ''}
           <span class="order-time"><i class="fas fa-clock"></i> ${dateDisplay}</span>
+          <span class="order-total-pill"><i class="fas fa-coins"></i> ${Number(order.total_amount || 0).toLocaleString('en-US')} ريال</span>
           ${order.driver_name ? `<span style="font-size:0.7rem; color:#4338ca; background:#e0e7ff; padding:2px 8px; border-radius:8px; font-weight:700;">🛵 ${order.driver_name}</span>` : '<span style="font-size:0.7rem; color:#64748b; background:#f1f5f9; padding:2px 8px; border-radius:8px;">بدون مندوب</span>'}
         </div>
         <span class="status-tag ${isReady ? 'ready' : 'pending'}">
@@ -2401,16 +2443,30 @@ async function printPrepSlip(orderId) {
             <tr style="border-bottom:1px solid #000;">
               <th style="text-align:right;">الصنف</th>
               <th style="text-align:center;">الكمية</th>
+              <th style="text-align:center;">السعر</th>
+              <th style="text-align:center;">الإجمالي</th>
             </tr>
           </thead>
           <tbody>
-            ${items.map(it => `
+            ${items.map(it => {
+              const uPrice = Number(it.unit_price ?? it.price ?? 0);
+              const qty = Number(it.quantity ?? 1);
+              const lTotal = Number(it.line_total ?? (uPrice * qty));
+              return `
               <tr style="border-bottom:0.5px dashed #ccc;">
                 <td style="padding:4px 0;">${it.product_name || it.catalog_name}${it.variant_label ? ` (${it.variant_label})` : ''}</td>
                 <td style="text-align:center; font-weight:bold;">${it.quantity}</td>
+                <td style="text-align:center;">${uPrice.toLocaleString('en-US')}</td>
+                <td style="text-align:center; font-weight:bold;">${lTotal.toLocaleString('en-US')}</td>
               </tr>
-            `).join('')}
+            `;}).join('')}
           </tbody>
+          <tfoot>
+            <tr style="border-top:1px solid #000; font-weight:bold;">
+              <td colspan="3" style="padding:4px 0;">المجموع:</td>
+              <td style="text-align:center;">${Number(order.total_amount || 0).toLocaleString('en-US')} ريال</td>
+            </tr>
+          </tfoot>
         </table>
         <div style="text-align:center; font-size:11px; border-top:1px dashed #000; padding-top:6px;">
           تم التجهيز والمطابقة بواسطة: ${$('currentUserLabel')?.textContent || 'الموظف'}
