@@ -58,91 +58,136 @@
             --nav-height: 60px;
         }
 
-        /* Dark Mode */
-        @media (prefers-color-scheme: dark) {
-            :root {
-                --bg: #0f172a;
-                --card: #1e293b;
-                --text: #f1f5f9;
-                --text-secondary: #94a3b8;
-                --muted: #64748b;
-                --border: #334155;
-                --shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-                --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.4);
-                --success-light: #052e16;
-                --danger-light: #450a0a;
-                --warning-light: #451a03;
-            }
-            
-            .product-card {
-                background: #1e293b;
-            }
-            
-            .customer-row {
-                background: #1e293b;
-            }
-            
-            .customer-row.has-customer {
-                background: #052e16;
-            }
-            
-            .cart-item .qty-ctrl {
-                background: #0f172a;
-            }
-            
-            .summary-row .discount-group input,
-            .summary-row .discount-group select {
-                background: #0f172a;
-                color: #f1f5f9;
-                border-color: #334155;
-            }
-            
-            .modal-box {
-                background: #1e293b;
-            }
-            
-            .orders-list-table th {
-                background: #0f172a;
-            }
-            
-            .orders-list-table td {
-                border-color: #334155;
-            }
-            
-            .modal-actions .btn-outline {
-                border-color: #334155;
-                color: #94a3b8;
-            }
-            
-            .paid-row input {
-                background: #0f172a;
-                color: #f1f5f9;
-                border-color: #334155;
-            }
-            
-            .mixed-due-row {
-                background: #0f172a;
-                border-color: #334155;
-            }
-            
-            .bottom-actions {
-                background: #1e293b;
-                border-color: #334155;
-            }
-            
-            .app-header {
-                background: #1e293b;
-                border-color: #334155;
-            }
-            
-            .toast {
-                background: #1e293b;
-                color: #f1f5f9;
-            }
-            
-            .order-status-bar {
-                background: #1e293b;
-            }
+        /* --- DARK MODE (Class-based & attribute-based for 100% reliable manual & auto switching) --- */
+        :root.dark-mode, html[data-theme="dark"], body.dark-mode {
+            --bg: #0f172a;
+            --card: #1e293b;
+            --text: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --muted: #64748b;
+            --border: #334155;
+            --shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+            --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.4);
+            --success-light: #052e16;
+            --danger-light: #450a0a;
+            --warning-light: #451a03;
+        }
+
+        .dark-mode .product-card, [data-theme="dark"] .product-card { background: #1e293b; border-color: #334155; }
+        .dark-mode .customer-row, [data-theme="dark"] .customer-row { background: #1e293b; border-color: #334155; }
+        .dark-mode .customer-row.has-customer, [data-theme="dark"] .customer-row.has-customer { background: #052e16; border-color: #16a34a; }
+        .dark-mode .cart-item .qty-ctrl, [data-theme="dark"] .cart-item .qty-ctrl { background: #0f172a; }
+        .dark-mode .summary-row .discount-group input,
+        .dark-mode .summary-row .discount-group select,
+        [data-theme="dark"] .summary-row .discount-group input,
+        [data-theme="dark"] .summary-row .discount-group select { background: #0f172a; color: #f1f5f9; border-color: #334155; }
+        .dark-mode .modal-box, [data-theme="dark"] .modal-box { background: #1e293b; color: #f1f5f9; border: 1px solid #334155; }
+        .dark-mode .orders-list-table th, [data-theme="dark"] .orders-list-table th { background: #0f172a; color: #f1f5f9; }
+        .dark-mode .orders-list-table td, [data-theme="dark"] .orders-list-table td { border-color: #334155; color: #f1f5f9; }
+        .dark-mode .modal-actions .btn-outline, [data-theme="dark"] .modal-actions .btn-outline { border-color: #334155; color: #94a3b8; }
+        .dark-mode .paid-row input, [data-theme="dark"] .paid-row input { background: #0f172a; color: #f1f5f9; border-color: #334155; }
+        .dark-mode .mixed-due-row, [data-theme="dark"] .mixed-due-row { background: #0f172a; border-color: #334155; }
+        .dark-mode .bottom-actions, [data-theme="dark"] .bottom-actions { background: #1e293b; border-color: #334155; }
+        .dark-mode .app-header, [data-theme="dark"] .app-header { background: #1e293b; border-color: #334155; color: #f1f5f9; }
+        .dark-mode .toast, [data-theme="dark"] .toast { background: #1e293b; color: #f1f5f9; }
+        .dark-mode .order-status-bar, [data-theme="dark"] .order-status-bar { background: #1e293b; }
+        .dark-mode .input-field, [data-theme="dark"] .input-field,
+        .dark-mode select, [data-theme="dark"] select,
+        .dark-mode textarea, [data-theme="dark"] textarea { background: #0f172a; color: #f1f5f9; border-color: #334155; }
+        .dark-mode .card, [data-theme="dark"] .card { background: #1e293b; border-color: #334155; color: #f1f5f9; }
+        .dark-mode .top-search-bar, [data-theme="dark"] .top-search-bar { background: #1e293b; border-color: #334155; }
+        .dark-mode .search-dropdown, [data-theme="dark"] .search-dropdown { background: #1e293b; border-color: #334155; color: #f1f5f9; }
+        .dark-mode .search-item:hover, [data-theme="dark"] .search-item:hover { background: #0f172a; }
+        .dark-mode .search-item { border-bottom-color: #334155; }
+        .dark-mode .settings-card, [data-theme="dark"] .settings-card { background: #0f172a; border-color: #334155; }
+        .dark-mode .theme-choice-btn, [data-theme="dark"] .theme-choice-btn { background: #0f172a; border-color: #334155; color: #f1f5f9; }
+
+        /* Hide products section and raw settings-info as requested */
+        #products-section { display: none !important; }
+        #settings-info { display: none !important; }
+
+        /* Settings Modal Styling */
+        .settings-card {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 12px 14px;
+            margin-bottom: 12px;
+        }
+        .settings-card-header {
+            font-weight: 700;
+            font-size: 0.88rem;
+            color: var(--text);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .settings-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 7px 0;
+            border-bottom: 1px dashed var(--border);
+            font-size: 0.82rem;
+        }
+        .settings-row:last-child {
+            border-bottom: none;
+        }
+        .policy-badge {
+            font-weight: 800;
+            font-size: 0.72rem;
+            padding: 2px 10px;
+            border-radius: 12px;
+        }
+        .policy-badge.badge-on {
+            background: var(--success-light);
+            color: var(--success);
+        }
+        .policy-badge.badge-off {
+            background: var(--danger-light);
+            color: var(--danger);
+        }
+        .theme-switcher-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+        .theme-choice-btn {
+            border: 2px solid var(--border);
+            background: var(--card);
+            border-radius: var(--radius-sm);
+            padding: 10px;
+            cursor: pointer;
+            text-align: center;
+            font-weight: 700;
+            font-size: 0.85rem;
+            color: var(--text);
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .theme-choice-btn.active {
+            border-color: var(--primary);
+            background: rgba(26, 86, 219, 0.08);
+            color: var(--primary);
+        }
+        .toggle-switch-label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            font-size: 0.82rem;
+            font-weight: 600;
+        }
+        .toggle-switch-label input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--primary);
+            cursor: pointer;
         }
 
         html,
@@ -1522,37 +1567,34 @@
             <div>
                 <div class="title">
                     <i class="fas fa-globe"></i> طلب إنترنت
-                <span class="sub" id="page-subtitle">جديد</span>
-            </div>
-            <div class="order-ids" style="margin-top:2px;">
-                <span>🆔 <span id="display-order-id">--</span></span>
-                <span>🧾 <span id="display-invoice-number">--</span></span>
+                    <span class="sub" id="page-subtitle">جديد</span>
+                </div>
+                <div class="order-ids" style="margin-top:2px;">
+                    <span>🆔 <span id="display-order-id">--</span></span>
+                    <span>🧾 <span id="display-invoice-number">--</span></span>
+                </div>
             </div>
         </div>
         <div class="user-mini">
-            <button class="btn btn-xs btn-outline" id="btn-toggle-dark-mode-ph" onclick="toggleDarkMode()" style="min-height:30px;width:auto;padding:4px 8px;">
-                <i class="fas fa-moon" id="dark-mode-icon"></i>
-            </button>
-            <button class="btn btn-xs btn-outline" id="btn-refresh-data-ph" onclick="refreshData()" style="min-height:30px;width:auto;padding:4px 8px;" title="تحديث وتنظيف">
+            <button type="button" class="btn btn-xs btn-outline" id="btn-refresh-data-ph" onclick="refreshData()" style="min-height:32px;width:32px;padding:0;border-radius:8px;" title="تحديث وتنظيف">
                 <i class="fas fa-sync-alt"></i>
             </button>
-            <button class="btn btn-xs btn-primary" id="btn-nav-orders-ph" onclick="window.location.href='orders.html'" style="min-height:30px;width:auto;padding:4px 8px;" title="إدارة طلبات الإنترنت">
-                <i class="fas fa-list"></i> إدارة الطلبات
+            <button type="button" class="btn btn-xs btn-outline" id="btn-open-settings-ph" onclick="openSettingsModal()" style="min-height:32px;width:32px;padding:0;border-radius:8px;font-size:0.95rem;color:var(--primary);" title="الإعدادات">
+                <i class="fas fa-cog"></i>
             </button>
-            <span class="avatar" id="user-avatar">م</span>
-            <span id="user-name">مستخدم</span>
-            <span style="font-size:0.6rem;color:var(--muted);" id="user-role">-</span>
-            <span id="online-indicator" style="color:var(--success);font-size:0.5rem;">●</span>
+            <span class="avatar" id="user-avatar" title="المستخدم">م</span>
+            <span id="user-name" style="max-width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">مستخدم</span>
+            <span id="online-indicator" style="color:var(--success);font-size:0.5rem;" title="حالة الاتصال">●</span>
         </div>
     </header>
 
-    <!-- ===== TOP SEARCH BAR (جديد في الأعلى) ===== -->
+    <!-- ===== TOP SEARCH BAR ===== -->
     <div class="top-search-bar" id="top-search-bar">
         <div class="search-row">
-            <input type="text" id="top-search-input" class="input-field input-field-sm" placeholder="🔍 بحث عن منتج..." autocomplete="off" />
-            <button class="btn btn-sm btn-primary" id="btn-search-trigger-ph" onclick="triggerSearch()"><i class="fas fa-search"></i></button>
-            <button class="btn btn-sm btn-outline" id="btn-clear-search-ph" onclick="clearSearch()"><i class="fas fa-times"></i></button>
-            <span class="search-hint" id="search-hint">(ابحث بـ 3 أحرف فأكثر)</span>
+            <input type="text" id="top-search-input" class="input-field input-field-sm" placeholder="🔍 بحث عن منتج أو باركود..." autocomplete="off" />
+            <button class="btn btn-sm btn-primary" id="btn-search-trigger-ph" onclick="triggerSearch()" title="بحث"><i class="fas fa-search"></i></button>
+            <button class="btn btn-sm btn-outline" id="btn-clear-search-ph" onclick="clearSearch()" title="مسح"><i class="fas fa-times"></i></button>
+            <button class="btn btn-sm btn-success" id="btn-open-add-product-modal-top" onclick="openAddProductModal()" style="width:auto; font-weight:700; white-space:nowrap;" title="إضافة منتج جديد"><i class="fas fa-plus"></i> إضافة صنف</button>
         </div>
         <!-- القائمة المنسدلة لنتائج البحث -->
         <div class="search-dropdown" id="search-dropdown"></div>
@@ -2001,6 +2043,103 @@
             </div>
         </div>
 
+        <!-- مودال الإعدادات -->
+        <div class="modal-overlay" id="settings-modal">
+            <div class="modal-box">
+                <div class="modal-header">
+                    <h3><i class="fas fa-cog text-primary"></i> إعدادات شاشة إنشاء الطلب</h3>
+                    <button class="close-btn" id="btn-close-settings-modal-x-ph" onclick="closeModal('settings-modal')">&times;</button>
+                </div>
+
+                <!-- سياسات النظام (من الخادم) -->
+                <div class="settings-card">
+                    <div class="settings-card-header">
+                        <i class="fas fa-shield-alt text-primary"></i>
+                        <span>سياسات البيع (من الخادم)</span>
+                    </div>
+                    <div class="settings-row">
+                        <span>⚙️ بيع سالب (المخزون):</span>
+                        <span id="modal-policy-negative-stock" class="policy-badge badge-on">مفعل</span>
+                    </div>
+                    <div class="settings-row">
+                        <span>⚙️ بيع أقل من التكلفة:</span>
+                        <span id="modal-policy-below-cost" class="policy-badge badge-on">مفعل</span>
+                    </div>
+                </div>
+
+                <!-- المظهر والوضع الليلي -->
+                <div class="settings-card">
+                    <div class="settings-card-header">
+                        <i class="fas fa-moon text-primary"></i>
+                        <span>المظهر والوضع الليلي</span>
+                    </div>
+                    <div class="theme-switcher-grid">
+                        <button type="button" class="theme-choice-btn" id="theme-btn-light" onclick="onManualThemeChange('light')">
+                            <i class="fas fa-sun" style="color:#f59e0b;"></i> وضع نهاري
+                        </button>
+                        <button type="button" class="theme-choice-btn" id="theme-btn-dark" onclick="onManualThemeChange('dark')">
+                            <i class="fas fa-moon" style="color:#6366f1;"></i> وضع ليلي
+                        </button>
+                    </div>
+                    <div style="margin-top:10px; padding-top:8px; border-top:1px dashed var(--border);">
+                        <label class="toggle-switch-label">
+                            <input type="checkbox" id="setting-auto-theme" onchange="onAutoThemeToggle(this.checked)" />
+                            <span>⏰ التبديل التلقائي حسب الوقت (7:00 م ليلي / 7:00 ص نهاري)</span>
+                        </label>
+                        <div style="font-size:0.68rem; color:var(--muted); margin-top:3px; margin-right:28px;">
+                            يتحول إلى الوضع الليلي تلقائياً من 7:00 مساءً حتى 7:00 صباحاً.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- المؤثرات الصوتية -->
+                <div class="settings-card">
+                    <div class="settings-card-header">
+                        <i class="fas fa-volume-up text-primary"></i>
+                        <span>الأصوات والتنبيهات</span>
+                    </div>
+                    <div class="settings-row">
+                        <label class="toggle-switch-label" style="flex:1;">
+                            <input type="checkbox" id="setting-sound-toggle" onchange="onSoundToggle(this.checked)" checked />
+                            <span>تفعيل أصوات السلة والعمليات</span>
+                        </label>
+                        <button type="button" class="btn btn-xs btn-outline" onclick="testSound()" title="تجربة الصوت" style="min-height:28px; padding:3px 8px;">
+                            <i class="fas fa-play"></i> تجربة
+                        </button>
+                    </div>
+                </div>
+
+                <!-- إعدادات إضافية -->
+                <div class="settings-card">
+                    <div class="settings-card-header">
+                        <i class="fas fa-sliders-h text-primary"></i>
+                        <span>إعدادات إضافية</span>
+                    </div>
+                    <div class="settings-row">
+                        <label class="toggle-switch-label">
+                            <input type="checkbox" id="setting-auto-draft" onchange="onAutoDraftToggle(this.checked)" checked />
+                            <span>حفظ تلقائي للمسودة كل دقيقة</span>
+                        </label>
+                    </div>
+                    <div class="settings-row">
+                        <label class="toggle-switch-label">
+                            <input type="checkbox" id="setting-confirm-remove" onchange="onConfirmRemoveToggle(this.checked)" />
+                            <span>تأكيد الحذف عند إزالة صنف من السلة</span>
+                        </label>
+                    </div>
+                    <div style="margin-top:10px; text-align:center;">
+                        <button type="button" class="btn btn-sm btn-outline" onclick="refreshData(); closeModal('settings-modal');" style="width:100%;">
+                            <i class="fas fa-sync-alt"></i> تنظيف الذاكرة المؤقتة وإعادة تحميل البيانات
+                        </button>
+                    </div>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-primary" onclick="closeModal('settings-modal')">إغلاق</button>
+                </div>
+            </div>
+        </div>
+
     </main>
 
     <script>
@@ -2364,6 +2503,7 @@
         }
 
         function playSound(frequency = 800, duration = 100) {
+            if (!isSoundEnabled()) return;
             try {
                 const ctx = getAudioContext();
                 if (!ctx) return;
@@ -2378,9 +2518,60 @@
             } catch (e) { /* Silent fail */ }
         }
 
-        function playSuccessSound() { playSound(1200, 150); }
-        function playErrorSound() { playSound(300, 200); }
+        function playPosSound(type = 'add') {
+            if (!isSoundEnabled()) return;
+            try {
+                const ctx = getAudioContext();
+                if (!ctx) return;
+                const now = ctx.currentTime;
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+
+                if (type === 'add') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(587.33, now);
+                    osc.frequency.exponentialRampToValueAtTime(880, now + 0.1);
+                    gain.gain.setValueAtTime(0.18, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+                    osc.start(now);
+                    osc.stop(now + 0.16);
+                } else if (type === 'remove') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(440, now);
+                    osc.frequency.exponentialRampToValueAtTime(220, now + 0.15);
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+                    osc.start(now);
+                    osc.stop(now + 0.16);
+                } else if (type === 'success') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(523.25, now);
+                    osc.frequency.setValueAtTime(659.25, now + 0.08);
+                    osc.frequency.setValueAtTime(783.99, now + 0.16);
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+                    osc.start(now);
+                    osc.stop(now + 0.36);
+                } else if (type === 'warning') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(329.63, now);
+                    gain.gain.setValueAtTime(0.18, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+                    osc.start(now);
+                    osc.stop(now + 0.22);
+                }
+            } catch (e) {}
+        }
+
+        function playSuccessSound() { playPosSound('success'); }
+        function playErrorSound() { playPosSound('warning'); }
         function playClickSound() { playSound(600, 80); }
+
+        function isSoundEnabled() {
+            return safeGetString('pos_sound_enabled', 'true') !== 'false';
+        }
 
         function setElementText(id, text) { const el = document.getElementById(id); if (el) el.innerText = text; }
         function setElementDisplay(id, display) { const el = document.getElementById(id); if (el) el.style.display = display; }
@@ -2414,23 +2605,126 @@
         }
 
         // ================================================================
-        //  DARK MODE
+        //  THEME & DARK MODE (مع التبديل التلقائي 7م ليلي / 7ص نهاري)
         // ================================================================
-        function toggleDarkMode() {
-            isDarkMode = !isDarkMode;
-            const icon = document.getElementById('dark-mode-icon');
-            if (icon) icon.className = isDarkMode ? 'fas fa-sun' : 'fas fa-moon';
+        function applyTheme(isDark, saveToStorage = true) {
+            isDarkMode = !!isDark;
+            document.documentElement.classList.toggle('dark-mode', isDarkMode);
+            document.body.classList.toggle('dark-mode', isDarkMode);
+            document.documentElement.setAttribute('data-theme', isDarkMode ? 'dark' : 'light');
             document.documentElement.style.colorScheme = isDarkMode ? 'dark' : 'light';
-            safeSetString('dark_mode', isDarkMode ? 'dark' : 'light');
-            showToast(isDarkMode ? '🌙 وضع الليل' : '☀️ وضع النهار', 'info');
+            
+            const lightBtn = document.getElementById('theme-btn-light');
+            const darkBtn = document.getElementById('theme-btn-dark');
+            if (lightBtn && darkBtn) {
+                lightBtn.classList.toggle('active', !isDarkMode);
+                darkBtn.classList.toggle('active', isDarkMode);
+            }
+
+            if (saveToStorage) {
+                safeSetString('dark_mode', isDarkMode ? 'dark' : 'light');
+            }
+        }
+
+        function checkAutoTheme() {
+            const isAuto = safeGetString('auto_theme_enabled', 'false') === 'true';
+            const autoCheckbox = document.getElementById('setting-auto-theme');
+            if (autoCheckbox) autoCheckbox.checked = isAuto;
+            
+            if (isAuto) {
+                const hour = new Date().getHours();
+                // 7 مساءً (19:00) وحتى 6:59:59 ص ليلي
+                // 7 صباحاً (07:00) وحتى 6:59:59 م نهاري
+                const shouldBeDark = (hour >= 19 || hour < 7);
+                applyTheme(shouldBeDark, false);
+            }
+        }
+
+        function toggleDarkMode() {
+            onManualThemeChange(!isDarkMode ? 'dark' : 'light');
+        }
+
+        function onManualThemeChange(mode) {
+            const autoCheckbox = document.getElementById('setting-auto-theme');
+            if (autoCheckbox && autoCheckbox.checked) {
+                autoCheckbox.checked = false;
+                safeSetString('auto_theme_enabled', 'false');
+            }
+            applyTheme(mode === 'dark', true);
+            showToast(mode === 'dark' ? '🌙 تم تفعيل الوضع الليلي' : '☀️ تم تفعيل الوضع النهاري', 'info');
+        }
+
+        function onAutoThemeToggle(checked) {
+            safeSetString('auto_theme_enabled', checked ? 'true' : 'false');
+            if (checked) {
+                checkAutoTheme();
+                showToast('⏰ تم تفعيل التبديل التلقائي (7م ليلي / 7ص نهاري)', 'info');
+            } else {
+                const saved = safeGetString('dark_mode', 'light');
+                applyTheme(saved === 'dark', true);
+                showToast('تم إيقاف التبديل التلقائي وتثبيت الوضع الحالي', 'info');
+            }
         }
 
         function loadDarkModePreference() {
-            const saved = safeGetString('dark_mode', '');
-            if (saved === 'dark') { isDarkMode = true; } else if (saved === 'light') { isDarkMode = false; }
-            const icon = document.getElementById('dark-mode-icon');
-            if (icon) icon.className = isDarkMode ? 'fas fa-sun' : 'fas fa-moon';
-            document.documentElement.style.colorScheme = isDarkMode ? 'dark' : 'light';
+            const isAuto = safeGetString('auto_theme_enabled', 'false') === 'true';
+            if (isAuto) {
+                checkAutoTheme();
+            } else {
+                const saved = safeGetString('dark_mode', 'light');
+                applyTheme(saved === 'dark', false);
+            }
+            if (!window._autoThemeInterval) {
+                window._autoThemeInterval = setInterval(checkAutoTheme, 60000);
+            }
+        }
+
+        // ================================================================
+        //  SETTINGS MODAL & SOUND TOGGLES
+        // ================================================================
+        function openSettingsModal() {
+            renderSettingsInfo();
+            const isDark = document.body.classList.contains('dark-mode') || document.documentElement.getAttribute('data-theme') === 'dark';
+            const lightBtn = document.getElementById('theme-btn-light');
+            const darkBtn = document.getElementById('theme-btn-dark');
+            if (lightBtn && darkBtn) {
+                lightBtn.classList.toggle('active', !isDark);
+                darkBtn.classList.toggle('active', isDark);
+            }
+            const autoCheckbox = document.getElementById('setting-auto-theme');
+            if (autoCheckbox) autoCheckbox.checked = safeGetString('auto_theme_enabled', 'false') === 'true';
+            const soundCheckbox = document.getElementById('setting-sound-toggle');
+            if (soundCheckbox) soundCheckbox.checked = isSoundEnabled();
+            const draftCheckbox = document.getElementById('setting-auto-draft');
+            if (draftCheckbox) draftCheckbox.checked = safeGetString('auto_draft_enabled', 'true') !== 'false';
+            const confirmCheckbox = document.getElementById('setting-confirm-remove');
+            if (confirmCheckbox) confirmCheckbox.checked = safeGetString('confirm_remove_item', 'false') === 'true';
+            openModal('settings-modal');
+        }
+
+        function onSoundToggle(checked) {
+            safeSetString('pos_sound_enabled', checked ? 'true' : 'false');
+            if (checked) {
+                playPosSound('add');
+                showToast('🔊 تم تفعيل الأصوات', 'info');
+            } else {
+                showToast('🔇 تم كتم الأصوات', 'info');
+            }
+        }
+
+        function testSound() {
+            playPosSound('add');
+            setTimeout(() => playPosSound('success'), 200);
+        }
+
+        function onAutoDraftToggle(checked) {
+            safeSetString('auto_draft_enabled', checked ? 'true' : 'false');
+            showToast(checked ? '✅ تم تفعيل الحفظ التلقائي للمسودة' : 'تم تعطيل الحفظ التلقائي للمسودة', 'info');
+        }
+
+        function onConfirmRemoveToggle(checked) {
+            safeSetString('confirm_remove_item', checked ? 'true' : 'false');
+            showToast(checked ? '✅ سيتم طلب تأكيد قبل حذف أي صنف' : 'تم إلغاء طلب التأكيد', 'info');
         }
 
         // ================================================================
@@ -2477,9 +2771,22 @@
         }
 
         function renderSettingsInfo(message = '') {
+            const isNeg = !!appSettings.allow_negative_stock;
+            const isBelow = !!appSettings.allow_below_cost;
+            const negEl = document.getElementById('modal-policy-negative-stock');
+            const costEl = document.getElementById('modal-policy-below-cost');
+            if (negEl) {
+                negEl.textContent = isNeg ? 'مفعل' : 'غير مفعل';
+                negEl.className = 'policy-badge ' + (isNeg ? 'badge-on' : 'badge-off');
+            }
+            if (costEl) {
+                costEl.textContent = isBelow ? 'مفعل' : 'غير مفعل';
+                costEl.className = 'policy-badge ' + (isBelow ? 'badge-on' : 'badge-off');
+            }
             const infoEl = document.getElementById('settings-info');
-            if (!infoEl) return;
-            infoEl.innerHTML = `${message ? message + ' ' : ''}⚙️ بيع سالب: <span style="color:${appSettings.allow_negative_stock ? 'var(--success)' : 'var(--danger)'};">${formatPosQuantity(appSettings.allow_negative_stock ? 'مفعل' : 'غير مفعل')}</span> | بيع أقل من التكلفة: <span style="color:${appSettings.allow_below_cost ? 'var(--success)' : 'var(--danger)'};">${formatPosMoney(appSettings.allow_below_cost ? 'مفعل' : 'غير مفعل')}</span>`;
+            if (infoEl) {
+                infoEl.innerHTML = `${message ? message + ' ' : ''}⚙️ بيع سالب: <span style="color:${isNeg ? 'var(--success)' : 'var(--danger)'};">${isNeg ? 'مفعل' : 'غير مفعل'}</span> | بيع أقل من التكلفة: <span style="color:${isBelow ? 'var(--success)' : 'var(--danger)'};">${isBelow ? 'مفعل' : 'غير مفعل'}</span>`;
+            }
         }
 
         async function loadSettings() {
@@ -4017,6 +4324,7 @@
             }
             saveCartToLocal();
             renderCart();
+            playPosSound('add');
             const searchInput = document.getElementById('top-search-input');
             if (searchInput) searchInput.focus();
         }
@@ -4027,20 +4335,26 @@
             if (!product) return;
             const stock = Number(item.variant_stock ?? product.stock_quantity ?? 0);
             const newQty = item.quantity + delta;
-            if (newQty < 1) { cart.splice(index, 1); saveCartToLocal(); renderCart(); return; }
+            if (newQty < 1) { 
+                removeItem(index);
+                return; 
+            }
             if (!appSettings.allow_negative_stock && newQty > stock) {
+                playPosSound('warning');
                 return showToast(`⚠️ الكمية (${formatPosQuantity(newQty)}) أكبر من المخزون (${formatPosQuantity(stock)})`, 'warning');
             }
             item.quantity = newQty;
             saveCartToLocal();
             renderCart();
+            playPosSound('add');
         }
 
         async function removeItem(index, skipConfirm = false) {
             const item = cart[index];
             if (!item) return;
 
-            if (!skipConfirm) {
+            const confirmRemoval = safeGetString('confirm_remove_item', 'false') === 'true';
+            if (!skipConfirm && confirmRemoval) {
                 const name = item.name || 'هذا المنتج';
                 const proceed = await showConfirmModal(
                     `سيتم حذف "${name}" من الفاتورة.\n\nهل أنت متأكد؟`,
@@ -4052,7 +4366,7 @@
             cart.splice(index, 1);
             saveCartToLocal();
             renderCart();
-            playClickSound();
+            playPosSound('remove');
             showToast('🗑️ تم حذف المنتج', 'info', { sound: false });
         }
 
@@ -4061,7 +4375,7 @@
             const countEl = document.getElementById('cart-count');
             if (!container) return;
             if (cart.length === 0) {
-                container.innerHTML = `<div class="empty-state"><i class="fas fa-shopping-bag"></i><p>السلة فارغة</p></div>`;
+                container.innerHTML = `<div class="empty-state"><i class="fas fa-shopping-bag"></i><p>السلة فارغة</p><div style="margin-top:10px;"><button type="button" class="btn btn-sm btn-success" onclick="openAddProductModal()" style="font-weight:700;"><i class="fas fa-plus"></i> إضافة منتج جديد</button></div></div>`;
                 if (countEl) countEl.textContent = '0';
                 updateTotals();
                 return;
@@ -5037,6 +5351,7 @@
             if (orderId) document.getElementById('display-order-id').innerText = orderId;
             if (invoiceNum) document.getElementById('display-invoice-number').innerText = invoiceNum;
 
+            playPosSound('success');
             showToast(`✅ ${editingOrderId ? 'تم تحديث' : 'تم حفظ'} الطلب ${orderId || ''}`, 'success', { sound: false });
 
             pendingInvoiceSnapshot = captureInvoiceSnapshot(orderId);
@@ -5061,6 +5376,7 @@
             setTimeout(() => openInvoiceChoiceModal(), 0);
 
         } else {
+            playPosSound('warning');
             showToast(data.error || 'فشل حفظ الطلب', 'error', { sound: false });
         }
     } catch (err) {
