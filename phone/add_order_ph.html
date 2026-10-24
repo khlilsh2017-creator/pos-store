@@ -662,7 +662,8 @@
 
         /* --- CART ITEMS with SWIPE --- */
         .cart-items {
-            max-height: 35vh;
+            max-height: 48vh;
+            min-height: 140px;
             overflow-y: auto;
             margin: 6px 0;
             padding-top: 4px;
@@ -701,7 +702,7 @@
             display: flex;
             align-items: center;
             gap: 6px;
-            padding: 8px 4px;
+            padding: 6px 4px;
             border-bottom: 1px solid var(--border);
             animation: fadeUp 0.2s ease;
             cursor: pointer;
@@ -1129,16 +1130,16 @@
             background: #0f172a;
         }
 
-        /* --- BOTTOM ACTIONS (Modern Floating Bar with Frosted Glass) --- */
+        /* --- BOTTOM ACTIONS (Modern Floating Bar with Frosted Glass & Responsive Buttons) --- */
         .bottom-actions {
             position: fixed;
             bottom: 0;
             left: 0;
             right: 0;
-            background: rgba(255, 255, 255, 0.92);
+            background: rgba(255, 255, 255, 0.94);
             backdrop-filter: blur(16px);
             -webkit-backdrop-filter: blur(16px);
-            padding: 8px 12px;
+            padding: 8px 10px;
             padding-bottom: max(10px, var(--safe-bottom, 0px));
             border-top: 1px solid rgba(226, 232, 240, 0.9);
             box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.08);
@@ -1150,7 +1151,7 @@
         }
 
         .dark-mode .bottom-actions, [data-theme="dark"] .bottom-actions {
-            background: rgba(15, 23, 42, 0.92);
+            background: rgba(15, 23, 42, 0.94);
             border-top: 1px solid rgba(51, 65, 85, 0.9);
             box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.45);
         }
@@ -1159,8 +1160,9 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            gap: 6px;
+            gap: 5px;
             font-size: 0.72rem;
+            width: 100%;
         }
 
         .draft-status-pill {
@@ -1170,16 +1172,20 @@
             font-size: 0.65rem;
             color: var(--muted);
             background: var(--bg);
-            padding: 2px 8px;
+            padding: 3px 6px;
             border-radius: 12px;
             border: 1px solid var(--border);
             white-space: nowrap;
+            flex-shrink: 0;
         }
 
         .bottom-util-group {
             display: flex;
             align-items: center;
-            gap: 5px;
+            gap: 4px;
+            flex: 1;
+            justify-content: flex-end;
+            min-width: 0;
         }
 
         .bottom-util-btn {
@@ -1187,15 +1193,25 @@
             border: 1px solid var(--border);
             color: var(--text-secondary);
             border-radius: 8px;
-            padding: 4px 8px;
-            font-size: 0.70rem;
+            padding: 5px 6px;
+            font-size: 0.68rem;
             font-weight: 600;
             cursor: pointer;
             display: inline-flex;
             align-items: center;
-            gap: 4px;
+            justify-content: center;
+            gap: 3px;
             transition: var(--transition);
             font-family: inherit;
+            flex: 1;
+            min-width: 0;
+            white-space: nowrap;
+        }
+
+        .bottom-util-btn span {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
 
         .bottom-util-btn:hover {
@@ -1219,24 +1235,27 @@
             display: flex;
             gap: 8px;
             align-items: stretch;
+            width: 100%;
         }
 
         .btn-save-main {
-            flex: 2;
+            flex: 1.6;
+            min-width: 0;
             background: linear-gradient(135deg, #16a34a 0%, #15803d 100%) !important;
             color: #fff !important;
             border: none;
             border-radius: var(--radius-sm);
-            padding: 10px 12px;
-            font-size: 0.95rem;
+            padding: 10px 10px;
+            font-size: 0.90rem;
             font-weight: 800;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            gap: 8px;
+            gap: 6px;
             cursor: pointer;
             box-shadow: 0 4px 14px rgba(22, 163, 74, 0.35);
             transition: var(--transition);
+            white-space: nowrap;
         }
 
         .btn-save-main:hover {
@@ -1246,20 +1265,22 @@
 
         .btn-quick-main {
             flex: 1;
+            min-width: 0;
             background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
             color: #fff !important;
             border: none;
             border-radius: var(--radius-sm);
-            padding: 10px 10px;
-            font-size: 0.88rem;
+            padding: 10px 8px;
+            font-size: 0.85rem;
             font-weight: 700;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            gap: 6px;
+            gap: 5px;
             cursor: pointer;
             box-shadow: 0 4px 14px rgba(245, 158, 11, 0.3);
             transition: var(--transition);
+            white-space: nowrap;
         }
 
         .btn-quick-main:hover {
@@ -1267,31 +1288,68 @@
             box-shadow: 0 6px 18px rgba(245, 158, 11, 0.4);
         }
 
-        /* --- TOAST --- */
+        @media (max-width: 360px) {
+            .bottom-actions {
+                padding: 6px 6px;
+                gap: 5px;
+            }
+            .draft-status-pill .draft-label-text {
+                display: none;
+            }
+            .bottom-util-btn {
+                padding: 4px 3px;
+                font-size: 0.63rem;
+                gap: 2px;
+            }
+            .btn-save-main, .btn-quick-main {
+                padding: 8px 6px;
+                font-size: 0.82rem;
+            }
+        }
+
+        /* --- OFFLINE BANNER --- */
+        .offline-banner {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: #fff;
+            padding: 9px 12px;
+            border-radius: var(--radius-sm);
+            font-size: 0.74rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25);
+            animation: fadeIn 0.3s ease;
+        }
+
+        /* --- TOAST (Appears at TOP of screen) --- */
         .toast-container {
             position: fixed;
-            bottom: 90px;
+            top: calc(12px + var(--safe-top, 0px));
             left: 12px;
             right: 12px;
-            z-index: 9999;
+            z-index: 99999;
             display: flex;
             flex-direction: column;
             gap: 8px;
-            max-width: 400px;
+            max-width: 420px;
             margin: 0 auto;
+            pointer-events: none;
         }
         .toast {
             background: var(--text);
             color: white;
             padding: 12px 16px;
             border-radius: var(--radius-sm);
-            box-shadow: var(--shadow-lg);
-            animation: slideUp 0.3s ease;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+            animation: slideDownToast 0.3s cubic-bezier(0.16, 1, 0.3, 1);
             display: flex;
             align-items: center;
             gap: 10px;
             font-size: 0.85rem;
             border-right: 4px solid var(--primary);
+            pointer-events: auto;
         }
         .toast.success {
             background: var(--success);
@@ -1310,13 +1368,16 @@
             background: var(--info);
             border-right-color: #0284c7;
         }
-        @keyframes slideUp {
+        @keyframes slideDownToast {
             from {
                 opacity: 0;
-                transform: translateY(20px);
+                transform: translateY(-20px);
             }
             to {
                 opacity: 1;
+                transform: translateY(0);
+            }
+        }
                 transform: translateY(0);
             }
         }
@@ -1839,12 +1900,21 @@
             <button class="btn btn-sm btn-outline" id="btn-clear-search-ph" onclick="clearSearch()" title="مسح"><i class="fas fa-times"></i></button>
             <button class="btn btn-sm btn-success" id="btn-open-add-product-modal-top" onclick="openAddProductModal()" style="width:auto; font-weight:700; white-space:nowrap;" title="إضافة منتج جديد"><i class="fas fa-plus"></i> إضافة صنف</button>
         </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:2px; padding:0 2px;">
+            <span class="search-hint" id="search-hint" style="font-size:0.65rem; color:var(--muted);">(ابحث بـ 3 أحرف فأكثر تلقائياً)</span>
+        </div>
         <!-- القائمة المنسدلة لنتائج البحث -->
         <div class="search-dropdown" id="search-dropdown"></div>
     </div>
 
     <!-- ===== MAIN ===== -->
     <main class="main-content" id="main-content">
+
+        <!-- تنبيه عدم وجود إنترنت (أوفلاين) -->
+        <div id="offline-network-banner" class="offline-banner" style="display:none;">
+            <i class="fas fa-wifi-slash"></i>
+            <span>أنت غير متصل بالإنترنت حالياً (أوفلاين) - سيتم حفظ الطلبات محلياً ومزامنتها فور عودة الاتصال.</span>
+        </div>
 
         <!-- شريط حالة الطلب -->
         <div id="order-status-bar" class="order-status-bar" style="display:none;">
@@ -2047,21 +2117,24 @@
 
         <!-- ===== BOTTOM ACTIONS (الشريط السفلي الاحترافي) ===== -->
         <div class="bottom-actions">
-            <!-- السطر العلوي للأدوات وحالة المسودة -->
+            <!-- السطر العلوي للأدوات وحالة المسودة (متجاوب مع مختلف الشاشات) -->
             <div class="bottom-bar-top-row">
-                <span id="draft-status" class="draft-status-pill"><i class="fas fa-cloud"></i> الحفظ التلقائي جاهز</span>
+                <span id="draft-status" class="draft-status-pill">
+                    <i class="fas fa-cloud"></i>
+                    <span class="draft-label-text">حفظ تلقائي</span>
+                </span>
                 <div class="bottom-util-group">
                     <button type="button" class="bottom-util-btn" id="btn-save-draft-ph" onclick="saveDraft()" title="حفظ المسودة">
-                        <i class="fas fa-download"></i> مسودة
+                        <i class="fas fa-download"></i> <span>مسودة</span>
                     </button>
                     <button type="button" class="bottom-util-btn" id="btn-open-drafts-modal-ph" onclick="openDraftsModal()" title="المسودات المحفوظة">
-                        <i class="fas fa-folder-open"></i> المسودات
+                        <i class="fas fa-folder-open"></i> <span>المسودات</span>
                     </button>
                     <button type="button" class="bottom-util-btn" id="btn-open-edit-orders-modal-ph" onclick="openEditOrdersModal()" title="تعديل طلب سابق">
-                        <i class="fas fa-edit"></i> تعديل
+                        <i class="fas fa-edit"></i> <span>تعديل</span>
                     </button>
                     <button type="button" class="bottom-util-btn" id="btn-reset-order-form-ph" onclick="resetOrderForm()" title="طلب جديد">
-                        <i class="fas fa-redo"></i> جديد
+                        <i class="fas fa-redo"></i> <span>جديد</span>
                     </button>
                 </div>
             </div>
@@ -3010,9 +3083,9 @@
             const t = document.createElement('div');
             t.className = `toast ${type}`;
             const icons = { success: 'fa-check-circle', error: 'fa-exclamation-circle', warning: 'fa-exclamation-triangle', info: 'fa-info-circle' };
-            t.innerHTML = `<i class="fas ${icons[type] || icons.info}"></i> ${msg}`;
-            c.appendChild(t);
-            setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateX(20px)'; setTimeout(() => t.remove(), 300); }, 3500);
+            t.innerHTML = `<i class="fas ${icons[type] || icons.info}"></i> <span>${msg}</span>`;
+            c.prepend(t);
+            setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateY(-10px)'; setTimeout(() => t.remove(), 300); }, 3500);
             // يمكن تعطيل الصوت في العمليات الخلفية حتى لا يتكرر أو يستمر أثناء إنشاء PDF.
             if (options.sound !== false) {
                 if (type === 'success') playSuccessSound();
@@ -3148,7 +3221,14 @@
         function updateOnlineStatus() {
             isOnline = navigator.onLine;
             const indicator = document.getElementById('online-indicator');
-            if (indicator) indicator.style.color = isOnline ? 'var(--success)' : 'var(--danger)';
+            const banner = document.getElementById('offline-network-banner');
+            if (indicator) {
+                indicator.style.color = isOnline ? 'var(--success)' : 'var(--danger)';
+                indicator.title = isOnline ? 'متصل بالإنترنت' : 'غير متصل بالإنترنت (أوفلاين)';
+            }
+            if (banner) {
+                banner.style.display = isOnline ? 'none' : 'flex';
+            }
         }
 
         // ================================================================
@@ -3454,20 +3534,23 @@
         function triggerSearch() {
             clearTimeout(searchTimeout);
             const input = document.getElementById('top-search-input');
+            if (!input) return;
             const searchTerm = input.value.trim();
             currentSearch = searchTerm;
             saveFilterState();
-                        searchTimeout = setTimeout(() => fetchProducts(currentSearch, selectedCategoryId), 350);
+            searchTimeout = setTimeout(() => fetchProducts(currentSearch, selectedCategoryId), 250);
             const hint = document.getElementById('search-hint');
-            if (searchTerm.length >= 3) {
-                hint.textContent = `(بحث عن: "${searchTerm}")`;
-                hint.style.color = 'var(--success)';
-            } else if (searchTerm.length > 0) {
-                hint.textContent = `(ادخل 3 أحرف على الأقل، لديك ${formatPosQuantity(searchTerm.length)})`;
-                hint.style.color = 'var(--warning)';
-            } else {
-                hint.textContent = '(ابحث بـ 3 أحرف فأكثر)';
-                hint.style.color = 'var(--muted)';
+            if (hint) {
+                if (searchTerm.length >= 3) {
+                    hint.textContent = `(بحث عن: "${searchTerm}")`;
+                    hint.style.color = 'var(--success)';
+                } else if (searchTerm.length > 0) {
+                    hint.textContent = `(ادخل 3 أحرف على الأقل، لديك ${formatPosQuantity(searchTerm.length)})`;
+                    hint.style.color = 'var(--warning)';
+                } else {
+                    hint.textContent = '(ابحث بـ 3 أحرف فأكثر)';
+                    hint.style.color = 'var(--muted)';
+                }
             }
         }
 
@@ -3494,27 +3577,33 @@
             const term = this.value.trim();
             const hint = document.getElementById('search-hint');
             if (term.length > 0 && term.length < 3) {
-                hint.textContent = `(ادخل 3 أحرف على الأقل، لديك ${formatPosQuantity(term.length)})`;
-                hint.style.color = 'var(--warning)';
+                if (hint) {
+                    hint.textContent = `(ادخل 3 أحرف على الأقل، لديك ${formatPosQuantity(term.length)})`;
+                    hint.style.color = 'var(--warning)';
+                }
                 const dropdown = document.getElementById('search-dropdown');
                 if (dropdown) dropdown.style.display = 'none';
                 return;
             }
             if (term.length >= 3) {
-                hint.textContent = `(بحث عن: "${term}")`;
-                hint.style.color = 'var(--success)';
+                if (hint) {
+                    hint.textContent = `(بحث تلقائي عن: "${term}")`;
+                    hint.style.color = 'var(--success)';
+                }
                 searchTimeout = setTimeout(() => {
                     currentSearch = term;
                     saveFilterState();
                     fetchProducts(currentSearch, selectedCategoryId);
-                }, 300);
+                }, 250);
             } else {
-                hint.textContent = '(ابحث بـ 3 أحرف فأكثر)';
-                hint.style.color = 'var(--muted)';
+                if (hint) {
+                    hint.textContent = '(ابحث بـ 3 أحرف فأكثر)';
+                    hint.style.color = 'var(--muted)';
+                }
                 if (term.length === 0) {
                     currentSearch = '';
                     saveFilterState();
-                    searchTimeout = setTimeout(() => fetchProducts('', selectedCategoryId), 350);
+                    searchTimeout = setTimeout(() => fetchProducts('', selectedCategoryId), 250);
                     const dropdown = document.getElementById('search-dropdown');
                     if (dropdown) dropdown.style.display = 'none';
                 }
@@ -5597,10 +5686,92 @@
     }
     setProgress(50);
 
+    // ================================================================
+    //  دالة الحفظ في طابور الأوفلاين عند انقطاع الإنترنت
+    // ================================================================
+    async function saveOrderToOfflineQueue(payload, orderId) {
+        const reqId = payload.client_request_id || `req-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        const url = `${API}/online-orders${orderId ? '/' + orderId : ''}`;
+        const method = orderId ? 'PUT' : 'POST';
+        const record = {
+            id: reqId,
+            url: url,
+            method: method,
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+                'X-Offline-Operation-Id': reqId
+            },
+            body: JSON.stringify(payload),
+            timestamp: Date.now(),
+            status: 'pending',
+            attempts: 0
+        };
+
+        try {
+            const db = await new Promise((resolve, reject) => {
+                const req = indexedDB.open('IbnMukhtarOfflineQueueDB', 1);
+                req.onupgradeneeded = e => {
+                    const d = e.target.result;
+                    if (!d.objectStoreNames.contains('requests')) d.createObjectStore('requests', { keyPath: 'id' });
+                    if (!d.objectStoreNames.contains('meta')) d.createObjectStore('meta');
+                };
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(req.error);
+            });
+            const tx = db.transaction('requests', 'readwrite');
+            tx.objectStore('requests').put(record);
+            await new Promise((resolve, reject) => { tx.oncomplete = resolve; tx.onerror = reject; });
+        } catch (err) {
+            console.warn('IndexedDB offline save failed, falling back to backup queue:', err);
+        }
+
+        try {
+            const backupQueue = safeGetItem('pos_offline_orders_queue', []);
+            backupQueue.push(record);
+            safeSetItem('pos_offline_orders_queue', backupQueue);
+        } catch (e) {}
+
+        return reqId;
+    }
+
     try {
         let url = `${API}/online-orders`;
         let method = 'POST';
         if (editingOrderId) { url = `${API}/online-orders/${editingOrderId}`; method = 'PUT'; }
+
+        // إذا كان الجهاز غير متصل بالإنترنت حالياً، نحفظ أوفلاين مباشرة
+        if (!navigator.onLine) {
+            await saveOrderToOfflineQueue(payload, editingOrderId);
+            setProgress(100);
+            setTimeout(() => setProgress(0), 500);
+            playPosSound('success');
+            showToast('📴 تم الحفظ بدون إنترنت (محلياً وسيتم إرسال الطلب تلقائياً عند الاتصال)', 'warning');
+
+            const localTempId = payload.client_request_id || `offline-${Date.now()}`;
+            document.getElementById('display-order-id').innerText = 'أوفلاين';
+            document.getElementById('display-invoice-number').innerText = 'قيد المزامنة';
+
+            pendingInvoiceSnapshot = captureInvoiceSnapshot(localTempId);
+            pendingInvoiceIsDraft = false;
+
+            if (currentDraftId) {
+                let drafts = safeGetItem('pos_drafts_list', []);
+                drafts = drafts.filter(d => d.id !== currentDraftId);
+                safeSetItem('pos_drafts_list', drafts);
+                currentDraftId = null;
+            }
+
+            resetOrderForm();
+            lastSearchedPhone = '';
+            foundCustomer = null;
+            if (document.getElementById('customer-phone')) document.getElementById('customer-phone').value = '';
+            if (document.getElementById('modal-mainPhone')) document.getElementById('modal-mainPhone').value = '';
+            clearCustomerData();
+            showCustomerStatus('', 'idle');
+            setTimeout(() => openInvoiceChoiceModal(), 0);
+            return;
+        }
 
         const res = await fetchWithTimeout(url, {
             method: method,
@@ -5611,16 +5782,22 @@
         setProgress(100);
         setTimeout(() => setProgress(0), 500);
 
-        if (res.ok && data.success) {
-            const orderId = data.order_id || editingOrderId;
-            const invoiceNum = data.invoice_number || (data.order ? data.order.invoice_number : '');
+        const isOfflineQueued = data.offlineQueued || (res.headers && res.headers.get('X-Offline-Queued') === '1') || res.status === 202;
+
+        if ((res.ok && data.success) || isOfflineQueued) {
+            const orderId = data.order_id || editingOrderId || (isOfflineQueued ? 'أوفلاين' : '');
+            const invoiceNum = data.invoice_number || (data.order ? data.order.invoice_number : (isOfflineQueued ? 'قيد المزامنة' : ''));
             if (orderId) document.getElementById('display-order-id').innerText = orderId;
             if (invoiceNum) document.getElementById('display-invoice-number').innerText = invoiceNum;
 
             playPosSound('success');
-            showToast(`✅ ${editingOrderId ? 'تم تحديث' : 'تم حفظ'} الطلب ${orderId || ''}`, 'success', { sound: false });
+            if (isOfflineQueued) {
+                showToast('📴 تم الحفظ بدون إنترنت (محلياً وستتم المزامنة تلقائياً)', 'warning', { sound: false });
+            } else {
+                showToast(`✅ ${editingOrderId ? 'تم تحديث' : 'تم حفظ'} الطلب ${orderId || ''}`, 'success', { sound: false });
+            }
 
-            pendingInvoiceSnapshot = captureInvoiceSnapshot(orderId);
+            pendingInvoiceSnapshot = captureInvoiceSnapshot(orderId || payload.client_request_id);
             pendingInvoiceIsDraft = false;   // ✅ تأكيد أنها فاتورة طلب وليست مسودة
 
             if (currentDraftId) {
@@ -5647,7 +5824,24 @@
         }
     } catch (err) {
         if (lastSubmitFingerprint) safeRemoveItem('pos_last_order_fingerprint');
-        showToast(err.message || 'خطأ في الاتصال', 'error', { sound: false });
+        // إذا كان خطأ اتصال أو انقطاع مفاجئ للإنترنت
+        if (!navigator.onLine || err.message?.includes('fetch') || err.message?.includes('NetworkError') || err.name === 'AbortError') {
+            await saveOrderToOfflineQueue(payload, editingOrderId);
+            playPosSound('success');
+            showToast('📴 تم الحفظ بدون إنترنت (محلياً وسيتم إرسال الطلب تلقائياً عند عودة الاتصال)', 'warning');
+
+            const localTempId = payload.client_request_id || `offline-${Date.now()}`;
+            document.getElementById('display-order-id').innerText = 'أوفلاين';
+            document.getElementById('display-invoice-number').innerText = 'قيد المزامنة';
+
+            pendingInvoiceSnapshot = captureInvoiceSnapshot(localTempId);
+            pendingInvoiceIsDraft = false;
+            resetOrderForm();
+            clearCustomerData();
+            setTimeout(() => openInvoiceChoiceModal(), 0);
+        } else {
+            showToast(err.message || 'خطأ في الاتصال', 'error', { sound: false });
+        }
     } finally {
         if (btn) {
             btn.innerHTML = originalHTML;
@@ -6208,24 +6402,81 @@
             openDraftsModal(); 
         }
 
+        async function syncOfflineBackupQueue() {
+            try {
+                const queue = safeGetItem('pos_offline_orders_queue', []);
+                if (!queue || queue.length === 0) return 0;
+                let syncedCount = 0;
+                const remaining = [];
+                for (const item of queue) {
+                    try {
+                        const res = await fetch(item.url, {
+                            method: item.method || 'POST',
+                            headers: item.headers || { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                            body: item.body
+                        });
+                        const data = await res.json().catch(() => ({}));
+                        if (res.ok && data.success) {
+                            syncedCount++;
+                        } else {
+                            remaining.push(item);
+                        }
+                    } catch (e) {
+                        remaining.push(item);
+                    }
+                }
+                safeSetItem('pos_offline_orders_queue', remaining);
+                return syncedCount;
+            } catch (err) {
+                console.warn('فشل مزامنة الطابور الاحتياطي:', err);
+                return 0;
+            }
+        }
+
         window.addEventListener('online', async () => {
             updateOnlineStatus();
-            showToast('🌐 تم استعادة الاتصال', 'info');
+            showToast('🌐 تم الاتصال بالإنترنت - بدء المزامنة...', 'info');
+            try {
+                if (window.POSOffline?.syncNow) {
+                    await window.POSOffline.syncNow();
+                }
+                const backupSynced = await syncOfflineBackupQueue();
+                if (backupSynced > 0) {
+                    showToast(`✅ تمت مزامنة ${backupSynced} طلبات بنجاح`, 'success');
+                    playPosSound('success');
+                }
+            } catch (e) {
+                console.warn('Sync error on online:', e);
+            }
             await loadCurrencies();
             await loadWalletsFromServer();
             populateCurrencySelects();
             populateWalletSelects();
             await loadAllCategories();
             await loadSettings();
-            // لا يتم جلب المنتجات عند فتح الصفحة؛ يتم تحميلها فقط من زر تحديث البيانات.
             loadDrivers();
             await fetchCustomersList();
         });
 
         window.addEventListener('offline', () => { 
             updateOnlineStatus();
-            showToast('📴 غير متصل، وضع محلي', 'warning');
+            showToast('📴 غير متصل بالإنترنت (وضع أوفلاين)', 'warning');
         });
+
+        // الاستماع لتنبيهات اكتمال مزامنة Service Worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.addEventListener('message', (event) => {
+                const data = event.data || {};
+                if (data.type === 'OFFLINE_SYNC_STATUS' || data.type === 'SYNC_STATUS') {
+                    if (data.status === 'completed') {
+                        showToast('✅ تمت المزامنة بنجاح مع السيرفر', 'success');
+                        playPosSound('success');
+                    } else if (data.status === 'failed') {
+                        showToast('⚠️ تعثرت المزامنة، سيتم المحاولة تلقائياً مرة أخرى', 'warning');
+                    }
+                }
+            });
+        }
 // ================================================================
         //  CATEGORY MANAGEMENT, ADD PRODUCT & DRIVERS (الدوال المفقودة)
         // ================================================================
