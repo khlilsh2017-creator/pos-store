@@ -4,6 +4,7 @@
     <!-- مكتبة تحويل الفاتورة إلى صورة، يجب تحميلها قبل html2pdf -->
     <script src="/api-client.js?v=1.0.3"></script>
     <script src="/phone-nav.js"></script>
+    <script src="/login-helper.js?v=1.0.1"></script>
     <script src="../html2canvas.min.js"></script>
     <!-- استدعاء مكتبة PDF من جهازك / سيرفرك مباشرة -->
     <script src="../html2pdf.bundle.min.js"></script>
@@ -1136,11 +1137,53 @@
             padding-bottom: max(8px, var(--safe-bottom, 0px));
             border-top: 1px solid rgba(226, 232, 240, 0.9);
             box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.08);
-            z-index: 40;
+            z-index: 100;
             display: flex;
             align-items: center;
             gap: 5px;
             transition: background 0.3s, border-color 0.3s;
+        }
+
+        /* ضمان بقاء أزرار الحفظ والبيع ظاهرة دون اختفاء */
+        #btn-phone-submit-order,
+        #btn-phone-quick-order {
+            display: inline-flex !important;
+        }
+
+        /* مؤشر الخادم النشط والتبديل السريع */
+        .server-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+            background: rgba(255, 255, 255, 0.16);
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.68rem;
+            font-weight: 700;
+            color: #fff;
+            transition: var(--transition);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .server-indicator:active {
+            transform: scale(0.96);
+            background: rgba(255, 255, 255, 0.28);
+        }
+        .server-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #22c55e;
+            box-shadow: 0 0 6px #22c55e;
+            display: inline-block;
+        }
+        .server-dot.backup {
+            background: #1d63c6;
+            box-shadow: 0 0 6px #1d63c6;
+        }
+        .server-dot.offline {
+            background: #ef4444;
+            box-shadow: 0 0 6px #ef4444;
         }
 
         .dark-mode .bottom-actions, [data-theme="dark"] .bottom-actions {
@@ -1769,6 +1812,10 @@
             </div>
         </div>
         <div class="user-mini">
+            <div class="server-indicator" onclick="switchServerManual()" title="الخادم النشط - اضغط للتبديل أو فحص السرعة">
+                <span class="server-dot" id="serverDot"></span>
+                <span id="serverNameLabel">الأساسي</span>
+            </div>
             <button type="button" class="btn btn-xs btn-outline" id="btn-refresh-data-ph" onclick="refreshData()" style="min-height:32px;width:32px;padding:0;border-radius:8px;" title="تحديث وتنظيف">
                 <i class="fas fa-sync-alt"></i>
             </button>
@@ -1994,10 +2041,10 @@
 
         <!-- ===== BOTTOM ACTIONS (الشريط السفلي الموحد والأنيق) ===== -->
         <div class="bottom-actions">
-            <button type="button" id="btn-phone-submit-order" class="btn btn-success btn-save-main" onclick="submitOrder(false)" title="حفظ وتأكيد الطلب">
+            <button type="button" id="btn-phone-submit-order" class="btn btn-success btn-save-main" data-permission-ignore="true" onclick="submitOrder(false)" title="حفظ وتأكيد الطلب">
                 <i class="fas fa-check-circle"></i> <span>حفظ</span>
             </button>
-            <button type="button" id="btn-phone-quick-order" class="btn btn-warning btn-quick-main" onclick="submitOrder(false, true)" title="طلب سريع">
+            <button type="button" id="btn-phone-quick-order" class="btn btn-warning btn-quick-main" data-permission-ignore="true" onclick="submitOrder(false, true)" title="طلب سريع">
                 <i class="fas fa-bolt"></i> <span>سريع</span>
             </button>
             <button type="button" class="btn btn-outline btn-draft-main" id="btn-save-draft-ph" onclick="saveDraft()" title="حفظ كمسودة">
@@ -2255,6 +2302,23 @@
                     <button class="close-btn" id="btn-close-settings-modal-x-ph" onclick="closeModal('settings-modal')">&times;</button>
                 </div>
 
+                <!-- إعدادات الخادم والاتصال (نفس prep.html) -->
+                <div class="settings-card">
+                    <div class="settings-card-header">
+                        <i class="fas fa-server text-primary"></i>
+                        <span>إعدادات الخادم والاتصال</span>
+                    </div>
+                    <div class="settings-row" style="justify-content:space-between;">
+                        <span>الخادم النشط:</span>
+                        <span id="settingsModalServerBadge" class="policy-badge badge-on" onclick="closeModal('settings-modal'); LoginHelper?.openSettingsModal();" style="cursor:pointer;">الأساسي (api)</span>
+                    </div>
+                    <div style="margin-top:8px;">
+                        <button type="button" class="btn btn-sm btn-primary" onclick="closeModal('settings-modal'); LoginHelper?.openSettingsModal();" style="width:100%; font-weight:700;">
+                            <i class="fas fa-network-wired"></i> فحص سرعة الاتصال والتبديل بين الخوادم
+                        </button>
+                    </div>
+                </div>
+
                 <!-- سياسات النظام (من الخادم) -->
                 <div class="settings-card">
                     <div class="settings-card-header">
@@ -2430,7 +2494,7 @@
                 return false;
             }
             if (savedVersion === APP_VERSION) return false;
-            const keepKeys = new Set(['pos_token', 'user_info', 'dark_mode', 'shop_name', 'shop_phone', APP_VERSION_KEY]);
+            const keepKeys = new Set(['pos_token', 'pos_user', 'user_info', 'pos_saved_accounts_v1', 'posApiBase', '_apiEndpointIndex_v3', 'dark_mode', 'shop_name', 'shop_phone', APP_VERSION_KEY]);
             const keysToRemove = [];
             for (let i = 0; i < localStorage.length; i += 1) {
                 const key = localStorage.key(i);
@@ -2482,7 +2546,55 @@
             initializeApp();
         }
 
-        const API = (window.API_BASE_URL || (window.apiClient && window.apiClient.baseUrl) || localStorage.getItem('posApiBase') || 'https://api.ibnalmukhtar.com').replace(/\/$/, '');
+        let API = (window.API_BASE_URL || (window.apiClient && window.apiClient.baseUrl) || localStorage.getItem('posApiBase') || 'https://api.ibnalmukhtar.com').replace(/\/$/, '');
+        function refreshApiEndpoint() {
+            API = (window.API_BASE_URL || (window.apiClient && window.apiClient.baseUrl) || localStorage.getItem('posApiBase') || 'https://api.ibnalmukhtar.com').replace(/\/$/, '');
+            if (window.apiClient) window.apiClient.baseUrl = API;
+            return API;
+        }
+
+        function updateServerBadgeUi() {
+            const dot = document.getElementById('serverDot');
+            const label = document.getElementById('serverNameLabel');
+            const current = (window.apiClient?.baseUrl || localStorage.getItem('posApiBase') || '').toLowerCase();
+            const isBackup = current.includes('api2') || localStorage.getItem('_apiEndpointIndex_v3') === '1';
+            if (dot) {
+                dot.style.background = isBackup ? '#1d63c6' : '#22c55e';
+                dot.className = isBackup ? 'server-dot backup' : 'server-dot';
+            }
+            if (label) {
+                label.textContent = isBackup ? 'الاحتياطي (api2)' : 'الأساسي (api)';
+            }
+            const modalBadge = document.getElementById('settingsModalServerBadge');
+            if (modalBadge) {
+                modalBadge.textContent = isBackup ? 'الاحتياطي (api2)' : 'الأساسي (api)';
+                modalBadge.className = isBackup ? 'policy-badge badge-backup' : 'policy-badge badge-on';
+            }
+        }
+
+        function switchServerManual() {
+            if (window.LoginHelper && typeof window.LoginHelper.openSettingsModal === 'function') {
+                window.LoginHelper.openSettingsModal();
+            } else if (window.apiClient && typeof window.apiClient.toggleEndpoint === 'function') {
+                window.apiClient.toggleEndpoint();
+                refreshApiEndpoint();
+                updateServerBadgeUi();
+            }
+        }
+
+        // حماية أزرار الحفظ والبيع من أي إخفاء غير مقصود
+        function protectSubmitButtons() {
+            const saveBtn = document.getElementById('btn-phone-submit-order');
+            const quickBtn = document.getElementById('btn-phone-quick-order');
+            if (saveBtn) {
+                saveBtn.style.setProperty('display', 'inline-flex', 'important');
+                saveBtn.removeAttribute('aria-hidden');
+            }
+            if (quickBtn) {
+                quickBtn.style.setProperty('display', 'inline-flex', 'important');
+                quickBtn.removeAttribute('aria-hidden');
+            }
+        }
         let token = safeGetString('pos_token', '');
         if (!token) window.location.replace('index.html?next=add_order_ph.html');
 
@@ -2903,6 +3015,7 @@
         // ================================================================
         function openSettingsModal() {
             renderSettingsInfo();
+            updateServerBadgeUi();
             const isDark = document.body.classList.contains('dark-mode') || document.documentElement.getAttribute('data-theme') === 'dark';
             const lightBtn = document.getElementById('theme-btn-light');
             const darkBtn = document.getElementById('theme-btn-dark');
@@ -5567,12 +5680,13 @@
     lastSubmitFingerprint = fingerprint;
     console.log('📦 Payload المرسل:', JSON.stringify(payload, null, 2));
 
-    const btn = document.querySelector('.bottom-actions .btn-success');
+    const isQuick = Boolean(skipWarnings);
+    const btn = isQuick ? document.getElementById('btn-phone-quick-order') : document.getElementById('btn-phone-submit-order');
     let originalHTML = '';
     isSubmittingOrder = true;
     if (btn) {
         originalHTML = btn.innerHTML;
-        btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> حفظ...`;
+        btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${isQuick ? 'جارٍ الحفظ...' : 'حفظ...'}`;
         btn.disabled = true;
     }
     setProgress(50);
@@ -5739,6 +5853,7 @@
             btn.disabled = false;
         }
         isSubmittingOrder = false;
+        protectSubmitButtons();
     }
 }
 
@@ -6353,6 +6468,23 @@
             updateOnlineStatus();
         });
 
+        // الاستماع لأحداث تبديل الخادم والاتصال
+        window.addEventListener('api-server-switched', async () => {
+            refreshApiEndpoint();
+            updateServerBadgeUi();
+            showToast('🔄 تم التبديل وتحديث الخادم', 'info');
+            await refreshData();
+        });
+        window.addEventListener('api-endpoint-changed', () => {
+            refreshApiEndpoint();
+            updateServerBadgeUi();
+        });
+        window.addEventListener('api-endpoint-recovered', () => {
+            refreshApiEndpoint();
+            updateServerBadgeUi();
+        });
+        window.refreshAllData = refreshData;
+
         // الاستماع لتنبيهات اكتمال مزامنة Service Worker
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.addEventListener('message', (event) => {
@@ -6772,6 +6904,8 @@
                 loadDarkModePreference();
                 loadCurrentUser();
                 updateOnlineStatus();
+                updateServerBadgeUi();
+                protectSubmitButtons();
                 loadCartFromLocal();
                 loadProductsVisibility();
 

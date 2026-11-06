@@ -52,7 +52,13 @@
   ];
 
   function currentUser() {
-    try { return JSON.parse(localStorage.getItem('pos_user') || '{}'); } catch (_) { return {}; }
+    try {
+      const u = JSON.parse(localStorage.getItem('pos_user') || '{}');
+      if (u && (u.role || u.username)) return u;
+      const uInfo = JSON.parse(localStorage.getItem('user_info') || '{}');
+      if (uInfo && (uInfo.role || uInfo.username)) return uInfo;
+      return u || {};
+    } catch (_) { return {}; }
   }
   function getApiBase() {
     return (window.API_BASE_URL || (window.apiClient && window.apiClient.baseUrl) || localStorage.getItem('posApiBase') || 'https://api.ibnalmukhtar.com').replace(/\/$/, '');
@@ -108,7 +114,9 @@
     const u = user || currentUser();
     if (u.role === 'admin') return ['*'];
     const saved = Array.isArray(u.permissions) ? u.permissions : [];
-    return saved.length ? saved : (DEFAULT_ROLE_PERMISSIONS[u.role] || []);
+    if (saved.length) return saved;
+    const role = u.role || (localStorage.getItem('pos_token') ? 'cashier' : null);
+    return DEFAULT_ROLE_PERMISSIONS[role] || [];
   }
   function can(permission, user) {
     const list = permissionsOf(user);
@@ -126,13 +134,28 @@
     el.setAttribute('aria-hidden', 'true');
     el.style.display = 'none';
   }
+  function show(el) {
+    if (!el) return;
+    el.removeAttribute('aria-hidden');
+    if (el.style.display === 'none') {
+      el.style.display = '';
+    }
+  }
   function applyPermissionUI(root) {
     const host = root || document;
-    host.querySelectorAll('[data-permission]').forEach(el => { if (!can(el.getAttribute('data-permission'))) hide(el); });
+    host.querySelectorAll('[data-permission]').forEach(el => {
+      if (el.hasAttribute('data-permission-ignore')) return;
+      if (!can(el.getAttribute('data-permission'))) hide(el);
+      else show(el);
+    });
     host.querySelectorAll('[onclick]').forEach(el => {
+      if (el.hasAttribute('data-permission-ignore')) return;
       const source = el.getAttribute('onclick') || '';
       const action = Object.keys(ACTION_PERMISSIONS).find(name => new RegExp('\\b' + name + '\\s*\\(').test(source));
-      if (action && !can(ACTION_PERMISSIONS[action])) hide(el);
+      if (action) {
+        if (!can(ACTION_PERMISSIONS[action])) hide(el);
+        else show(el);
+      }
     });
     host.querySelectorAll('[data-sensitive="cost"], [data-sensitive="profit"]').forEach(el => {
       const p = el.getAttribute('data-sensitive') === 'profit' ? 'reports.cost.view' : 'products.view_cost';

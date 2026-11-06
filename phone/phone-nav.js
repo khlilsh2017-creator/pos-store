@@ -712,7 +712,19 @@
       if (window.LoginHelper && typeof window.LoginHelper.openSettingsModal === 'function') {
         window.LoginHelper.openSettingsModal();
       } else {
-        alert('إعدادات الخادم متاحة عبر زر الترس ⚙️ في الصفحة الرئيسية');
+        const s = document.createElement('script');
+        s.src = '/login-helper.js?v=1.0.1';
+        s.onload = () => {
+          if (window.LoginHelper && typeof window.LoginHelper.openSettingsModal === 'function') {
+            window.LoginHelper.openSettingsModal();
+          } else {
+            alert('إعدادات الخادم متاحة عبر زر الترس ⚙️ في الصفحة الرئيسية');
+          }
+        };
+        s.onerror = () => {
+          alert('إعدادات الخادم متاحة عبر زر الترس ⚙️ في الصفحة الرئيسية');
+        };
+        document.head.appendChild(s);
       }
     },
 

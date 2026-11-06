@@ -9,6 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <script src="/api-client.js?v=1.0.3"></script>
+<script src="/login-helper.js?v=1.0.1"></script>
 <script src="../date-utils.js"></script>
 <script src="../number-utils.js"></script>
 <script src="../permissions.js"></script>
@@ -32,6 +33,11 @@
 @keyframes loaderShimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
 .offline-banner{background:#fff6df;color:#946108;padding:7px 12px;font-size:.72rem;font-weight:700;text-align:center;border-bottom:1px solid #fed7aa;display:flex;align-items:center;justify-content:center;gap:6px}
 .spinning-icon{display:inline-block;animation:spin .8s linear infinite}
+.server-indicator{display:inline-flex;align-items:center;gap:5px;cursor:pointer;background:rgba(255,255,255,.16);padding:4px 9px;border-radius:12px;font-size:.68rem;font-weight:700;color:#fff;transition:.15s;border:1px solid rgba(255,255,255,.2)}
+.server-indicator:active{transform:scale(.96);background:rgba(255,255,255,.26)}
+.server-dot{width:8px;height:8px;border-radius:50%;background:#22c55e;box-shadow:0 0 6px #22c55e;display:inline-block}
+.server-dot.backup{background:#1d63c6;box-shadow:0 0 6px #1d63c6}
+.server-dot.offline{background:#ef4444;box-shadow:0 0 6px #ef4444}
 </style>
 <script src="/phone-nav.js"></script>
 </head>
@@ -45,6 +51,11 @@
         <button type="button" class="phone-nav-btn" onclick="PhoneNav.toggle()" title="القائمة الجانبية" aria-label="القائمة الجانبية"><i class="fas fa-bars"></i></button>
         <button class="icon-btn" id="btn-phone-new-order-top" onclick="goToCreateOrder()" aria-label="طلب جديد" title="إنشاء طلب جديد"><span>+</span></button>
         <div class="brand"><h1>إدارة طلبات الإنترنت</h1><p>متابعة الطلبات والتوصيل من الجوال</p></div>
+        <div class="server-indicator" onclick="switchServerManual()" title="الخادم النشط - اضغط للتبديل أو فحص السرعة">
+          <span class="server-dot" id="serverDot"></span>
+          <span id="serverNameLabel">الأساسي</span>
+        </div>
+        <button class="icon-btn" id="serverSettingsBtn" onclick="LoginHelper?.openSettingsModal()" title="إعدادات الخادم والاتصال" aria-label="إعدادات الخادم"><i class="fas fa-server"></i></button>
         <button class="icon-btn" id="driverManagerHeaderBtn" onclick="openDriverManagerMobile()" title="إدارة المندوبين" aria-label="إدارة المندوبين" style="display:none;"><i class="fas fa-users"></i></button>
         <button class="icon-btn" id="refreshBtn" onclick="refreshCurrentSection()" aria-label="تحديث" title="تحديث البيانات">↻</button>
       </div>
@@ -385,7 +396,51 @@
   </div>
 </div>
 <script>
-const API = (window.API_BASE_URL || (window.apiClient && window.apiClient.baseUrl) || localStorage.getItem('posApiBase') || 'https://api.ibnalmukhtar.com').replace(/\/$/, '');
+let API = (window.API_BASE_URL || (window.apiClient && window.apiClient.baseUrl) || localStorage.getItem('posApiBase') || 'https://api.ibnalmukhtar.com').replace(/\/$/, '');
+function refreshApiEndpoint() {
+    API = (window.API_BASE_URL || (window.apiClient && window.apiClient.baseUrl) || localStorage.getItem('posApiBase') || 'https://api.ibnalmukhtar.com').replace(/\/$/, '');
+    if (window.apiClient) window.apiClient.baseUrl = API;
+    return API;
+}
+
+function updateServerBadgeUi() {
+    const dot = document.getElementById('serverDot');
+    const label = document.getElementById('serverNameLabel');
+    const current = (window.apiClient?.baseUrl || localStorage.getItem('posApiBase') || '').toLowerCase();
+    const isBackup = current.includes('api2') || localStorage.getItem('_apiEndpointIndex_v3') === '1';
+    if (dot) {
+        dot.style.background = isBackup ? '#1d63c6' : '#22c55e';
+        dot.className = isBackup ? 'server-dot backup' : 'server-dot';
+    }
+    if (label) {
+        label.textContent = isBackup ? 'الاحتياطي (api2)' : 'الأساسي (api)';
+    }
+}
+
+function switchServerManual() {
+    if (window.LoginHelper && typeof window.LoginHelper.openSettingsModal === 'function') {
+        window.LoginHelper.openSettingsModal();
+    } else if (window.apiClient && typeof window.apiClient.toggleEndpoint === 'function') {
+        window.apiClient.toggleEndpoint();
+        refreshApiEndpoint();
+        updateServerBadgeUi();
+    }
+}
+
+window.addEventListener('api-server-switched', async () => {
+    refreshApiEndpoint();
+    updateServerBadgeUi();
+    refreshCurrentSection();
+});
+window.addEventListener('api-endpoint-changed', () => {
+    refreshApiEndpoint();
+    updateServerBadgeUi();
+});
+window.addEventListener('api-endpoint-recovered', () => {
+    refreshApiEndpoint();
+    updateServerBadgeUi();
+});
+window.refreshAllData = refreshCurrentSection;
 let isRefreshingOrders = false;
 let isCancellingOrder = false;
 let isUpdatingOrderStatus = false;
@@ -1893,6 +1948,7 @@ async function submitCreateReturnMobile(){
 async function initApp(){
     showApp();
     setupMobileSections();
+    updateServerBadgeUi();
     restoreOrdersPreset();
     restoreStatementPreset();
     updateOfflineUI(navigator.onLine);

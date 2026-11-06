@@ -1411,12 +1411,26 @@ function updateServerBadgeUi() {
 }
 
 function switchServerManual() {
-  if (window.apiClient && typeof window.apiClient.toggleEndpoint === 'function') {
+  if (window.LoginHelper && typeof window.LoginHelper.openSettingsModal === 'function') {
+    window.LoginHelper.openSettingsModal();
+  } else if (window.apiClient && typeof window.apiClient.toggleEndpoint === 'function') {
     window.apiClient.toggleEndpoint();
     updateServerBadgeUi();
     refreshPrepOrders();
   }
 }
+
+window.addEventListener('api-server-switched', () => {
+  updateServerBadgeUi();
+  refreshPrepOrders();
+});
+window.addEventListener('api-endpoint-changed', () => {
+  updateServerBadgeUi();
+});
+window.addEventListener('api-endpoint-recovered', () => {
+  updateServerBadgeUi();
+});
+window.refreshAllData = refreshPrepOrders;
 
 // Load Drivers for Filter
 async function loadDrivers() {
